@@ -48,17 +48,59 @@ export const TUNING = {
     SEGS_Z: 48,
   },
 
+  // ── Word gates (the WORD RUN verb) ──────────────────────────────────────
+  // The dodge-obstacle verb is swapped for a word-recognition verb: a word
+  // arrives at runner speed, the player confirms it (tap) or lets it pass.
+  // Real word confirmed / fake word ignored = clean gate. Fake confirmed or
+  // real missed = the DESCENT-equivalent hit. The speed ramp is untouched —
+  // gates are spaced in METRES, so the faster the shipped speed curve makes
+  // you, the shorter the reading window gets. One difficulty system, shared.
+  WORDS: {
+    FIRST_GATE_M: 90,          // matches FEATURES.SAFE_START (fair start)
+    SPACING_M: 85,             // metres of downhill between gates
+    // The word must be legible for the whole approach. ARM distance is where
+    // the plate becomes readable and the answer window opens.
+    ARM_DISTANCE_M: 55,
+    FAKE_CHANCE: 0.5,          // fair coin: spamming confirm buys nothing
+    // Tier ramps with distance, sharing the run's own ramp architecture.
+    TIER_EVERY_M: 700,         // +1 tier per this many metres, clamped
+    // Rewards mirror the slalom-gate + clean-landing economy the frame ships.
+    CORRECT_SPEED_BONUS: 3.0,  // = PLAYER.GATE_SPEED_BONUS
+    // DESCENT's slalom cap was 40, but its trees/moguls kept real speed far
+    // lower. Words are answered in a straight tuck, and the v1 hunt is a
+    // physical race at 31-38 m/s — a 40 m/s word bonus would let a good
+    // reader outrun every hunt forever. Capped below peak pursuit so the
+    // beast stays an opponent.
+    CORRECT_MAX_BONUS_SPEED: 37,
+    CORRECT_FILL: 6,           // boost meter per correct read (chain-multiplied)
+    // Wrong/no pick is exactly the frame's obstacle hit: HIT_SPEED_COST,
+    // stagger, chain break, beast mistake pressure — wired in the sim.
+    WRONG_METER_LOSS: 0.5,     // = BOOST.FLUB_METER_LOSS
+    // A wrong read is THE mistake of this game and arrives at most once per
+    // gate, far rarer than DESCENT's obstacle clips — so it weighs more.
+    // Above the chase director's hunt threshold, one bad read visibly
+    // matters (the frame's own "mistakes are visible in 2s" contract).
+    WRONG_PRESSURE: 2.0,
+    // Legibility floor (the falsifiable question, made checkable): at speed v
+    // the reading window is ARM_DISTANCE_M / v seconds. The word-gates suite
+    // asserts this stays above READ_WINDOW_MIN_S at the shipped top speed.
+    READ_WINDOW_MIN_S: 1.15,
+  },
+
   // ── Features / obstacles (per chunk, seeded) ────────────────────────────
+  // WORD RUN retune: the dodge verb is out, so nothing solid spawns and the
+  // slalom gates are off — word gates are the only thing the mountain asks
+  // of you. Structure kept (values retune, structure won't — brief).
   FEATURES: {
-    TREE_COUNT: [4, 8],        // inclusive range rolled per chunk
-    ROCK_COUNT: [2, 5],
-    ICE_CHANCE: 0.35,
-    GATE_CHANCE: 0.65,
-    MOGUL_CHANCE: 0.55,
-    // Carving is priority 1; air is priority 2. At ~1.8s per chunk a cliff
-    // every chunk would put you in the air a quarter of the run and there
-    // would be no line to hold. One per ~4 chunks gives carve-carve-huck.
-    CLIFF_CHANCE: 0.22,
+    TREE_COUNT: [0, 0],        // inclusive range rolled per chunk
+    ROCK_COUNT: [0, 0],
+    ICE_CHANCE: 0,
+    GATE_CHANCE: 0,
+    MOGUL_CHANCE: 0,
+    // Cliffs are part of the dodge/trick verb — off in WORD RUN. A word
+    // arriving while you are ballistic with no steering would be a cheap hit
+    // (fairness is priority 2 in the brief), so the ground stays under you.
+    CLIFF_CHANCE: 0,
 
     // Nothing spawns in the first N metres of a run (fair start)
     SAFE_START: 90,

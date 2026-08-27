@@ -108,10 +108,10 @@ export class UI {
     const p = sim.player;
     const d = sim.distance;
     let text = '';
-    if (d < 82) text = this.touch ? 'DRAG — CARVE' : 'A / D — CARVE';
-    else if (d < 220 && !p.airborne) text = this.touch ? 'FLICK UP — JUMP' : 'SPACE — JUMP';
-    else if (p.airborne && d < 390) text = this.touch ? 'MOVE — SPIN · RELEASE — LAND' : 'A/D + W/S — SPIN · RELEASE — LAND';
-    else if (p.tricksLanded > 0 && !this._showedPowerLesson) {
+    if (d < 60) text = this.touch ? 'DRAG — CARVE' : 'A / D — CARVE';
+    else if (d < 220) text = this.touch ? 'TAP IF THE WORD IS REAL' : 'SPACE IF THE WORD IS REAL';
+    else if (d < 390) text = 'LET FAKES PASS';
+    else if (p.gatesThreaded > 0 && !this._showedPowerLesson) {
       text = 'STYLE MAKES POWER';
       this._showedPowerLesson = true;
       this._powerT = Math.max(this._powerT, 1.7);

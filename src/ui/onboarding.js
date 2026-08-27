@@ -55,17 +55,17 @@ export class OnboardingUI {
     this.root.dataset.rc7Ui = '1';
     const touch = (navigator.maxTouchPoints || 0) > 0 || matchMedia('(pointer:coarse)').matches;
     const carve = touch ? 'DRAG' : 'A / D';
-    const jump = touch ? 'JUMP' : 'SPACE';
+    const confirm = touch ? 'TAP' : 'SPACE';
     const go = touch ? 'HOLD GO' : 'F';
     this.root.innerHTML = `
       <div class="card">
-        <h2>SKI AS FAR AS YOU CAN.</h2>
+        <h2>READ FAST. RUN FAR.</h2>
         <div class="rules">
+          <div class="rule"><b>${confirm}</b><span>WORDS RUSH AT YOU. ${confirm} IF THE SPELLING IS REAL.</span></div>
+          <div class="rule"><b>FAKES</b><span>LET A MISSPELLED WORD PASS. RIGHT READS FILL GO.</span></div>
           <div class="rule"><b>${carve}</b><span>CARVE. HOLD A CLEAN LINE TO KEEP SPEED.</span></div>
-          <div class="rule"><b>${jump}</b><span>TAP TO JUMP. AIR AND TRICKS FILL GO.</span></div>
-          <div class="rule"><b>BELLS</b><span>FOLLOW THE LINE. FIVE REPAIR ONE HEART.</span></div>
           <div class="rule"><b>${go}</b><span>BURST FORWARD WHEN THE METER IS CHARGED.</span></div>
-          <div class="rule"><b>♥ ♥ ♥</b><span>OBSTACLES COST A HEART.</span></div>
+          <div class="rule"><b>♥ ♥ ♥</b><span>A WRONG READ COSTS A HEART.</span></div>
         </div>
         <div class="ghost"><span>BEST RUN</span><button class="toggle" data-act="ghost"></button></div>
         <button class="start" data-act="start">DROP IN</button>

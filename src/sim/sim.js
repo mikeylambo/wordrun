@@ -8,6 +8,7 @@ import { Player } from './player.js';
 import { Beast } from './beast.js';
 import { SecondBeast } from './second-beast.js';
 import { GhostRecorder, GhostPlayer } from './ghost.js';
+import { WordGates } from './word-gates.js';
 import { stuntLandmarkAt } from '../design/landmarks.js';
 import { applyRC6Core } from '../design/rc6-core.js';
 import { applyLandingFeel } from '../design/landing-feel.js';
@@ -23,7 +24,7 @@ export const PHASE = {
 };
 
 export function emptyInput() {
-  return { carve: 0, flip: 0, jump: false, boostHeld: false, dragging: false };
+  return { carve: 0, flip: 0, jump: false, boostHeld: false, dragging: false, confirm: false };
 }
 
 export class Sim {
@@ -33,6 +34,7 @@ export class Sim {
     this.player = new Player(this.terrain);
     this.beast = new Beast(this.seed);
     this.secondBeast = new SecondBeast(this.seed);
+    this.wordGates = new WordGates(this.seed);
     this.recorder = new GhostRecorder();
     this.ghost = new GhostPlayer(null);
     this.phase = PHASE.TITLE;
@@ -57,6 +59,7 @@ export class Sim {
     this.player.reset();
     this.beast.reset();
     this.secondBeast.reset();
+    this.wordGates.reset(this.seed);
     this.beast.grace = Math.max(0, Math.min(1, grace));
     this.recorder.reset();
     this.ghost.load(ghostData);
@@ -90,11 +93,16 @@ export class Sim {
     const before = {
       hits: this.player.obstaclesHit,
       flubs: this.player.tricksFlubbed,
+      wordWrongs: this.wordGates.wrongCount,
     };
     const eventStart = this.events.length;
 
     const proxMult = this.beast.proximityMult();
     this.player.step(dt, input, proxMult, this.events);
+    // The verb: resolve word gates before mistakes are tallied, so a wrong
+    // read feeds the beast exactly like an obstacle clip does. Courage pays
+    // on reads the same way it paid on landings.
+    this.wordGates.step(this.player, input.confirm, this.events, proxMult);
 
     for (let i = eventStart; i < this.events.length; i++) {
       const e = this.events[i];
@@ -113,9 +121,13 @@ export class Sim {
       break;
     }
 
+    // A wrong read already counts once through the obstacle ledger; it
+    // carries WRONG_PRESSURE total because it is this game's one mistake.
     const mistakes =
       (this.player.obstaclesHit - before.hits) +
-      (this.player.tricksFlubbed - before.flubs);
+      (this.player.tricksFlubbed - before.flubs) +
+      (this.wordGates.wrongCount - before.wordWrongs) *
+        (TUNING.WORDS.WRONG_PRESSURE - 1);
     if (mistakes > 0) this.beast.registerMistake(mistakes);
 
     this.beast.step(dt, this.player);
@@ -146,6 +158,7 @@ export class Sim {
     while (this._acc >= TUNING.SIM.DT && n < TUNING.SIM.MAX_STEPS_PER_FRAME) {
       this.step(input);
       if (input.jump) input.jump = false;
+      if (input.confirm) input.confirm = false;
       this._acc -= TUNING.SIM.DT;
       n++;
     }
@@ -175,6 +188,10 @@ export class Sim {
       tricksFlubbed: p.tricksFlubbed,
       obstaclesHit: p.obstaclesHit,
       stuntsCleared: this.stuntsCleared,
+      wordsCorrect: this.wordGates.correctCount,
+      wordsWrong: this.wordGates.wrongCount,
+      wordStreak: this.wordGates.streak,
+      bestWordStreak: this.wordGates.bestStreak,
       secondBeastActive: this.secondBeast.active,
       secondBeastKind: this.secondBeast.active ? this.secondBeast.kind : null,
       secondBeastAppearances: this.secondBeast.appearances,
@@ -235,6 +252,14 @@ export class Sim {
       wakefulness: +this.beast.wakefulness().toFixed(3),
       stuntsCleared: this.stuntsCleared,
       lastStuntId: this._lastStuntId,
+      wordGate: (() => {
+        const g = this.wordGates.current();
+        return {
+          index: g.index, d: +g.d.toFixed(2), shown: g.shown, real: g.real,
+          tier: g.tier, confirmed: g.confirmed,
+          armed: this.wordGates.armed(this.player.d),
+        };
+      })(),
     };
   }
 }

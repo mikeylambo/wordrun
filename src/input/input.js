@@ -27,6 +27,13 @@ const TOUCH_RESPONSE_GROUND = 24.0;
 const TOUCH_RESPONSE_AIR = 34.0;
 const SWIPE_PX = 42;            // legacy upward flick distance that counts as a jump
 const SWIPE_MS = 260;
+// WORD RUN: a quick, small-travel touch is a TAP — the confirm verb. Any
+// pointer qualifies, so the steering thumb can stay planted while the other
+// thumb answers a word. A second finger only reads as the GO shortcut once
+// it has been held past the tap window.
+const TAP_MS = 220;
+const TAP_PX = 12;
+const GO_HOLD_MS = 250;
 
 const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
 
@@ -111,6 +118,7 @@ export class Input {
       t.setPointerCapture?.(e.pointerId);
       this.pointerMeta.set(e.pointerId, {
         x: e.clientX, y: e.clientY, type: e.pointerType || 'mouse',
+        downX: e.clientX, downY: e.clientY, downT: performance.now(),
       });
       if (this.primaryId === null) {
         this.primaryId = e.pointerId;
@@ -139,6 +147,15 @@ export class Input {
     }, opt);
 
     const release = (e) => {
+      // Tap = confirm (routed through the jump edge, which WORD RUN's sim
+      // reads as `confirm`). Applies to the primary thumb and to a quick
+      // second-finger tap alike.
+      const meta = this.pointerMeta.get(e.pointerId);
+      if (meta && this.enabled) {
+        const dt = performance.now() - meta.downT;
+        const travel = Math.hypot(e.clientX - meta.downX, e.clientY - meta.downY);
+        if (dt < TAP_MS && travel < TAP_PX) this.jump = true;
+      }
       if (e.pointerId === this.primaryId) {
         this.primaryId = null;
         this.primaryTouch = false;
@@ -286,7 +303,14 @@ export class Input {
     // Pointer wins when present, otherwise the keyboard drives.
     this.carve = this.primaryId !== null ? dragX : this.keyX;
     this.flip = this.primaryId !== null ? dragY : this.keyY;
-    this.boostHeld = this.extraPointers.size > 0 || this.keyBoost || this.__v1GoButtonHeld;
+    // A second finger is GO only once it is clearly a hold, not a word tap.
+    let extraHeld = false;
+    const now = performance.now();
+    for (const id of this.extraPointers) {
+      const held = this.pointerMeta.get(id);
+      if (!held || now - held.downT >= GO_HOLD_MS) { extraHeld = true; break; }
+    }
+    this.boostHeld = extraHeld || this.keyBoost || this.__v1GoButtonHeld;
   }
 
   /** The sim consumes jump as an edge; call after stepping. */

@@ -53,8 +53,10 @@ check(input.includes('TOUCH_RESPONSE_GROUND = 24.0') && input.includes('TOUCH_RE
   'mobile air tricks respond faster than grounded carving');
 check(input.includes('_lastGrounded') && input.includes('_reanchorTouch') && input.includes('grounded !== this._lastGrounded'),
   'held touch re-anchors when takeoff/landing changes gesture context');
-check(input.includes('__v1GoButtonHeld') && input.includes('this.extraPointers.size > 0 || this.keyBoost || this.__v1GoButtonHeld'),
-  'dedicated GO button and second-finger shortcut share the same input contract');
+check(input.includes('__v1GoButtonHeld') && input.includes('extraHeld || this.keyBoost || this.__v1GoButtonHeld'),
+  'dedicated GO button and held second-finger shortcut share the same input contract');
+check(input.includes('GO_HOLD_MS') && input.includes('TAP_MS'),
+  'a quick second-finger tap reads as the word verb, not as GO');
 check(mobile.includes("guide.id = 'v1TouchGuide'"),
   'mobile exposes a contextual gesture frame while the steering thumb is down');
 check(mobile.includes("go.id = 'v1MobileGo'"),
@@ -67,8 +69,8 @@ check(mobile.includes("content:'SPIN'") && mobile.includes("content:'FLIP'") && 
   'gesture overlay communicates carve on snow and spin/flip in air');
 check(mobile.includes('Audio.prototype.__v1MobileTouchUi'),
   'mobile presentation updates through the existing audio/presentation chain');
-check(onboarding.includes("touch ? 'JUMP' : 'SPACE'") && onboarding.includes('TAP TO JUMP.'),
-  'touch onboarding teaches the dedicated JUMP control rather than requiring a flick');
+check(onboarding.includes("touch ? 'TAP' : 'SPACE'") && onboarding.includes('IF THE SPELLING IS REAL'),
+  'touch onboarding teaches the confirm verb rather than requiring discovery');
 check(onboarding.includes("touch ? 'HOLD GO' : 'F'"),
   'touch onboarding teaches visible HOLD GO rather than requiring discovery of second finger');
 check(index.includes('/src/v1-mobile-ui.js'), 'mobile control presentation is loaded by the release page');

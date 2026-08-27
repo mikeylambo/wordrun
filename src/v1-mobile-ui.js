@@ -88,8 +88,8 @@ function ensureMobileUi() {
   jump.id = 'v1MobileJump';
   jump.className = 'v1MobileAction';
   jump.type = 'button';
-  jump.setAttribute('aria-label', 'Jump');
-  jump.innerHTML = '<span>JUMP</span>';
+  jump.setAttribute('aria-label', 'Confirm the word is real');
+  jump.innerHTML = '<span>REAL</span>';
   app.appendChild(jump);
 
   const go = document.createElement('button');
@@ -109,7 +109,7 @@ function ensureMobileUi() {
     const input = globalThis.__INPUT;
     const player = globalThis.__SIM?.player;
     if (input) {
-      if (!player?.airborne) input.jump = true;
+      input.jump = true;
       if (!input._firedFirst) {
         input._firedFirst = true;
         input.onFirstGesture?.();

@@ -12,6 +12,7 @@ import { PlayerActor, BeastActor, GhostActor } from './render/actors.js';
 import { CameraRig } from './render/camera-rig.js';
 import { Spray } from './render/fx.js';
 import { Landmarks } from './render/landmarks.js';
+import { WordGateActors } from './render/word-gates.js';
 import { applyMaterialPass } from './render/material-pass.js';
 import { Audio } from './audio/audio.js';
 import { Input } from './input/input.js';
@@ -37,6 +38,7 @@ const beastActor = new BeastActor(stage.scene);
 const ghostActor = new GhostActor(stage.scene);
 const rig = new CameraRig(stage.camera);
 const spray = new Spray(stage.scene);
+const wordGateActors = new WordGateActors(stage.scene, sim);
 const materialPass = applyMaterialPass(stage.scene, terrainMesh, { playerActor, beastActor });
 
 const simInput = emptyInput();
@@ -76,6 +78,7 @@ function startRun() {
   rig.reset();
   beastActor.reset();
   spray.clear();
+  wordGateActors.reset();
   ui.clearDread();
   ui.clearRun();
   shotUrl = null;
@@ -296,6 +299,20 @@ function drainSimEvents() {
         spray.emit(e.x, e.y, -e.d, 28, 8, 4.2, 0);
         break;
       case 'kill': audio.kill(); break;
+      case 'word_confirm': audio.uiTap(); break;
+      case 'word_correct':
+        audio.gate();
+        if (e.chain > 0) audio.chainLink(e.chain);
+        if (e.proxMult > 1.05) audio.courageBank(e.proxMult);
+        spray.emit(e.x, e.y, -e.d, 14, 4.0, 2.6, 0);
+        wordGateActors.onResolve(e);
+        break;
+      case 'word_wrong':
+        audio.hit();
+        spray.emit(e.x, e.y, -e.d, 18, 7, 3.2, 0);
+        ui.hitFlash();
+        wordGateActors.onResolve(e);
+        break;
     }
   }
 }
@@ -309,7 +326,11 @@ function tick(dt) {
     input.update(dt, !p.airborne);
     simInput.carve = input.carve;
     simInput.flip = input.flip;
-    simInput.jump = input.jump;
+    // WORD RUN: every tap-ish gesture (screen tap, action button, Space,
+    // upward flick) funnels through the old jump edge and becomes the
+    // confirm verb. The sim never jumps — the ground stays under the word.
+    simInput.confirm = input.jump;
+    simInput.jump = false;
     simInput.boostHeld = input.boostHeld;
     simInput.dragging = input.dragging;
 
@@ -340,6 +361,7 @@ function tick(dt) {
   terrainMesh.pump();
   props.update(p.d);
   landmarks.update(p.d);
+  wordGateActors.update(dt, p.d, stage.camera);
 
   const slope = sim.terrain.normalAt(p.x, p.d);
   playerActor.update(p, slope, dt, sim.beast.gap);
@@ -409,6 +431,7 @@ window.__SIM = sim;
 window.__TUNING = TUNING;
 window.__RENDER = {
   stage, terrainMesh, props, landmarks, rig, playerActor, beastActor, ghostActor, spray, materialPass,
+  wordGateActors,
 };
 window.__INPUT = input;
 window.__START = () => { startRun(); return sim.state(); };
@@ -425,6 +448,7 @@ window.__STEP = (n = 1, cmd = {}) => {
     simInput.carve = cmd.carve ?? 0;
     simInput.flip = cmd.flip ?? 0;
     simInput.jump = !!cmd.jump;
+    simInput.confirm = !!cmd.confirm;
     simInput.boostHeld = !!cmd.boostHeld;
     sim.step(simInput);
   }
