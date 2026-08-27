@@ -5,6 +5,7 @@ import '../rc9-audio.js';
 import '../rc7-feel.js';
 import '../rc81-ui.js';
 import { SURFACES, applySurface } from './surface-textures.js';
+import TUNING from '../TUNING.js';
 
 function toStandard(old) {
   const next = new THREE.MeshStandardMaterial({
@@ -71,16 +72,26 @@ function terrainMaterial() {
 
   terrain.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute float surface;\nvarying float vRc8Surface;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRc8Surface = surface;');
+      .replace('#include <common>', '#include <common>\nattribute float surface;\nvarying float vRc8Surface;\nvarying vec3 vP4World;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRc8Surface = surface;\nvP4World = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying float vRc8Surface;')
+      .replace('#include <common>', '#include <common>\nvarying float vRc8Surface;\nvarying vec3 vP4World;')
       .replace('#include <roughnessmap_fragment>',
         '#include <roughnessmap_fragment>\nfloat rc8Ice = smoothstep(0.08, 0.92, vRc8Surface);\nroughnessFactor = mix(roughnessFactor, 0.27, rc8Ice);')
       .replace('#include <metalnessmap_fragment>',
-        '#include <metalnessmap_fragment>\nmetalnessFactor = mix(metalnessFactor, 0.045, smoothstep(0.08, 0.92, vRc8Surface));');
+        '#include <metalnessmap_fragment>\nmetalnessFactor = mix(metalnessFactor, 0.045, smoothstep(0.08, 0.92, vRc8Surface));')
+      // The data-stream reads as a track because the ground says so: a world-
+      // space grid etched in light, and two rails burning at the ribbon edges.
+      .replace('#include <emissivemap_fragment>',
+        `#include <emissivemap_fragment>
+        vec2 p4Cell = vP4World.xz / 6.0;
+        vec2 p4F = abs(fract(p4Cell) - 0.5);
+        float p4Line = smoothstep(0.44, 0.5, max(p4F.x, p4F.y));
+        float p4Rail = smoothstep(1.6, 0.25, abs(abs(vP4World.x) - ${TUNING.TERRAIN.HALF_WIDTH.toFixed(1)}));
+        totalEmissiveRadiance += vec3(0.05, 0.34, 0.46) * p4Line * 0.55;
+        totalEmissiveRadiance += vec3(0.10, 0.62, 0.80) * p4Rail * 0.9;`);
   };
-  terrain.customProgramCacheKey = () => 'descent-rc8-terrain-surface-v1';
+  terrain.customProgramCacheKey = () => 'wordrun-p4-dataworld-terrain-v1';
   return terrain;
 }
 

@@ -4,6 +4,7 @@
  */
 
 import TUNING from '../TUNING.js';
+import { corruptionIntensity, veilOpacity } from '../render/corruption-curve.js';
 import { bandForDistance } from '../render/art-direction.js';
 
 const $ = (id) => document.getElementById(id);
@@ -25,6 +26,7 @@ export class UI {
     this.dread = $('dread');
     this.dreadRed = $('dreadRed');
     this.fur = $('fur');
+    this.staticVeil = $('staticVeil');
     this.flash = $('flash');
     this.titleScreen = $('titleScreen');
     this.titleHint = $('titleHint');
@@ -225,6 +227,12 @@ export class UI {
     this._updateCoach(sim, running);
 
     const bands = running ? sim.beast.bands() : { roar: 0, footfall: 0, scream: 0, shake: 0 };
+    // Continuous screen-space corruption, from the same gap the sim already
+    // owns — visible escalation long before the close-range bands wake up.
+    if (this.staticVeil) {
+      const intensity = running ? corruptionIntensity(sim.beast.gap) : 0;
+      this.staticVeil.style.opacity = veilOpacity(intensity).toFixed(3);
+    }
     this.dread.style.opacity = (bands.footfall * 0.92).toFixed(3);
     this.dreadRed.style.opacity = (bands.scream * 0.9).toFixed(3);
     if (bands.footfall > 0.01) {
@@ -307,6 +315,7 @@ export class UI {
     this.dread.style.opacity = '0';
     this.dreadRed.style.opacity = '0';
     this.fur.style.opacity = '0';
+    if (this.staticVeil) this.staticVeil.style.opacity = '0';
     this.flash.style.opacity = '0';
     this._flash = 0;
   }

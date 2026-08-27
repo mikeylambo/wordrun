@@ -1,11 +1,13 @@
 /**
- * DESCENT RC9 audio identity.
- * One shared Web Audio graph drives skiing, mountain ambience, bells, GO,
- * Hunts and both beasts. Organic ElevenLabs assets can be layered in later;
- * every gameplay-critical cue has a procedural fallback now.
+ * WORD RUN audio identity (RC9 graph, Phase 4 timbres).
+ * One shared Web Audio graph drives running, stream ambience, bells, GO,
+ * Hunts and both threat presentations. The creature growls are gone: every
+ * threat cue is now signal-noise — static beds, interference whine, glitch
+ * ticks — driven by the SAME band curves and gap value the beast cues used.
  */
 
 import TUNING from '../TUNING.js';
+import { corruptionIntensity } from '../render/corruption-curve.js';
 
 const A = TUNING.AUDIO;
 const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
@@ -19,6 +21,9 @@ const RC9 = {
   GO_RUSH: 0.24,
   HUNT_DRONE: 0.18,
   HUNT_BPM: [104, 126],
+  // Far-range corruption bed: audible the moment the gap starts closing,
+  // long before the close-range bands wake — the ears' version of the veil.
+  STATIC_FAR: 0.085,
 };
 
 function noiseBuffer(ctx, seconds = 2, smooth = 0.72) {
@@ -88,12 +93,15 @@ export class Audio {
     this.powder = this._noiseVoice(620, 'lowpass', 0.7, this.bus.surface);
     this.ice = this._noiseVoice(3900, 'bandpass', 5.2, this.bus.surface);
     this.goRush = this._noiseVoice(2800, 'bandpass', 1.1, this.bus.ambience);
-    this.roar = this._noiseVoice(145, 'lowpass', 2.0, this.bus.threat, 0);
+    // "roar" keeps its name and its band curve; its body is now interference —
+    // white noise through a wandering bandpass instead of a low growl.
+    this.roar = this._noiseVoice(1650, 'bandpass', 0.9, this.bus.threat, 0, this.white);
+    this.staticFar = this._noiseVoice(5200, 'highpass', 0.5, this.bus.threat, 0, this.white);
 
     this.roarLfo = ctx.createOscillator();
     this.roarLfoGain = ctx.createGain();
-    this.roarLfo.frequency.value = 0.29;
-    this.roarLfoGain.gain.value = 48;
+    this.roarLfo.frequency.value = 0.9;
+    this.roarLfoGain.gain.value = 620;
     this.roarLfo.connect(this.roarLfoGain);
     this.roarLfoGain.connect(this.roar.filter.frequency);
     this.roarLfo.start();
@@ -102,16 +110,16 @@ export class Audio {
     this.screamGain.gain.value = 0;
     this.screamGain.connect(this.bus.threat);
     this.screamOscs = [];
-    for (const f of [302, 323]) {
+    for (const f of [1174, 1187]) {
       const o = ctx.createOscillator();
       const g = ctx.createGain();
       const filt = ctx.createBiquadFilter();
-      o.type = 'sawtooth';
+      o.type = 'square';
       o.frequency.value = f;
-      g.gain.value = 0.13;
+      g.gain.value = 0.09;
       filt.type = 'bandpass';
-      filt.frequency.value = 860;
-      filt.Q.value = 1.5;
+      filt.frequency.value = 2400;
+      filt.Q.value = 2.2;
       o.connect(g); g.connect(filt); filt.connect(this.screamGain);
       o.start();
       this.screamOscs.push(o);
@@ -148,9 +156,9 @@ export class Audio {
     return p;
   }
 
-  _noiseVoice(freq, type, q, bus, pan = 0) {
+  _noiseVoice(freq, type, q, bus, pan = 0, buffer = this.noise) {
     const src = this.ctx.createBufferSource();
-    src.buffer = this.noise;
+    src.buffer = buffer;
     src.loop = true;
     const filter = this.ctx.createBiquadFilter();
     filter.type = type;
@@ -225,6 +233,12 @@ export class Audio {
     if (this.roar.pan) this._set(this.roar.pan.pan, beastPan, 0.05);
     this._set(this.roar.gain.gain, A.ROAR_MAX * (bands?.roar || 0));
     this._set(this.screamGain.gain, A.SCREAM_MAX * Math.pow(bands?.scream || 0, 2));
+
+    // Far corruption bed, same intensity curve as the veil and the field.
+    const gap = sim?.beast?.gap;
+    const corr = run && !kill && gap != null ? corruptionIntensity(gap) : 0;
+    this._set(this.staticFar.gain.gain, RC9.STATIC_FAR * corr * corr, 0.12);
+    if (this.staticFar.pan) this._set(this.staticFar.pan.pan, beastPan * 0.5, 0.1);
 
     if ((bands?.footfall || 0) > 0.01 && !kill) {
       const hz = lerp(A.FOOTFALL_HZ_FAR, A.FOOTFALL_HZ_NEAR, bands.footfall);
@@ -301,21 +315,23 @@ export class Audio {
   }
 
   _thump(vol, pan = 0, bus = this.bus.threat) {
+    // The approach rhythm survives; the paw on snow becomes a data tick —
+    // a hard square blip with a white-noise transient.
     const t = this.ctx.currentTime;
     const o = this.ctx.createOscillator();
-    o.type = 'sine';
-    o.frequency.setValueAtTime(74, t);
-    o.frequency.exponentialRampToValueAtTime(29, t + 0.17);
+    o.type = 'square';
+    o.frequency.setValueAtTime(220, t);
+    o.frequency.exponentialRampToValueAtTime(58, t + 0.07);
     const g = this.ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t + 0.009);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.31);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol * 0.8), t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
     const p = this._panner(pan);
     o.connect(g);
     if (p) { g.connect(p); p.connect(bus); }
     else g.connect(bus);
-    o.start(t); o.stop(t + 0.34);
-    this._burst(0.18, vol * 0.20, 440, 'lowpass', pan, bus);
+    o.start(t); o.stop(t + 0.17);
+    this._burst(0.07, vol * 0.35, 5200, 'highpass', pan, bus, 0.7);
   }
 
   _huntPulse(accent, pan = 0) {
@@ -369,9 +385,10 @@ export class Audio {
 
   huntStart(side = 0, kind = 'rear') {
     const pan = clamp(side * 0.75, -1, 1);
-    this._tone({ type: 'sawtooth', f0: side < 0 ? 116 : side > 0 ? 132 : 124, f1: 58, dur: 0.42, vol: 0.09, pan, bus: this.bus.threat, filter: { type: 'lowpass', freq: 520, q: 3 } });
-    this._thump(0.18, pan * 0.35, this.bus.threat);
-    if (kind === 'leap') this._tone({ type: 'triangle', f0: 210, f1: 520, dur: 0.30, vol: 0.055, pan, bus: this.bus.threat, delay: 0.08 });
+    this._tone({ type: 'square', f0: side < 0 ? 340 : side > 0 ? 390 : 365, f1: 96, dur: 0.42, vol: 0.075, pan, bus: this.bus.threat, filter: { type: 'bandpass', freq: 1100, q: 3 } });
+    this._burst(0.34, 0.12, 4200, 'highpass', pan, this.bus.threat, 0.7);
+    this._thump(0.16, pan * 0.35, this.bus.threat);
+    if (kind === 'leap') this._tone({ type: 'triangle', f0: 620, f1: 1450, dur: 0.30, vol: 0.05, pan, bus: this.bus.threat, delay: 0.08 });
     this._huntBeatT = 0;
   }
 
@@ -407,9 +424,11 @@ export class Audio {
       this._tone({ type: 'triangle', f0: 720, f1: 82, dur: 0.92, vol: 0.20, bus: this.bus.cinematic });
       this._thump(0.30, 0, this.bus.cinematic);
     } else {
-      this._burst(0.95, 0.52, 220, 'lowpass', 0, this.bus.cinematic);
-      this._tone({ type: 'sawtooth', f0: 285, f1: 38, dur: 0.96, vol: 0.27, bus: this.bus.cinematic, filter: { type: 'lowpass', freq: 720, q: 2.2 } });
-      this._thump(0.34, 0, this.bus.cinematic);
+      // Signal death: a full-band static crush collapsing into a power-down.
+      this._burst(0.85, 0.5, 2400, 'bandpass', 0, this.bus.cinematic, 0.8);
+      this._burst(0.6, 0.3, 6400, 'highpass', 0, this.bus.cinematic, 0.6);
+      this._tone({ type: 'sawtooth', f0: 780, f1: 32, dur: 1.05, vol: 0.24, bus: this.bus.cinematic, filter: { type: 'lowpass', freq: 1500, q: 1.4 } });
+      this._thump(0.3, 0, this.bus.cinematic);
     }
   }
 
@@ -419,14 +438,15 @@ export class Audio {
     if (!this.ready || this.muted) return;
     const pan = this._panFor(globalThis.__SIM?.beast?.x ?? 0);
     const dur = TUNING.BEAST.LUNGE_TELL;
-    this._tone({ type: 'sawtooth', f0: 44, f1: 168, dur, vol: 0.20, pan, bus: this.bus.threat, filter: { type: 'lowpass', freq: 460, q: 6 } });
-    this._burst(dur * 0.75, 0.07, 1850, 'bandpass', pan, this.bus.threat, 1.2);
+    // The wind-up you get to react to: a static swell sweeping upward.
+    this._tone({ type: 'sawtooth', f0: 160, f1: 1350, dur, vol: 0.13, pan, bus: this.bus.threat, filter: { type: 'bandpass', freq: 1900, q: 3 } });
+    this._burst(dur * 0.85, 0.16, 3400, 'highpass', pan, this.bus.threat, 0.8);
   }
 
   lungeStrike() {
     const pan = this._panFor(globalThis.__SIM?.beast?.x ?? 0);
-    this._burst(0.36, 0.42, 680, 'lowpass', pan, this.bus.threat);
-    this._tone({ type: 'square', f0: 185, f1: 54, dur: 0.32, vol: 0.18, pan, bus: this.bus.threat });
+    this._burst(0.30, 0.46, 2600, 'bandpass', pan, this.bus.threat, 1.6);
+    this._tone({ type: 'square', f0: 640, f1: 52, dur: 0.26, vol: 0.16, pan, bus: this.bus.threat });
   }
 
   courageBank(mult) {

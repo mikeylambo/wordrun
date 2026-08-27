@@ -46,7 +46,7 @@ export class Spray {
     this.geo = geo;
 
     this.mat = new THREE.PointsMaterial({
-      color: 0xffffff,
+      color: 0x8fe4ff,
       size: 0.42,
       sizeAttenuation: true,
       transparent: true,

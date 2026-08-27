@@ -1,32 +1,32 @@
 /**
- * DESCENT base palette.
+ * WORD RUN base palette — the data stream at clean signal.
  *
- * Distance-dependent mountain palettes live in art-direction.js. These values
- * are the near-slope defaults and the actor colours that must remain stable
- * across every band so the skier and creature keep their identities.
+ * Distance-dependent palettes live in art-direction.js. These values are the
+ * near-track defaults and the actor colours that must remain stable across
+ * every band so the runner keeps their identity.
  */
 
 import { PLAYER_ACCENT, DANGER_RED } from './art-direction.js';
 
 export const PALETTE = {
-  FOG: 0xc9d7e2,
-  SKY: 0xc9d7e2,
+  FOG: 0x081222,
+  SKY: 0x050a12,
 
-  SNOW_LIT: 0xf0f5f9,
-  SNOW_CREST: 0xffffff,
-  SNOW_MID: 0xdde6ef,
-  SNOW_SHADE: 0xc5d3df,
-  POWDER: 0xd0deea,
-  ICE: 0x9fc9e2,
+  SNOW_LIT: 0x121c2c,
+  SNOW_CREST: 0x2e4a66,
+  SNOW_MID: 0x0e1624,
+  SNOW_SHADE: 0x0a111e,
+  POWDER: 0x1a2740,
+  ICE: 0x1d5f7c,
 
-  PINE: 0x294239,
-  PINE_DARK: 0x1c302a,
-  TRUNK: 0x343739,
-  ROCK: 0x727b86,
-  ROCK_DARK: 0x565f6b,
+  PINE: 0x0d3a4a,
+  PINE_DARK: 0x07222c,
+  TRUNK: 0x141f2c,
+  ROCK: 0x22364a,
+  ROCK_DARK: 0x141f2c,
 
-  GATE_POLE: 0x7d8996,
-  GATE_TIP: 0xe8f7ff,
+  GATE_POLE: 0x2a3f55,
+  GATE_TIP: 0x9fe8ff,
 
   // The skier gets one deliberate saturated identity colour. Danger still owns
   // red; the player owns glacial cyan.
@@ -41,16 +41,16 @@ export const PALETTE = {
   BEAST_EYE: DANGER_RED,
   BEAST_MAW: 0x8f1410,
 
-  GHOST: 0x93a3b4,
+  GHOST: 0x4a8ba8,
 };
 
 /** Cold directional key + hemisphere fill. No warm light anywhere. */
 export const LIGHT = {
-  KEY_COLOR: 0xffffff,
+  KEY_COLOR: 0x9fd8ff,
   KEY_INTENSITY: 1.75,
   KEY_DIR: [-0.62, 0.66, 0.34],
-  HEMI_SKY: 0xe6f1f9,
-  HEMI_GROUND: 0x687986,
+  HEMI_SKY: 0x1e3a55,
+  HEMI_GROUND: 0x05080e,
   HEMI_INTENSITY: 0.52,
 };
 

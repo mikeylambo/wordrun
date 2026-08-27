@@ -13,6 +13,7 @@ import { CameraRig } from './render/camera-rig.js';
 import { Spray } from './render/fx.js';
 import { Landmarks } from './render/landmarks.js';
 import { WordGateActors } from './render/word-gates.js';
+import { DataworldPass } from './render/dataworld.js';
 import { applyMaterialPass } from './render/material-pass.js';
 import { Audio } from './audio/audio.js';
 import { Input } from './input/input.js';
@@ -40,6 +41,7 @@ const rig = new CameraRig(stage.camera);
 const spray = new Spray(stage.scene);
 const wordGateActors = new WordGateActors(stage.scene, sim);
 const materialPass = applyMaterialPass(stage.scene, terrainMesh, { playerActor, beastActor });
+const dataworld = new DataworldPass(stage.scene, [playerActor.root, ghostActor.root]);
 
 const simInput = emptyInput();
 let running = false;
@@ -362,6 +364,7 @@ function tick(dt) {
   props.update(p.d);
   landmarks.update(p.d);
   wordGateActors.update(dt, p.d, stage.camera);
+  dataworld.update(dt);
 
   const slope = sim.terrain.normalAt(p.x, p.d);
   playerActor.update(p, slope, dt, sim.beast.gap);
@@ -431,7 +434,7 @@ window.__SIM = sim;
 window.__TUNING = TUNING;
 window.__RENDER = {
   stage, terrainMesh, props, landmarks, rig, playerActor, beastActor, ghostActor, spray, materialPass,
-  wordGateActors,
+  wordGateActors, dataworld,
 };
 window.__INPUT = input;
 window.__START = () => { startRun(); return sim.state(); };
