@@ -217,6 +217,47 @@ head('CORRUPTION — identity');
     readme.includes('the Redline') && readme.includes('the Caret'));
 }
 
+// ── Vibrancy stays subordinate to legibility ─────────────────────────────
+head('VIBRANCY — red belongs to the Redline alone');
+
+{
+  const saturatedRed = (hex) => {
+    const r = (hex >> 16) & 255, g = (hex >> 8) & 255, b = hex & 255;
+    return r > 190 && g < 80 && b < 80;
+  };
+  const hexesIn = (text) => [...text.matchAll(/0x([0-9a-fA-F]{6})\b/g)]
+    .map((m) => parseInt(m[1], 16));
+
+  const bands = fs.readFileSync('src/render/art-direction.js', 'utf8');
+  const bandReds = hexesIn(bands).filter(saturatedRed)
+    .filter((h) => h !== 0xff2a1f); // DANGER_RED constant itself is the Redline's
+  check('no world band colour is saturated red',
+    bandReds.length === 0,
+    bandReds.length ? bandReds.map((h) => '0x' + h.toString(16)).join(', ') : 'clean across 21 bands');
+
+  const burst = fs.readFileSync('src/render/streak-burst.js', 'utf8');
+  check('the payoff burst palette carries no red at any tier',
+    hexesIn(burst).filter(saturatedRed).length === 0);
+
+  const cursor = fs.readFileSync('src/render/actors.js', 'utf8');
+  check('the cursor of light carries no red',
+    hexesIn(cursor).filter(saturatedRed).length === 0);
+
+  const redline = fs.readFileSync('src/render/corruption.js', 'utf8');
+  check('the Redline keeps its red scan bar',
+    redline.includes('0xff2a1f'));
+
+  const plate = fs.readFileSync('src/render/word-gates.js', 'utf8');
+  check('the word plate keeps its solid-glyph-core-over-glow treatment',
+    plate.includes('halo only, cores stay solid') &&
+    plate.includes('g.shadowBlur = 0;'));
+
+  const main = fs.readFileSync('src/main.js', 'utf8');
+  check('the burst fires from the payoff event, keyed to the chain',
+    main.includes('streakBurst.fire(e)') && burst.includes('chain >= 7') &&
+    burst.includes('chain >= 3'));
+}
+
 console.log(out.join('\n'));
 console.log(`\n${PASS} passed, ${FAIL} failed`);
 if (FAIL) process.exit(1);

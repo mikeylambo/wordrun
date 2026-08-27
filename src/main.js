@@ -14,6 +14,7 @@ import { Spray } from './render/fx.js';
 import { Landmarks } from './render/landmarks.js';
 import { WordGateActors } from './render/word-gates.js';
 import { DataworldPass } from './render/dataworld.js';
+import { StreakBurst } from './render/streak-burst.js';
 import { applyMaterialPass } from './render/material-pass.js';
 import { Audio } from './audio/audio.js';
 import { Input } from './input/input.js';
@@ -42,6 +43,7 @@ const spray = new Spray(stage.scene);
 const wordGateActors = new WordGateActors(stage.scene, sim);
 const materialPass = applyMaterialPass(stage.scene, terrainMesh, { playerActor, beastActor });
 const dataworld = new DataworldPass(stage.scene, [playerActor.root, ghostActor.root]);
+const streakBurst = new StreakBurst(stage.scene);
 
 const simInput = emptyInput();
 let running = false;
@@ -81,6 +83,7 @@ function startRun() {
   beastActor.reset();
   spray.clear();
   wordGateActors.reset();
+  streakBurst.reset();
   ui.clearDread();
   ui.clearRun();
   shotUrl = null;
@@ -306,7 +309,10 @@ function drainSimEvents() {
         audio.gate();
         if (e.chain > 0) audio.chainLink(e.chain);
         if (e.proxMult > 1.05) audio.courageBank(e.proxMult);
-        spray.emit(e.x, e.y, -e.d, 14, 4.0, 2.6, 0);
+        // The payoff is where the vibrancy lives: sparks scale with the
+        // chain, and the burst system escalates hue and reach with it.
+        spray.emit(e.x, e.y, -e.d, 14 + Math.min(e.chain, 10) * 3, 4.0, 2.6 + Math.min(e.chain, 10) * 0.25, 0);
+        streakBurst.fire(e);
         wordGateActors.onResolve(e);
         break;
       case 'word_wrong':
@@ -364,6 +370,7 @@ function tick(dt) {
   props.update(p.d);
   landmarks.update(p.d);
   wordGateActors.update(dt, p.d, stage.camera);
+  streakBurst.update(paused ? 0 : dt, stage.camera);
   dataworld.update(dt);
 
   const slope = sim.terrain.normalAt(p.x, p.d);
@@ -434,7 +441,7 @@ window.__SIM = sim;
 window.__TUNING = TUNING;
 window.__RENDER = {
   stage, terrainMesh, props, landmarks, rig, playerActor, beastActor, ghostActor, spray, materialPass,
-  wordGateActors, dataworld,
+  wordGateActors, dataworld, streakBurst,
 };
 window.__INPUT = input;
 window.__START = () => { startRun(); return sim.state(); };

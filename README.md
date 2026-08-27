@@ -8,7 +8,9 @@ writing verb's own vocabulary. Everything underneath — menus,
 endless-prestige loop, speed ramp, chase director, hearts/bells, haptics,
 PWA, seeded runs — is the source frame as-is.
 
-You are a cursor of light running down an unfinished draft. Words rush at
+You are a cursor of light running down an unfinished draft — a blade of
+glow that blinks like a text caret, calm at distance, frantic when the
+Redline closes, drawing an ink stroke down the page as it runs. Words rush at
 you; read them right or **the Redline** — a red editing-pen — closes in
 behind you, eating the frame edge by edge until you are REDACTED. Its rare
 pale companion, **the Caret**, cuts across the track on its own authored
@@ -113,7 +115,7 @@ ramp — one system, shared.
 
 - Core frame gates: **69 / 0**
 - Word module + verb gates: **31 / 0**
-- Corruption presentation gates: **14 / 0**
+- Redline presentation + identity + vibrancy gates: **23 / 0**
 - V1 release / polish / PWA: **39 / 0, 48 / 0, 14 / 0**
 
 ## Acceptance gates from the brief
@@ -124,6 +126,11 @@ ramp — one system, shared.
 - [x] Speed ramp + endless-prestige loop structurally identical minus the verb
 - [x] Corruption escalation tracks the scripted gap closure (Phase 4 gate)
 - [x] Old vocabulary from earlier phases banned in player-facing text (gated)
+- [x] Red belongs to the Redline alone — world palette, payoff bursts and the
+  cursor are gated red-free; the plate keeps its solid-glyph-core treatment
+- [x] Max-intensity spot-check: a 10-streak burst firing with the Redline at
+  13 m and its tell burning — the red bar still dominates, the burst stays
+  cyan/violet/gold, the plate core stays solid (screenshot-verified)
 - [ ] Near-100% recognition **in human playtest** — needs thumbs on glass
 - [ ] Danger legibility **in human playtest** — at a glance mid-run, can you
   tell it is closing without reading a meter? Needs eyes, same caveat as
