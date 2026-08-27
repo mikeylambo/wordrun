@@ -9,12 +9,9 @@ import { Beast } from './beast.js';
 import { SecondBeast } from './second-beast.js';
 import { GhostRecorder, GhostPlayer } from './ghost.js';
 import { WordGates } from './word-gates.js';
-import { stuntLandmarkAt } from '../design/landmarks.js';
-import { applyRC6Core } from '../design/rc6-core.js';
-import { applyLandingFeel } from '../design/landing-feel.js';
-
-applyRC6Core(Terrain, Beast, TUNING);
-applyLandingFeel(Player, TUNING);
+// Phase 7: the RC6 beat/pursuit pass and the landing-feel pass are retired
+// with the downhill verb — the track is flat and the pursuit is a pure
+// speed differential. See sim/terrain.js and sim/beast.js.
 
 export const PHASE = {
   TITLE: 'title',
@@ -90,45 +87,14 @@ export class Sim {
     }
     if (this.phase !== PHASE.RUNNING) return;
 
-    const before = {
-      hits: this.player.obstaclesHit,
-      flubs: this.player.tricksFlubbed,
-      wordWrongs: this.wordGates.wrongCount,
-    };
-    const eventStart = this.events.length;
 
     const proxMult = this.beast.proximityMult();
     this.player.step(dt, input, proxMult, this.events);
-    // The verb: resolve word gates before mistakes are tallied, so a wrong
-    // read feeds the beast exactly like an obstacle clip does. Courage pays
-    // on reads the same way it paid on landings.
+    // The verb: a correct read adds speed, a wrong read subtracts it (and
+    // costs a heart via the obstacle ledger). The Redline feels both only
+    // through the speed differential — no pressure is registered anywhere.
     this.wordGates.step(this.player, input.confirm, this.events, proxMult);
 
-    for (let i = eventStart; i < this.events.length; i++) {
-      const e = this.events[i];
-      if (e.t !== 'land_clean' || e.hang < TUNING.AIR.MIN_TRICK_TIME * 1.6) continue;
-      const landmark = stuntLandmarkAt(e.d);
-      if (!landmark || landmark.id === this._lastStuntId) continue;
-      const pushed = this.beast.stuntShove(landmark.push);
-      if (pushed > 0) {
-        this._lastStuntId = landmark.id;
-        this.stuntsCleared++;
-        this.events.push({
-          t: 'stunt_escape', id: landmark.id, name: landmark.name,
-          push: pushed, x: e.x, y: e.y, d: e.d,
-        });
-      }
-      break;
-    }
-
-    // A wrong read already counts once through the obstacle ledger; it
-    // carries WRONG_PRESSURE total because it is this game's one mistake.
-    const mistakes =
-      (this.player.obstaclesHit - before.hits) +
-      (this.player.tricksFlubbed - before.flubs) +
-      (this.wordGates.wrongCount - before.wordWrongs) *
-        (TUNING.WORDS.WRONG_PRESSURE - 1);
-    if (mistakes > 0) this.beast.registerMistake(mistakes);
 
     this.beast.step(dt, this.player);
     const secondEvent = this.secondBeast.step(dt, this.player, this.beast, this.terrain);

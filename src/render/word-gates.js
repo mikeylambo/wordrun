@@ -52,7 +52,7 @@ class Plate {
     this.mesh.renderOrder = 20;
     this.mesh.visible = false;
 
-    const lineGeo = new THREE.PlaneGeometry(TUNING.TERRAIN.HALF_WIDTH * 2, 0.55);
+    const lineGeo = new THREE.PlaneGeometry(TUNING.RUN.TRACK_HALF_W * 2, 0.55);
     this.lineMat = new THREE.MeshBasicMaterial({
       color: 0xffffff, transparent: true, opacity: 0.35, depthWrite: false,
     });
@@ -131,16 +131,16 @@ class Plate {
     this.tex.needsUpdate = true;
   }
 
-  place(word, d, groundY, camera, opacity = 1) {
+  place(word, d, groundY, camera, opacity = 1, centerX = 0) {
     // Constant world glyph height; plate width follows the word.
     const h = LETTER_H * (CANVAS_H / FONT_PX);
     const aspect = this.canvas.width / this.canvas.height;
     this.mesh.scale.set(h * aspect, h, 1);
-    this.mesh.position.set(0, groundY + PLATE_ABOVE, -d);
+    this.mesh.position.set(centerX, groundY + PLATE_ABOVE, -d);
     this.mesh.quaternion.copy(camera.quaternion);
     this.mat.opacity = opacity;
     this.mesh.visible = true;
-    this.line.position.set(0, groundY + 0.06, -d);
+    this.line.position.set(centerX, groundY + 0.06, -d);
     this.line.visible = true;
   }
 
@@ -189,16 +189,18 @@ export class WordGateActors {
     const terrain = this.sim.terrain;
     const g = wg.current();
 
-    // Approaching gate.
+    // Approaching gate — plates sit on the track's centerline through turns.
     if (!g.resolved && g.d - playerD < SHOW_AHEAD) {
       const state = g.confirmed ? 'confirmed' : 'idle';
       this.current.paint(g.shown, state);
-      this.current.place(g.shown, g.d, terrain.heightAt(0, g.d), camera);
+      this.current.place(g.shown, g.d, terrain.heightAt(0, g.d), camera,
+        1, terrain.corridorX(g.d));
       // Preview the one after, faint in the fog, so rhythm reads at speed.
       const n = makeGate(wg.seed, g.index + 1);
       if (n.d - playerD < SHOW_AHEAD) {
         this.next.paint(n.shown, 'idle');
-        this.next.place(n.shown, n.d, terrain.heightAt(0, n.d), camera, 0.55);
+        this.next.place(n.shown, n.d, terrain.heightAt(0, n.d), camera, 0.55,
+          terrain.corridorX(n.d));
       } else {
         this.next.hide();
       }
@@ -213,7 +215,7 @@ export class WordGateActors {
       const e = this.lingerGate;
       this.fx.paint(e.text, this.lingerState);
       this.fx.place(e.text, e.d, terrain.heightAt(0, e.d), camera,
-        Math.max(0, this.lingerT / LINGER));
+        Math.max(0, this.lingerT / LINGER), terrain.corridorX(e.d));
       if (this.lingerT <= 0) this.fx.hide();
     } else {
       this.fx.hide();

@@ -48,13 +48,39 @@ export const TUNING = {
     SEGS_Z: 48,
   },
 
+  // ── The run (Phase 7) ───────────────────────────────────────────────────
+  // Speed is a direct consequence of reading: a correct read adds SPEED_GAIN,
+  // a wrong read subtracts SPEED_LOSS (and costs a heart), bounded by FLOOR
+  // and CEILING. The Redline runs at a steady REDLINE_PACE, and the gap is
+  // purely the speed differential integrated over time — the relationship
+  // between FLOOR/CEILING and REDLINE_PACE is the main difficulty knob.
+  RUN: {
+    START_SPEED: 27,           // = REDLINE_PACE: a run starts neutral
+    SPEED_GAIN: 2.5,           // m/s added per correct read
+    SPEED_LOSS: 6,             // m/s lost per wrong read (plus the heart)
+    // FLOOR: repeated misses slow you, never stall you — reading window at
+    // the floor is ARM_DISTANCE_M/16 ≈ 3.4s, an easy recovery pace.
+    FLOOR: 16,
+    // CEILING: gated against legibility — 55m/40 = 1.38s plain, and still
+    // ≥0.9s under Overdrive's 1.4x. A long streak cannot spiral past it.
+    CEILING: 40,
+    REDLINE_PACE: 27,          // the Redline's steady baseline, m/s
+
+    // The authored winding (Sonic-tradition S-curves, no player steering):
+    // peak |dx/dd| = 2π(AMP_A/WAVE_A + AMP_B/WAVE_B) ≈ 0.43 — sweeping,
+    // never snapping.
+    CURVE_AMP_A: 11, CURVE_WAVE_A: 320,
+    CURVE_AMP_B: 4.5, CURVE_WAVE_B: 130,
+    TRACK_HALF_W: 7,           // ribbon half-width around the centerline
+    FOLLOW_AHEAD: 6,           // metres ahead the runner aims on the line
+    FOLLOW_RESPONSE: 7,        // how quickly the runner settles onto it
+  },
+
   // ── Word gates (the WORD RUN verb) ──────────────────────────────────────
-  // The dodge-obstacle verb is swapped for a word-recognition verb: a word
-  // arrives at runner speed, the player confirms it (tap) or lets it pass.
-  // Real word confirmed / fake word ignored = clean gate. Fake confirmed or
-  // real missed = the DESCENT-equivalent hit. The speed ramp is untouched —
-  // gates are spaced in METRES, so the faster the shipped speed curve makes
-  // you, the shorter the reading window gets. One difficulty system, shared.
+  // A word arrives at runner speed; the player confirms it (tap) or lets it
+  // pass. Real+confirmed / fake+ignored = clean gate. Fake+confirmed or
+  // real+missed = the hit. Gates are spaced in METRES, so the speed your
+  // reading earns is also your reading difficulty — one system, shared.
   WORDS: {
     FIRST_GATE_M: 90,          // matches FEATURES.SAFE_START (fair start)
     SPACING_M: 85,             // metres of downhill between gates at the top
@@ -69,23 +95,10 @@ export const TUNING = {
     FAKE_CHANCE: 0.5,          // fair coin: spamming confirm buys nothing
     // Tier ramps with distance, sharing the run's own ramp architecture.
     TIER_EVERY_M: 700,         // +1 tier per this many metres, clamped
-    // Rewards mirror the slalom-gate + clean-landing economy the frame ships.
-    CORRECT_SPEED_BONUS: 3.0,  // = PLAYER.GATE_SPEED_BONUS
-    // DESCENT's slalom cap was 40, but its trees/moguls kept real speed far
-    // lower. Words are answered in a straight tuck, and the v1 hunt is a
-    // physical race at 31-38 m/s — a 40 m/s word bonus would let a good
-    // reader outrun every hunt forever. Capped below peak pursuit so the
-    // beast stays an opponent.
-    CORRECT_MAX_BONUS_SPEED: 37,
+    // Speed consequences live in TUNING.RUN (Phase 7); words keep only the
+    // meter economy here.
     CORRECT_FILL: 6,           // boost meter per correct read (chain-multiplied)
-    // Wrong/no pick is exactly the frame's obstacle hit: HIT_SPEED_COST,
-    // stagger, chain break, beast mistake pressure — wired in the sim.
     WRONG_METER_LOSS: 0.5,     // = BOOST.FLUB_METER_LOSS
-    // A wrong read is THE mistake of this game and arrives at most once per
-    // gate, far rarer than DESCENT's obstacle clips — so it weighs more.
-    // Above the chase director's hunt threshold, one bad read visibly
-    // matters (the frame's own "mistakes are visible in 2s" contract).
-    WRONG_PRESSURE: 2.0,
     // Legibility floor (the falsifiable question, made checkable): at speed v
     // the reading window is ARM_DISTANCE_M / v seconds. The word-gates suite
     // asserts this stays above READ_WINDOW_MIN_S at the shipped top speed.
@@ -377,15 +390,15 @@ export const TUNING = {
   // ── Camera ──────────────────────────────────────────────────────────────
   CAMERA: {
     FOV: 68,
-    BACK: 11.0,                // metres upslope of the player
+    BACK: 10.5,                // metres behind the runner
     BACK_SPEED_GAIN: 0.10,     // pulls back as you accelerate
-    // Height above the snow DIRECTLY BENEATH THE CAMERA. Together with
-    // LOOK_HEIGHT this sets how far below the slope line the camera aims —
-    // roughly 9 degrees, which is what makes the piste readable instead of
-    // edge-on. Raising BACK without raising HEIGHT flattens the view.
-    HEIGHT: 5.2,
-    LOOK_AHEAD: 16,
-    LOOK_HEIGHT: 0.6,
+    // Phase 7 flat-track retune: the downhill grade used to pitch the view
+    // for free. On a flat world the camera rides higher and aims lower —
+    // ~21 degrees down — so the winding ribbon lays out ahead instead of
+    // compressing into the horizon edge-on.
+    HEIGHT: 9.0,
+    LOOK_AHEAD: 12,
+    LOOK_HEIGHT: 0.2,
     SMOOTH: 9.0,               // position lerp rate
     AIR_HEIGHT_GAIN: 0.55,     // rig rises with you on big airs
     AIR_LOOK_GAIN: 0.62,       // and the aim rises too, or you exit frame

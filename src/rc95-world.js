@@ -32,44 +32,8 @@ const TUNNEL_D = 5580;
 // Landmark render meshes are intentionally cheap and stylized. These volumes
 // are matching gameplay approximations, not a second high-detail physics mesh.
 const STRUCTURES = [
-  { type: 'structure', id: 'starting-house', x: -11, d: 170, r: 4.35, h: 7.1 },
-  { type: 'structure', id: 'bridge-pillar-l', x: -19, d: BRIDGE_D, r: 1.05, h: 12.0 },
-  { type: 'structure', id: 'bridge-pillar-r', x: 19, d: BRIDGE_D, r: 1.05, h: 12.0 },
-  // Elevated bridge deck: minH lets a skier pass underneath while an airborne
-  // skier who actually intersects the deck gets a physical hit.
-  ...[-16, -8, 0, 8, 16].map((x, i) => ({
-    type: 'structure', id: `bridge-deck-${i}`, x, d: BRIDGE_D, r: 4.25,
-    minH: 8.0, h: 9.65,
-  })),
-
-  // THE THROAT is a sequence of heavy ribs. The central chute is still the
-  // intended line; the stone legs and high arch are no longer ghost geometry.
-  ...Array.from({ length: 7 }, (_, i) => {
-    const d = THROAT_D + (i - 3) * 7;
-    return [
-      { type: 'structure', id: `throat-${i}-l`, x: -18.0, d, r: 1.35, h: 15.3 },
-      { type: 'structure', id: `throat-${i}-r`, x: 18.0, d, r: 1.35, h: 15.3 },
-      { type: 'structure', id: `throat-${i}-arch-l`, x: -10.5, d, r: 2.0, minH: 13.0, h: 17.6 },
-      { type: 'structure', id: `throat-${i}-arch-c`, x: 0, d, r: 2.4, minH: 17.0, h: 20.8 },
-      { type: 'structure', id: `throat-${i}-arch-r`, x: 10.5, d, r: 2.0, minH: 13.0, h: 17.6 },
-    ];
-  }).flat(),
-
-  // THE TUNNEL is an open ring, not a wall. Represent every visible hoop as an
-  // annulus in x/height space instead of a loose stack of spheres. The hole is
-  // genuinely passable; the visible ice itself is genuinely solid at any air height.
-  ...Array.from({ length: 8 }, (_, i) => ({
-    type: 'ring',
-    id: `tunnel-ring-${i}`,
-    x: 0,
-    d: TUNNEL_D + (i - 3.5) * 7,
-    depthR: 1.28,
-    centerH: 9.5,
-    ringR: 16.8,
-    tubeR: 0.88,
-  })),
-
-  { type: 'structure', id: 'sunken-lodge', x: 8, d: 19740, r: 7.1, h: 8.0 },
+  // WORD RUN Phase 7: the flat track carries no authored ski-resort
+  // structures. The table is empty by design; the plumbing around it stays.
 ];
 
 if (!Terrain.prototype.__rc95WorldPatched) {

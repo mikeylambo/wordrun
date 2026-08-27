@@ -21,7 +21,7 @@ import { mulberry32, mixSeed } from './rng.js';
 import { pickWord, makeFake, tierCount } from '../words/wordlist.js';
 
 const W = TUNING.WORDS;
-const P = TUNING.PLAYER;
+const R = TUNING.RUN;
 const B = TUNING.BOOST;
 
 const WORD_STREAM = 0x77_6f_72; // 'wor' — its own rng lane, apart from terrain
@@ -120,10 +120,9 @@ export class WordGates {
       this.streak++;
       if (this.streak > this.bestStreak) this.bestStreak = this.streak;
 
-      if (player.speed < W.CORRECT_MAX_BONUS_SPEED) {
-        player.speed = Math.min(W.CORRECT_MAX_BONUS_SPEED,
-          player.speed + W.CORRECT_SPEED_BONUS);
-      }
+      // THE speed mechanic (Phase 7): a correct read runs you faster,
+      // deterministically, up to the legibility-gated ceiling.
+      player.speed = Math.min(R.CEILING, player.speed + R.SPEED_GAIN);
       player.chain++;
       if (player.chain > player.bestChain) player.bestChain = player.chain;
       player.boostMeter = Math.min(B.METER_MAX,
@@ -140,11 +139,11 @@ export class WordGates {
       this.wrongCount++;
       this.streak = 0;
 
-      // The DESCENT-equivalent hit, verbatim: obstacle ledger (drives beast
-      // mistake pressure in sim.js), speed cost, stagger, chain break, meter.
+      // The hit: a heart (through the obstacle ledger), a deterministic
+      // speed loss down to the floor, a stagger, the chain, half the meter.
       player.obstaclesHit++;
-      player.speed = Math.max(P.SPEED_FLOOR, player.speed * (1 - P.HIT_SPEED_COST));
-      player.staggerT = P.STAGGER_TIME;
+      player.speed = Math.max(R.FLOOR, player.speed - R.SPEED_LOSS);
+      player.staggerT = TUNING.PLAYER.STAGGER_TIME;
       player.boostMeter *= 1 - W.WRONG_METER_LOSS;
       if (player.chain > 0) {
         events?.push({ t: 'chain_lost', chain: player.chain, mult: player.chainMult() });

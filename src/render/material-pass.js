@@ -72,8 +72,8 @@ function terrainMaterial() {
 
   terrain.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute float surface;\nvarying float vRc8Surface;\nvarying vec3 vP4World;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRc8Surface = surface;\nvP4World = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+      .replace('#include <common>', '#include <common>\nattribute float surface;\nattribute float lane;\nvarying float vRc8Surface;\nvarying float vP4Lane;\nvarying vec3 vP4World;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRc8Surface = surface;\nvP4Lane = lane;\nvP4World = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', '#include <common>\nvarying float vRc8Surface;\nvarying vec3 vP4World;')
       .replace('#include <roughnessmap_fragment>',
@@ -82,16 +82,17 @@ function terrainMaterial() {
         '#include <metalnessmap_fragment>\nmetalnessFactor = mix(metalnessFactor, 0.045, smoothstep(0.08, 0.92, vRc8Surface));')
       // The data-stream reads as a track because the ground says so: a world-
       // space grid etched in light, and two rails burning at the ribbon edges.
+      .replace('#include <common>', '#include <common>\nvarying float vP4Lane;')
       .replace('#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
         vec2 p4Cell = vP4World.xz / 6.0;
         vec2 p4F = abs(fract(p4Cell) - 0.5);
         float p4Line = smoothstep(0.44, 0.5, max(p4F.x, p4F.y));
-        float p4Rail = smoothstep(1.6, 0.25, abs(abs(vP4World.x) - ${TUNING.TERRAIN.HALF_WIDTH.toFixed(1)}));
+        float p4Rail = smoothstep(0.8, 0.97, vP4Lane);
         totalEmissiveRadiance += vec3(0.05, 0.34, 0.46) * p4Line * 0.55;
-        totalEmissiveRadiance += vec3(0.10, 0.62, 0.80) * p4Rail * 0.9;`);
+        totalEmissiveRadiance += vec3(0.10, 0.62, 0.80) * p4Rail * 1.1;`);
   };
-  terrain.customProgramCacheKey = () => 'wordrun-p4-dataworld-terrain-v1';
+  terrain.customProgramCacheKey = () => 'wordrun-p7-track-ribbon-v1';
   return terrain;
 }
 

@@ -110,9 +110,9 @@ export class UI {
     const p = sim.player;
     const d = sim.distance;
     let text = '';
-    if (d < 60) text = this.touch ? 'DRAG — CARVE' : 'A / D — CARVE';
-    else if (d < 220) text = this.touch ? 'TAP IF THE WORD IS REAL' : 'SPACE IF THE WORD IS REAL';
+    if (d < 220) text = this.touch ? 'TAP IF THE WORD IS REAL' : 'SPACE IF THE WORD IS REAL';
     else if (d < 390) text = 'LET FAKES PASS';
+    else if (d < 560) text = 'RIGHT READS RUN FASTER';
     else if (p.gatesThreaded > 0 && !this._showedPowerLesson) {
       text = 'STYLE MAKES POWER';
       this._showedPowerLesson = true;

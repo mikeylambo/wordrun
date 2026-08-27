@@ -54,7 +54,6 @@ export class OnboardingUI {
     this.root.id = 'rc7Onboarding';
     this.root.dataset.rc7Ui = '1';
     const touch = (navigator.maxTouchPoints || 0) > 0 || matchMedia('(pointer:coarse)').matches;
-    const carve = touch ? 'DRAG' : 'A / D';
     const confirm = touch ? 'TAP' : 'SPACE';
     const go = touch ? 'HOLD GO' : 'F';
     this.root.innerHTML = `
@@ -62,8 +61,8 @@ export class OnboardingUI {
         <h2>READ FAST. RUN FAR.</h2>
         <div class="rules">
           <div class="rule"><b>${confirm}</b><span>WORDS RUSH AT YOU. ${confirm} IF THE SPELLING IS REAL.</span></div>
-          <div class="rule"><b>FAKES</b><span>LET A MISSPELLED WORD PASS. RIGHT READS FILL GO.</span></div>
-          <div class="rule"><b>${carve}</b><span>CARVE. HOLD A CLEAN LINE TO KEEP SPEED.</span></div>
+          <div class="rule"><b>FAKES</b><span>LET A MISSPELLED WORD PASS.</span></div>
+          <div class="rule"><b>SPEED</b><span>RIGHT READS SPEED YOU UP. WRONG READS SLOW YOU DOWN.</span></div>
           <div class="rule"><b>${go}</b><span>BURST FORWARD WHEN THE METER IS CHARGED.</span></div>
           <div class="rule"><b>♥ ♥ ♥</b><span>A WRONG READ COSTS A HEART.</span></div>
         </div>
