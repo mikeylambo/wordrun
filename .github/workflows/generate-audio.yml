@@ -1,0 +1,59 @@
+name: Generate DESCENT audio candidates
+
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: Comma-separated sound ids (see npm run audio:list)
+        required: true
+        default: ski_packed_loop,ski_powder_loop,ski_ice_loop,beast_main_distant,frost_beast_enter
+        type: string
+      variants:
+        description: Candidates per sound (1-4)
+        required: true
+        default: '2'
+        type: choice
+        options:
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify ElevenLabs secret exists
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: |
+          if [ -z "$ELEVENLABS_API_KEY" ]; then
+            echo "Missing repository Actions secret ELEVENLABS_API_KEY"
+            exit 1
+          fi
+
+      - name: Generate audition batch
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: node tools/generate-elevenlabs-audio.mjs --only="${{ inputs.only }}" --variants="${{ inputs.variants }}" --out=generated-audio
+
+      - name: Upload candidates
+        uses: actions/upload-artifact@v4
+        with:
+          name: descent-elevenlabs-audio
+          path: generated-audio/
+          if-no-files-found: error
+          retention-days: 7

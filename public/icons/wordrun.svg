@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="DESCENT mountain icon">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#172330"/>
+      <stop offset="0.56" stop-color="#526675"/>
+      <stop offset="1" stop-color="#d8e1e7"/>
+    </linearGradient>
+    <linearGradient id="snow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f5f8fa"/>
+      <stop offset="1" stop-color="#aebcc6"/>
+    </linearGradient>
+    <linearGradient id="trail" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff4a3e"/>
+      <stop offset="0.45" stop-color="#ff2a1f"/>
+      <stop offset="1" stop-color="#b90f0a"/>
+    </linearGradient>
+    <clipPath id="round"><rect x="18" y="18" width="476" height="476" rx="104"/></clipPath>
+  </defs>
+  <g clip-path="url(#round)">
+    <rect width="512" height="512" fill="url(#sky)"/>
+    <path d="M-35 324L83 158l62 95L259 72l75 131 84-79 129 212v176H-35Z" fill="#1d2a35"/>
+    <path d="M72 282l72-103 27 57 87-149 41 86-33-18-29 50-26-24-49 81Z" fill="#eef4f7" opacity=".95"/>
+    <path d="M-45 343c105-53 167-69 256-51 82 16 181 7 346-51v271H-45Z" fill="url(#snow)"/>
+    <path d="M0 336L68 218l46 118Zm387 6 54-145 58 145Z" fill="#101820"/>
+    <path d="M243 286c39 17 54 27 42 43-11 15-48 22-59 40-13 21 28 34 75 53 34 14 55 32 69 64H190c13-25 32-42 56-54 34-16 49-25 40-34-8-9-44-16-55-30-15-19 16-36 47-51 18-9 18-18-35-31Z" fill="url(#trail)"/>
+    <path d="M247 289c31 15 42 24 32 36-10 13-42 19-52 35-10 16 14 27 46 41" fill="none" stroke="#ffd0cc" stroke-width="4" stroke-linecap="round" opacity=".6"/>
+    <path d="M0 0h512v512H0Z" fill="none" stroke="#0d141b" stroke-width="34" opacity=".34"/>
+  </g>
+</svg>

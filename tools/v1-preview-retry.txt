@@ -1,0 +1,2 @@
+DESCENT V1 release candidate preview retry — 2026-08-09T18:40-04:00
+No gameplay changes. This stamp retries the preview after Vercel team build-rate limiting.

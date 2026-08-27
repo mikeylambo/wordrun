@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="DESCENT mountain mark">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#172532"/><stop offset="1" stop-color="#0b1218"/></linearGradient><linearGradient id="snow" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f4f8fb"/><stop offset="1" stop-color="#9eabb5"/></linearGradient><linearGradient id="red" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ff352b"/><stop offset="1" stop-color="#c90e12"/></linearGradient></defs>
+<rect width="512" height="512" rx="92" fill="url(#bg)"/>
+<path d="M0 244 84 168l49 52 76-129 45 78 52-63 80 119 55-61 71 80v268H0Z" fill="#354653"/>
+<path d="M56 282 164 166l45 58 50-128 48 79 42-42 107 149-72-38-67 28-63-58-73 74-62-18Z" fill="url(#snow)" opacity=".96"/>
+<path d="M0 344 104 266l68 21 59-66 73 55 66-34 142 102v168H0Z" fill="#d8e0e5"/>
+<path d="M0 388c93-14 171-1 231 34 39 23 41 49 5 68-25 13-63 19-115 22h159c66-11 109-30 128-58 24-35-6-67-89-96-61-21-115-28-162-19-61 11-113 28-157 49Z" fill="url(#red)"/>
+<path d="M0 410c92-17 168-8 227 28 27 17 29 31 6 43-18 9-51 15-99 18 57-2 99-10 126-23 38-19 38-42 0-67-64-42-151-42-260 1Z" fill="#ff4b3f" opacity=".72"/>
+<path d="M72 315 93 260l25 52-15-9-13 16Z" fill="#0a1117"/><path d="M391 307 416 226l27 82-19-12-14 21Z" fill="#0a1117"/>
+</svg>

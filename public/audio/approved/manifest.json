@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "files": {
+    "wind_alpine_bed": {
+      "url": "/audio/approved/wind_alpine_bed-v02.mp3",
+      "gain": 0.52
+    },
+    "go_rush": {
+      "url": "/audio/approved/go_rush-v01.mp3",
+      "gain": 0.44
+    },
+    "beast_main_close": {
+      "url": "/audio/approved/beast_main_close-v01.mp3",
+      "gain": 0.34
+    },
+    "beast_main_step": {
+      "url": "/audio/approved/beast_main_step-v02.mp3",
+      "gain": 0.3
+    },
+    "beast_main_leap": {
+      "url": "/audio/approved/beast_main_leap-v02.mp3",
+      "gain": 0.36
+    },
+    "frost_beast_charge": {
+      "url": "/audio/approved/frost_beast_charge-v02.mp3",
+      "gain": 0.34
+    },
+    "frost_beast_vault": {
+      "url": "/audio/approved/frost_beast_vault-v02.mp3",
+      "gain": 0.35
+    },
+    "frost_beast_kill": {
+      "url": "/audio/approved/frost_beast_kill-v02.mp3",
+      "gain": 0.33
+    },
+    "landing_clean": {
+      "url": "/audio/approved/landing_clean-v02.mp3",
+      "gain": 0.4
+    },
+    "landing_heavy": {
+      "url": "/audio/approved/landing_heavy-v01.mp3",
+      "gain": 0.36
+    },
+    "tree_hit": {
+      "url": "/audio/approved/tree_hit-v02.mp3",
+      "gain": 0.34
+    },
+    "rock_hit": {
+      "url": "/audio/approved/rock_hit-v01.mp3",
+      "gain": 0.32
+    },
+    "carve_hard": {
+      "url": "/audio/approved/carve_hard-v01.mp3",
+      "gain": 0.38
+    },
+    "takeoff_big_air": {
+      "url": "/audio/approved/takeoff_big_air-v01.mp3",
+      "gain": 0.4
+    }
+  }
+}

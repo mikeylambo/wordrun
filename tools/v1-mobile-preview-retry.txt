@@ -1,0 +1,2 @@
+DESCENT V1 mobile control preview retry — 2026-08-10
+No gameplay changes. Retriggers the preview for the mobile steering stabilization commit 4229afb5ecf26422ceeceaeff190c0fa2e7a35a6.

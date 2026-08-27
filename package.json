@@ -1,0 +1,26 @@
+{
+  "name": "wordrun",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "WORD RUN — endless word-gate runner: read fast, pick right, outrun the pursuit.",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "gates": "node tools/gates.mjs",
+    "gate:p1": "node tools/gates.mjs p1",
+    "gate:p2": "node tools/gates.mjs p2",
+    "gate:p3": "node tools/gates.mjs p3",
+    "gate:p4": "node tools/gates.mjs p4",
+    "gate:v1": "node tools/v1-gates.mjs && node tools/v1-polish-gates.mjs && node tools/v1-pwa-gates.mjs",
+    "audio:list": "node tools/generate-elevenlabs-audio.mjs --list",
+    "audio:generate": "node tools/generate-elevenlabs-audio.mjs"
+  },
+  "dependencies": {
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.10"
+  }
+}

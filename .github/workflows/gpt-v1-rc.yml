@@ -1,0 +1,63 @@
+name: GPT v1 RC checks
+
+on:
+  push:
+    branches:
+      - GPT-v1-RC
+      - GPT-v1-RC9
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Production build
+        run: npm run build
+
+      - name: Legacy slice gates (informational)
+        run: npm run gates || true
+
+      - name: RC6 finished-loop gates
+        run: node tools/rc6-gates.mjs
+
+      - name: RC7 clarity and payoff gates
+        run: node tools/rc7-gates.mjs
+
+      - name: RC7.1 feel and stability gates
+        run: node tools/rc71-gates.mjs
+
+      - name: RC8 visual material gates
+        run: node tools/rc8-gates.mjs
+
+      - name: RC8.1 UI and variation gates
+        run: node tools/rc81-gates.mjs
+
+      - name: RC8.2 two-beast choreography gates
+        run: node tools/rc82-gates.mjs
+
+      - name: RC9 audio identity gates
+        run: node tools/rc9-gates.mjs
+
+      - name: RC9.7 endgame and deep mountain gates
+        run: node tools/rc97-gates.mjs
+
+      - name: RC9.8 finish polish gates
+        run: node tools/rc98-gates.mjs
+
+      - name: V1 release soak and final contract gates
+        run: npm run gate:v1
