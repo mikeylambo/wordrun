@@ -1,109 +1,84 @@
+/**
+ * Actors — WORD RUN Phase 5.
+ *
+ * The runner is a CURSOR OF LIGHT: a blade of glow with a nib that touches
+ * the page, drawing a bright ink stroke behind it as it runs. No rigging, no
+ * skeleton — the same error-absorbent line-art language as the Redline and
+ * the Caret. It is a visual swap on the existing controller: PlayerActor
+ * keeps the exact update(p, slope, dt, gap) contract, the pivot for
+ * airborne rotation, and the track-ribbon system (restyled as the drawn
+ * line of the manuscript). Lane logic, hit-boxes and movement are untouched
+ * sim state; this file only draws them.
+ */
+
 import * as THREE from 'three';
 import TUNING from '../TUNING.js';
 
-const std = (color, roughness = 0.82, extra = {}) => new THREE.MeshStandardMaterial({
-  color, roughness, metalness: 0.01, flatShading: true, ...extra,
-});
-const basic = (color, extra = {}) => new THREE.MeshBasicMaterial({ color, ...extra });
 const TRACK_SEGMENTS = 180;
 
-function buildSkier(ghost = false) {
+const glow = (color, opacity = 1) => new THREE.MeshBasicMaterial({
+  color, transparent: true, opacity, depthWrite: false,
+  blending: THREE.AdditiveBlending, fog: false,
+});
+
+/**
+ * The cursor: bright octahedral core, soft halo shell, a down-pointing nib,
+ * and three orbiting motes. Ghost builds the same construct, paler.
+ */
+function buildCursor(ghost = false) {
   const g = new THREE.Group();
-  const ghostOpts = ghost ? {
-    transparent: true, opacity: TUNING.GHOST.OPACITY, depthWrite: false,
-  } : {};
 
-  const coat = ghost ? std(0xa9bfca, 0.9, ghostOpts) : std(0xe8ddc6, 0.94);
-  const dark = ghost ? coat : std(0x20262b, 0.82);
-  const boots = ghost ? coat : std(0x3a302b, 0.78);
-  const ski = ghost ? coat : std(0x8f3429, 0.68);
-  const orange = ghost ? coat : std(0xd85d2f, 0.72);
-  const lens = ghost ? coat : std(0xe5a33f, 0.3, { metalness: 0.08 });
+  const coreColor = ghost ? 0x9fb9c8 : 0xeaffff;
+  const haloColor = ghost ? 0x6f8b9c : 0x67d8ff;
+  const nibColor = ghost ? 0x9fb9c8 : 0xbdf2ff;
+  const baseOpacity = ghost ? TUNING.GHOST.OPACITY : 1;
 
-  // One big, silly shape: a winter coat almost too large for its owner.
-  const torso = new THREE.Mesh(new THREE.DodecahedronGeometry(0.62, 0), coat);
-  torso.scale.set(0.94, 1.14, 0.82);
-  torso.position.set(0, 1.17, 0.05);
-  g.add(torso);
+  const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.34, 0), glow(coreColor, baseOpacity));
+  core.scale.set(0.72, 2.6, 0.72);
+  core.position.y = 1.06;
+  g.add(core);
 
-  const hem = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.58, 0.52, 6), coat);
-  hem.position.set(0, 0.84, 0.13);
-  hem.rotation.x = 0.12;
-  g.add(hem);
+  const halo = new THREE.Mesh(new THREE.OctahedronGeometry(0.5, 0), glow(haloColor, 0.34 * baseOpacity));
+  halo.scale.set(0.9, 2.35, 0.9);
+  halo.position.y = 1.06;
+  g.add(halo);
 
-  const hood = new THREE.Mesh(new THREE.IcosahedronGeometry(0.34, 1), coat);
-  hood.scale.set(1.06, 1.12, 1.0);
-  hood.position.set(0, 1.72, 0.02);
-  g.add(hood);
+  // The nib: where the cursor meets the page and the ink comes from.
+  const nib = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.5, 4), glow(nibColor, 0.9 * baseOpacity));
+  nib.rotation.x = Math.PI;
+  nib.position.y = 0.25;
+  g.add(nib);
 
-  const face = new THREE.Mesh(new THREE.IcosahedronGeometry(0.23, 1), dark);
-  face.position.set(0, 1.72, -0.18);
-  g.add(face);
+  const pool = new THREE.Mesh(new THREE.CircleGeometry(0.55, 18), glow(haloColor, 0.22 * baseOpacity));
+  pool.rotation.x = -Math.PI / 2;
+  pool.position.y = 0.03;
+  g.add(pool);
 
-  // Huge ski goggles instead of a sci-fi visor.
-  const goggles = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.18, 0.08), lens);
-  goggles.position.set(0, 1.77, -0.39);
-  goggles.rotation.x = -0.04;
-  g.add(goggles);
-  const strap = new THREE.Mesh(new THREE.BoxGeometry(0.63, 0.06, 0.27), dark);
-  strap.position.set(0, 1.77, -0.18);
-  g.add(strap);
-
-  const arms = [];
-  const legs = [];
-  for (const s of [-1, 1]) {
-    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.68, 6), coat);
-    arm.position.set(s * 0.48, 1.16, -0.04);
-    arm.rotation.z = s * 0.22;
-    arm.rotation.x = 0.55;
-    g.add(arm);
-    arms.push({ mesh: arm, side: s });
-
-    const mitten = new THREE.Mesh(new THREE.IcosahedronGeometry(0.16, 0), orange);
-    mitten.position.set(s * 0.53, 0.9, -0.28);
-    g.add(mitten);
-
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.17, 0.72, 6), dark);
-    leg.position.set(s * 0.2, 0.5, 0.04);
-    leg.rotation.x = -0.22;
-    g.add(leg);
-    legs.push({ mesh: leg, side: s });
-
-    const boot = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.2, 0.42), boots);
-    boot.position.set(s * 0.2, 0.17, -0.07);
-    g.add(boot);
-
-    // Comically long skis: readable at phone size, and not superhero-coded.
-    const board = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.055, 2.35), ski);
-    board.position.set(s * 0.21, 0.04, -0.03);
-    g.add(board);
-    const tip = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.055, 0.42), orange);
-    tip.position.set(s * 0.21, 0.12, -1.27);
-    tip.rotation.x = -0.46;
-    g.add(tip);
+  // Orbiting motes — punctuation caught in the cursor's field.
+  const motes = new THREE.Group();
+  motes.position.y = 1.15;
+  const moteList = [];
+  for (let i = 0; i < 3; i++) {
+    const m = new THREE.Mesh(new THREE.TetrahedronGeometry(0.075, 0), glow(haloColor, 0.75 * baseOpacity));
+    const a = (i / 3) * Math.PI * 2;
+    m.position.set(Math.cos(a) * 0.62, (i - 1) * 0.34, Math.sin(a) * 0.62);
+    m.userData.angle = a;
+    m.userData.h = (i - 1) * 0.34;
+    motes.add(m);
+    moteList.push(m);
   }
+  g.add(motes);
 
-  let scarf = null;
-  if (!ghost) {
-    scarf = new THREE.Group();
-    scarf.position.set(0.1, 1.57, 0.2);
-    const segments = [];
-    for (let i = 0; i < 7; i++) {
-      const seg = new THREE.Mesh(new THREE.BoxGeometry(0.18 - i * 0.009, 0.075, 0.5), orange);
-      seg.position.z = 0.25 + i * 0.43;
-      scarf.add(seg);
-      segments.push(seg);
-    }
-    scarf.userData.segments = segments;
-    g.add(scarf);
-  }
+  const materials = [core.material, halo.material, nib.material, pool.material,
+    ...moteList.map((m) => m.material)];
+  if (ghost) for (const m of materials) m.transparent = true;
 
-  return { group: g, torso, head: hood, goggles, arms, legs, scarf, materials: [coat, dark, boots, ski, orange, lens] };
+  return { group: g, core, halo, nib, pool, motes, moteList, materials, baseOpacity };
 }
 
 export class PlayerActor {
   constructor(scene) {
-    const b = buildSkier(false);
+    const b = buildCursor(false);
     Object.assign(this, b);
     this.pivot = new THREE.Group();
     this.pivot.add(this.group);
@@ -113,6 +88,10 @@ export class PlayerActor {
 
     this.t = 0;
     this._lastD = 0;
+    this._blink = 0;
+
+    // The drawn line: the frame's track-ribbon system, restyled as a single
+    // fine double-stroke of ink the nib leaves on the page.
     this._lastTrackD = -999;
     this._trackHead = 0;
     this._trackReady = false;
@@ -123,7 +102,8 @@ export class PlayerActor {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(this.trackPos, 3));
     this.tracks = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({
-      color: 0x708c9a, transparent: true, opacity: 0.28, depthWrite: false,
+      color: 0x67d8ff, transparent: true, opacity: 0.5, depthWrite: false,
+      blending: THREE.AdditiveBlending, fog: false,
     }));
     this.tracks.frustumCulled = false;
     scene.add(this.tracks);
@@ -142,8 +122,8 @@ export class PlayerActor {
     if (p.d - this._lastTrackD < 0.48) return;
     this._lastTrackD = p.d;
     const rightX = Math.cos(p.heading), rightZ = Math.sin(p.heading);
-    const curL = new THREE.Vector3(p.x - rightX * 0.21, p.y + 0.025, -p.d - rightZ * 0.21);
-    const curR = new THREE.Vector3(p.x + rightX * 0.21, p.y + 0.025, -p.d + rightZ * 0.21);
+    const curL = new THREE.Vector3(p.x - rightX * 0.07, p.y + 0.03, -p.d - rightZ * 0.07);
+    const curR = new THREE.Vector3(p.x + rightX * 0.07, p.y + 0.03, -p.d + rightZ * 0.07);
     if (this._trackReady) {
       const base = this._trackHead * 12, a = this.trackPos;
       a[base] = this._trackLeft.x; a[base + 1] = this._trackLeft.y; a[base + 2] = this._trackLeft.z;
@@ -163,15 +143,16 @@ export class PlayerActor {
     this.root.position.set(p.x, p.y, -p.d);
     this.root.rotation.y = -p.heading;
 
-    // Go farther than realistic. The game reads at speed because the skier
-    // practically falls into a hard carve and snaps back out of it.
+    // Carve lean, exaggerated exactly like the old rig — the blade heels
+    // over into the turn and snaps back upright.
     const carveN = Math.max(-1, Math.min(1, p.heading / TUNING.PLAYER.MAX_CARVE));
-    const lean = -carveN * 0.78;
+    const lean = -carveN * 0.62;
     const slopePitch = Math.atan2(slope.dhdd, 1);
     const k = 1 - Math.exp(-12 * dt);
     this.group.rotation.z += ((p.airborne ? 0 : lean) - this.group.rotation.z) * k;
     this.group.rotation.x += ((p.airborne ? 0 : slopePitch) - this.group.rotation.x) * k;
 
+    // Airborne spin/flip rides the same pivot the sim always drove.
     if (p.airborne) {
       this.pivot.rotation.y = p.yaw;
       this.pivot.rotation.x = p.pitch;
@@ -181,35 +162,38 @@ export class PlayerActor {
       this.pivot.rotation.x *= 1 - settle;
     }
 
-    // Knees come absurdly high in air; a flub produces an arm-windmill rather
-    // than a subtle procedural wobble.
-    for (const leg of this.legs) {
-      const target = p.airborne ? 0.72 : -0.22;
-      leg.mesh.rotation.x += (target - leg.mesh.rotation.x) * k;
-    }
-    for (const arm of this.arms) {
-      let rz = arm.side * (0.18 + Math.max(0, carveN * arm.side) * 0.52);
-      if (p.staggerT > 0) rz += Math.sin(this.t * 25 + arm.side) * 0.9;
-      arm.mesh.rotation.z += (rz - arm.mesh.rotation.z) * k;
+    const speedN = Math.min(1.35, p.speed / 32) + (p.overdrive ? 0.5 : 0);
+
+    // Speed stretches the blade; Overdrive makes it borderline comet.
+    const stretch = 1 + speedN * 0.16;
+    this.core.scale.set(0.72, 2.6 * stretch, 0.72);
+    this.halo.scale.set(0.9 + speedN * 0.12, 2.35 * stretch, 0.9 + speedN * 0.12);
+
+    // A text cursor blinks. Calm far from the Redline, frantic close to it.
+    const nerve = Math.max(0, Math.min(1, 1 - beastGap / 45));
+    this._blink += dt * (1.6 + nerve * 6.5);
+    const blink = 0.82 + Math.abs(Math.sin(this._blink * Math.PI)) * 0.18;
+    this.core.material.opacity = this.baseOpacity * blink;
+    this.halo.material.opacity = 0.34 * this.baseOpacity * (0.8 + speedN * 0.35) * blink;
+
+    // Stagger: the construct destabilises — hard flicker and a shudder —
+    // where the old rig windmilled its arms.
+    if (p.staggerT > 0) {
+      const jitter = Math.sin(this.t * 61) * 0.09;
+      this.group.position.x = jitter;
+      this.core.material.opacity *= 0.55 + Math.abs(Math.sin(this.t * 47)) * 0.45;
+    } else {
+      this.group.position.x *= 1 - Math.min(1, dt * 10);
     }
 
-    // The giant scarf is the signature. At Overdrive it becomes borderline
-    // ridiculous, which is exactly the correct amount of restraint here.
-    if (this.scarf) {
-      const speed = Math.min(1.35, p.speed / 32) + (p.overdrive ? 0.45 : 0);
-      this.scarf.rotation.x = 0.12 + speed * 0.1;
-      const segs = this.scarf.userData.segments;
-      for (let i = 0; i < segs.length; i++) {
-        const wave = Math.sin(this.t * (7.5 + speed * 2) - i * 0.72);
-        segs[i].rotation.y = wave * (0.08 + speed * 0.12);
-        segs[i].rotation.x = Math.sin(this.t * 5.2 - i * 0.55) * 0.08;
-        segs[i].scale.z = 1 + speed * 0.12;
-      }
+    // Motes orbit faster with speed; they flatten into the slipstream.
+    for (const m of this.moteList) {
+      m.userData.angle += dt * (2.2 + speedN * 3.4);
+      const r = 0.62 + speedN * 0.1;
+      m.position.set(Math.cos(m.userData.angle) * r, m.userData.h,
+        Math.sin(m.userData.angle) * r + speedN * 0.3);
     }
 
-    // Quick over-the-shoulder look when it is breathing on you.
-    const lookBack = !p.airborne && beastGap < 18 ? 0.62 : 0;
-    this.head.rotation.y += (lookBack - this.head.rotation.y) * (1 - Math.exp(-7 * dt));
     this._track(p);
   }
 
@@ -218,9 +202,10 @@ export class PlayerActor {
 
 export class GhostActor {
   constructor(scene) {
-    const b = buildSkier(true);
+    const b = buildCursor(true);
     this.group = b.group;
     this.materials = b.materials;
+    this.baseOpacity = b.baseOpacity;
     this.root = new THREE.Group();
     this.root.add(this.group);
     this.root.visible = false;
@@ -244,9 +229,7 @@ export class GhostActor {
 }
 
 /**
- * WORD RUN Phase 4: the physical pursuer is gone. The antagonist slot in the
- * render graph is filled by the corruption presentation, which consumes the
- * exact same update() contract (gap, side, lunge, killT) the beast did — so
- * every patch layer, camera rule and audio pan keeps its spatial meaning.
+ * The Redline fills the antagonist slot in the render graph, consuming the
+ * exact update() contract (gap, side, lunge, killT) the beast carried.
  */
 export { CorruptionActor as BeastActor } from './corruption.js';
