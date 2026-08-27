@@ -57,7 +57,12 @@ export const TUNING = {
   // you, the shorter the reading window gets. One difficulty system, shared.
   WORDS: {
     FIRST_GATE_M: 90,          // matches FEATURES.SAFE_START (fair start)
-    SPACING_M: 85,             // metres of downhill between gates
+    SPACING_M: 85,             // metres of downhill between gates at the top
+    // Spawn rate ramps the way the beast does (RAMP_PER_1000M precedent):
+    // gates pack closer as the run deepens, never below the floor — and the
+    // floor stays above ARM_DISTANCE_M so one word is in play at a time.
+    SPACING_RAMP_PER_1000M: 4, // metres of spacing lost per 1000m travelled
+    SPACING_MIN_M: 62,
     // The word must be legible for the whole approach. ARM distance is where
     // the plate becomes readable and the answer window opens.
     ARM_DISTANCE_M: 55,

@@ -25,10 +25,13 @@ const FONT_PX = 168;
 const SHOW_AHEAD = 260;       // build plates well inside fog range
 const LINGER = 0.65;          // seconds a resolved plate hangs on for feedback
 
+// Neon identity: a dark glass plate on the bright snow is the highest
+// contrast ground available, and the glow never touches the glyph cores —
+// legibility (priority 1) outranks flourish (priority 4).
 const COL = {
-  plate: 'rgba(240,248,252,0.94)',
-  edge: 'rgba(16,24,32,0.85)',
-  ink: '#0d141b',
+  plate: 'rgba(10,16,23,0.86)',
+  edge: 'rgba(103,216,255,0.55)',
+  ink: '#eefaff',
   confirm: '#67d8ff',
   right: '#57e389',
   wrong: '#ff2a1f',
@@ -78,28 +81,53 @@ class Plate {
       : state === 'confirmed' ? COL.confirm
       : COL.edge;
 
+    // Neon plate: dark glass, glowing rim.
+    g.save();
     g.fillStyle = COL.plate;
     g.strokeStyle = accent;
-    g.lineWidth = state === 'idle' ? 6 : 14;
+    g.lineWidth = state === 'idle' ? 5 : 12;
+    g.shadowColor = accent;
+    g.shadowBlur = state === 'idle' ? 14 : 30;
     const r = 34;
     g.beginPath();
-    g.roundRect(8, 8, cw - 16, ch - 16, r);
+    g.roundRect(10, 10, cw - 20, ch - 20, r);
     g.fill();
     g.stroke();
+    g.restore();
 
-    g.fillStyle = state === 'wrong' ? COL.wrong : COL.ink;
-    g.font = `800 ${FONT_PX}px ui-monospace, 'SF Mono', Menlo, Consolas, monospace`;
+    const font = (px) => `800 ${px}px ui-monospace, 'SF Mono', Menlo, Consolas, monospace`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     let text = word;
     // Long tier-4 words: shrink to fit rather than clipping — an unreadable
     // clip would fail the premise, a smaller-but-whole word tests it.
     let px = FONT_PX;
+    g.font = font(px);
     while (px > 64 && g.measureText(text).width > cw - 90) {
       px -= 8;
-      g.font = `800 ${px}px ui-monospace, 'SF Mono', Menlo, Consolas, monospace`;
+      g.font = font(px);
     }
-    g.fillText(text, cw / 2, ch / 2 + 6);
+    const cx = cw / 2, cy = ch / 2 + 6;
+    if (state === 'right' || state === 'wrong') {
+      // Afterimage double-strike on resolution: two chromatic echoes trailing
+      // upslope of the glyphs, then the solid core on top.
+      g.save();
+      g.globalAlpha = 0.35;
+      g.fillStyle = accent;
+      g.fillText(text, cx - 14, cy);
+      g.globalAlpha = 0.18;
+      g.fillText(text, cx - 28, cy);
+      g.restore();
+    }
+    g.save();
+    // Soft neon halo behind the core glyphs — halo only, cores stay solid.
+    g.shadowColor = state === 'idle' ? 'rgba(103,216,255,0.75)' : accent;
+    g.shadowBlur = 22;
+    g.fillStyle = state === 'wrong' ? COL.wrong : COL.ink;
+    g.fillText(text, cx, cy);
+    g.shadowBlur = 0;
+    g.fillText(text, cx, cy);
+    g.restore();
     this.tex.needsUpdate = true;
   }
 
@@ -152,6 +180,11 @@ export class WordGateActors {
   }
 
   update(dt, playerD, camera) {
+    // No plates looming behind the title or death screens.
+    if (this.sim.phase !== 'running' && this.sim.phase !== 'kill') {
+      this.reset();
+      return;
+    }
     const wg = this.sim.wordGates;
     const terrain = this.sim.terrain;
     const g = wg.current();

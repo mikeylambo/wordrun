@@ -31,7 +31,18 @@ export function tierAt(d) {
 }
 
 export function gateDistance(index) {
-  return W.FIRST_GATE_M + index * W.SPACING_M;
+  // Arithmetic ramp with a floor, in closed form so it stays pure: spacing
+  // for gap k is max(MIN, SPACING - k * r) where r derives from the
+  // per-1000m ramp at the shipped top spacing.
+  const r = W.SPACING_RAMP_PER_1000M * (W.SPACING_M / 1000);
+  const span = W.SPACING_M - W.SPACING_MIN_M;
+  const kRamp = r > 0 ? Math.ceil(span / r) : 0;
+  const n = index;
+  if (n <= 0) return W.FIRST_GATE_M;
+  const m = Math.min(n, kRamp);
+  const ramped = m * W.SPACING_M - r * (m * (m - 1)) / 2;
+  const flat = (n - m) * W.SPACING_MIN_M;
+  return W.FIRST_GATE_M + ramped + flat;
 }
 
 /** Build gate #index for a seed — pure, so tools can interrogate any gate. */

@@ -226,10 +226,17 @@ head('WORDS — reading window vs the speed ramp');
 }
 
 {
-  // Gates must not overlap: a gate resolves before the next one arms.
-  check('one word is in play at a time',
-    W.SPACING_M > W.ARM_DISTANCE_M,
-    `${W.SPACING_M}m spacing vs ${W.ARM_DISTANCE_M}m arm distance`);
+  // Gates must not overlap: a gate resolves before the next one arms —
+  // including at the bottom of the spawn-rate ramp.
+  check('one word is in play at a time, even fully ramped',
+    W.SPACING_MIN_M > W.ARM_DISTANCE_M,
+    `floor ${W.SPACING_MIN_M}m spacing vs ${W.ARM_DISTANCE_M}m arm distance`);
+  const ds = Array.from({ length: 200 }, (_, i) => gateDistance(i));
+  const gaps = ds.slice(1).map((d, i) => d - ds[i]);
+  check('gate spacing ramps down monotonically to its floor',
+    gaps.every((g, i) => (i === 0 || g <= gaps[i - 1] + 1e-9) &&
+      g >= W.SPACING_MIN_M - 1e-9),
+    `${gaps[0].toFixed(1)}m -> ${gaps[gaps.length - 1].toFixed(1)}m`);
 }
 
 // ── Perf parity ───────────────────────────────────────────────────────────
