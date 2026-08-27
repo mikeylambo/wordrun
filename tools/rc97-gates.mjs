@@ -38,14 +38,16 @@ check(runtime.includes("this.titleHint.textContent = 'HOW FAR CAN YOU GO?'") && 
   'runtime keeps home screen mystery-first and late lighting unannounced');
 check(!runtime.includes('requestAnimationFrame'), 'escape/gameplay patch adds no animation loop');
 
-check(art.includes("id: 'high-night', name: 'HIGH NIGHT', start: 25000") &&
-  art.includes("id: 'false-dawn', name: 'FALSE DAWN', start: 28000") &&
-  art.includes("id: 'first-light', name: 'FIRST LIGHT', start: 29200") &&
-  art.includes("id: 'dawn', name: 'DAWN', start: 30000"),
-  'late palette resolves night -> false dawn -> first light -> dawn by 30K');
-check(art.includes("id: 'morning', name: 'MORNING', start: 31500") &&
+// WORD RUN Phase 6: the band arc is unnamed by design; ids and start
+// distances still carry the late-run structure this gate protects.
+check(art.includes("id: 'high-night', start: 25000") &&
+  art.includes("id: 'false-dawn', start: 28000") &&
+  art.includes("id: 'first-light', start: 29200") &&
+  art.includes("id: 'dawn', name: 'PUBLISHED', start: 30000"),
+  'late palette resolves night -> pre-dawn -> finish band by 30K');
+check(art.includes("id: 'morning', start: 31500") &&
   art.includes("id: 'halo'") && art.includes("id: 'crown'"),
-  'postgame palette opens into morning and retains deep prestige states');
+  'postgame palette opens past the finish and retains deep prestige states');
 check((art.match(/announce: false/g) || []).length >= 9,
   'deep visual progression is discovered rather than announced as game zones');
 check(art.includes('nextStart >= 13200') && art.includes('Math.max(transition, 760)'),

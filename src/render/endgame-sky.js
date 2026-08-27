@@ -149,8 +149,7 @@ class EscapeOverlay {
     this.root.dataset.rc97Ui = '1';
     this.root.innerHTML = `
       <div class="card">
-        <div class="eyebrow">DAWN</div>
-        <h2>YOU MADE IT DOWN.</h2>
+        <h2>PUBLISHED.</h2>
         <div class="distance">50 KM</div>
         <div class="actions">
           <button data-act="finish">FINISH RUN</button>

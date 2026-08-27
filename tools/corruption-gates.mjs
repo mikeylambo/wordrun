@@ -170,6 +170,7 @@ head('CORRUPTION — identity');
     'src/ui/pause.js',
     'src/v1-mobile-ui.js',
     'src/v1-finalize.js',
+    'src/render/endgame-sky.js',
   ];
   for (const f of sourceFacing) {
     const text = fs.readFileSync(f, 'utf8');
@@ -202,19 +203,97 @@ head('CORRUPTION — identity');
 
   check('no beast/creature or signal/network language survives in player-facing text',
     offenders.length === 0, offenders.slice(0, 4).join(' | ') || 'clean');
+}
 
-  // The new names are actually present where a player meets them.
-  const bands = fs.readFileSync('src/render/art-direction.js', 'utf8');
+// ── The five-name cap (Phase 6) ───────────────────────────────────────────
+head('NAMING — five approved names, machine-enforced');
+
+{
+  // The complete approved set. This is a CEILING: adding a sixth name to the
+  // game means consciously editing this list, and the checks below make any
+  // back-door label channel (band announcements, retired vocabulary) fail.
+  const APPROVED = ['The Redline', 'The Caret', 'REDACTED', 'PUBLISHED', "TODAY'S DRAFT"];
+  check('the approved-name ceiling holds at exactly five',
+    APPROVED.length === 5, APPROVED.join(' · '));
+
+  // Gate 1: every retired stage name is gone from code, docs and copy —
+  // scan the whole tracked tree except this gate file (which must carry the
+  // list to enforce it).
+  const RETIRED = [
+    'FIRST DRAFT', 'MARGIN NOTES', 'THE FOOTNOTES', 'STRIKETHROUGH',
+    'TRACKED CHANGES', 'DEAD LETTERS', 'WHITEOUT', 'BLACK INK', 'AFTERWORD',
+    'OLD DRAFTS', 'THE BLANK PAGE', 'VELLUM', 'THE APPENDIX',
+    'THE SMALL HOURS', 'CLEAN COPY',
+    // DESCENT-inherited stage names fall under the same cap:
+    'THE STILL', 'FALSE DAWN', 'FIRST LIGHT', 'CLEAN SIGNAL',
+  ];
+  const scanRoots = ['src', 'tools', 'public/ui', 'public/audio/approved'];
+  const files = ['index.html', 'README.md', 'RELEASE.md',
+    'public/manifest.webmanifest'];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const path = `${dir}/${e.name}`;
+      if (e.isDirectory()) walk(path);
+      else if (/\.(js|mjs|md|html|svg|json|webmanifest)$/.test(e.name)) files.push(path);
+    }
+  };
+  for (const r of scanRoots) walk(r);
+  // Case-sensitive on the two shapes a label takes (ALL CAPS display form,
+  // Title Case doc form) — lowercase engine ids ('whiteout' the band id, the
+  // weather variable) are namespace, not labels, and stay.
+  const titleCase = (n) => n.toLowerCase().replace(/(^|\s)\w/g, (c) => c.toUpperCase());
+  const retiredHits = [];
+  for (const f of files) {
+    if (f.endsWith('corruption-gates.mjs')) continue; // the enforcement list itself
+    const text = fs.readFileSync(f, 'utf8');
+    for (const name of RETIRED) {
+      if (text.includes(name) || text.includes(titleCase(name))) {
+        retiredHits.push(`${f}: ${name}`);
+      }
+    }
+  }
+  check('every retired stage name is gone from code, docs and copy',
+    retiredHits.length === 0,
+    retiredHits.slice(0, 5).join(' | ') || `${files.length} files clean`);
+
+  // Gate 2: the cap. The band table — the one channel that ever surfaced
+  // zone titles — may carry at most the finish name; the announcer refuses
+  // unnamed bands; and the functional labels are exactly the approved ones.
+  const bands = (await import('../src/render/art-direction.js')).MOUNTAIN_BANDS;
+  const namedBands = bands.filter((b) => b.name);
+  check('the mood arc is unnamed: only the finish band carries a label, and it is PUBLISHED',
+    namedBands.length === 1 && namedBands[0].id === 'dawn' && namedBands[0].name === 'PUBLISHED',
+    namedBands.map((b) => `${b.id}:${b.name}`).join(', ') || 'no named bands');
+
   const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
-  const readme = fs.readFileSync('README.md', 'utf8');
-  check('the manuscript names are live: FIRST DRAFT / TRACKED CHANGES / THE BLANK PAGE / PUBLISHED',
-    bands.includes("'FIRST DRAFT'") && bands.includes("'TRACKED CHANGES'") &&
-    bands.includes("'THE BLANK PAGE'") && bands.includes("'PUBLISHED'") &&
-    bands.includes("'MARGIN NOTES'") && bands.includes("'WHITEOUT'"));
-  check('death copy is REDACTED and the day is a DRAFT',
+  check('the transition announcer refuses a band without an approved name',
+    ui.includes('this.bandName && band.name'));
+  check('death copy is REDACTED and the day is TODAY\'S DRAFT',
     ui.includes("'REDACTED'") && ui.includes("TODAY'S DRAFT"));
+  const readme = fs.readFileSync('README.md', 'utf8');
   check('the Redline and the Caret are the named antagonists',
     readme.includes('the Redline') && readme.includes('the Caret'));
+
+  // No OTHER "The Xxx" proper-noun label may appear in player-facing display
+  // strings — the pattern a sixth name would most likely take.
+  const nameShaped = [];
+  for (const f of ['index.html', 'src/ui/ui.js', 'src/ui/onboarding.js',
+    'src/ui/pause.js', 'src/v1-mobile-ui.js', 'src/v1-finalize.js',
+    'src/render/endgame-sky.js']) {
+    const text = fs.readFileSync(f, 'utf8');
+    const strings = [
+      ...text.matchAll(/'([^'\n]*)'/g),
+      ...text.matchAll(/`([^`\n]*)`/g),
+      ...text.matchAll(/>([^<>{}\n]+)</g),
+    ].map((m) => m[1]);
+    for (const str of strings) {
+      for (const m of str.matchAll(/\bThe ([A-Z][a-z]+)\b/g)) {
+        if (!['Redline', 'Caret'].includes(m[1])) nameShaped.push(`${f}: "The ${m[1]}"`);
+      }
+    }
+  }
+  check('no name-shaped label beyond the approved five in player-facing strings',
+    nameShaped.length === 0, nameShaped.slice(0, 4).join(' | ') || 'clean');
 }
 
 // ── Vibrancy stays subordinate to legibility ─────────────────────────────

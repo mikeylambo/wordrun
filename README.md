@@ -10,7 +10,18 @@ PWA, seeded runs — is the source frame as-is.
 
 You are a cursor of light running down an unfinished draft — a blade of
 glow that blinks like a text caret, calm at distance, frantic when the
-Redline closes, drawing an ink stroke down the page as it runs. Words rush at
+Redline closes, drawing an ink stroke down the page as it runs.
+
+## The five names (a ceiling, not a starting point)
+
+Exactly five invented names exist in the whole game, machine-enforced by
+the gate suite: **the Redline** and **the Caret** (the antagonists),
+**REDACTED** (death), **PUBLISHED** (the 30 km finish), and **TODAY'S
+DRAFT** (the daily seed). The mood arc underneath — twenty-one palette
+bands with their own hues and blend math — is deliberately unnamed: plain
+ids, no zone titles, no transition cards. The gates fail the build if a
+retired stage name reappears anywhere or if a sixth name-shaped label
+lands in player-facing copy. Words rush at
 you; read them right or **the Redline** — a red editing-pen — closes in
 behind you, eating the frame edge by edge until you are REDACTED. Its rare
 pale companion, **the Caret**, cuts across the track on its own authored
@@ -115,7 +126,7 @@ ramp — one system, shared.
 
 - Core frame gates: **69 / 0**
 - Word module + verb gates: **31 / 0**
-- Redline presentation + identity + vibrancy gates: **23 / 0**
+- Redline presentation + identity + naming-cap + vibrancy gates: **27 / 0**
 - V1 release / polish / PWA: **39 / 0, 48 / 0, 14 / 0**
 
 ## Acceptance gates from the brief
@@ -126,6 +137,9 @@ ramp — one system, shared.
 - [x] Speed ramp + endless-prestige loop structurally identical minus the verb
 - [x] Corruption escalation tracks the scripted gap closure (Phase 4 gate)
 - [x] Old vocabulary from earlier phases banned in player-facing text (gated)
+- [x] Five-name ceiling machine-enforced: retired stage names banned
+  everywhere; the band table carries no label but the finish's PUBLISHED;
+  the transition announcer refuses unnamed bands
 - [x] Red belongs to the Redline alone — world palette, payoff bursts and the
   cursor are gated red-free; the plate keeps its solid-glyph-core treatment
 - [x] Max-intensity spot-check: a 10-streak burst firing with the Redline at

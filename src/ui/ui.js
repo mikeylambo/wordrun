@@ -200,10 +200,13 @@ export class UI {
       const band = bandForDistance(sim.distance);
       if (band.id !== this._lastBand) {
         this._lastBand = band.id;
-        if (this.bandName) {
+        // Bands are unnamed by design (Phase 6). Only a band that carries
+        // one of the five approved names — in practice, PUBLISHED at the
+        // finish — may ever surface a transition title.
+        if (this.bandName && band.name) {
           this.bandName.textContent = band.name;
           this.bandName.classList.add('on');
-          this._bandT = band.id === 'slope' ? 1.4 : 2.6;
+          this._bandT = 2.6;
         }
       }
       const pn = sim.pitch.name;

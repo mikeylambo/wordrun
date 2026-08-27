@@ -10,6 +10,7 @@ import { Terrain } from './sim/terrain.js';
 import { Beast, LUNGE, CHASE_MODE } from './sim/beast.js';
 import { SecondBeast } from './sim/second-beast.js';
 import { UI } from './ui/ui.js';
+import { bandForDistance } from './render/art-direction.js';
 import { ENDGAME, applyEndgameTerrain } from './design/endgame.js';
 
 applyEndgameTerrain(Terrain, TUNING);
@@ -163,8 +164,11 @@ if (!SecondBeast.prototype.__rc97EscapePatched) {
   };
 }
 
-// Hide late-zone labels and keep the title mechanically innocent. The mountain
-// should reveal night/dawn through light, not UI naming the secret progression.
+// Hide late-zone labels and keep the title mechanically innocent. The world
+// reveals its late run through light, not UI naming the secret progression.
+// Phase 6: bands are unnamed anyway; the one exception is the finish band's
+// approved name (PUBLISHED), which is allowed through — the finish is a
+// state the player earned, not a secret being spoiled.
 if (!UI.prototype.__rc97MysteryPatched) {
   UI.prototype.__rc97MysteryPatched = true;
   const baseSetSeed = UI.prototype.setSeed;
@@ -177,7 +181,8 @@ if (!UI.prototype.__rc97MysteryPatched) {
   const baseUpdate = UI.prototype.update;
   UI.prototype.update = function updateRC97(dt, sim, running) {
     const out = baseUpdate.call(this, dt, sim, running);
-    if (sim?.distance >= 15600 && this.bandName) {
+    if (sim?.distance >= 15600 && this.bandName &&
+        !bandForDistance(sim.distance).name) {
       this.bandName.classList.remove('on');
       this._bandT = 0;
     }
