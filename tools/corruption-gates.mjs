@@ -150,41 +150,71 @@ head('CORRUPTION — one curve, every surface');
     !fs.readFileSync('src/render/corruption-curve.js', 'utf8').includes("from 'three'"));
 }
 
-// ── No beast in player-facing copy ────────────────────────────────────────
+// ── No old vocabulary in player-facing copy ───────────────────────────────
 head('CORRUPTION — identity');
 
 {
-  const facing = [
+  // Phase 4 banned creature language; Phase 5 extends the ban to the interim
+  // signal/network jargon, so neither vocabulary can quietly creep back.
+  // Internal identifiers (sim.beast.gap, TUNING.BEAST, staticVeil, band ids)
+  // are the engine namespace and stay — the scan is word-bounded and only
+  // reads display strings / markdown prose.
+  const BANNED = /\b(beast|frost beast|monster|creature|caught|grid|signal|fiber|void|static)\b/i;
+  const INTERNAL = /beast\.|__|BEAST\.|beastActor|second|staticVeil|staticTexture|drawStatic|staticFar/;
+  const offenders = [];
+
+  const sourceFacing = [
     'index.html',
     'src/ui/ui.js',
     'src/ui/onboarding.js',
     'src/ui/pause.js',
     'src/v1-mobile-ui.js',
     'src/v1-finalize.js',
-    'README.md',
-    'RELEASE.md',
   ];
-  const offenders = [];
-  for (const f of facing) {
+  for (const f of sourceFacing) {
     const text = fs.readFileSync(f, 'utf8');
-    // Player-facing strings only: scan quoted UPPERCASE display strings and
-    // HTML text for creature language. Internal identifiers (sim.beast.gap,
-    // TUNING.BEAST) are the frame's engine namespace and stay.
     const strings = [
       ...text.matchAll(/'([^'\n]*)'/g),
       ...text.matchAll(/`([^`\n]*)`/g),
       ...text.matchAll(/>([^<>{}\n]+)</g),
       ...text.matchAll(/alt="([^"]+)"/g),
+      ...text.matchAll(/content="([^"]+)"/g),
     ].map((m) => m[1]);
     for (const str of strings) {
-      if (/\b(beast|frost beast|monster|creature|caught)\b/i.test(str) &&
-          !/beast\.|__|BEAST\.|beastActor|second/.test(str)) {
+      if (BANNED.test(str) && !INTERNAL.test(str)) {
         offenders.push(`${f}: "${str.trim().slice(0, 40)}"`);
       }
     }
   }
-  check('no beast/creature language survives in player-facing text',
+
+  // Markdown docs: scan the PROSE, not just quoted spans — code spans and
+  // fenced blocks (module paths, engine identifiers) are exempt.
+  for (const f of ['README.md', 'RELEASE.md']) {
+    const raw = fs.readFileSync(f, 'utf8');
+    let inFence = false;
+    for (const line of raw.split('\n')) {
+      if (/^\s*```/.test(line)) { inFence = !inFence; continue; }
+      if (inFence) continue;
+      const prose = line.replace(/`[^`]*`/g, '');
+      if (BANNED.test(prose)) offenders.push(`${f}: "${prose.trim().slice(0, 48)}"`);
+    }
+  }
+
+  check('no beast/creature or signal/network language survives in player-facing text',
     offenders.length === 0, offenders.slice(0, 4).join(' | ') || 'clean');
+
+  // The new names are actually present where a player meets them.
+  const bands = fs.readFileSync('src/render/art-direction.js', 'utf8');
+  const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
+  const readme = fs.readFileSync('README.md', 'utf8');
+  check('the manuscript names are live: FIRST DRAFT / TRACKED CHANGES / THE BLANK PAGE / PUBLISHED',
+    bands.includes("'FIRST DRAFT'") && bands.includes("'TRACKED CHANGES'") &&
+    bands.includes("'THE BLANK PAGE'") && bands.includes("'PUBLISHED'") &&
+    bands.includes("'MARGIN NOTES'") && bands.includes("'WHITEOUT'"));
+  check('death copy is REDACTED and the day is a DRAFT',
+    ui.includes("'REDACTED'") && ui.includes("TODAY'S DRAFT"));
+  check('the Redline and the Caret are the named antagonists',
+    readme.includes('the Redline') && readme.includes('the Caret'));
 }
 
 console.log(out.join('\n'));

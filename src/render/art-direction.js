@@ -1,16 +1,16 @@
 /**
- * One endless data stream, but a strong run must keep GOING somewhere.
+ * One endless manuscript, but a strong run must keep GOING somewhere.
  * Presentation bands only: physics stays continuous while the palette drifts.
  *
- * WORD RUN retheme: the alpine day becomes a transmission arc — clean signal
- * into ever-deeper corrupted sectors, a blinding WHITE NOISE burst, the near
- * blackout of THE VOID, then THE RESTORE at the canonical 30K. Band ids and
- * start distances are the frame's own; only the dressing changed.
+ * WORD RUN naming (Phase 5): the run is a draft being written — FIRST DRAFT
+ * through TRACKED CHANGES and DEAD LETTERS, a blinding WHITEOUT, the near
+ * blackout of THE BLANK PAGE, then PUBLISHED at the canonical 30K. Band ids
+ * and start distances are the frame's own; only the dressing changed.
  */
 
 export const MOUNTAIN_BANDS = [
   {
-    id: 'slope', name: 'CLEAN SIGNAL', start: 0,
+    id: 'slope', name: 'FIRST DRAFT', start: 0,
     sky: 0x050a12, fog: 0x081222, snow: 0x121c2c, crest: 0x2e4a66, shade: 0x0a111e,
     powder: 0x1a2740, ice: 0x1d5f7c,
     pine: 0x0d3a4a, pineDark: 0x07222c, rock: 0x22364a, rockDark: 0x141f2c,
@@ -18,7 +18,7 @@ export const MOUNTAIN_BANDS = [
     fogNear: 48, fogFar: 205,
   },
   {
-    id: 'treeline', name: 'THE GRID', start: 900,
+    id: 'treeline', name: 'MARGIN NOTES', start: 900,
     sky: 0x04080f, fog: 0x070f1d, snow: 0x0f1826, crest: 0x28425c, shade: 0x080e19,
     powder: 0x162138, ice: 0x1a566f,
     pine: 0x0b3240, pineDark: 0x061e26, rock: 0x1d2f41, rockDark: 0x111b26,
@@ -26,7 +26,7 @@ export const MOUNTAIN_BANDS = [
     fogNear: 42, fogFar: 180,
   },
   {
-    id: 'glacier', name: 'DEEP CACHE', start: 2000,
+    id: 'glacier', name: 'THE FOOTNOTES', start: 2000,
     sky: 0x03080c, fog: 0x061318, snow: 0x0d1a20, crest: 0x1f4a55, shade: 0x070f13,
     powder: 0x122430, ice: 0x18657d,
     pine: 0x0a3a3d, pineDark: 0x052325, rock: 0x18303a, rockDark: 0x0d1b21,
@@ -34,7 +34,7 @@ export const MOUNTAIN_BANDS = [
     fogNear: 36, fogFar: 158,
   },
   {
-    id: 'cut', name: 'THE FILTER', start: 3400,
+    id: 'cut', name: 'STRIKETHROUGH', start: 3400,
     sky: 0x060714, fog: 0x0b0d24, snow: 0x131530, crest: 0x2f3266, shade: 0x0b0c1e,
     powder: 0x1b1e42, ice: 0x2b4f8a,
     pine: 0x1a1c4a, pineDark: 0x0e1029, rock: 0x252856, rockDark: 0x151732,
@@ -42,7 +42,7 @@ export const MOUNTAIN_BANDS = [
     fogNear: 31, fogFar: 145,
   },
   {
-    id: 'night', name: 'DARK FIBER', start: 5000,
+    id: 'night', name: 'TRACKED CHANGES', start: 5000,
     sky: 0x02040a, fog: 0x040814, snow: 0x0a101d, crest: 0x1d3350, shade: 0x050912,
     powder: 0x0f182b, ice: 0x134058,
     pine: 0x082430, pineDark: 0x04141b, rock: 0x14222f, rockDark: 0x0a121b,
@@ -50,7 +50,7 @@ export const MOUNTAIN_BANDS = [
     fogNear: 26, fogFar: 128,
   },
   {
-    id: 'bones', name: 'DEAD PIXELS', start: 6800,
+    id: 'bones', name: 'DEAD LETTERS', start: 6800,
     sky: 0x070609, fog: 0x0c0b10, snow: 0x16141a, crest: 0x3a3546, shade: 0x0d0c11,
     powder: 0x1e1b26, ice: 0x3a3550,
     pine: 0x231f2e, pineDark: 0x121019, rock: 0x2a2635, rockDark: 0x18151f,
@@ -58,7 +58,7 @@ export const MOUNTAIN_BANDS = [
     fogNear: 25, fogFar: 122,
   },
   {
-    id: 'whiteout', name: 'WHITE NOISE', start: 8800,
+    id: 'whiteout', name: 'WHITEOUT', start: 8800,
     sky: 0xd7dce0, fog: 0xd7dce0, snow: 0xe8eaee, crest: 0xffffff, shade: 0xb9bec6,
     powder: 0xcdd2d8, ice: 0xa8d2de,
     pine: 0x9aa4ac, pineDark: 0x7c868e, rock: 0xa8adb3, rockDark: 0x8b9096,
@@ -66,7 +66,7 @@ export const MOUNTAIN_BANDS = [
     fogNear: 18, fogFar: 95,
   },
   {
-    id: 'glass', name: 'BLACK GLASS', start: 10800,
+    id: 'glass', name: 'BLACK INK', start: 10800,
     sky: 0x020609, fog: 0x05121a, snow: 0x0a161e, crest: 0x1e4a5e, shade: 0x050d13,
     powder: 0x0f2029, ice: 0x14485e,
     pine: 0x07222c, pineDark: 0x031317, rock: 0x11242e, rockDark: 0x08141b,
@@ -74,7 +74,7 @@ export const MOUNTAIN_BANDS = [
     fogNear: 24, fogFar: 118,
   },
   {
-    id: 'afterlight', name: 'AFTERGLOW', start: 13200,
+    id: 'afterlight', name: 'AFTERWORD', start: 13200,
     sky: 0x120c0a, fog: 0x1e1410, snow: 0x241a14, crest: 0x6b4a30, shade: 0x140e0a,
     powder: 0x2e2218, ice: 0x5c4a34,
     pine: 0x3a2a1a, pineDark: 0x1e150d, rock: 0x40301f, rockDark: 0x241a10,
@@ -82,7 +82,7 @@ export const MOUNTAIN_BANDS = [
     fogNear: 34, fogFar: 150,
   },
   {
-    id: 'rust', name: 'RUST SECTOR', start: 15600, announce: false,
+    id: 'rust', name: 'OLD DRAFTS', start: 15600, announce: false,
     sky: 0x100708, fog: 0x1a0c0d, snow: 0x221114, crest: 0x633036, shade: 0x130a0b,
     powder: 0x2c161a, ice: 0x54323a,
     pine: 0x38181c, pineDark: 0x1d0c0e, rock: 0x3e1e23, rockDark: 0x231114,
@@ -90,7 +90,7 @@ export const MOUNTAIN_BANDS = [
     fogNear: 30, fogFar: 138,
   },
   {
-    id: 'mouth', name: 'THE VOID', start: 17800, announce: false,
+    id: 'mouth', name: 'THE BLANK PAGE', start: 17800, announce: false,
     sky: 0x020202, fog: 0x070608, snow: 0x0c0b0e, crest: 0x2c1518, shade: 0x060507,
     powder: 0x121014, ice: 0x27141a,
     pine: 0x160a0c, pineDark: 0x0a0405, rock: 0x180d10, rockDark: 0x0c0608,
@@ -98,7 +98,7 @@ export const MOUNTAIN_BANDS = [
     fogNear: 22, fogFar: 108,
   },
   {
-    id: 'moon', name: 'PALE BAND', start: 20500, announce: false,
+    id: 'moon', name: 'VELLUM', start: 20500, announce: false,
     sky: 0x131722, fog: 0x1c2130, snow: 0x2c3244, crest: 0x707e9c, shade: 0x1b1f2c,
     powder: 0x3a4157, ice: 0x4a5a80,
     pine: 0x2a3247, pineDark: 0x161b28, rock: 0x39415a, rockDark: 0x232937,
@@ -106,7 +106,7 @@ export const MOUNTAIN_BANDS = [
     fogNear: 40, fogFar: 165,
   },
   {
-    id: 'deep-moon', name: 'DEEP ARCHIVE', start: 23000, announce: false,
+    id: 'deep-moon', name: 'THE APPENDIX', start: 23000, announce: false,
     sky: 0x050b18, fog: 0x0a1424, snow: 0x101d33, crest: 0x2d4e78, shade: 0x0a1220,
     powder: 0x162743, ice: 0x1f4a74,
     pine: 0x0c2440, pineDark: 0x061424, rock: 0x172c48, rockDark: 0x0d1a2b,
@@ -114,7 +114,7 @@ export const MOUNTAIN_BANDS = [
     fogNear: 34, fogFar: 174,
   },
   {
-    id: 'high-night', name: 'HIGH STATIC', start: 25000, announce: false,
+    id: 'high-night', name: 'THE SMALL HOURS', start: 25000, announce: false,
     sky: 0x02050c, fog: 0x060d1a, snow: 0x0a1424, crest: 0x244468, shade: 0x060c16,
     powder: 0x101c31, ice: 0x1a3f61,
     pine: 0x071b30, pineDark: 0x030e1a, rock: 0x112239, rockDark: 0x081221,
@@ -146,7 +146,7 @@ export const MOUNTAIN_BANDS = [
     fogNear: 44, fogFar: 225,
   },
   {
-    id: 'dawn', name: 'THE RESTORE', start: 30000, announce: false,
+    id: 'dawn', name: 'PUBLISHED', start: 30000, announce: false,
     sky: 0x3d5b78, fog: 0x567088, snow: 0x77909f, crest: 0xcfe6f2, shade: 0x5a7181,
     powder: 0x8aa0ae, ice: 0x7ab2c8,
     pine: 0x2a5560, pineDark: 0x173239, rock: 0x4c6673, rockDark: 0x30454f,
@@ -154,7 +154,7 @@ export const MOUNTAIN_BANDS = [
     fogNear: 56, fogFar: 280,
   },
   {
-    id: 'morning', name: 'OPEN CHANNEL', start: 31500, announce: false,
+    id: 'morning', name: 'CLEAN COPY', start: 31500, announce: false,
     sky: 0x6fa3c4, fog: 0x8db3c8, snow: 0xb8d2de, crest: 0xf2fbff, shade: 0x92adbb,
     powder: 0xc3d8e0, ice: 0x8fd0e6,
     pine: 0x2a6a70, pineDark: 0x174045, rock: 0x5a7884, rockDark: 0x3a525c,

@@ -2,14 +2,17 @@
 
 **Source frame:** DESCENT (Three.js one-thumb portrait runner, v1.0.0, feature-frozen).
 **Deltas:** the dodge-obstacle verb is swapped for a word-recognition verb
-(Phases 1–3), and the alpine world + physical pursuer are re-presented as a
-neon data-stream chased by an ambient corruption (Phase 4). Everything
-underneath — menus, endless-prestige loop, speed ramp, chase director,
-hearts/bells, haptics, PWA, seeded runs — is the source frame as-is.
+(Phases 1–3), the world and pursuer are re-presented as a neon manuscript
+chased by an ambient editor (Phase 4), and Phase 5 names it all in the
+writing verb's own vocabulary. Everything underneath — menus,
+endless-prestige loop, speed ramp, chase director, hearts/bells, haptics,
+PWA, seeded runs — is the source frame as-is.
 
-You run a glowing track through a dark stream. Words rush at you; read them
-right or the corruption behind you closes in, static eating the frame edge
-by edge until the signal dies.
+You are a cursor of light running down an unfinished draft. Words rush at
+you; read them right or **the Redline** — a red editing-pen — closes in
+behind you, eating the frame edge by edge until you are REDACTED. Its rare
+pale companion, **the Caret**, cuts across the track on its own authored
+beats.
 
 ```bash
 npm install
@@ -37,7 +40,7 @@ declare it fake.
 | --- | --- | --- |
 | real word | tap | clean gate — speed bonus, chain link, boost fill |
 | fake word | pass | clean gate — a right read is a right read |
-| fake word | tap | the DESCENT hit: integrity heart, stagger, speed, chain, pursuit pressure |
+| fake word | tap | the DESCENT hit: a heart, stagger, speed, chain, Redline pressure |
 | real word | pass | same hit — no pick is a pick |
 
 Spamming confirm buys nothing: the real/fake mix is a seeded coin, so
@@ -52,11 +55,11 @@ Spamming confirm buys nothing: the real/fake mix is a seeded coin, so
   bonuses at 40 m/s, but its trees kept real speed far lower; the v1 hunt is
   a physical race at 31–38 m/s, so a 40 m/s word bonus made a clean reader
   untouchable forever. Word bonuses cap at **37 m/s** — below peak pursuit.
-- **The danger reads without a creature.** Phase 4 removed the pursuer model
-  and re-presents the same gap value as ambient corruption: a red-shot
-  static tear at the pursuer's exact position (same side offset, same lunge
-  tell, same kill framing), a track-wide static field advancing behind it,
-  a continuous screen veil, and a static audio bed — all driven by ONE pure
+- **The danger reads without a pursuer model.** Phase 4 removed it
+  and re-presents the same gap value as the Redline: a red-shot strike-mark
+  at the pursuer's exact position (same side offset, same lunge tell, same
+  kill framing), a track-wide noise front advancing behind it, a continuous
+  screen veil, and a matching audio bed — all driven by ONE pure
   gap→intensity curve (`src/render/corruption-curve.js`). The gate suite
   replays the scripted wrong-read scenario and asserts the visible
   escalation tracks the gap closure step for step.
@@ -65,7 +68,8 @@ Spamming confirm buys nothing: the real/fake mix is a seeded coin, so
   the chase director's hunt-provoke threshold. The gate scripts an actual
   wrong read during a stalk and requires the gap to close ≥ 8 m within 2 s.
 - **Courage still pays.** Boost fill from correct reads is multiplied by the
-  frame's beast-proximity multiplier, exactly as clean landings were.
+  frame's proximity multiplier — reading well with the Redline in range banks
+  more, exactly as clean landings did.
 
 ## The word-list module (reusable piece)
 
@@ -119,16 +123,16 @@ ramp — one system, shared.
 - [x] Perf parity — word verb costs ~2 µs/step (frame budget gate)
 - [x] Speed ramp + endless-prestige loop structurally identical minus the verb
 - [x] Corruption escalation tracks the scripted gap closure (Phase 4 gate)
-- [x] No beast/creature language in player-facing text (gated)
+- [x] Old vocabulary from earlier phases banned in player-facing text (gated)
 - [ ] Near-100% recognition **in human playtest** — needs thumbs on glass
 - [ ] Danger legibility **in human playtest** — at a glance mid-run, can you
   tell it is closing without reading a meter? Needs eyes, same caveat as
   word recognition above. (The machine half — escalation continuous, visible
   from mid-pressure, never blanks the screen — is gated.)
 
-## Phase 4 open polish
+## Open polish
 
 - EndgameSky (the 12 km+ celestial finish) still runs its alpine light
-  narrative over the dark stream; it reads as abstract void lights and the
-  30 km finish machinery depends on it, so it stayed. Worth its own retheme
-  pass later.
+  narrative over the dark page; it reads as abstract lights and the 30 km
+  finish machinery depends on it, so it stayed. Worth its own retheme pass
+  later.

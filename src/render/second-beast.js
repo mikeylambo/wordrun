@@ -1,11 +1,12 @@
 /**
- * The interference spike — WORD RUN's second antagonist presentation.
+ * THE CARET — WORD RUN's second antagonist presentation.
  *
- * DESCENT's rare pale second pursuer becomes a rare PALE interference event:
- * a cluster of white-noise shards that crosses the track on the exact same
- * deterministic sim state (position, tell, charge, exit) the frost beast
- * used. Pale/white static so it never reads as a clone of the main
- * corruption's red-shot tear — the two-antagonist contrast rule, kept.
+ * A proofreader's insertion mark. DESCENT's rare pale second pursuer becomes
+ * a rare PALE editing event: a cluster of white-noise shards that crosses
+ * the track on the exact same deterministic sim state (position, tell,
+ * charge, exit) the frost beast used. Pale/white so it never reads as a
+ * clone of the Redline's red-shot strike — the two-antagonist contrast
+ * rule, kept.
  */
 
 import * as THREE from 'three';

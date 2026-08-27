@@ -1,14 +1,16 @@
 /**
- * The corruption — WORD RUN's antagonist presentation.
+ * THE REDLINE — WORD RUN's antagonist presentation.
  *
- * There is no creature. The same gap value that placed the beast now places
- * an advancing front of static: a localized TEAR where the beast's body used
- * to be (so the side-offset approach, the lunge tell, the kill framing and
- * the panned audio all keep their exact spatial meaning), and a track-wide
- * FIELD behind it that reads as "it's coming from behind" at any distance.
+ * A red editing-pen chasing the draft. There is no creature: the same gap
+ * value that placed the beast now places an advancing front of red-shot
+ * noise — a localized strike-mark where the beast's body used to be (so the
+ * side-offset approach, the lunge tell, the kill framing and the panned
+ * audio all keep their exact spatial meaning), and a track-wide FIELD
+ * behind it that reads as "it's coming from behind" at any distance.
  *
- * The tear keeps the beast's one learnable move: the tell compresses it and
- * burns its scan-bar red before the strike surges it forward.
+ * The Redline keeps the beast's one learnable move: the tell compresses it
+ * and burns its scan-bar bright before the strike surges it forward. Red
+ * belongs to the Redline alone — nothing else on screen may compete for it.
  *
  * Consumes sim values only through the update() arguments the BeastActor
  * contract already carried, plus corruption-curve for intensity shaping.

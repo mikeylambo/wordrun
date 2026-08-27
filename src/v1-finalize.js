@@ -243,8 +243,8 @@ function syncAllTimeTitle() {
   if (!line || !seed) return;
   const best = Storage.bestAllTime();
   line.textContent = best > 0
-    ? `TODAY'S STREAM · ${seed} · BEST EVER ${best}M`
-    : `TODAY'S STREAM · ${seed}`;
+    ? `TODAY'S DRAFT · ${seed} · BEST EVER ${best}M`
+    : `TODAY'S DRAFT · ${seed}`;
 }
 
 function installAllTimeBest() {
