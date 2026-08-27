@@ -26,3 +26,9 @@ Slice history:
   entirely (hues, blend math and structure untouched); exactly five names
   remain — the Redline, the Caret, REDACTED, PUBLISHED, TODAY'S DRAFT —
   and the cap is machine-enforced by the gate suite.
+- Phase 7 — track & speed-consequence redesign: flat winding auto-followed
+  track replaces the downhill terrain system; speed is a direct function
+  of reading (gain per correct, loss+heart per wrong, floored/ceilinged);
+  the hunt-pressure director is deleted and the Redline's gap is the pure
+  integral of the speed differential against its steady pace. All suites
+  rescoped and green.

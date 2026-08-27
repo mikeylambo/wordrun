@@ -65,49 +65,34 @@ check('veil never blanks the screen (hard cap under 0.6 opacity)',
 head('CORRUPTION — escalation tracks the scripted wrong read');
 
 {
-  // Same script as the core-suite gate: settle with a competent reader,
-  // reach a stalking beast near a gate, answer it wrong, watch 2 seconds.
-  const sim = new Sim(999);
-  sim.start(999);
+  // Phase 7 scenario: the consequence of a wrong read reaches the gap
+  // through speed alone. Start at neutral pace, miss the first real word
+  // (no taps at all), and watch the presentation for the next 2 seconds —
+  // the differential the miss creates must close the gap ≥8m, and the
+  // corruption must escalate with every one of those metres.
+  const CANDIDATES = [999, 12345, 42, 777001, 8675309, 101];
+  const seed = CANDIDATES.find((s2) => {
+    // first resolved gate must be a REAL word so silence misses it
+    const sim2 = new Sim(s2);
+    return sim2.wordGates.current().real;
+  }) ?? 999;
+  const sim = new Sim(seed);
+  sim.start(seed);
   const input = emptyInput();
-  let confirmed = -1;
-  const read = () => {
-    const g = sim.wordGates.current();
-    if (g.real && confirmed !== g.index && sim.wordGates.armed(sim.player.d)) {
-      confirmed = g.index;
-      return true;
-    }
-    return false;
-  };
-  for (let i = 0; i < 60 * 25; i++) { input.confirm = read(); sim.step(input); }
-  for (let i = 0; i < 60 * 90; i++) {
-    const g = sim.wordGates.current();
-    const near = g.d - sim.player.d < 12 && g.d - sim.player.d > 0;
-    if (sim.beast.mode === 'stalk' && near && sim.beast.t > 10) break;
-    input.confirm = read();
-    sim.step(input);
-  }
+  let guard = 60 * 30;
+  while (sim.wordGates.wrongCount === 0 && guard-- > 0) sim.step(input);
   const gapBefore = sim.beast.gap;
   const intensityBefore = corruptionIntensity(gapBefore);
-  {
-    const g = sim.wordGates.current();
-    const wrongs = sim.wordGates.wrongCount;
-    input.confirm = !g.real;
-    while (sim.wordGates.wrongCount === wrongs && sim.phase === PHASE.RUNNING) {
-      sim.step(input);
-      input.confirm = false;
-    }
-  }
+
   const samples = [];
   for (let i = 0; i < 120; i++) {
-    input.confirm = false;
     sim.step(input);
     samples.push({ gap: sim.beast.gap, intensity: corruptionIntensity(sim.beast.gap) });
   }
   const gapClosed = gapBefore - sim.beast.gap;
   const intensityAfter = corruptionIntensity(sim.beast.gap);
 
-  check('the scripted wrong read still closes the gap ≥8m in 2s (sim untouched)',
+  check('the missed read closes the gap ≥8m in 2s, purely via the speed it cost',
     gapClosed >= 8, `closed ${f2(gapClosed)}m (${f2(gapBefore)} -> ${f2(sim.beast.gap)})`);
 
   check('corruption intensity rises with that exact closure',
@@ -170,6 +155,7 @@ head('CORRUPTION — identity');
     'src/ui/pause.js',
     'src/v1-mobile-ui.js',
     'src/v1-finalize.js',
+    'src/rc5.js',
     'src/render/endgame-sky.js',
   ];
   for (const f of sourceFacing) {
@@ -279,7 +265,7 @@ head('NAMING — five approved names, machine-enforced');
   const nameShaped = [];
   for (const f of ['index.html', 'src/ui/ui.js', 'src/ui/onboarding.js',
     'src/ui/pause.js', 'src/v1-mobile-ui.js', 'src/v1-finalize.js',
-    'src/render/endgame-sky.js']) {
+    'src/rc5.js', 'src/render/endgame-sky.js']) {
     const text = fs.readFileSync(f, 'utf8');
     const strings = [
       ...text.matchAll(/'([^'\n]*)'/g),

@@ -197,7 +197,7 @@ class RC6Hud {
     const death = document.getElementById('deathScreen');
     if (death?.classList.contains('on') && this.sim.deathCause === 'wipeout') {
       const tag = document.getElementById('deathTag');
-      if (tag) tag.textContent = 'WIPED OUT';
+      if (tag) tag.textContent = 'REDACTED'; // one death word, whatever kills you
     }
   }
 }
@@ -232,7 +232,7 @@ function patchSim(sim, field) {
     if (!wasRunning) return;
 
     if (this.phase === 'kill') {
-      this.deathCause = 'caught';
+      this.deathCause = 'redlined';
       return;
     }
     if (this.phase !== 'running') return;

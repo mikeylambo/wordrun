@@ -3,10 +3,12 @@
 **Source frame:** DESCENT (Three.js one-thumb portrait runner, v1.0.0, feature-frozen).
 **Deltas:** the dodge-obstacle verb is swapped for a word-recognition verb
 (Phases 1–3), the world and pursuer are re-presented as a neon manuscript
-chased by an ambient editor (Phase 4), and Phase 5 names it all in the
-writing verb's own vocabulary. Everything underneath — menus,
-endless-prestige loop, speed ramp, chase director, hearts/bells, haptics,
-PWA, seeded runs — is the source frame as-is.
+chased by an ambient editor (Phases 4–5), and Phase 7 replaces the ground
+itself: a flat, winding, auto-followed track instead of the downhill, and
+speed as a direct consequence of reading instead of a distance ramp — with
+the Redline's gap reduced to a pure speed differential. Menus,
+endless-prestige loop, hearts/bells, haptics, PWA and seeded runs remain
+the source frame as-is.
 
 You are a cursor of light running down an unfinished draft — a blade of
 glow that blinks like a text caret, calm at distance, frantic when the
@@ -59,15 +61,29 @@ declare it fake.
 Spamming confirm buys nothing: the real/fake mix is a seeded coin, so
 "always tap" fails half the gates.
 
+## How it plays now (Phase 7)
+
+- The track is **flat and winding** — Sonic-tradition S-curves authored into
+  a seeded centerline. The runner auto-follows the line; the one thumb never
+  steers, it only judges words.
+- **Speed is your reading.** A correct read adds `SPEED_GAIN`, a wrong read
+  subtracts `SPEED_LOSS` and costs a heart. Floor and ceiling bound it, and
+  both bounds are gated against the reading-window legibility standard.
+- **The Redline runs at one steady pace.** The gap is the clamped integral
+  of your speed minus that pace — no hunt states, no pressure, no lunges.
+  Read above pace and you pull away; sink below it and it gains at exactly
+  the rate you're slow. `TUNING.RUN` is the whole difficulty surface.
+- Overdrive still spends banked meter for real speed — which now means real
+  gap, at exactly the extra metres per second it buys.
+
 ## What the measurements decided
 
 - **Reading window is asserted, not hoped for.** The window is
   `ARM_DISTANCE_M / speed`. The gates fail the build if it drops below
   1.15 s at the shipped flat-out top speed, or below 0.9 s in Overdrive.
-- **A good reader must not outrun the game.** DESCENT capped slalom speed
-  bonuses at 40 m/s, but its trees kept real speed far lower; the v1 hunt is
-  a physical race at 31–38 m/s, so a 40 m/s word bonus made a clean reader
-  untouchable forever. Word bonuses cap at **37 m/s** — below peak pursuit.
+- **A good reader must not outrun legibility.** The speed ceiling (40 m/s)
+  is set by the reading window, not by a pursuer: 55 m of arm distance at
+  the ceiling is 1.38 s plain and ~1 s in Overdrive, both gated.
 - **The danger reads without a pursuer model.** Phase 4 removed it
   and re-presents the same gap value as the Redline: a red-shot strike-mark
   at the pursuer's exact position (same side offset, same lunge tell, same
@@ -76,10 +92,10 @@ Spamming confirm buys nothing: the real/fake mix is a seeded coin, so
   gap→intensity curve (`src/render/corruption-curve.js`). The gate suite
   replays the scripted wrong-read scenario and asserts the visible
   escalation tracks the gap closure step for step.
-- **One wrong read must visibly matter.** Wrong reads are rarer than
-  DESCENT's obstacle clips, so each carries `WRONG_PRESSURE` (2.0) — above
-  the chase director's hunt-provoke threshold. The gate scripts an actual
-  wrong read during a stalk and requires the gap to close ≥ 8 m within 2 s.
+- **One wrong read must visibly matter.** The gate scripts a missed word at
+  neutral pace and requires the gap to close ≥ 8 m within 2 s — reached now
+  purely through the speed the miss cost, with the corruption escalating in
+  step every sampled frame.
 - **Courage still pays.** Boost fill from correct reads is multiplied by the
   frame's proximity multiplier — reading well with the Redline in range banks
   more, exactly as clean landings did.
@@ -110,24 +126,23 @@ legibility floor). The speed ramp itself is untouched DESCENT config: gates
 are spaced in metres, so the shipped speed curve *is* the reading-difficulty
 ramp — one system, shared.
 
-## What was retuned vs the frame
+## What was replaced vs the frame
 
-- Random dodge features (trees, rocks, ice, moguls, cliffs, slalom gates)
-  are zeroed in tuning. Authored landmarks and rc6 stunt beats stay.
-- Jump is retired as a player verb; every tap-ish gesture funnels into the
-  confirm edge. Second-finger GO needs a 250 ms hold so a quick tap answers
-  the word instead of burning boost.
-- Two inherited v1 drifts (Overdrive shove magnitudes, "nerve pays" economy)
-  ship failing in DESCENT v1.0.0 itself; the suite guards them at shipped
-  baselines and marks them KNOWN DRIFT. Making nerve genuinely pay again is
-  the open economy question for the next pass.
+- Phase 7 replaced the terrain system (flat winding track, no colliders, no
+  grade, no authored ski-resort set pieces) and the pursuit computation
+  (pure speed differential; the hunt/pressure director is deleted, not
+  tuned down). The presentation layers above both were already decoupled
+  and run unchanged.
+- Jump and steering are retired as player verbs; every tap-ish gesture
+  funnels into the confirm edge. Second-finger GO needs a 250 ms hold so a
+  quick tap answers the word instead of burning boost.
 
 ## Gate status (this build)
 
-- Core frame gates: **69 / 0**
+- Core frame gates (track / speed / pursuit / ghosts / loop): **28 / 0**
 - Word module + verb gates: **31 / 0**
 - Redline presentation + identity + naming-cap + vibrancy gates: **27 / 0**
-- V1 release / polish / PWA: **39 / 0, 48 / 0, 14 / 0**
+- V1 release / polish / PWA: **25 / 0, 48 / 0, 14 / 0**
 
 ## Acceptance gates from the brief
 
@@ -135,7 +150,14 @@ ramp — one system, shared.
 - [x] Validity checker: zero false negatives on the shipped list
 - [x] Perf parity — word verb costs ~2 µs/step (frame budget gate)
 - [x] Speed ramp + endless-prestige loop structurally identical minus the verb
-- [x] Corruption escalation tracks the scripted gap closure (Phase 4 gate)
+- [x] Corruption escalation tracks the scripted gap closure (Phase 4 gate,
+  re-proven on the Phase 7 differential source with its code untouched)
+- [x] Speed deltas and heart costs are deterministic and unit-gated; floor
+  and ceiling both hold against the legibility standard
+- [x] Gap equals the clamped integral of (speed − pace), step for step —
+  and the pursuit source is gated free of hunt/pressure machinery
+- [x] Track curves traverse under the one-input scheme (auto-follow drift
+  gated < 3 m at ceiling speed; no steering input exists)
 - [x] Old vocabulary from earlier phases banned in player-facing text (gated)
 - [x] Five-name ceiling machine-enforced: retired stage names banned
   everywhere; the band table carries no label but the finish's PUBLISHED;

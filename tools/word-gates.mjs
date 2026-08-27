@@ -187,15 +187,24 @@ function runReader(seed, metres, answerFn) {
   input.confirm = !g.real; // guarantee the wrong answer
   while (sim.player.d < g.d + 1) { sim.step(input); input.confirm = false; }
   const p = sim.player;
-  check('a wrong read costs HIT_SPEED_COST of speed',
-    p.speed < speedBefore * (1 - TUNING.PLAYER.HIT_SPEED_COST) + 3.5,
+  check('a wrong read costs exactly SPEED_LOSS of speed',
+    Math.abs(p.speed - Math.max(TUNING.RUN.FLOOR, speedBefore - TUNING.RUN.SPEED_LOSS)) < 1e-9,
     `${speedBefore.toFixed(1)} -> ${p.speed.toFixed(1)} m/s`);
   check('a wrong read staggers the runner', p.staggerT > 0 || p.speed < speedBefore);
   check('a wrong read is an obstacle hit on the ledger',
     p.obstaclesHit === hitsBefore + 1);
-  check('a wrong read feeds beast mistake pressure',
-    sim.beast.mistakePressure > pressureBefore,
-    `${pressureBefore.toFixed(2)} -> ${sim.beast.mistakePressure.toFixed(2)}`);
+  // Phase 7: pressure is retired — the consequence reaches the Redline only
+  // through the speed the read just cost. Below pace, the gap must close.
+  {
+    const gapAtMiss = sim.beast.gap;
+    for (let i = 0; i < 60; i++) sim.step(input);
+    const closed = gapAtMiss - sim.beast.gap;
+    const predicted = Math.max(0, (TUNING.RUN.REDLINE_PACE - p.speed));
+    check('the miss reaches the Redline through speed alone (gap closes below pace)',
+      p.speed < TUNING.RUN.REDLINE_PACE ? closed > predicted * 0.9 : closed <= 0.01,
+      `closed ${closed.toFixed(2)}m in 1s at ${p.speed.toFixed(1)} m/s vs pace ${TUNING.RUN.REDLINE_PACE}`);
+    void pressureBefore;
+  }
 }
 
 {
@@ -210,16 +219,16 @@ function runReader(seed, metres, answerFn) {
 head('WORDS — reading window vs the speed ramp');
 
 {
-  // The window is ARM distance over ground speed. Assert it at the shipped
-  // terminal velocity, not the tutorial crawl — the brief's exact trap.
-  const vTop = TUNING.PLAYER.SPEED_TUCK *
-    (1 + (Math.max(0, 1.42 - 1)) * TUNING.PLAYER.GRADE_SPEED_GAIN); // steepest pitch
+  // The window is ARM distance over ground speed. Assert it at the speed
+  // CEILING a perfect streak earns — the fastest the game can ever ask you
+  // to read — not the tutorial crawl.
+  const vTop = TUNING.RUN.CEILING;
   const window = W.ARM_DISTANCE_M / vTop;
-  check('reading window at flat-out top speed clears the floor',
+  check('reading window at the performance ceiling clears the floor',
     window >= W.READ_WINDOW_MIN_S,
     `${window.toFixed(2)}s at ${vTop.toFixed(1)} m/s (floor ${W.READ_WINDOW_MIN_S}s)`);
 
-  const vOver = TUNING.PLAYER.SPEED_TUCK * TUNING.BOOST.SPEED_MULT;
+  const vOver = TUNING.RUN.CEILING * TUNING.BOOST.SPEED_MULT;
   check('even Overdrive leaves a readable window',
     W.ARM_DISTANCE_M / vOver >= 0.9,
     `${(W.ARM_DISTANCE_M / vOver).toFixed(2)}s while spending`);
