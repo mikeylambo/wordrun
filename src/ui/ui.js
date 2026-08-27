@@ -75,7 +75,7 @@ export class UI {
 
   setSeed(seedString, best, runs) {
     this._firstRun = runs === 0;
-    this.seedLine.textContent = `TODAY'S MOUNTAIN · ${seedString}`;
+    this.seedLine.textContent = `TODAY'S STREAM · ${seedString}`;
     this.deathSeed.textContent = '';
     this.bestVal.textContent = best > 0 ? `${Math.floor(best)}M` : '—';
   }
@@ -262,7 +262,7 @@ export class UI {
     this.finalDist.textContent = Math.floor(distance);
     this.pbTag.style.visibility = isPb ? 'visible' : 'hidden';
     this.pbTag.textContent = isPb ? 'NEW BEST' : '';
-    this.deathTag.textContent = 'CAUGHT';
+    this.deathTag.textContent = 'SIGNAL LOST';
     this.bestVal.textContent = best > 0 ? `${Math.floor(best)}M` : '—';
     this.deathStats.innerHTML = '';
     this.deathStats.style.display = 'none';

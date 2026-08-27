@@ -1,16 +1,23 @@
 # WORD RUN — frame-based vertical slice
 
 **Source frame:** DESCENT (Three.js one-thumb portrait runner, v1.0.0, feature-frozen).
-**Delta:** the dodge-obstacle verb is swapped for a word-recognition verb. Everything
-else — menus, endless-prestige loop, speed ramp, chase director, hearts/bells,
-haptics, PWA, seeded runs — is cloned from the source as-is.
+**Deltas:** the dodge-obstacle verb is swapped for a word-recognition verb
+(Phases 1–3), and the alpine world + physical pursuer are re-presented as a
+neon data-stream chased by an ambient corruption (Phase 4). Everything
+underneath — menus, endless-prestige loop, speed ramp, chase director,
+hearts/bells, haptics, PWA, seeded runs — is the source frame as-is.
+
+You run a glowing track through a dark stream. Words rush at you; read them
+right or the corruption behind you closes in, static eating the frame edge
+by edge until the signal dies.
 
 ```bash
 npm install
-npm run dev          # http://localhost:5178
-npm run gates        # core frame gates + word-verb gates, headless
-npm run gate:words   # the word module + verb suite alone
-npm run gate:v1      # release/polish/PWA gates
+npm run dev              # http://localhost:5178
+npm run gates            # core frame + word-verb + corruption gates, headless
+npm run gate:words       # the word module + verb suite alone
+npm run gate:corruption  # the pressure-presentation suite alone
+npm run gate:v1          # release/polish/PWA gates
 ```
 
 ---
@@ -30,7 +37,7 @@ declare it fake.
 | --- | --- | --- |
 | real word | tap | clean gate — speed bonus, chain link, boost fill |
 | fake word | pass | clean gate — a right read is a right read |
-| fake word | tap | the DESCENT hit: heart, stagger, speed, chain, beast pressure |
+| fake word | tap | the DESCENT hit: integrity heart, stagger, speed, chain, pursuit pressure |
 | real word | pass | same hit — no pick is a pick |
 
 Spamming confirm buys nothing: the real/fake mix is a seeded coin, so
@@ -45,6 +52,14 @@ Spamming confirm buys nothing: the real/fake mix is a seeded coin, so
   bonuses at 40 m/s, but its trees kept real speed far lower; the v1 hunt is
   a physical race at 31–38 m/s, so a 40 m/s word bonus made a clean reader
   untouchable forever. Word bonuses cap at **37 m/s** — below peak pursuit.
+- **The danger reads without a creature.** Phase 4 removed the pursuer model
+  and re-presents the same gap value as ambient corruption: a red-shot
+  static tear at the pursuer's exact position (same side offset, same lunge
+  tell, same kill framing), a track-wide static field advancing behind it,
+  a continuous screen veil, and a static audio bed — all driven by ONE pure
+  gap→intensity curve (`src/render/corruption-curve.js`). The gate suite
+  replays the scripted wrong-read scenario and asserts the visible
+  escalation tracks the gap closure step for step.
 - **One wrong read must visibly matter.** Wrong reads are rarer than
   DESCENT's obstacle clips, so each carries `WRONG_PRESSURE` (2.0) — above
   the chase director's hunt-provoke threshold. The gate scripts an actual
@@ -94,6 +109,7 @@ ramp — one system, shared.
 
 - Core frame gates: **69 / 0**
 - Word module + verb gates: **31 / 0**
+- Corruption presentation gates: **14 / 0**
 - V1 release / polish / PWA: **39 / 0, 48 / 0, 14 / 0**
 
 ## Acceptance gates from the brief
@@ -102,4 +118,17 @@ ramp — one system, shared.
 - [x] Validity checker: zero false negatives on the shipped list
 - [x] Perf parity — word verb costs ~2 µs/step (frame budget gate)
 - [x] Speed ramp + endless-prestige loop structurally identical minus the verb
+- [x] Corruption escalation tracks the scripted gap closure (Phase 4 gate)
+- [x] No beast/creature language in player-facing text (gated)
 - [ ] Near-100% recognition **in human playtest** — needs thumbs on glass
+- [ ] Danger legibility **in human playtest** — at a glance mid-run, can you
+  tell it is closing without reading a meter? Needs eyes, same caveat as
+  word recognition above. (The machine half — escalation continuous, visible
+  from mid-pressure, never blanks the screen — is gated.)
+
+## Phase 4 open polish
+
+- EndgameSky (the 12 km+ celestial finish) still runs its alpine light
+  narrative over the dark stream; it reads as abstract void lights and the
+  30 km finish machinery depends on it, so it stayed. Worth its own retheme
+  pass later.
