@@ -32,3 +32,14 @@ Slice history:
   the hunt-pressure director is deleted and the Redline's gap is the pure
   integral of the speed differential against its steady pace. All suites
   rescoped and green.
+- Playtest pass 1 — rules solidified from first human feedback: hearts are
+  now spent only by tapping a fake (commission); a real word slipping past
+  (omission) costs speed and the chain but never a heart, so game over is
+  always either spent hearts or the Redline closing on a slow reader.
+  The cursor-of-light is replaced by a procedural running figure of light
+  with a distance-driven run cycle on the unchanged controller; the track
+  light drifts through cyan/violet/teal hues and set-piece line art picks
+  from a four-hue palette; the retired carve/spin/flip touch guide becomes
+  a REAL tap ring; the full-screen interference overlays pause while
+  invisible and the corruption canvases re-roll on an intensity-scaled
+  cadence.

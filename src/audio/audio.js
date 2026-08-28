@@ -363,6 +363,10 @@ export class Audio {
 
   gate() { this._tone({ f0: 880, f1: 1320, dur: 0.13, vol: 0.10, bus: this.bus.ui }); }
 
+  // A missed real word: deflation, not a crash. Softer and shorter than
+  // hit() with none of its impact burst — the rulebook asymmetry, audible.
+  slip() { this._tone({ type: 'triangle', f0: 420, f1: 210, dur: 0.22, vol: 0.09, bus: this.bus.ui }); }
+
   bell(step = 0) {
     const intervals = [0, 4, 7, 11, 14];
     const semis = intervals[step % intervals.length];

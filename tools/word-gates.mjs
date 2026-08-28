@@ -169,6 +169,12 @@ function runReader(seed, metres, answerFn) {
   check('never answering is punished by every real word',
     s.wordsWrong > 0 && s.wordsCorrect > 0,
     `${s.wordsWrong} missed reals, ${s.wordsCorrect} correctly ignored fakes`);
+  // The rulebook asymmetry: omissions slow you (the Redline's business) but
+  // never touch the hearts ledger. A silent run can be caught, not wiped out.
+  check('a silent run loses no hearts — omission is never the obstacle hit',
+    sim.player.obstaclesHit === 0 &&
+    sim.wordGates.missedReals === s.wordsWrong && sim.wordGates.falseTaps === 0,
+    `${sim.wordGates.missedReals} omissions, ${sim.player.obstaclesHit} on the hit ledger`);
 }
 
 {
@@ -187,11 +193,11 @@ function runReader(seed, metres, answerFn) {
   input.confirm = !g.real; // guarantee the wrong answer
   while (sim.player.d < g.d + 1) { sim.step(input); input.confirm = false; }
   const p = sim.player;
-  check('a wrong read costs exactly SPEED_LOSS of speed',
+  check('tapping a fake costs exactly SPEED_LOSS of speed',
     Math.abs(p.speed - Math.max(TUNING.RUN.FLOOR, speedBefore - TUNING.RUN.SPEED_LOSS)) < 1e-9,
     `${speedBefore.toFixed(1)} -> ${p.speed.toFixed(1)} m/s`);
-  check('a wrong read staggers the runner', p.staggerT > 0 || p.speed < speedBefore);
-  check('a wrong read is an obstacle hit on the ledger',
+  check('tapping a fake staggers the runner', p.staggerT > 0 || p.speed < speedBefore);
+  check('tapping a fake is the obstacle hit on the ledger (the only read that is)',
     p.obstaclesHit === hitsBefore + 1);
   // Phase 7: pressure is retired — the consequence reaches the Redline only
   // through the speed the read just cost. Below pace, the gap must close.

@@ -234,7 +234,11 @@ export class UI {
     // owns — visible escalation long before the close-range bands wake up.
     if (this.staticVeil) {
       const intensity = running ? corruptionIntensity(sim.beast.gap) : 0;
-      this.staticVeil.style.opacity = veilOpacity(intensity).toFixed(3);
+      const op = veilOpacity(intensity);
+      this.staticVeil.style.opacity = op.toFixed(3);
+      // Perf: the veil's steps() jitter animation repaints three full-screen
+      // gradient layers forever — pause it whenever the layer is invisible.
+      this.staticVeil.style.animationPlayState = op > 0.005 ? 'running' : 'paused';
     }
     this.dread.style.opacity = (bands.footfall * 0.92).toFixed(3);
     this.dreadRed.style.opacity = (bands.scream * 0.9).toFixed(3);
@@ -243,7 +247,11 @@ export class UI {
       const breath = 0.86 + Math.sin(this._furPhase) * 0.14;
       this.fur.style.opacity = (bands.footfall * 0.78).toFixed(3);
       this.fur.style.transform = `scaleY(${(breath * (0.55 + bands.footfall * 0.6)).toFixed(3)})`;
-    } else this.fur.style.opacity = '0';
+      this.fur.style.animationPlayState = 'running';
+    } else {
+      this.fur.style.opacity = '0';
+      this.fur.style.animationPlayState = 'paused';
+    }
 
     if (this._flash > 0) {
       this._flash = Math.max(0, this._flash - dt * 3.2);

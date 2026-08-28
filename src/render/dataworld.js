@@ -13,7 +13,11 @@
 
 import * as THREE from 'three';
 
-const EDGE_COLOR = 0x35c8e8;
+const _wp = new THREE.Vector3();
+
+// A small palette instead of one cyan: set pieces pick a hue by position so
+// the skyline reads varied, never monochrome. No red — the Redline's alone.
+const EDGE_COLORS = [0x35c8e8, 0x9a6cf0, 0x2fd8a0, 0xe8c76a];
 const EDGE_OPACITY = 0.55;
 const BODY_DARKEN = 0.16;   // fraction of the original colour that survives
 const SWEEP_EVERY = 1.6;    // seconds between scene sweeps
@@ -23,10 +27,10 @@ export class DataworldPass {
     this.scene = scene;
     this.skipRoots = skipRoots.filter(Boolean);
     this.t = SWEEP_EVERY; // convert on the first update
-    this.edgeMat = new THREE.LineBasicMaterial({
-      color: EDGE_COLOR, transparent: true, opacity: EDGE_OPACITY,
+    this.edgeMats = EDGE_COLORS.map((color) => new THREE.LineBasicMaterial({
+      color, transparent: true, opacity: EDGE_OPACITY,
       depthWrite: false,
-    });
+    }));
   }
 
   _skip(obj) {
@@ -63,7 +67,11 @@ export class DataworldPass {
 
     try {
       const edges = new THREE.EdgesGeometry(obj.geometry, 28);
-      const line = new THREE.LineSegments(edges, this.edgeMat);
+      // Deterministic hue pick from world position, so a set piece keeps its
+      // colour frame to frame and siblings differ.
+      obj.getWorldPosition(_wp);
+      const pick = Math.abs(Math.floor(_wp.x * 0.13) + Math.floor(_wp.z * 0.07)) % this.edgeMats.length;
+      const line = new THREE.LineSegments(edges, this.edgeMats[pick]);
       line.userData.__p4Dataworld = true;
       line.renderOrder = 4;
       obj.add(line);

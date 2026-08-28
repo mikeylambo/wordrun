@@ -316,9 +316,17 @@ function drainSimEvents() {
         wordGateActors.onResolve(e);
         break;
       case 'word_wrong':
-        audio.hit();
-        spray.emit(e.x, e.y, -e.d, 18, 7, 3.2, 0);
-        ui.hitFlash();
+        // The rulebook asymmetry, felt: tapping a fake is the crash (hit
+        // sound, red flash, the heart the sim already took). Missing a real
+        // word is only a slowdown — a deflating cue, no crash language, so
+        // the player learns hearts are never lost by hesitating.
+        if (e.hit) {
+          audio.hit();
+          spray.emit(e.x, e.y, -e.d, 18, 7, 3.2, 0);
+          ui.hitFlash();
+        } else {
+          audio.slip();
+        }
         wordGateActors.onResolve(e);
         break;
     }

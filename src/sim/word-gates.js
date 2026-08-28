@@ -7,8 +7,16 @@
  *
  *   real  + confirmed  -> correct (gate bonus, chain link, boost fill)
  *   fake  + ignored    -> correct (same reward — a right read is a right read)
- *   fake  + confirmed  -> wrong   (the DESCENT-equivalent obstacle hit)
- *   real  + ignored    -> wrong   (no pick is a pick)
+ *   fake  + confirmed  -> the hit (the DESCENT-equivalent obstacle hit: a
+ *                                  heart, stagger, speed, chain, half meter)
+ *   real  + ignored    -> a miss  (speed + chain only — no heart, no stagger)
+ *
+ * The asymmetry is the rulebook: hearts are spent only by ACTING wrongly
+ * (tapping a fake). Letting a real word slip by is hesitation, not a crash —
+ * it slows you, and a slow reader is the Redline's problem to punish, at
+ * exactly the rate the speed differential dictates. Game over therefore
+ * always arrives one of two legible ways: you tapped fakes until your hearts
+ * ran out, or you read too slowly and the Redline closed the gap.
  *
  * Words, fakes and their order all derive from the run seed through the same
  * mixSeed/mulberry32 machinery the mountain uses, so a seed's gauntlet of
@@ -76,6 +84,8 @@ export class WordGates {
     this.gate = null;       // the gate currently in play (lazy-built)
     this.correctCount = 0;
     this.wrongCount = 0;
+    this.falseTaps = 0;     // commissions: fakes tapped (each cost a heart)
+    this.missedReals = 0;   // omissions: real words let slip (speed only)
     this.streak = 0;        // consecutive correct reads
     this.bestStreak = 0;
   }
@@ -139,12 +149,20 @@ export class WordGates {
       this.wrongCount++;
       this.streak = 0;
 
-      // The hit: a heart (through the obstacle ledger), a deterministic
-      // speed loss down to the floor, a stagger, the chain, half the meter.
-      player.obstaclesHit++;
+      // Both wrong reads cost speed and the chain. Only COMMISSION — tapping
+      // a fake — is the DESCENT obstacle hit with its heart, stagger and
+      // meter bite. Omission (a real word slipping past) is hesitation: the
+      // speed loss alone hands the consequence to the Redline's differential.
+      const commission = !g.real; // g.confirmed on a fake
+      if (commission) {
+        this.falseTaps++;
+        player.obstaclesHit++;
+        player.staggerT = TUNING.PLAYER.STAGGER_TIME;
+        player.boostMeter *= 1 - W.WRONG_METER_LOSS;
+      } else {
+        this.missedReals++;
+      }
       player.speed = Math.max(R.FLOOR, player.speed - R.SPEED_LOSS);
-      player.staggerT = TUNING.PLAYER.STAGGER_TIME;
-      player.boostMeter *= 1 - W.WRONG_METER_LOSS;
       if (player.chain > 0) {
         events?.push({ t: 'chain_lost', chain: player.chain, mult: player.chainMult() });
         player.chain = 0;
@@ -152,7 +170,7 @@ export class WordGates {
 
       events?.push({
         t: 'word_wrong', index: g.index, word: g.shown, real: g.real,
-        answer: g.answer, tier: g.tier,
+        answer: g.answer, tier: g.tier, hit: commission,
         reason: g.real ? 'missed_real' : 'picked_fake',
         x: player.x, y: player.y, d: player.d,
       });

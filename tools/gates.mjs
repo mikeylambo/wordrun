@@ -144,20 +144,46 @@ head('SPEED — deterministic consequence, floored and ceilinged');
     firstWasCorrect && Math.abs(sim.player.speed - (before + R.SPEED_GAIN)) < 1e-9,
     `${f2(before)} -> ${f2(sim.player.speed)} (+${R.SPEED_GAIN})`);
 
-  // Now answer one wrong on purpose and check the exact loss + the heart.
+  // Now tap EVERY armed word: reals stay correct, the first fake is a
+  // commission — the only wrong read that is also the DESCENT obstacle hit.
   const hitsBefore = sim.player.obstaclesHit;
-  const speedBefore = sim.player.speed;
-  guard = 60 * 30;
+  guard = 60 * 60;
+  let speedBefore = sim.player.speed;
   while (sim.wordGates.wrongCount === 0 && guard-- > 0) {
     const g = sim.wordGates.current();
-    input.confirm = sim.wordGates.armed(sim.player.d) && !g.confirmed ? !g.real : false;
+    if (!g.resolved) speedBefore = sim.player.speed;
+    input.confirm = sim.wordGates.armed(sim.player.d) && !g.confirmed;
     sim.step(input);
   }
-  check('a wrong read subtracts exactly SPEED_LOSS',
-    Math.abs(sim.player.speed - (speedBefore - R.SPEED_LOSS)) < 1e-9,
+  check('tapping a fake (commission) subtracts exactly SPEED_LOSS',
+    Math.abs(sim.player.speed - Math.max(R.FLOOR, speedBefore - R.SPEED_LOSS)) < 1e-9,
     `${f2(speedBefore)} -> ${f2(sim.player.speed)} (-${R.SPEED_LOSS})`);
   check('and costs exactly one heart through the obstacle ledger',
-    sim.player.obstaclesHit === hitsBefore + 1);
+    sim.player.obstaclesHit === hitsBefore + 1 && sim.wordGates.falseTaps === 1);
+}
+
+{
+  // Omission: let a real word slip in silence. It must cost speed and the
+  // chain — and NOTHING else. No heart, no stagger: the Redline's
+  // differential is the punisher for slow reading, hearts are for acting
+  // wrongly. (This is the 'sped through Shore -> game over' fairness fix.)
+  const seed = SEEDS.find((s2) => new Sim(s2).wordGates.current().real) ?? SEEDS[0];
+  const sim = new Sim(seed);
+  sim.start(seed);
+  const input = emptyInput();
+  let guard = 60 * 30;
+  while (sim.player.d < sim.wordGates.current().d - 1 && guard-- > 0) sim.step(input);
+  const speedBefore = sim.player.speed;
+  const hitsBefore = sim.player.obstaclesHit;
+  guard = 60 * 10;
+  while (sim.wordGates.wrongCount === 0 && guard-- > 0) sim.step(input);
+  check('missing a real word (omission) subtracts exactly SPEED_LOSS',
+    Math.abs(sim.player.speed - Math.max(R.FLOOR, speedBefore - R.SPEED_LOSS)) < 1e-9,
+    `${f2(speedBefore)} -> ${f2(sim.player.speed)}`);
+  check('but costs NO heart and NO stagger — hesitation is not a crash',
+    sim.player.obstaclesHit === hitsBefore && sim.player.staggerT === 0 &&
+    sim.wordGates.missedReals === 1 && sim.wordGates.falseTaps === 0,
+    `hearts ledger ${hitsBefore} -> ${sim.player.obstaclesHit}, stagger ${sim.player.staggerT}`);
 }
 
 {

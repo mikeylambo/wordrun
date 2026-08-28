@@ -24,22 +24,16 @@ function ensureMobileUi() {
        floating GO callout above GO METER is redundant and visually noisy. */
     #powerHint{display:none!important}
 
-    #v1TouchGuide{position:fixed;inset:0;z-index:61;pointer-events:none;opacity:0;transition:opacity .10s ease;color:rgba(244,250,253,.76)}
+    /* WORD RUN: the one gesture is the tap — the confirm verb. The old
+       carve/spin/flip drag guide taught steering that no longer exists, so
+       the touch ring is now a simple REAL declaration marker at the thumb. */
+    #v1TouchGuide{position:fixed;inset:0;z-index:61;pointer-events:none;opacity:0;transition:opacity .10s ease;color:rgba(244,250,253,.82)}
     #v1TouchGuide.on{opacity:1}
-    #v1TouchFrame{position:absolute;left:0;top:0;width:96px;height:96px;transform:translate(-50%,-50%);border:1px solid rgba(238,247,251,.24);border-radius:50%;box-shadow:inset 0 0 0 1px rgba(8,15,20,.12),0 2px 20px rgba(5,10,14,.08)}
-    #v1TouchFrame::before,#v1TouchFrame::after{content:'';position:absolute;background:rgba(238,247,251,.20)}
-    #v1TouchFrame::before{left:9px;right:9px;top:47px;height:1px}
-    #v1TouchFrame::after{top:9px;bottom:9px;left:47px;width:1px;opacity:0;transition:opacity .08s ease}
-    #v1TouchGuide.air #v1TouchFrame::after{opacity:1}
-    #v1TouchDot{position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:50%;background:rgba(248,252,254,.82);box-shadow:0 0 12px rgba(255,255,255,.32);transform:translate(-50%,-50%)}
-    #v1TouchVector{position:absolute;left:50%;top:50%;height:2px;width:0;transform-origin:0 50%;background:linear-gradient(90deg,rgba(246,251,253,.78),rgba(103,216,255,.62));box-shadow:0 0 8px rgba(103,216,255,.22)}
-    .v1TouchLabel{position:absolute;font:900 8px/1 ui-monospace,monospace;letter-spacing:.18em;text-shadow:0 1px 5px rgba(7,12,16,.45);white-space:nowrap}
-    #v1TouchX{left:50%;top:calc(50% + 18px);transform:translateX(-50%)}
-    #v1TouchY{left:calc(50% + 18px);top:50%;transform:translateY(-50%) rotate(90deg);opacity:0;transition:opacity .08s ease}
-    #v1TouchGuide.air #v1TouchY{opacity:.82}
-    #v1TouchGuide.air #v1TouchX::after{content:'SPIN'}
-    #v1TouchGuide:not(.air) #v1TouchX::after{content:'CARVE'}
-    #v1TouchY::after{content:'FLIP'}
+    #v1TouchFrame{position:absolute;left:0;top:0;width:84px;height:84px;transform:translate(-50%,-50%);border:1px solid rgba(103,216,255,.46);border-radius:50%;box-shadow:0 0 20px rgba(103,216,255,.20),inset 0 0 14px rgba(103,216,255,.10)}
+    #v1TouchDot{position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:50%;background:rgba(248,252,254,.85);box-shadow:0 0 12px rgba(163,232,255,.5);transform:translate(-50%,-50%)}
+    .v1TouchLabel{position:absolute;font:900 9px/1 ui-monospace,monospace;letter-spacing:.18em;text-shadow:0 1px 5px rgba(7,12,16,.45);white-space:nowrap}
+    #v1TouchX{left:50%;top:calc(50% + 26px);transform:translateX(-50%)}
+    #v1TouchX::after{content:'REAL'}
 
     .v1MobileAction{position:fixed;z-index:67;border:0;border-radius:50%;padding:0;display:none;place-items:center;pointer-events:auto;touch-action:none;color:#f7fcff;-webkit-tap-highlight-color:transparent;transition:opacity .12s ease,transform .08s ease,box-shadow .12s ease}
     .v1MobileAction::before{content:'';position:absolute;inset:5px;border-radius:50%;background:rgba(14,22,28,.64);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
@@ -66,9 +60,7 @@ function ensureMobileUi() {
       #v1MobileGo span{font-size:11px}
       #v1MobileJump{width:56px;height:56px;right:max(90px,calc(env(safe-area-inset-right,0px) + 84px));bottom:max(19px,calc(env(safe-area-inset-bottom,0px) + 15px))}
       #v1MobileJump span{font-size:10px}
-      #v1TouchFrame{width:88px;height:88px}
-      #v1TouchFrame::before{top:43px}
-      #v1TouchFrame::after{left:43px}
+      #v1TouchFrame{width:76px;height:76px}
     }
   `;
   document.head.appendChild(style);
@@ -78,9 +70,7 @@ function ensureMobileUi() {
   guide.innerHTML = `
     <div id="v1TouchFrame">
       <div id="v1TouchDot"></div>
-      <div id="v1TouchVector"></div>
       <div id="v1TouchX" class="v1TouchLabel"></div>
-      <div id="v1TouchY" class="v1TouchLabel"></div>
     </div>`;
   app.appendChild(guide);
 
@@ -169,7 +159,6 @@ function ensureMobileUi() {
   ui = {
     guide,
     frame: guide.querySelector('#v1TouchFrame'),
-    vector: guide.querySelector('#v1TouchVector'),
     jump,
     go,
   };
@@ -202,29 +191,16 @@ export function updateMobileTouchUi(player) {
 
   if (!running && input) input.__v1GoButtonHeld = false;
 
+  // The ring marks where the thumb declared REAL — feedback only, no drag
+  // semantics: steering is retired and every tap is the confirm verb.
   const touching = running && !!input?.primaryTouch && input.primaryId !== null;
   refs.guide.classList.toggle('on', touching);
   if (!touching) return;
-
-  const airborne = !!player?.airborne;
-  refs.guide.classList.toggle('air', airborne);
 
   const ox = input.origin?.x || 0;
   const oy = input.origin?.y || 0;
   refs.frame.style.left = `${ox}px`;
   refs.frame.style.top = `${oy}px`;
-
-  let dx = (input.cur?.x || ox) - ox;
-  let dy = airborne ? (input.cur?.y || oy) - oy : 0;
-  const mag = Math.hypot(dx, dy);
-  const maxLen = airborne ? 54 : 50;
-  const scale = mag > maxLen && mag > 0 ? maxLen / mag : 1;
-  dx *= scale;
-  dy *= scale;
-  const len = Math.hypot(dx, dy);
-  const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-  refs.vector.style.width = `${len}px`;
-  refs.vector.style.transform = `rotate(${angle}deg)`;
 }
 
 // Run from the existing audio/presentation update chain. No second RAF, timer or
@@ -240,10 +216,9 @@ if (!Audio.prototype.__v1MobileTouchUi) {
 }
 
 globalThis.__DESCENT_MOBILE_UI = {
-  version: '1.0-rc',
-  contextualGestureOverlay: true,
-  reanchoredAirGestures: true,
-  dedicatedJumpButton: true,
+  version: '1.1-wordrun',
+  tapVerbTouchRing: true,        // replaces the retired carve/spin/flip guide
+  dedicatedJumpButton: true,     // the REAL button (confirm verb)
   flickJumpShortcutPreserved: true,
   dedicatedGoButton: true,
   secondFingerShortcutPreserved: true,

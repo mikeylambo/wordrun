@@ -89,10 +89,18 @@ function terrainMaterial() {
         vec2 p4F = abs(fract(p4Cell) - 0.5);
         float p4Line = smoothstep(0.44, 0.5, max(p4F.x, p4F.y));
         float p4Rail = smoothstep(0.8, 0.97, vP4Lane);
-        totalEmissiveRadiance += vec3(0.05, 0.34, 0.46) * p4Line * 0.55;
-        totalEmissiveRadiance += vec3(0.10, 0.62, 0.80) * p4Rail * 1.1;`);
+        // The etched light drifts through hues down the page — cyan through
+        // violet through teal over ~300m — so no stretch of track sits in a
+        // single monochrome wash. Red stays the Redline's alone.
+        float p4Hue = 0.5 + 0.5 * sin(vP4World.z * 0.021);
+        float p4Hue2 = 0.5 + 0.5 * sin(vP4World.z * 0.0093 + 2.1);
+        vec3 p4GridCol = mix(vec3(0.05, 0.34, 0.46), vec3(0.30, 0.16, 0.52), p4Hue);
+        p4GridCol = mix(p4GridCol, vec3(0.05, 0.44, 0.30), p4Hue2 * 0.55);
+        vec3 p4RailCol = mix(vec3(0.10, 0.62, 0.80), vec3(0.52, 0.26, 0.86), p4Hue2);
+        totalEmissiveRadiance += p4GridCol * p4Line * 0.62;
+        totalEmissiveRadiance += p4RailCol * p4Rail * 1.15;`);
   };
-  terrain.customProgramCacheKey = () => 'wordrun-p7-track-ribbon-v1';
+  terrain.customProgramCacheKey = () => 'wordrun-p7-track-ribbon-v2';
   return terrain;
 }
 

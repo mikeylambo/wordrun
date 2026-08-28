@@ -165,7 +165,9 @@ export class CorruptionActor {
 
     this._redrawT -= dt;
     if (this._redrawT <= 0) {
-      this._redrawT = REDRAW_EVERY;
+      // Perf: at distance the static barely reads, so re-roll it on a slower
+      // cadence. At full pressure this is exactly the shipped REDRAW_EVERY.
+      this._redrawT = REDRAW_EVERY + (1 - Math.min(1, intensity * 2.2)) * 0.18;
       drawStatic(this.tearTex.canvas, this.tearTex.tex, 0.35 + intensity * 0.65, this._heat);
       drawStatic(this.fieldTex.canvas, this.fieldTex.tex, 0.25 + intensity * 0.5, this._heat * 0.5);
     }

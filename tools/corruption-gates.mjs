@@ -305,7 +305,7 @@ head('VIBRANCY — red belongs to the Redline alone');
     hexesIn(burst).filter(saturatedRed).length === 0);
 
   const cursor = fs.readFileSync('src/render/actors.js', 'utf8');
-  check('the cursor of light carries no red',
+  check('the running figure of light carries no red',
     hexesIn(cursor).filter(saturatedRed).length === 0);
 
   const redline = fs.readFileSync('src/render/corruption.js', 'utf8');

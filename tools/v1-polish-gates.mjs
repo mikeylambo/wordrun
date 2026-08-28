@@ -58,15 +58,16 @@ check(input.includes('__v1GoButtonHeld') && input.includes('extraHeld || this.ke
 check(input.includes('GO_HOLD_MS') && input.includes('TAP_MS'),
   'a quick second-finger tap reads as the word verb, not as GO');
 check(mobile.includes("guide.id = 'v1TouchGuide'"),
-  'mobile exposes a contextual gesture frame while the steering thumb is down');
+  'mobile exposes a touch ring while the thumb is down');
 check(mobile.includes("go.id = 'v1MobileGo'"),
   'mobile exposes a dedicated hold-GO control');
 check(mobile.includes("jump.id = 'v1MobileJump'") && mobile.includes('input.jump = true'),
   'mobile exposes a dedicated tap-JUMP control independent from steering touch');
 check(mobile.includes("#powerHint{display:none!important}"),
   'mobile removes redundant floating GO hint above the labeled meter');
-check(mobile.includes("content:'SPIN'") && mobile.includes("content:'FLIP'") && mobile.includes("content:'CARVE'"),
-  'gesture overlay communicates carve on snow and spin/flip in air');
+check(mobile.includes("content:'REAL'") &&
+  !mobile.includes("content:'SPIN'") && !mobile.includes("content:'FLIP'") && !mobile.includes("content:'CARVE'"),
+  'touch ring teaches the confirm verb; retired carve/spin/flip labels are gone');
 check(mobile.includes('Audio.prototype.__v1MobileTouchUi'),
   'mobile presentation updates through the existing audio/presentation chain');
 check(onboarding.includes("touch ? 'TAP' : 'SPACE'") && onboarding.includes('IF THE SPELLING IS REAL'),

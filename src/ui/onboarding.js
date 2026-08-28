@@ -62,9 +62,9 @@ export class OnboardingUI {
         <div class="rules">
           <div class="rule"><b>${confirm}</b><span>WORDS RUSH AT YOU. ${confirm} IF THE SPELLING IS REAL.</span></div>
           <div class="rule"><b>FAKES</b><span>LET A MISSPELLED WORD PASS.</span></div>
-          <div class="rule"><b>SPEED</b><span>RIGHT READS SPEED YOU UP. WRONG READS SLOW YOU DOWN.</span></div>
+          <div class="rule"><b>SPEED</b><span>RIGHT READS SPEED YOU UP. SLOW READING LETS IT CATCH YOU.</span></div>
           <div class="rule"><b>${go}</b><span>BURST FORWARD WHEN THE METER IS CHARGED.</span></div>
-          <div class="rule"><b>♥ ♥ ♥</b><span>A WRONG READ COSTS A HEART.</span></div>
+          <div class="rule"><b>♥ ♥ ♥</b><span>ONLY ${confirm === 'TAP' ? 'TAPPING' : 'CALLING'} A FAKE COSTS A HEART. A MISSED WORD JUST SLOWS YOU.</span></div>
         </div>
         <div class="ghost"><span>BEST RUN</span><button class="toggle" data-act="ghost"></button></div>
         <button class="start" data-act="start">DROP IN</button>

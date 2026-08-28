@@ -10,9 +10,10 @@ the Redline's gap reduced to a pure speed differential. Menus,
 endless-prestige loop, hearts/bells, haptics, PWA and seeded runs remain
 the source frame as-is.
 
-You are a cursor of light running down an unfinished draft — a blade of
-glow that blinks like a text caret, calm at distance, frantic when the
-Redline closes, drawing an ink stroke down the page as it runs.
+You are a running figure of light sprinting down an unfinished draft — a
+low-poly human of glow, arms pumping, stride lengthening as your reading
+earns speed. It still pulses like a text caret: calm at distance, frantic
+when the Redline closes, drawing an ink stroke down the page as it runs.
 
 ## The five names (a ceiling, not a starting point)
 
@@ -55,8 +56,16 @@ declare it fake.
 | --- | --- | --- |
 | real word | tap | clean gate — speed bonus, chain link, boost fill |
 | fake word | pass | clean gate — a right read is a right read |
-| fake word | tap | the DESCENT hit: a heart, stagger, speed, chain, Redline pressure |
-| real word | pass | same hit — no pick is a pick |
+| fake word | tap | the DESCENT hit: a heart, stagger, speed loss, chain, half meter |
+| real word | pass | a slip, not a crash: speed loss and the chain — **no heart** |
+
+The asymmetry is the rulebook (and it is gated): hearts are only ever spent
+by *acting* wrongly — tapping a fake. Letting a real word slip past just
+slows you down, and slow is the Redline's department: sink under its pace
+and the gap closes at exactly the rate you're slow. Game over is always one
+of two legible stories — you tapped fakes until your hearts ran out, or you
+read too slowly and the Redline ran you down. Speeding past a word you didn't
+have time to read can cost you the run, but never a heart.
 
 Spamming confirm buys nothing: the real/fake mix is a seeded coin, so
 "always tap" fails half the gates.

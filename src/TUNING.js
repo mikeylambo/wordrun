@@ -57,7 +57,10 @@ export const TUNING = {
   RUN: {
     START_SPEED: 27,           // = REDLINE_PACE: a run starts neutral
     SPEED_GAIN: 2.5,           // m/s added per correct read
-    SPEED_LOSS: 6,             // m/s lost per wrong read (plus the heart)
+    // Both wrong reads lose this much speed, but only tapping a fake
+    // (commission) also costs a heart + stagger + meter. Letting a real
+    // word slip (omission) is speed-only: the Redline is its punisher.
+    SPEED_LOSS: 6,
     // FLOOR: repeated misses slow you, never stall you — reading window at
     // the floor is ARM_DISTANCE_M/16 ≈ 3.4s, an easy recovery pace.
     FLOOR: 16,
@@ -78,9 +81,10 @@ export const TUNING = {
 
   // ── Word gates (the WORD RUN verb) ──────────────────────────────────────
   // A word arrives at runner speed; the player confirms it (tap) or lets it
-  // pass. Real+confirmed / fake+ignored = clean gate. Fake+confirmed or
-  // real+missed = the hit. Gates are spaced in METRES, so the speed your
-  // reading earns is also your reading difficulty — one system, shared.
+  // pass. Real+confirmed / fake+ignored = clean gate. Fake+confirmed = the
+  // hit (heart). Real+missed = speed loss only — the Redline punishes slow.
+  // Gates are spaced in METRES, so the speed your reading earns is also your
+  // reading difficulty — one system, shared.
   WORDS: {
     FIRST_GATE_M: 90,          // matches FEATURES.SAFE_START (fair start)
     SPACING_M: 85,             // metres of downhill between gates at the top
