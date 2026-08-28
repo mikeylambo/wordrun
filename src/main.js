@@ -4,6 +4,7 @@
 
 import TUNING from './TUNING.js';
 import { Sim, PHASE, emptyInput } from './sim/sim.js';
+import { makeGate } from './sim/word-gates.js';
 import { dailySeed, dailySeedString } from './sim/rng.js';
 import { Stage } from './render/scene.js';
 import { TerrainMesh } from './render/terrain-mesh.js';
@@ -69,6 +70,36 @@ ui.setSeed(SEED_STRING, Storage.bestFor(SEED), Storage.runsToday(SEED));
 ui.setDaily(metaDaily.status(SEED));
 ui.showTitle(true);
 input.onFirstGesture = () => audio.start();
+
+// ── Run-start warm-up (Phase 8) ───────────────────────────────────────────
+// Profiling the DROP IN hitch found three first-use costs landing on one
+// frame: shader compilation for every material hidden on the title screen
+// (plates, corruption, bursts), the first canvas→GPU texture uploads, and
+// the AudioContext graph build. All three are paid here instead, while the
+// title idles — two rAFs in so the first title paint is never blocked.
+function warmStart() {
+  audio.prewarm();
+
+  // Paint the plates with the run's ACTUAL first two words (knowable from
+  // the seed) so the first in-run paint is a cache hit — no canvas raster,
+  // no texture upload on the start frame. The fx plate just allocates.
+  wordGateActors.current.paint(makeGate(SEED, 0).shown, 'idle');
+  wordGateActors.next.paint(makeGate(SEED, 1).shown, 'idle');
+  wordGateActors.fx.paint('ready', 'right');
+  for (const plate of [wordGateActors.current, wordGateActors.next, wordGateActors.fx]) {
+    stage.renderer.initTexture(plate.tex);
+  }
+  if (beastActor.tearTex && beastActor.fieldTex) {
+    stage.renderer.initTexture(beastActor.tearTex.tex);
+    stage.renderer.initTexture(beastActor.fieldTex.tex);
+  }
+
+  // Compile every material already in the graph, hidden ones included.
+  const compiled = stage.renderer.compileAsync?.(stage.scene, stage.camera);
+  if (compiled?.catch) compiled.catch(() => stage.renderer.compile(stage.scene, stage.camera));
+  else stage.renderer.compile(stage.scene, stage.camera);
+}
+requestAnimationFrame(() => requestAnimationFrame(() => { try { warmStart(); } catch { /* warm-up is best-effort */ } }));
 
 function startRun() {
   audio.start();

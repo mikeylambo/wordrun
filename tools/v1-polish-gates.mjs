@@ -47,6 +47,19 @@ check(polish.includes('button(pad, 0)') && polish.includes('button(pad, 7)') && 
 check(polish.includes('visibleControllerRoot') && polish.includes('focusControllerButton') && polish.includes('PointerEvent'),
   'controller can navigate and activate core game overlays');
 
+// ── Phase 8: run-start warm-up (the profiled stutter stays fixed) ────────
+const mainSrc = read('src/main.js');
+const audioSrc = read('src/audio/audio.js');
+check(mainSrc.includes('function warmStart()') && mainSrc.includes('initTexture') &&
+  mainSrc.includes('compileAsync'),
+  'title idle pre-compiles shaders and pre-uploads canvas textures');
+check(mainSrc.includes('wordGateActors.current.paint(makeGate(SEED, 0).shown') &&
+  mainSrc.includes('wordGateActors.next.paint(makeGate(SEED, 1).shown'),
+  "the run's first two plates are painted before DROP IN (cache-hit at start)");
+check(audioSrc.includes('prewarm()') && audioSrc.includes('this.prewarm();') &&
+  !audioSrc.includes('if (!Ctx) return;\n    const ctx = new Ctx();\n\n    this.ready'),
+  'audio graph builds suspended at load; the gesture only resumes it');
+
 check(input.includes('TOUCH_DRAG_RANGE_GROUND = 0.29') && input.includes('TOUCH_DRAG_RANGE_AIR = 0.22'),
   'mobile ground and air gestures use separate analog throws');
 check(input.includes('TOUCH_RESPONSE_GROUND = 24.0') && input.includes('TOUCH_RESPONSE_AIR = 34.0'),

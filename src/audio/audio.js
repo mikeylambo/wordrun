@@ -53,12 +53,21 @@ export class Audio {
     globalThis.__AUDIO = this;
   }
 
-  /** Must be called from a user gesture. */
+  /**
+   * Resume from a user gesture. The node graph itself is built by
+   * prewarm() — construction is allowed before any gesture (the context
+   * just starts suspended), only resume() needs the tap. Building the
+   * ~40 node graph and two noise buffers used to happen ON the DROP IN
+   * tap and was one of the three run-start stutter sources (Phase 8).
+   */
   start() {
-    if (this.ready) {
-      if (this.ctx.state === 'suspended') this.ctx.resume();
-      return;
-    }
+    this.prewarm();
+    if (this.ready && this.ctx.state === 'suspended') this.ctx.resume();
+  }
+
+  /** Build the whole graph, suspended. Safe to call at page load. */
+  prewarm() {
+    if (this.ready) return;
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) return;
     const ctx = new Ctx();
