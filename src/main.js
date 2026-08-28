@@ -168,6 +168,9 @@ function endRun() {
   metaStats.increment('missedReals', wg.missedReals);
   metaStats.max('bestChain', sim.player.bestChain);
   metaStats.max('bestDistance', Math.floor(distance));
+  // Bells bank the spendable balance (Phase 8): a bare number, no name.
+  const banked = (sim.bellsCollected || 0) * TUNING.META.CURRENCY_PER_BELL;
+  if (banked > 0) metaStats.increment('currency', banked);
   const dailyCard = metaDaily.recordRun(SEED, {
     distance, bestChain: sim.player.bestChain, correct: wg.correctCount,
   });

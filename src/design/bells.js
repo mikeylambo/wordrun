@@ -1,5 +1,4 @@
 import { makeRng, mixSeed } from '../sim/rng.js';
-import { nearestAirBeat, AIR_BEAT_RULES } from './air-beats.js';
 
 export const HEARTS = {
   MAX: 3,
@@ -13,23 +12,26 @@ export const BELL_LINES = {
   JITTER: 26,
   COUNT: 7,
   STEP_D: 13.5,
-  PICKUP_X: 1.45,
+  // Phase 8 audit: strings were still laid in the source frame's straight
+  // ribbon coordinates (a centre near x=0, arcs bent toward retired air
+  // launches) while the Phase 7 winding line swings ±15.5m — with a 1.45m
+  // pickup they were functionally uncollectible: wired to hearts and meter
+  // on paper, inert in play. They now follow the travel line itself with a
+  // small weave, and the pickup window absorbs the auto-follow's curve
+  // drift, so the ambient-reward loop (meter drip, heart repair, banked
+  // currency) actually happens.
+  WEAVE: 0.8,
+  PICKUP_X: 2.6,
   PICKUP_D: 1.9,
-  SAFE_HALF_WIDTH: 10.5,
   HAZARD_PAD: 2.8,
   LOOK_AHEAD: 13,
-  AIR_MIN_AHEAD: 42,
-  AIR_MAX_AHEAD: 145,
 };
 
-const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-const lerp = (a, b, t) => a + (b - a) * t;
-
 /**
- * Bells are route suggestions, not currency. A line must be continuous enough
- * to read at speed and honest enough that following it never deliberately feeds
- * the skier into a solid. The terrain's guaranteed corridor is the final safety
- * net when a decorative arc cannot find room.
+ * Bells are the run's ambient pickup: a route-shaped drip of boost meter,
+ * the five-count heart-repair rhythm, and the banked currency. With no
+ * steering verb they are deliberately NOT a skill test — they sit on the
+ * line the runner already travels; the reward is rhythm, not aim.
  */
 export class BellField {
   constructor(seed = 0, terrain = null) {
@@ -63,105 +65,49 @@ export class BellField {
     return true;
   }
 
+  /** The travel line at distance d — the winding centerline when it exists. */
+  _lineX(d) {
+    return this.terrain?.corridorX ? this.terrain.corridorX(d) : 0;
+  }
+
+  /**
+   * Keep a bell on the travel line: the weave stays well inside the pickup
+   * window and the flat track has no solids, but the collider check stays
+   * as the honest fallback for any future obstacle.
+   */
   _safeX(rawX, d) {
-    const raw = clamp(rawX, -BELL_LINES.SAFE_HALF_WIDTH, BELL_LINES.SAFE_HALF_WIDTH);
-    if (!this.terrain?.collidersNear) return raw;
-    if (this._clearAt(raw, d)) return raw;
-
-    const candidates = [];
-    for (let x = -BELL_LINES.SAFE_HALF_WIDTH; x <= BELL_LINES.SAFE_HALF_WIDTH + 0.01; x += 1.15) {
-      candidates.push(x);
-    }
-
-    let best = null;
-    let bestScore = -Infinity;
-    for (const candidate of candidates) {
-      const x = clamp(candidate, -BELL_LINES.SAFE_HALF_WIDTH, BELL_LINES.SAFE_HALF_WIDTH);
-      if (!this._clearAt(x, d)) continue;
-      const score = -Math.abs(x - raw);
-      if (score > bestScore) {
-        bestScore = score;
-        best = x;
-      }
-    }
-
-    if (best != null) return best;
-
-    // Solids are forbidden from the terrain's reserved corridor. Prefer that
-    // boring-but-honest line to deleting a bell and leaving the player with a
-    // broken visual invitation.
-    if (this.terrain?.corridorX) {
-      const corridor = clamp(this.terrain.corridorX(d),
-        -BELL_LINES.SAFE_HALF_WIDTH, BELL_LINES.SAFE_HALF_WIDTH);
-      if (this._clearAt(corridor, d)) return corridor;
-    }
+    if (this._clearAt(rawX, d)) return rawX;
+    const line = this._lineX(d);
+    if (this._clearAt(line, d)) return line;
     return null;
   }
 
   _line(index) {
     if (this.cache.has(index)) return this.cache.get(index);
     const rng = makeRng(mixSeed(this.seed || 1, 0xb311 + index * 97));
-    let baseD = BELL_LINES.START + index * BELL_LINES.SPACING +
+    const baseD = BELL_LINES.START + index * BELL_LINES.SPACING +
       rng.range(-BELL_LINES.JITTER, BELL_LINES.JITTER);
 
-    // Only bend a string toward a launch that is genuinely AHEAD of this line.
-    // RC6 could snap adjacent strings backward onto the same beat, clustering
-    // collectibles and creating a long empty stretch afterwards.
-    const probe = baseD + BELL_LINES.AIR_MIN_AHEAD;
-    const nearAir = nearestAirBeat(this.seed, probe, BELL_LINES.AIR_MAX_AHEAD);
-    const useAir = nearAir &&
-      nearAir.d >= baseD + BELL_LINES.AIR_MIN_AHEAD &&
-      nearAir.d <= baseD + BELL_LINES.AIR_MAX_AHEAD;
+    // The string rides the winding line itself, with a gentle seeded weave
+    // for visual life — bounded so every bell stays inside the pickup
+    // window of a runner who is simply running.
+    const weaveAmp = rng.range(0.25, BELL_LINES.WEAVE);
+    const weavePhase = rng.range(0, Math.PI * 2);
     const bells = [];
-
-    if (useAir && this.terrain?.corridorX) {
-      baseD = nearAir.d - (BELL_LINES.COUNT - 1) * BELL_LINES.STEP_D - 4;
-      const targetX = clamp(
-        this.terrain.corridorX(nearAir.d) + nearAir.side * AIR_BEAT_RULES.SIDE_OFFSET,
-        -BELL_LINES.SAFE_HALF_WIDTH,
-        BELL_LINES.SAFE_HALF_WIDTH
-      );
-      const startX = clamp(targetX - nearAir.side * 4.8,
-        -BELL_LINES.SAFE_HALF_WIDTH, BELL_LINES.SAFE_HALF_WIDTH);
-
-      for (let i = 0; i < BELL_LINES.COUNT; i++) {
-        const t = i / Math.max(1, BELL_LINES.COUNT - 1);
-        const d = baseD + i * BELL_LINES.STEP_D;
-        const rawX = lerp(startX, targetX, t) + Math.sin(t * Math.PI) * nearAir.side * 1.2;
-        const x = this._safeX(rawX, d);
-        if (x == null) continue;
-        bells.push({
-          id: `${index}:${i}`,
-          line: index,
-          i,
-          x,
-          d,
-          airBeat: nearAir.id,
-          phase: rng.range(0, Math.PI * 2),
-        });
-      }
-    } else {
-      const centre = rng.range(-6.2, 6.2);
-      const direction = rng.next() < 0.5 ? -1 : 1;
-      const sweep = rng.range(2.0, 5.2);
-      const slant = rng.range(0.4, 0.95) * direction;
-
-      for (let i = 0; i < BELL_LINES.COUNT; i++) {
-        const t = i / Math.max(1, BELL_LINES.COUNT - 1);
-        const arc = Math.sin(t * Math.PI) * sweep;
-        const rawX = centre + (i - (BELL_LINES.COUNT - 1) / 2) * slant + arc * direction;
-        const d = baseD + i * BELL_LINES.STEP_D;
-        const x = this._safeX(rawX, d);
-        if (x == null) continue;
-        bells.push({
-          id: `${index}:${i}`,
-          line: index,
-          i,
-          x,
-          d,
-          phase: rng.range(0, Math.PI * 2),
-        });
-      }
+    for (let i = 0; i < BELL_LINES.COUNT; i++) {
+      const t = i / Math.max(1, BELL_LINES.COUNT - 1);
+      const d = baseD + i * BELL_LINES.STEP_D;
+      const rawX = this._lineX(d) + Math.sin(weavePhase + t * Math.PI * 2) * weaveAmp;
+      const x = this._safeX(rawX, d);
+      if (x == null) continue;
+      bells.push({
+        id: `${index}:${i}`,
+        line: index,
+        i,
+        x,
+        d,
+        phase: rng.range(0, Math.PI * 2),
+      });
     }
 
     this.cache.set(index, bells);

@@ -114,6 +114,13 @@ Spamming confirm buys nothing: the real/fake mix is a seeded coin, so
 - **Courage still pays.** Boost fill from correct reads is multiplied by the
   frame's proximity multiplier — reading well with the Redline in range banks
   more, exactly as clean landings did.
+- **Bells are ambient reward, and they gate-provably get collected (Phase
+  8).** The audit found strings still laid in the source frame's straight
+  coordinates — functionally uncollectible against the ±15.5 m winding
+  line. They now ride the travel line with a bounded weave (every bell
+  gated inside the pickup window), and each one drips boost meter, counts
+  the five-bell heart repair, and banks ◆ — the bare-number spendable
+  balance (deliberately unnamed; sinks come later).
 
 ## The meta layer (SLU shell port)
 

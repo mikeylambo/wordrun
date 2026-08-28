@@ -314,6 +314,14 @@ export const TUNING = {
     ACCEL_MULT: 2.0,           // gets you to the higher cap quickly
   },
 
+  // ── Meta economy ────────────────────────────────────────────────────────
+  META: {
+    // The bare-number spendable balance (◆, deliberately unnamed — the
+    // five-name cap stays at five). Bells are its only source for now;
+    // sinks (cosmetics, a priced continue) are scoped for a later phase.
+    CURRENCY_PER_BELL: 1,
+  },
+
   // ── Beast ───────────────────────────────────────────────────────────────
   BEAST: {
     START_GAP: 62,

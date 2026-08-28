@@ -340,7 +340,8 @@ export class UI {
       const km = ((lifetime.metres || 0) / 1000).toFixed(1);
       const streak = daily?.streak > 0 ? `DAY ${daily.streak} · ` : '';
       const runs = lifetime.runs || 0;
-      parts.push(`<div class="metaLine">${streak}${runs} ${runs === 1 ? 'RUN' : 'RUNS'} · ${km} KM · ${acc}% TRUE READS</div>`);
+      const bank = lifetime.currency > 0 ? ` · ◆ ${lifetime.currency}` : '';
+      parts.push(`<div class="metaLine">${streak}${runs} ${runs === 1 ? 'RUN' : 'RUNS'} · ${km} KM · ${acc}% TRUE READS${bank}</div>`);
     }
 
     this.deathRecap.innerHTML = parts.join('');

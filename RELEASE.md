@@ -43,6 +43,17 @@ Slice history:
   a REAL tap ring; the full-screen interference overlays pause while
   invisible and the corruption canvases re-roll on an intensity-scaled
   cadence.
+- Phase 8 — performance, speed curve and pickup audit. The run-start
+  stutter was profiled to three first-use costs (audio graph build on the
+  tap, a shader-compile burst, first canvas texture uploads) and all three
+  now happen during title idle. The flat speed gain became a
+  diminishing-returns curve toward a raised, calibration-exposed ceiling
+  (shipped 64; `npm run calibrate:speed` prints the decision table) under
+  a two-tier legibility standard gated at cruise and at the ceiling. The
+  bell audit found strings still laid in the source frame's straight
+  coordinates — uncollectible against the winding line, inert in play —
+  so they now ride the travel line itself and bank the bare-number
+  spendable balance (◆) alongside their meter drip and heart repair.
 - Meta layer — the SLU shell's Layer-1 managers ported into `src/meta/`
   (stats ledger, deterministic daily goals, play streak) and wired to the
   run: goal chips and the streak on the title, and a learning recap on

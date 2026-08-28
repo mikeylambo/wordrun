@@ -159,6 +159,38 @@ head('META — the recap always knows the true spelling');
     `${taps.length} fakes recorded`);
 }
 
+// ── Bells: the currency pickup actually gets picked up ───────────────────
+head('META — bells sit on the travel line and feed the balance');
+
+{
+  // Phase 8 audit finding, gated so it cannot regress: strings used to be
+  // laid in the straight-ribbon frame while the track wound ±15.5m — wired
+  // to hearts and meter on paper, uncollectible in play. Every bell must
+  // now sit inside the pickup window of the line the runner travels.
+  const { BellField, BELL_LINES } = await import('../src/design/bells.js');
+  const { Terrain } = await import('../src/sim/terrain.js');
+  for (const seed of [999, 12345, 8675309]) {
+    const t = new Terrain(seed);
+    const f = new BellField(seed, t);
+    const bells = f.around(3000, 2900, 2900);
+    const worst = Math.max(...bells.map((b) => Math.abs(b.x - t.corridorX(b.d))));
+    check(`seed ${seed}: every bell is inside the pickup window of the line`,
+      bells.length > 30 && worst <= BELL_LINES.PICKUP_X - 0.5,
+      `${bells.length} bells, worst ${worst.toFixed(2)}m off-line (window ${BELL_LINES.PICKUP_X}m)`);
+  }
+
+  // And an auto-following runner actually collects them: walk the line at
+  // pace and sweep collectNear the way the rc5 layer does each step.
+  const t = new Terrain(999);
+  const f = new BellField(999, t);
+  let collected = 0;
+  for (let d = 0; d < 2000; d += 27 / 60) {
+    collected += f.collectNear({ d, x: t.corridorX(d) }).length;
+  }
+  check('a runner simply following the line collects the strings',
+    collected >= 30, `${collected} collected over 2km`);
+}
+
 // ── Wiring + module independence ─────────────────────────────────────────
 head('META — wiring and independence');
 
@@ -172,6 +204,14 @@ head('META — wiring and independence');
   check('the run end feeds the ledger, the goals and the recap',
     main.includes('metaStats.increment') && main.includes('metaDaily.recordRun') &&
     main.includes('recap: wg.misses'));
+  const TUNING = (await import('../src/TUNING.js')).default;
+  check('bells bank a gated currency amount into the persistent ledger',
+    TUNING.META.CURRENCY_PER_BELL >= 1 &&
+    main.includes("sim.bellsCollected || 0) * TUNING.META.CURRENCY_PER_BELL") &&
+    main.includes("metaStats.increment('currency', banked)"));
+  const uiSrc = fs.readFileSync('src/ui/ui.js', 'utf8');
+  check('the balance surfaces as a bare number with an icon, never a name',
+    uiSrc.includes('◆ ${lifetime.currency}'));
 
   const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
   check('the death card teaches the real spelling on a tapped fake',
