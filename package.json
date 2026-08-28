@@ -17,7 +17,8 @@
     "audio:list": "node tools/generate-elevenlabs-audio.mjs --list",
     "audio:generate": "node tools/generate-elevenlabs-audio.mjs",
     "gate:words": "node tools/word-gates.mjs",
-    "gate:corruption": "node tools/corruption-gates.mjs"
+    "gate:corruption": "node tools/corruption-gates.mjs",
+    "calibrate:speed": "node tools/speed-calibration.mjs"
   },
   "dependencies": {
     "three": "^0.169.0"

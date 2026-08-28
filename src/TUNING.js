@@ -48,25 +48,38 @@ export const TUNING = {
     SEGS_Z: 48,
   },
 
-  // ── The run (Phase 7) ───────────────────────────────────────────────────
-  // Speed is a direct consequence of reading: a correct read adds SPEED_GAIN,
-  // a wrong read subtracts SPEED_LOSS (and costs a heart), bounded by FLOOR
-  // and CEILING. The Redline runs at a steady REDLINE_PACE, and the gap is
-  // purely the speed differential integrated over time — the relationship
-  // between FLOOR/CEILING and REDLINE_PACE is the main difficulty knob.
+  // ── The run (Phase 7, curve reworked Phase 8) ───────────────────────────
+  // Speed is a direct consequence of reading. Phase 8 replaced the flat
+  // +2.5/correct (which reached the old 40 ceiling in ~10 reads and then
+  // pinned there for the whole run) with a diminishing-returns curve:
+  //
+  //   gain(speed) = SPEED_GAIN_MAX * (CEILING - speed) / (CEILING - FLOOR)
+  //
+  // — full gain at the floor, shrinking as speed climbs, asymptotic at the
+  // ceiling. Each correct read closes a fixed fraction of the remaining
+  // headroom, so top speed is approached, never hit: the run never feels
+  // capped, and nearing the ceiling takes a sustained streak (~23 clean
+  // reads to 90% of headroom at the shipped values), not ten.
   RUN: {
     START_SPEED: 27,           // = REDLINE_PACE: a run starts neutral
-    SPEED_GAIN: 2.5,           // m/s added per correct read
+    // THE calibration value (Phase 8): deliberately pushed well past the
+    // old 40. Reading windows at candidate settings (ARM 55m, plain /
+    // Overdrive x1.4): 48 -> 1.15s/0.82s · 56 -> 0.98s/0.70s ·
+    // 64 -> 0.86s/0.61s · 72 -> 0.76s/0.55s. Where "legible" ends and
+    // "fun" ends are different lines; this one gets picked by feel.
+    CEILING: 64,
+    SPEED_GAIN_MAX: 4.5,       // m/s gained per correct read AT THE FLOOR
     // Both wrong reads lose this much speed, but only tapping a fake
     // (commission) also costs a heart + stagger + meter. Letting a real
     // word slip (omission) is speed-only: the Redline is its punisher.
+    // Flat on purpose: near the ceiling a miss costs the same 6 m/s but
+    // MORE reads to win back (each is worth less up there) — mistakes at
+    // speed are automatically the expensive ones.
     SPEED_LOSS: 6,
     // FLOOR: repeated misses slow you, never stall you — reading window at
-    // the floor is ARM_DISTANCE_M/16 ≈ 3.4s, an easy recovery pace.
+    // the floor is ARM_DISTANCE_M/16 ≈ 3.4s, an easy recovery pace. Its
+    // job (recovery) is unchanged by the higher ceiling, so it stays.
     FLOOR: 16,
-    // CEILING: gated against legibility — 55m/40 = 1.38s plain, and still
-    // ≥0.9s under Overdrive's 1.4x. A long streak cannot spiral past it.
-    CEILING: 40,
     REDLINE_PACE: 27,          // the Redline's steady baseline, m/s
 
     // The authored winding (Sonic-tradition S-curves, no player steering):
@@ -103,10 +116,17 @@ export const TUNING = {
     // meter economy here.
     CORRECT_FILL: 6,           // boost meter per correct read (chain-multiplied)
     WRONG_METER_LOSS: 0.5,     // = BOOST.FLUB_METER_LOSS
-    // Legibility floor (the falsifiable question, made checkable): at speed v
-    // the reading window is ARM_DISTANCE_M / v seconds. The word-gates suite
-    // asserts this stays above READ_WINDOW_MIN_S at the shipped top speed.
+    // Legibility floors (the falsifiable question, made checkable): at speed
+    // v the reading window is ARM_DISTANCE_M / v seconds. Phase 8's curve
+    // split the standard in two, because the ceiling became an asymptote a
+    // run brushes rather than a wall it lives at:
+    //   - COMFORT: the window a good-but-human streak plays in. Gated at
+    //     the speed CRUISE_READS clean reads reach from the start.
+    //   - HARD: the physical floor at the absolute ceiling — below this the
+    //     asymptote itself would be illegible no matter the calibration.
     READ_WINDOW_MIN_S: 1.15,
+    READ_WINDOW_HARD_MIN_S: 0.75,
+    CRUISE_READS: 8,
   },
 
   // ── Features / obstacles (per chunk, seeded) ────────────────────────────

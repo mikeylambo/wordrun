@@ -225,19 +225,24 @@ function runReader(seed, metres, answerFn) {
 head('WORDS — reading window vs the speed ramp');
 
 {
-  // The window is ARM distance over ground speed. Assert it at the speed
-  // CEILING a perfect streak earns — the fastest the game can ever ask you
-  // to read — not the tutorial crawl.
-  const vTop = TUNING.RUN.CEILING;
-  const window = W.ARM_DISTANCE_M / vTop;
-  check('reading window at the performance ceiling clears the floor',
-    window >= W.READ_WINDOW_MIN_S,
-    `${window.toFixed(2)}s at ${vTop.toFixed(1)} m/s (floor ${W.READ_WINDOW_MIN_S}s)`);
-
-  const vOver = TUNING.RUN.CEILING * TUNING.BOOST.SPEED_MULT;
-  check('even Overdrive leaves a readable window',
-    W.ARM_DISTANCE_M / vOver >= 0.9,
-    `${(W.ARM_DISTANCE_M / vOver).toFixed(2)}s while spending`);
+  // The window is ARM distance over ground speed. Phase 8's two-tier
+  // standard: the COMFORT floor holds at cruise (the speed CRUISE_READS
+  // clean reads reach — where the game is actually played), the HARD
+  // floor holds at the asymptotic ceiling a run only ever brushes.
+  const R = TUNING.RUN;
+  let cruise = R.START_SPEED;
+  for (let i = 0; i < W.CRUISE_READS; i++) {
+    cruise += R.SPEED_GAIN_MAX * (R.CEILING - cruise) / (R.CEILING - R.FLOOR);
+  }
+  check('comfort reading window holds at cruise speed',
+    W.ARM_DISTANCE_M / cruise >= W.READ_WINDOW_MIN_S,
+    `${(W.ARM_DISTANCE_M / cruise).toFixed(2)}s at ${cruise.toFixed(1)} m/s (floor ${W.READ_WINDOW_MIN_S}s)`);
+  check('hard reading window holds at the asymptotic ceiling',
+    W.ARM_DISTANCE_M / R.CEILING >= W.READ_WINDOW_HARD_MIN_S,
+    `${(W.ARM_DISTANCE_M / R.CEILING).toFixed(2)}s at ${R.CEILING} m/s (hard floor ${W.READ_WINDOW_HARD_MIN_S}s)`);
+  check('Overdrive at cruise stays above the hard floor',
+    W.ARM_DISTANCE_M / (cruise * TUNING.BOOST.SPEED_MULT) >= W.READ_WINDOW_HARD_MIN_S,
+    `${(W.ARM_DISTANCE_M / (cruise * TUNING.BOOST.SPEED_MULT)).toFixed(2)}s while spending`);
 }
 
 {

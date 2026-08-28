@@ -140,9 +140,10 @@ head('SPEED — deterministic consequence, floored and ceilinged');
     sim.step(input);
   }
   const firstWasCorrect = sim.wordGates.correctCount === 1;
-  check('a correct read adds exactly SPEED_GAIN',
-    firstWasCorrect && Math.abs(sim.player.speed - (before + R.SPEED_GAIN)) < 1e-9,
-    `${f2(before)} -> ${f2(sim.player.speed)} (+${R.SPEED_GAIN})`);
+  const expectedGain = R.SPEED_GAIN_MAX * (R.CEILING - before) / (R.CEILING - R.FLOOR);
+  check('a correct read adds exactly the curve gain (headroom-proportional)',
+    firstWasCorrect && Math.abs(sim.player.speed - (before + expectedGain)) < 1e-9,
+    `${f2(before)} -> ${f2(sim.player.speed)} (+${f2(expectedGain)})`);
 
   // Now tap EVERY armed word: reals stay correct, the first fake is a
   // commission — the only wrong read that is also the DESCENT obstacle hit.
@@ -187,11 +188,28 @@ head('SPEED — deterministic consequence, floored and ceilinged');
 }
 
 {
-  // Bounds: a long streak clamps at the ceiling, repeated misses at the floor.
+  // The curve's shape (Phase 8): gains shrink monotonically with speed,
+  // full-size at the floor, and the ceiling is an asymptote — a long
+  // streak approaches it closely but the sim never reaches or passes it.
+  const gainAt = (v) => R.SPEED_GAIN_MAX * (R.CEILING - v) / (R.CEILING - R.FLOOR);
+  check('curve gain is full-size at the floor and shrinks monotonically',
+    Math.abs(gainAt(R.FLOOR) - R.SPEED_GAIN_MAX) < 1e-9 &&
+    gainAt(30) > gainAt(45) && gainAt(45) > gainAt(60) && gainAt(R.CEILING) === 0,
+    `${f2(gainAt(R.FLOOR))} @floor -> ${f2(gainAt(45))} @45 -> ${f2(gainAt(60))} @60`);
+
+  // Sustained skill: reaching 90% of the start->ceiling headroom must take
+  // well more than the ~10 reads the flat gain needed to pin the old cap.
+  let v = R.START_SPEED;
+  let reads = 0;
+  const target = R.CEILING - 0.1 * (R.CEILING - R.START_SPEED);
+  while (v < target && reads < 200) { v += gainAt(v); reads++; }
+  check('90% of the headroom takes a sustained streak (>= 18 clean reads)',
+    reads >= 18 && reads < 200, `${reads} reads to ${f2(v)} of ${R.CEILING}`);
+
   const up = run(SEEDS[4], 60 * 120, (sim) => ({ confirm: reader(sim) }));
-  check('a long correct streak clamps at the ceiling',
-    up.player.speed <= R.CEILING + 1e-9 && up.player.speed >= R.CEILING - R.SPEED_GAIN,
-    `speed ${f2(up.player.speed)} / ceiling ${R.CEILING}`);
+  check('a long perfect run approaches the ceiling but never reaches it',
+    up.player.speed < R.CEILING && up.player.speed > R.CEILING - 4,
+    `speed ${f2(up.player.speed)} / ceiling ${R.CEILING} after ${up.wordGates.correctCount} reads`);
 
   const sim = new Sim(SEEDS[5]);
   sim.start(SEEDS[5]);
@@ -211,16 +229,26 @@ head('SPEED — deterministic consequence, floored and ceilinged');
 }
 
 {
-  // Legibility bounds (the standard every phase has protected): the reading
-  // window must clear the floor at the ceiling, and stay readable in
-  // Overdrive; the floor must never turn the run into a crawl-length wait.
+  // Legibility bounds, split by Phase 8 into the two-tier standard: the
+  // COMFORT window (READ_WINDOW_MIN_S) must hold at the speed a
+  // good-but-human streak of CRUISE_READS reaches — the speed the game is
+  // actually played at — and the HARD floor must hold at the asymptotic
+  // ceiling itself, else no calibration could save it. The final ceiling
+  // is picked by feel (see tools/speed-calibration.mjs for the table).
   const W = TUNING.WORDS;
-  check('reading window at the speed ceiling clears the legibility floor',
-    W.ARM_DISTANCE_M / R.CEILING >= W.READ_WINDOW_MIN_S,
-    `${(W.ARM_DISTANCE_M / R.CEILING).toFixed(2)}s at ${R.CEILING} m/s (floor ${W.READ_WINDOW_MIN_S}s)`);
-  check('even Overdrive at the ceiling leaves a readable window',
-    W.ARM_DISTANCE_M / (R.CEILING * TUNING.BOOST.SPEED_MULT) >= 0.9,
-    `${(W.ARM_DISTANCE_M / (R.CEILING * TUNING.BOOST.SPEED_MULT)).toFixed(2)}s while spending`);
+  let cruise = R.START_SPEED;
+  for (let i = 0; i < W.CRUISE_READS; i++) {
+    cruise += R.SPEED_GAIN_MAX * (R.CEILING - cruise) / (R.CEILING - R.FLOOR);
+  }
+  check(`comfort window holds at cruise (${W.CRUISE_READS} clean reads in)`,
+    W.ARM_DISTANCE_M / cruise >= W.READ_WINDOW_MIN_S,
+    `${(W.ARM_DISTANCE_M / cruise).toFixed(2)}s at ${f2(cruise)} m/s (floor ${W.READ_WINDOW_MIN_S}s)`);
+  check('hard window holds at the asymptotic ceiling',
+    W.ARM_DISTANCE_M / R.CEILING >= W.READ_WINDOW_HARD_MIN_S,
+    `${(W.ARM_DISTANCE_M / R.CEILING).toFixed(2)}s at ${R.CEILING} m/s (hard floor ${W.READ_WINDOW_HARD_MIN_S}s)`);
+  check('Overdrive at cruise stays above the hard window',
+    W.ARM_DISTANCE_M / (cruise * TUNING.BOOST.SPEED_MULT) >= W.READ_WINDOW_HARD_MIN_S,
+    `${(W.ARM_DISTANCE_M / (cruise * TUNING.BOOST.SPEED_MULT)).toFixed(2)}s while spending`);
   check('the floor keeps the run moving (a word at most ~5s away)',
     W.SPACING_M / R.FLOOR <= 6,
     `${(W.SPACING_M / R.FLOOR).toFixed(1)}s between gates at the floor`);

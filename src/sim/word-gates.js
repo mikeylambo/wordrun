@@ -135,9 +135,12 @@ export class WordGates {
       this.streak++;
       if (this.streak > this.bestStreak) this.bestStreak = this.streak;
 
-      // THE speed mechanic (Phase 7): a correct read runs you faster,
-      // deterministically, up to the legibility-gated ceiling.
-      player.speed = Math.min(R.CEILING, player.speed + R.SPEED_GAIN);
+      // THE speed mechanic (Phase 7, curve Phase 8): a correct read closes
+      // a fixed fraction of the remaining headroom — big gains when slow,
+      // vanishing gains near the ceiling, which is approached, never hit.
+      const gain = R.SPEED_GAIN_MAX *
+        Math.max(0, (R.CEILING - player.speed) / (R.CEILING - R.FLOOR));
+      player.speed = Math.min(R.CEILING, player.speed + gain);
       player.chain++;
       if (player.chain > player.bestChain) player.bestChain = player.chain;
       player.boostMeter = Math.min(B.METER_MAX,

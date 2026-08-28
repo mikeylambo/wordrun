@@ -75,9 +75,13 @@ Spamming confirm buys nothing: the real/fake mix is a seeded coin, so
 - The track is **flat and winding** — Sonic-tradition S-curves authored into
   a seeded centerline. The runner auto-follows the line; the one thumb never
   steers, it only judges words.
-- **Speed is your reading.** A correct read adds `SPEED_GAIN`, a wrong read
-  subtracts `SPEED_LOSS` and costs a heart. Floor and ceiling bound it, and
-  both bounds are gated against the reading-window legibility standard.
+- **Speed is your reading, on a diminishing-returns curve (Phase 8).** A
+  correct read closes a fixed fraction of the headroom left below the
+  ceiling — big gains when slow, vanishing gains up high — so the ceiling
+  is an asymptote a sustained streak approaches (~24 clean reads to 90% at
+  the shipped 64 m/s), never a wall ten reads slam into. A wrong read
+  subtracts a flat `SPEED_LOSS` (worth MORE reads to win back the faster
+  you are). Only tapping a fake costs a heart.
 - **The Redline runs at one steady pace.** The gap is the clamped integral
   of your speed minus that pace — no hunt states, no pressure, no lunges.
   Read above pace and you pull away; sink below it and it gains at exactly
@@ -87,12 +91,14 @@ Spamming confirm buys nothing: the real/fake mix is a seeded coin, so
 
 ## What the measurements decided
 
-- **Reading window is asserted, not hoped for.** The window is
-  `ARM_DISTANCE_M / speed`. The gates fail the build if it drops below
-  1.15 s at the shipped flat-out top speed, or below 0.9 s in Overdrive.
-- **A good reader must not outrun legibility.** The speed ceiling (40 m/s)
-  is set by the reading window, not by a pursuer: 55 m of arm distance at
-  the ceiling is 1.38 s plain and ~1 s in Overdrive, both gated.
+- **Reading window is asserted, not hoped for — on a two-tier standard
+  (Phase 8).** The window is `ARM_DISTANCE_M / speed`. The comfort floor
+  (1.15 s) is gated at *cruise* — the speed eight clean reads reach, where
+  the game is actually played — and a hard floor (0.75 s) is gated at the
+  asymptotic ceiling itself. The ceiling value (shipped 64 m/s, up from
+  40) is deliberately past the comfortable line and gets walked back by
+  feel: `npm run calibrate:speed` prints the window table at candidate
+  ceilings so the fun-vs-legible line is picked from play, not spec.
 - **The danger reads without a pursuer model.** Phase 4 removed it
   and re-presents the same gap value as the Redline: a red-shot strike-mark
   at the pursuer's exact position (same side offset, same lunge tell, same
