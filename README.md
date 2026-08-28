@@ -109,6 +109,34 @@ Spamming confirm buys nothing: the real/fake mix is a seeded coin, so
   frame's proximity multiplier — reading well with the Redline in range banks
   more, exactly as clean landings did.
 
+## The meta layer (SLU shell port)
+
+`src/meta/` ports the SLU Web Shell's Layer-1 managers into this codebase's
+zero-dependency house style, wired to the run and machine-gated
+(`tools/meta-gates.mjs`):
+
+- **StatsManager** (shell `game/StatsManager.ts` contract): a lifetime
+  ledger over a pluggable storage adapter — runs, metres, reads, accuracy,
+  best chain — surfaced as one line on the results card. The adapter seam
+  is the shell's: tools inject memory, a networked save swaps in later.
+- **DailyManager** (shell Quest/Challenge design, adapted): three DAILY
+  GOALS derived deterministically from the day's seed — no authoring
+  backlog, same card for everyone — plus a consecutive-day play streak.
+  Goals completed by any run stick for the day; the title shows the card
+  and the streak; a missed calendar day resets it.
+- **The learning recap** (the genre's gentle-failure lesson): the sim keeps
+  a capped ledger of this run's wrong reads, and the results card teaches
+  each one — a tapped fake shows its true spelling struck against the
+  misspelling; a slipped real word is named, not scolded. Porting this
+  surfaced a real bug: the gate's `answer` field was `null` exactly for
+  fakes, so the "here's the real spelling" feedback had never fired.
+
+Shell systems deliberately NOT ported: renderer adapters, screen/focus
+managers, save-slot architecture (the frame already ships equivalents),
+and the genre modules with no verb here (garage, waves, inventory,
+dialogue, multiplayer). The shell remains the starting frame for the NEXT
+game; this port lifts its meta design, not its runtime.
+
 ## The word-list module (reusable piece)
 
 `src/words/wordlist.js` is a standalone service — zero imports, no Barsmith,

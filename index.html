@@ -70,6 +70,21 @@
   .big{font-size:clamp(58px,17vw,104px);font-weight:900;line-height:.86;letter-spacing:-.05em;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 3px 20px rgba(0,0,0,.28)}
   .big small{font-size:.24em;font-weight:700;opacity:.43;margin-left:.36em;letter-spacing:.08em}.pb{color:#8be4ff;font-size:9px;letter-spacing:.28em;font-weight:900}
   .stats,#deathSeed{display:none!important}
+
+  /* Daily goals + play streak (title) and the run recap (death card). */
+  #titleGoals{margin-top:13px;display:flex;flex-direction:column;gap:7px;align-items:center}
+  #titleStreak{font-size:9px;font-weight:900;letter-spacing:.26em;color:#8be4ff;text-shadow:0 0 12px rgba(103,216,255,.35)}
+  .goalRow{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+  .goalChip{font-size:8px;font-weight:800;letter-spacing:.14em;padding:5px 9px;border:1px solid rgba(255,255,255,.16);border-radius:2px;color:rgba(235,247,252,.62);background:rgba(10,18,24,.42)}
+  .goalChip.done{color:#a8ecff;border-color:rgba(103,216,255,.55);box-shadow:0 0 12px rgba(103,216,255,.16);background:rgba(18,42,54,.5)}
+  .goalChip.done::before{content:'✓ ';font-weight:900}
+  #deathRecap{display:flex;flex-direction:column;gap:8px;align-items:center;max-width:min(86vw,340px)}
+  #deathRecap .metaLine{font-size:8px;font-weight:800;letter-spacing:.2em;color:rgba(235,247,252,.55)}
+  #deathRecap .missHead{font-size:8px;font-weight:900;letter-spacing:.26em;color:rgba(244,250,253,.5);margin-top:2px}
+  #deathRecap .miss{font:700 12px/1.35 ui-monospace,monospace;letter-spacing:.04em;color:rgba(240,249,253,.88)}
+  #deathRecap .miss b{color:#a8ecff;font-weight:900}
+  #deathRecap .miss s{color:rgba(255,159,150,.85);text-decoration-thickness:2px}
+  #deathRecap .miss small{font-size:8px;font-weight:800;letter-spacing:.16em;color:rgba(235,247,252,.5);margin-left:6px}
   .btn{pointer-events:auto;border:1px solid rgba(255,255,255,.2);border-radius:2px;padding:10px 17px;cursor:pointer;background:rgba(255,255,255,.07);color:#eef7fb;font-family:inherit;font-size:9px;font-weight:800;letter-spacing:.18em;min-width:92px}
   .btn:active{background:rgba(255,255,255,.16)}.btn.primary{background:rgba(240,248,252,.92);color:#10171d;border-color:rgba(255,255,255,.55)}
   #deathActions{display:flex;gap:9px;margin-top:3px}#shotBtns{position:absolute;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(var(--safe-b) + 14px)}#saveShot{min-width:auto;padding:8px 10px;font-size:8px;opacity:.7}
@@ -94,7 +109,7 @@
 
   <div class="screen on" id="titleScreen">
     <div class="title-lockup"><img id="titleWordmark" src="./ui/wordrun-wordmark.svg?v=2" alt="WORD RUN"><div id="titleHint">HOW FAR CAN YOU GO?</div></div>
-    <div class="drop-lockup"><div class="drop">DROP IN<small>TAP · SPACE · ENTER</small></div><div class="seed" id="seedLine"></div></div>
+    <div class="drop-lockup"><div class="drop">DROP IN<small>TAP · SPACE · ENTER</small></div><div id="titleGoals"><div id="titleStreak"></div><div class="goalRow" id="titleGoalRow"></div></div><div class="seed" id="seedLine"></div></div>
   </div>
 
   <div class="screen" id="deathScreen">
@@ -102,6 +117,7 @@
     <div id="deathTag">REDACTED</div>
     <div class="big"><span id="finalDist">0</span><small>M</small></div>
     <div class="pb" id="pbTag" style="visibility:hidden">NEW BEST</div>
+    <div id="deathRecap"></div>
     <div class="stats" id="deathStats"></div>
     <div id="deathActions"><button class="btn primary" id="deathAgain" data-rc2-ui>AGAIN</button><button class="btn" id="deathMenu" data-rc2-ui>MENU</button></div>
     <div id="shotBtns"><button class="btn" id="saveShot" data-rc2-ui>SAVE</button></div>

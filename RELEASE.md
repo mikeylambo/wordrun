@@ -43,3 +43,9 @@ Slice history:
   a REAL tap ring; the full-screen interference overlays pause while
   invisible and the corruption canvases re-roll on an intensity-scaled
   cadence.
+- Meta layer — the SLU shell's Layer-1 managers ported into `src/meta/`
+  (stats ledger, deterministic daily goals, play streak) and wired to the
+  run: goal chips and the streak on the title, and a learning recap on
+  the results card that shows the true spelling behind every wrong read
+  (fixing a latent bug where the true spelling was dropped exactly for
+  fakes). New meta gate suite; all suites green.

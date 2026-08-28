@@ -19,6 +19,8 @@ import { applyMaterialPass } from './render/material-pass.js';
 import { Audio } from './audio/audio.js';
 import { Input } from './input/input.js';
 import { Storage } from './storage/storage.js';
+import { StatsManager, localStorageAdapter } from './meta/stats.js';
+import { DailyManager } from './meta/daily.js';
 import { UI } from './ui/ui.js';
 import { PauseUI } from './ui/pause.js';
 import { OnboardingUI } from './ui/onboarding.js';
@@ -56,7 +58,15 @@ let shotTaken = false;
 let prevLunge = 'idle';
 let ghostEnabled = Storage.ghostEnabled();
 
+// Meta layer (ported from the SLU shell's Layer-1 managers): lifetime
+// stats, daily goals and the play streak, over one storage adapter.
+const metaAdapter = localStorageAdapter();
+const metaStats = new StatsManager(metaAdapter);
+const metaDaily = new DailyManager(metaAdapter);
+globalThis.__META = { stats: metaStats, daily: metaDaily };
+
 ui.setSeed(SEED_STRING, Storage.bestFor(SEED), Storage.runsToday(SEED));
+ui.setDaily(metaDaily.status(SEED));
 ui.showTitle(true);
 input.onFirstGesture = () => audio.start();
 
@@ -116,11 +126,30 @@ function endRun() {
   sim.recorder.finish(sim.player);
   Storage.saveGhostIfBest(SEED, sim.recorder.serialize({ seed: SEED, distance }));
 
+  // Meta layer: lifetime ledger, daily goals and the streak, then the
+  // learning recap — every wrong read shows its true spelling.
+  const wg = sim.wordGates;
+  metaStats.increment('runs');
+  metaStats.increment('metres', Math.floor(distance));
+  metaStats.increment('correct', wg.correctCount);
+  metaStats.increment('wrong', wg.wrongCount);
+  metaStats.increment('falseTaps', wg.falseTaps);
+  metaStats.increment('missedReals', wg.missedReals);
+  metaStats.max('bestChain', sim.player.bestChain);
+  metaStats.max('bestDistance', Math.floor(distance));
+  const dailyCard = metaDaily.recordRun(SEED, {
+    distance, bestChain: sim.player.bestChain, correct: wg.correctCount,
+  });
+  ui.setDaily(metaDaily.status(SEED));
+
   ui.renderDeath({
     distance,
     best: Storage.bestFor(SEED),
     isPb,
     shotUrl,
+    recap: wg.misses,
+    daily: dailyCard,
+    lifetime: metaStats.snapshot(),
   });
   ui.showHud(false);
   ui.showDeath(true);

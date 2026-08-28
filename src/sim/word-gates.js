@@ -66,7 +66,11 @@ export function makeGate(seed, index) {
     tier,
     real,
     shown: real ? word : makeFake(word, rng),
-    answer: real ? word : null, // the true spelling behind a fake, for the sim/tools
+    // The true spelling, always: for a fake this is the word it was bent
+    // from, which is what the recap and the resolved-plate feedback teach.
+    // (Was `real ? word : null` — exactly backwards, so the picked-fake
+    // feedback silently showed the misspelling again. Meta-gated now.)
+    answer: word,
     confirmed: false,
     resolved: false,
     correct: false,
@@ -86,6 +90,7 @@ export class WordGates {
     this.wrongCount = 0;
     this.falseTaps = 0;     // commissions: fakes tapped (each cost a heart)
     this.missedReals = 0;   // omissions: real words let slip (speed only)
+    this.misses = [];       // this run's wrong reads, for the results recap
     this.streak = 0;        // consecutive correct reads
     this.bestStreak = 0;
   }
@@ -161,6 +166,14 @@ export class WordGates {
         player.boostMeter *= 1 - W.WRONG_METER_LOSS;
       } else {
         this.missedReals++;
+      }
+      // The learning recap: remember what was on the plate and what the
+      // truth was, so the results screen can teach instead of just scold.
+      if (this.misses.length < 12) {
+        this.misses.push({
+          shown: g.shown, answer: g.answer, real: g.real,
+          reason: g.real ? 'missed_real' : 'picked_fake',
+        });
       }
       player.speed = Math.max(R.FLOOR, player.speed - R.SPEED_LOSS);
       if (player.chain > 0) {

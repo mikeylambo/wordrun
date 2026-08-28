@@ -48,6 +48,9 @@ export class UI {
     this.tell = $('tell');
     this.shot = $('shot');
     this.saveShot = $('saveShot');
+    this.titleStreak = $('titleStreak');
+    this.titleGoalRow = $('titleGoalRow');
+    this.deathRecap = $('deathRecap');
 
     this._lastDist = -1;
     this._flash = 0;
@@ -78,6 +81,16 @@ export class UI {
     this.seedLine.textContent = `TODAY'S DRAFT · ${seedString}`;
     this.deathSeed.textContent = '';
     this.bestVal.textContent = best > 0 ? `${Math.floor(best)}M` : '—';
+  }
+
+  /** Title card: today's three goals and the play streak (meta layer). */
+  setDaily(card) {
+    if (!this.titleGoalRow || !card) return;
+    this.titleStreak.textContent = card.streak > 0
+      ? `DAY ${card.streak}${card.playedToday ? '' : ' · RUN TODAY TO KEEP IT'}`
+      : '';
+    this.titleGoalRow.innerHTML = card.goals.map((g) =>
+      `<span class="goalChip${g.done ? ' done' : ''}">${g.label}</span>`).join('');
   }
 
   showTitle(on) { this.titleScreen.classList.toggle('on', on); }
@@ -269,7 +282,7 @@ export class UI {
     this._chainLostT = 0.9;
   }
 
-  renderDeath({ distance, best, isPb, shotUrl }) {
+  renderDeath({ distance, best, isPb, shotUrl, recap, daily, lifetime }) {
     this.finalDist.textContent = Math.floor(distance);
     this.pbTag.style.visibility = isPb ? 'visible' : 'hidden';
     this.pbTag.textContent = isPb ? 'NEW BEST' : '';
@@ -279,6 +292,7 @@ export class UI {
     this.deathStats.style.display = 'none';
     this.deathSeed.style.display = 'none';
     this.deathScreen.classList.add('rc2Poster');
+    this._renderRecap(recap, daily, lifetime);
 
     if (shotUrl) {
       this.shot.src = shotUrl;
@@ -293,6 +307,43 @@ export class UI {
       this.deathScreen.style.backgroundImage = '';
       this.saveShot.style.display = 'none';
     }
+  }
+
+  /**
+   * The learning half of the death card (meta layer): which reads went
+   * wrong and what the truth was, today's goal chips, and one lifetime
+   * line. Teaches instead of only scolding — a wrong read always shows
+   * the real spelling.
+   */
+  _renderRecap(recap, daily, lifetime) {
+    if (!this.deathRecap) return;
+    const parts = [];
+
+    if (recap?.length) {
+      const rows = recap.slice(0, 4).map((m) => m.reason === 'picked_fake'
+        ? `<div class="miss"><s>${m.shown}</s> → <b>${m.answer}</b><small>NOT A WORD</small></div>`
+        : `<div class="miss"><b>${m.shown}</b><small>WAS REAL — IT SLIPPED BY</small></div>`);
+      const more = recap.length > 4 ? `<div class="metaLine">+${recap.length - 4} MORE</div>` : '';
+      parts.push(`<div class="missHead">THE READS THAT WENT WRONG</div>${rows.join('')}${more}`);
+    } else if (recap) {
+      parts.push('<div class="missHead">EVERY READ WAS TRUE</div>');
+    }
+
+    if (daily?.goals) {
+      parts.push(`<div class="goalRow">${daily.goals.map((g) =>
+        `<span class="goalChip${g.done ? ' done' : ''}">${g.label}</span>`).join('')}</div>`);
+    }
+
+    if (lifetime) {
+      const read = (lifetime.correct || 0) + (lifetime.wrong || 0);
+      const acc = read > 0 ? Math.round((lifetime.correct || 0) / read * 100) : 0;
+      const km = ((lifetime.metres || 0) / 1000).toFixed(1);
+      const streak = daily?.streak > 0 ? `DAY ${daily.streak} · ` : '';
+      const runs = lifetime.runs || 0;
+      parts.push(`<div class="metaLine">${streak}${runs} ${runs === 1 ? 'RUN' : 'RUNS'} · ${km} KM · ${acc}% TRUE READS</div>`);
+    }
+
+    this.deathRecap.innerHTML = parts.join('');
   }
 
   clearRun() {
@@ -320,6 +371,7 @@ export class UI {
     this.deathScreen.style.backgroundImage = '';
     this.deathStats.style.display = '';
     this.deathSeed.style.display = '';
+    if (this.deathRecap) this.deathRecap.innerHTML = '';
   }
 
   clearDread() {

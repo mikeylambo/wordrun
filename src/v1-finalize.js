@@ -242,9 +242,11 @@ function syncAllTimeTitle() {
   const line = document.getElementById('seedLine');
   if (!line || !seed) return;
   const best = Storage.bestAllTime();
+  const streak = globalThis.__META?.daily?.streak?.() || 0;
+  const day = streak > 0 ? ` · DAY ${streak}` : '';
   line.textContent = best > 0
-    ? `TODAY'S DRAFT · ${seed} · BEST EVER ${best}M`
-    : `TODAY'S DRAFT · ${seed}`;
+    ? `TODAY'S DRAFT · ${seed} · BEST EVER ${best}M${day}`
+    : `TODAY'S DRAFT · ${seed}${day}`;
 }
 
 function installAllTimeBest() {
