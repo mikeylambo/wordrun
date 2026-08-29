@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "DICTION DASH \u2014 endless word-gate runner: read fast, pick right, outrun the pursuit.",
+  "description": "DICTION DASH — endless word-gate runner: read fast, pick right, outrun the pursuit.",
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
@@ -18,7 +18,9 @@
     "audio:generate": "node tools/generate-elevenlabs-audio.mjs",
     "gate:words": "node tools/word-gates.mjs",
     "gate:corruption": "node tools/corruption-gates.mjs",
-    "calibrate:speed": "node tools/speed-calibration.mjs"
+    "calibrate:speed": "node tools/speed-calibration.mjs",
+    "audit:size": "node tools/build-report.mjs",
+    "audit:network": "node tools/network-audit.mjs"
   },
   "dependencies": {
     "three": "^0.169.0"
