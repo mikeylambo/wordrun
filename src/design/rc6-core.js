@@ -1,5 +1,5 @@
 /**
- * RC6 core — retired in WORD RUN Phase 7.
+ * RC6 core — retired in DICTION DASH Phase 7.
  *
  * This design pass gave DESCENT its authored Big-Air beats and the physical
  * hunt pursuit. The flat track has no beats to author and the pursuit is a

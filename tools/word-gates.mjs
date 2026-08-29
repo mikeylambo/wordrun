@@ -1,5 +1,5 @@
 /**
- * WORD RUN verb gates — the word-list module's own tests plus the sim-level
+ * DICTION DASH verb gates — the word-list module's own tests plus the sim-level
  * acceptance gates from the build brief:
  *
  *   - validity checker has ZERO false negatives on the shipped list

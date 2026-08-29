@@ -1,5 +1,5 @@
 /**
- * Track mesh — WORD RUN Phase 7. A flat ribbon winding through the dark.
+ * Track mesh — DICTION DASH Phase 7. A flat ribbon winding through the dark.
  *
  * The streaming chunk-slot architecture survives from the mountain mesh
  * (same reset/update/pump/flush interface, same material slot handoff to

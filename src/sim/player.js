@@ -1,5 +1,5 @@
 /**
- * Player — WORD RUN Phase 7: the runner on a flat winding track.
+ * Player — DICTION DASH Phase 7: the runner on a flat winding track.
  *
  * Movement is the track's business, not the thumb's: the runner auto-follows
  * the authored centerline through every turn, so the game keeps exactly one

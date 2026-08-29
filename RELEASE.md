@@ -1,4 +1,4 @@
-# WORD RUN — pre-release vertical slice
+# DICTION DASH — pre-release vertical slice
 
 Cloned from DESCENT v1.0.0 (feature-frozen, released August 11, 2026) with
 the dodge verb swapped for the word-gate verb and the world re-presented as
@@ -12,7 +12,7 @@ prestige beyond 30 km.
 
 Slice history:
 
-- Phase 1 — shell clone, WORD RUN identity, gates at source parity.
+- Phase 1 — shell clone, DICTION DASH identity, gates at source parity.
 - Phase 2 — word-gate verb + standalone word-list module, full suite green.
 - Phase 3 — word bank ~560 across 5 tiers, spawn-rate ramp, neon/afterimage
   plate + wordmark identity, gate suite extended.
@@ -79,8 +79,8 @@ Slice history:
   the difficulty profiles rather than raw volume. Accessibility landed as
   a persisted settings surface: REDUCED FLASH (no marquee pulse, softer
   drain, stilled veil), READABLE TYPE on the plates, and colour-vision
-  modes that port SIGNAL's axis-replacement palettes to this game's
-  semantic cues (danger accent, right/wrong pair, hearts). Eleven legacy
+  modes porting the axis-replacement palettes from the studio's earlier
+  brain-training game to this game's semantic cues. Eleven legacy
   gate suites, the deploy logs and the retired air-beats module were
   deleted after grep-proof of deadness.
 - Phase 10 — modes. ENDLESS (bell heart-repair) vs STANDARD (three hits,

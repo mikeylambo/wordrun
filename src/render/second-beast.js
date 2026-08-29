@@ -1,5 +1,5 @@
 /**
- * THE CARET — WORD RUN's second antagonist presentation.
+ * THE CARET — DICTION DASH's second antagonist presentation.
  *
  * A proofreader's insertion mark. DESCENT's rare pale second pursuer becomes
  * a rare PALE editing event: a cluster of white-noise shards that crosses

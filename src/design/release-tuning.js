@@ -48,7 +48,7 @@ export function applyReleaseTuning(T) {
   if (T.__RC5_RELEASE_TUNED) return T;
   T.__RC5_RELEASE_TUNED = true;
 
-  // WORD RUN retune: the dodge/trick verb is out, so the release pass no
+  // DICTION DASH retune: the dodge/trick verb is out, so the release pass no
   // longer re-arms cliffs or moguls — word gates are the only ask.
   T.FEATURES.CLIFF_CHANCE = 0;
   T.FEATURES.MOGUL_CHANCE = 0;

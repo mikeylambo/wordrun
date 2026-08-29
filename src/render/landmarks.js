@@ -1,5 +1,5 @@
 /**
- * Landmarks — retired in WORD RUN Phase 7.
+ * Landmarks — retired in DICTION DASH Phase 7.
  *
  * The authored ski-resort set pieces (bridge, towers, arches, distance
  * boards) were downhill vocabulary; the flat winding track carries none.

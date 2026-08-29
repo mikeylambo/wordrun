@@ -1,5 +1,5 @@
 /**
- * WORD RUN — standalone word-list service.
+ * DICTION DASH — standalone word-list service.
  *
  * Plain validity/difficulty-tiered word list: common, short, unambiguous words
  * at low tiers, ramping up. Deliberately built as its own module with its own

@@ -1,5 +1,5 @@
 /**
- * WORD RUN audio identity (RC9 graph, Phase 4 timbres).
+ * DICTION DASH audio identity (RC9 graph, Phase 4 timbres).
  * One shared Web Audio graph drives running, stream ambience, bells, GO,
  * Hunts and both threat presentations. The creature growls are gone: every
  * threat cue is now signal-noise — static beds, interference whine, glitch

@@ -1,6 +1,6 @@
 /**
  * StatsManager — ported from the SLU Web Shell's Layer-1 StatsManager
- * (src/game/StatsManager.ts) into WORD RUN's zero-dependency house style.
+ * (src/game/StatsManager.ts) into DICTION DASH's zero-dependency house style.
  *
  * Same contract, adapted: a flat key/value stat store over a pluggable
  * storage adapter — get / set / increment / snapshot — made synchronous
@@ -14,7 +14,7 @@
  */
 
 /** localStorage adapter, namespaced and defensive like storage/storage.js. */
-export function localStorageAdapter(ns = 'wordrun.v1.meta') {
+export function localStorageAdapter(ns = 'dictiondash.v1.meta') {
   return {
     get(key) {
       try {

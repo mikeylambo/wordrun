@@ -106,7 +106,7 @@ function terrainMaterial() {
         '#include <common>\nuniform float uP9Flow;\nvarying float vP4Lane;');
   };
   terrain.userData.uP9Flow = { value: 1 };
-  terrain.customProgramCacheKey = () => 'wordrun-p9-flow-ribbon-v1';
+  terrain.customProgramCacheKey = () => 'dictiondash-p12-flow-ribbon-v1';
   return terrain;
 }
 

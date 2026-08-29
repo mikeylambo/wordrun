@@ -1,5 +1,5 @@
 /**
- * Core frame gates — WORD RUN Phase 7.
+ * Core frame gates — DICTION DASH Phase 7.
  *
  * The mountain suite this file used to be described carving, obstacles and
  * a hunted descent; that game is gone. What the frame still owes — and what

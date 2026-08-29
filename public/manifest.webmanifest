@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "WORD RUN",
-  "short_name": "WORDRUN",
+  "name": "DICTION DASH",
+  "short_name": "DICTION DASH",
   "description": "Read fast. Pick right. Outrun the thing behind you.",
   "start_url": "./",
   "scope": "./",
@@ -11,8 +11,8 @@
   "theme_color": "#596774",
   "categories": ["games", "sports"],
   "icons": [
-    { "src": "./icons/wordrun-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "./icons/wordrun-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "./icons/wordrun-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "./icons/dictiondash-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/dictiondash-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/dictiondash-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

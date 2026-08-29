@@ -4,9 +4,31 @@
  * conveniences, never the run itself.
  */
 
-const NS = 'wordrun.v1';
+const NS = 'dictiondash.v1';
+const LEGACY_NS = 'wordrun.v1'; // pre-rename namespace, migrated once below
 const ONBOARDING_VERSION = 'rc9';
 const key = (k) => `${NS}.${k}`;
+
+// One-time migration (Phase 12 rename): copy every legacy-namespace key to
+// the new namespace so bests, ghosts, the streak and the balance survive
+// the identity change. The legacy keys are left in place (harmless, and a
+// rollback would still find them).
+try {
+  if (!localStorage.getItem(`${NS}.__migrated`)) {
+    const legacy = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(`${LEGACY_NS}.`)) legacy.push(k);
+    }
+    for (const k of legacy) {
+      const target = `${NS}.${k.slice(LEGACY_NS.length + 1)}`;
+      if (localStorage.getItem(target) == null) {
+        localStorage.setItem(target, localStorage.getItem(k));
+      }
+    }
+    localStorage.setItem(`${NS}.__migrated`, '1');
+  }
+} catch { /* storage unavailable — nothing to migrate */ }
 
 // Mode/difficulty variant (Phase 10): bests, run counts and ghosts are
 // scoped per variant so an EASY run can never claim the STANDARD board.

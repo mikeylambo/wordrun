@@ -134,21 +134,21 @@ check(audioBridge.includes("import './v1-viewport.js'") && audioBridge.includes(
   audioBridge.includes("import './v1-approved-mix.js'"),
   'final viewport and approved mix layers are loaded by the release runtime');
 
-check(index.includes('rel="manifest"') && index.includes('./manifest.webmanifest?v=3'),
+check(index.includes('rel="manifest"') && index.includes('./manifest.webmanifest?v=4'),
   'release page links the cache-busted PWA manifest');
-check(index.includes('rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=3"'),
+check(index.includes('rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=4"'),
   'release page exposes a PNG Apple home-screen icon');
 check(index.includes("serviceWorker.register('./sw.js')"),
   'release page registers the PWA service worker');
-check(manifest.includes('"id": "./"') && manifest.includes('"name": "WORD RUN"') && manifest.includes('"display": "standalone"'),
-  'PWA manifest defines stable standalone WORD RUN install identity');
-check(manifest.includes('/icons/wordrun-192.png') && manifest.includes('/icons/wordrun-512.png') && manifest.includes('"type": "image/png"'),
+check(manifest.includes('"id": "./"') && manifest.includes('"name": "DICTION DASH"') && manifest.includes('"display": "standalone"'),
+  'PWA manifest defines stable standalone DICTION DASH install identity');
+check(manifest.includes('/icons/dictiondash-192.png') && manifest.includes('/icons/dictiondash-512.png') && manifest.includes('"type": "image/png"'),
   'PWA manifest exposes PNG 192 and 512 install icons');
-check(manifest.includes('/icons/wordrun-maskable-512.png') && manifest.includes('"purpose": "maskable"'),
+check(manifest.includes('/icons/dictiondash-maskable-512.png') && manifest.includes('"purpose": "maskable"'),
   'PWA manifest exposes a PNG maskable safe-area icon');
-check(fs.existsSync('public/apple-touch-icon.png') && fs.existsSync('public/icons/wordrun-512.png'),
+check(fs.existsSync('public/apple-touch-icon.png') && fs.existsSync('public/icons/dictiondash-512.png'),
   'home-screen PNG assets exist in the release shell');
-check(sw.includes("const CACHE = 'wordrun-v1-shell-1'") && sw.includes("request.mode === 'navigate'"),
+check(sw.includes("const CACHE = 'dictiondash-v1-shell-1'") && sw.includes("request.mode === 'navigate'"),
   'PWA service worker provides refreshed offline shell and network-first navigation');
 
 check(!polish.includes('requestAnimationFrame'), 'ship-polish layer adds no second RAF');

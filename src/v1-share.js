@@ -12,7 +12,7 @@ function distance() {
 }
 
 function shareText() {
-  return `WORD RUN — ${distance()}M. How far can you go?`;
+  return `DICTION DASH — ${distance()}M. How far can you go?`;
 }
 
 async function shotFile() {
@@ -20,7 +20,7 @@ async function shotFile() {
   if (!src) return null;
   try {
     const blob = await (await fetch(src)).blob();
-    return new File([blob], `wordrun-${distance()}m.png`, { type: blob.type || 'image/png' });
+    return new File([blob], `dictiondash-${distance()}m.png`, { type: blob.type || 'image/png' });
   } catch {
     return null;
   }
@@ -31,14 +31,14 @@ async function saveImage() {
   if (!src) return;
   const a = document.createElement('a');
   a.href = src;
-  a.download = `wordrun-${distance()}m.png`;
+  a.download = `dictiondash-${distance()}m.png`;
   document.body.appendChild(a);
   a.click();
   a.remove();
 }
 
 async function shareRun(button) {
-  const title = `WORD RUN — ${distance()}M`;
+  const title = `DICTION DASH — ${distance()}M`;
   const text = shareText();
   const url = new URL('/', location.href).href;
   const file = await shotFile();

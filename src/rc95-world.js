@@ -32,7 +32,7 @@ const TUNNEL_D = 5580;
 // Landmark render meshes are intentionally cheap and stylized. These volumes
 // are matching gameplay approximations, not a second high-detail physics mesh.
 const STRUCTURES = [
-  // WORD RUN Phase 7: the flat track carries no authored ski-resort
+  // DICTION DASH Phase 7: the flat track carries no authored ski-resort
   // structures. The table is empty by design; the plumbing around it stays.
 ];
 

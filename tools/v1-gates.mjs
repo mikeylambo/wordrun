@@ -1,5 +1,5 @@
 /**
- * V1 release gates — rescoped for WORD RUN Phase 7.
+ * V1 release gates — rescoped for DICTION DASH Phase 7.
  *
  * The original suite verified DESCENT's authored final mountain and hunt
  * cadence; both are retired with the downhill verb and the pressure

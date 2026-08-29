@@ -382,12 +382,12 @@ deathMenu?.addEventListener('click', (e) => {
 ui.saveShot.addEventListener('click', async (e) => {
   e.stopPropagation();
   if (!shotUrl) return;
-  const name = `wordrun-${Math.floor(sim.distance)}m-${SEED_STRING}.png`;
+  const name = `dictiondash-${Math.floor(sim.distance)}m-${SEED_STRING}.png`;
   try {
     const blob = await (await fetch(shotUrl)).blob();
     const file = new File([blob], name, { type: 'image/png' });
     if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title: `WORD RUN — ${Math.floor(sim.distance)}m` });
+      await navigator.share({ files: [file], title: `DICTION DASH — ${Math.floor(sim.distance)}m` });
       return;
     }
   } catch { /* fall through */ }
@@ -485,7 +485,7 @@ function tick(dt) {
     input.update(dt, !p.airborne);
     simInput.carve = input.carve;
     simInput.flip = input.flip;
-    // WORD RUN: every tap-ish gesture (screen tap, action button, Space,
+    // DICTION DASH: every tap-ish gesture (screen tap, action button, Space,
     // upward flick) funnels through the old jump edge and becomes the
     // confirm verb. The sim never jumps — the ground stays under the word.
     simInput.confirm = input.jump;

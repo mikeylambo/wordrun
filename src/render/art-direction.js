@@ -2,7 +2,7 @@
  * One endless run, but a strong one must keep GOING somewhere.
  * Presentation bands only: physics stays continuous while the palette drifts.
  *
- * WORD RUN naming (Phase 6): the mood arc is unnamed by design. Bands are
+ * DICTION DASH naming (Phase 6): the mood arc is unnamed by design. Bands are
  * plain ids with hues, blend math and start distances — the visual variety
  * stays, the literary label layer is gone. The single exception is the
  * canonical 30K finish band, which carries the game's finish state name,

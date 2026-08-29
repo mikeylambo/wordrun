@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Diction Dash track icon">
+  <defs>
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1420"/>
+      <stop offset="1" stop-color="#050a10"/>
+    </linearGradient>
+    <linearGradient id="ribbon" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#67d8ff"/>
+      <stop offset="0.6" stop-color="#3fa9d8"/>
+      <stop offset="1" stop-color="#1b4d66"/>
+    </linearGradient>
+    <clipPath id="round"><rect width="512" height="512"/></clipPath>
+  </defs>
+  <g clip-path="url(#round)">
+    <rect width="512" height="512" fill="url(#page)"/>
+    <!-- the winding track, receding up the page -->
+    <path d="M256 512 C 256 430, 150 400, 158 330 C 166 262, 340 258, 336 196 C 333 148, 240 140, 244 96 C 247 66, 280 52, 300 40"
+      fill="none" stroke="url(#ribbon)" stroke-width="118" stroke-linecap="round" opacity="0.92"/>
+    <path d="M256 512 C 256 430, 150 400, 158 330 C 166 262, 340 258, 336 196 C 333 148, 240 140, 244 96 C 247 66, 280 52, 300 40"
+      fill="none" stroke="#bdefff" stroke-width="8" stroke-dasharray="2 40" opacity="0.75"/>
+    <!-- the Redline's scan bar, chasing at the frame's foot -->
+    <rect x="140" y="452" width="232" height="26" rx="8" fill="#ff2a1f" opacity="0.92"/>
+    <!-- the running figure of light, mid-stride, leaning into the dash -->
+    <g fill="#f2fbff" transform="rotate(-12 256 300)">
+      <circle cx="264" cy="238" r="25"/>
+      <rect x="238" y="260" width="44" height="62" rx="16"/>
+      <rect x="270" y="266" width="17" height="54" rx="8" transform="rotate(-42 278 270)"/>
+      <rect x="232" y="266" width="17" height="54" rx="8" transform="rotate(34 240 270)"/>
+      <rect x="252" y="316" width="17" height="72" rx="8" transform="rotate(-30 260 320)"/>
+      <rect x="246" y="316" width="17" height="66" rx="8" transform="rotate(52 254 320)"/>
+    </g>
+    <circle cx="260" cy="240" r="50" fill="#67d8ff" opacity="0.28"/>
+    <!-- comet tail off the sprint -->
+    <path d="M232 300 C 200 330, 180 360, 168 402" stroke="#9fe8ff" stroke-width="14" stroke-linecap="round" fill="none" opacity="0.45"/>
+    <path d="M0 0h512v512H0Z" fill="none" stroke="#0d141b" stroke-width="34" opacity="0.34"/>
+  </g>
+</svg>

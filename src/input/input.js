@@ -27,7 +27,7 @@ const TOUCH_RESPONSE_GROUND = 24.0;
 const TOUCH_RESPONSE_AIR = 34.0;
 const SWIPE_PX = 42;            // legacy upward flick distance that counts as a jump
 const SWIPE_MS = 260;
-// WORD RUN: a quick, small-travel touch is a TAP — the confirm verb. Any
+// DICTION DASH: a quick, small-travel touch is a TAP — the confirm verb. Any
 // pointer qualifies, so the steering thumb can stay planted while the other
 // thumb answers a word. A second finger only reads as the GO shortcut once
 // it has been held past the tap window.
@@ -147,7 +147,7 @@ export class Input {
     }, opt);
 
     const release = (e) => {
-      // Tap = confirm (routed through the jump edge, which WORD RUN's sim
+      // Tap = confirm (routed through the jump edge, which DICTION DASH's sim
       // reads as `confirm`). Applies to the primary thumb and to a quick
       // second-finger tap alike.
       const meta = this.pointerMeta.get(e.pointerId);

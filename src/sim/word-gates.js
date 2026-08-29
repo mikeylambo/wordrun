@@ -1,5 +1,5 @@
 /**
- * WordGates — the WORD RUN verb, as sim state. Deterministic, headless.
+ * WordGates — the DICTION DASH verb, as sim state. Deterministic, headless.
  *
  * A gate lives at a fixed downhill distance and shows one word, real or
  * faked. While the gate is armed (within ARM_DISTANCE_M) a confirm tap

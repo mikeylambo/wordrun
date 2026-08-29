@@ -1,5 +1,5 @@
 /**
- * The pursuit — WORD RUN Phase 7. Pure speed differential, no director.
+ * The pursuit — DICTION DASH Phase 7. Pure speed differential, no director.
  *
  * The Redline runs at one steady baseline pace (TUNING.RUN.REDLINE_PACE).
  * The gap to the player is nothing but that differential integrated over

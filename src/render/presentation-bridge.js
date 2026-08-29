@@ -13,7 +13,7 @@ const ease = (t) => {
 };
 
 function restoreClassicBeast(actor, T) {
-  // WORD RUN Phase 4: the antagonist is the corruption presentation, not a
+  // DICTION DASH Phase 4: the antagonist is the corruption presentation, not a
   // creature model. The classic-beast rebuild would wipe it out — retired.
   return;
   // eslint-disable-next-line no-unreachable

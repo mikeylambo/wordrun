@@ -1,4 +1,4 @@
-// V1 pursuit director — retired in WORD RUN Phase 7.
+// V1 pursuit director — retired in DICTION DASH Phase 7.
 //
 // The cadence bands, keep-going pursuit resumption and return audio all
 // computed HOW aggressively the pursuer hunted. The Redline now runs at one

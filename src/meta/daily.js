@@ -1,7 +1,7 @@
 /**
  * DailyManager — the daily loop, following the SLU Web Shell's Quest /
  * Challenge managers (modules/quests/QuestManager.ts, game/Challenges.ts)
- * adapted to WORD RUN's one-mode shape and zero-dependency house style.
+ * adapted to DICTION DASH's one-mode shape and zero-dependency house style.
  *
  * Two shell ideas made concrete for this game:
  *

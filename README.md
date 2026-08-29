@@ -1,4 +1,4 @@
-# WORD RUN — frame-based vertical slice
+# DICTION DASH — frame-based vertical slice
 
 **Source frame:** DESCENT (Three.js one-thumb portrait runner, v1.0.0, feature-frozen).
 **Deltas:** the dodge-obstacle verb is swapped for a word-recognition verb

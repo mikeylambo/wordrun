@@ -92,7 +92,7 @@ export const TUNING = {
     FOLLOW_RESPONSE: 7,        // how quickly the runner settles onto it
   },
 
-  // ── Word gates (the WORD RUN verb) ──────────────────────────────────────
+  // ── Word gates (the DICTION DASH verb) ──────────────────────────────────────
   // A word arrives at runner speed; the player confirms it (tap) or lets it
   // pass. Real+confirmed / fake+ignored = clean gate. Fake+confirmed = the
   // hit (heart). Real+missed = speed loss only — the Redline punishes slow.
@@ -130,7 +130,7 @@ export const TUNING = {
   },
 
   // ── Features / obstacles (per chunk, seeded) ────────────────────────────
-  // WORD RUN retune: the dodge verb is out, so nothing solid spawns and the
+  // DICTION DASH retune: the dodge verb is out, so nothing solid spawns and the
   // slalom gates are off — word gates are the only thing the mountain asks
   // of you. Structure kept (values retune, structure won't — brief).
   FEATURES: {
@@ -139,7 +139,7 @@ export const TUNING = {
     ICE_CHANCE: 0,
     GATE_CHANCE: 0,
     MOGUL_CHANCE: 0,
-    // Cliffs are part of the dodge/trick verb — off in WORD RUN. A word
+    // Cliffs are part of the dodge/trick verb — off in DICTION DASH. A word
     // arriving while you are ballistic with no steering would be a cheap hit
     // (fairness is priority 2 in the brief), so the ground stays under you.
     CLIFF_CHANCE: 0,

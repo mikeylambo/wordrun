@@ -1,14 +1,14 @@
-const CACHE = 'wordrun-v1-shell-1';
+const CACHE = 'dictiondash-v1-shell-1';
 const BASE = new URL('./', self.location.href);
 const ROOT = BASE.href;
 const SHELL = [
   ROOT,
   new URL('manifest.webmanifest', BASE).href,
   new URL('apple-touch-icon.png', BASE).href,
-  new URL('icons/wordrun-192.png', BASE).href,
-  new URL('icons/wordrun-512.png', BASE).href,
-  new URL('icons/wordrun-maskable-512.png', BASE).href,
-  new URL('ui/wordrun-wordmark.svg', BASE).href
+  new URL('icons/dictiondash-192.png', BASE).href,
+  new URL('icons/dictiondash-512.png', BASE).href,
+  new URL('icons/dictiondash-maskable-512.png', BASE).href,
+  new URL('ui/dictiondash-wordmark.svg', BASE).href
 ];
 
 self.addEventListener('install', (event) => {

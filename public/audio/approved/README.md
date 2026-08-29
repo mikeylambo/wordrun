@@ -1,4 +1,4 @@
-# WORD RUN approved audio
+# DICTION DASH approved audio
 
 This directory carries the production-side audio layers referenced by
 `manifest.json`.

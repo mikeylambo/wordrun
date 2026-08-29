@@ -1,5 +1,5 @@
 /**
- * WORD RUN base palette — the near-track defaults at run start.
+ * DICTION DASH base palette — the near-track defaults at run start.
  *
  * Distance-dependent palettes live in art-direction.js. These values are the
  * near-track defaults and the actor colours that must remain stable across

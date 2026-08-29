@@ -1,5 +1,5 @@
 /**
- * THE REDLINE — WORD RUN's antagonist presentation.
+ * THE REDLINE — DICTION DASH's antagonist presentation.
  *
  * A red editing-pen chasing the draft. There is no creature: the same gap
  * value that placed the beast now places an advancing front of red-shot

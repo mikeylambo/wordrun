@@ -1,5 +1,5 @@
 /**
- * Track — WORD RUN Phase 7. Flat, winding, no downhill vocabulary.
+ * Track — DICTION DASH Phase 7. Flat, winding, no downhill vocabulary.
  *
  * The descent terrain (grade, rollers, powder banks, cliffs, moguls, the
  * obstacle catalog) is replaced by a flat ribbon that winds laterally —

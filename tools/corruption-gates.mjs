@@ -213,6 +213,10 @@ head('NAMING — five approved names, machine-enforced');
     'THE SMALL HOURS', 'CLEAN COPY',
     // DESCENT-inherited stage names fall under the same cap:
     'THE STILL', 'FALSE DAWN', 'FIRST LIGHT', 'CLEAN SIGNAL',
+    // Phase 12 rename: the old game title is retired everywhere (the
+    // lowercase repo/legacy-storage identifier is infrastructure, not a
+    // name, and this scan is case-sensitive by design).
+    'WORD RUN',
   ];
   const scanRoots = ['src', 'tools', 'public/ui', 'public/audio/approved'];
   const files = ['index.html', 'README.md', 'RELEASE.md',

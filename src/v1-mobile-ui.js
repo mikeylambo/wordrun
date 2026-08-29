@@ -24,7 +24,7 @@ function ensureMobileUi() {
        floating GO callout above GO METER is redundant and visually noisy. */
     #powerHint{display:none!important}
 
-    /* WORD RUN: the one gesture is the tap — the confirm verb. The old
+    /* DICTION DASH: the one gesture is the tap — the confirm verb. The old
        carve/spin/flip drag guide taught steering that no longer exists, so
        the touch ring is now a simple REAL declaration marker at the thumb. */
     #v1TouchGuide{position:fixed;inset:0;z-index:61;pointer-events:none;opacity:0;transition:opacity .10s ease;color:rgba(244,250,253,.82)}
@@ -216,7 +216,7 @@ if (!Audio.prototype.__v1MobileTouchUi) {
 }
 
 globalThis.__DESCENT_MOBILE_UI = {
-  version: '1.1-wordrun',
+  version: '1.2-dictiondash',
   tapVerbTouchRing: true,        // replaces the retired carve/spin/flip guide
   dedicatedJumpButton: true,     // the REAL button (confirm verb)
   flickJumpShortcutPreserved: true,

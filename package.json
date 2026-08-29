@@ -1,9 +1,9 @@
 {
-  "name": "wordrun",
+  "name": "diction-dash",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "WORD RUN \u2014 endless word-gate runner: read fast, pick right, outrun the pursuit.",
+  "description": "DICTION DASH \u2014 endless word-gate runner: read fast, pick right, outrun the pursuit.",
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",

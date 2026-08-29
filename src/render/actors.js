@@ -1,5 +1,5 @@
 /**
- * Actors — WORD RUN.
+ * Actors — DICTION DASH.
  *
  * The runner is a RUNNING FIGURE OF LIGHT: a low-poly humanoid built from
  * glowing primitives with a procedural run cycle — no skeleton, no skinning,

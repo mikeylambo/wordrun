@@ -128,7 +128,7 @@ const lmFlatRing = (id, anchorD, x, y, z, ringR, tubeR, depthR = tubeR) => ({
 });
 
 const RC910_STRUCTURES = [
-  // WORD RUN Phase 7: the flat track carries no authored ski-resort
+  // DICTION DASH Phase 7: the flat track carries no authored ski-resort
   // structures. The table is empty by design; the plumbing around it stays.
 ];
 
