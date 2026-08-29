@@ -191,6 +191,59 @@ head('META — bells sit on the travel line and feed the balance');
     collected >= 30, `${collected} collected over 2km`);
 }
 
+// ── Modes (Phase 10): two rule sets × three difficulties ─────────────────
+head('MODES — rules, difficulty, and separated boards');
+
+{
+  const TUNING = (await import('../src/TUNING.js')).default;
+  const M = TUNING.MODES;
+  check('exactly two rule sets: ENDLESS repairs hearts, STANDARD never does',
+    Object.keys(M.RULES).length === 2 &&
+    M.RULES.endless.HEART_REPAIR === true && M.RULES.standard.HEART_REPAIR === false);
+
+  const sim = new Sim(999);
+  sim.start(999, null, { mode: 'standard', difficulty: 'easy' });
+  check('sim.start carries the rules and the difficulty pace',
+    sim.mode === 'standard' && sim.rules.HEART_REPAIR === false &&
+    sim.beast.pace === M.DIFFICULTY.easy.REDLINE_PACE,
+    `pace ${sim.beast.pace}`);
+  sim.start(999);
+  check('defaults reproduce the pre-mode game (endless/normal, baseline pace)',
+    sim.mode === 'endless' && sim.rules.HEART_REPAIR === true &&
+    sim.beast.pace === TUNING.RUN.REDLINE_PACE);
+
+  // The gap must integrate against the DIFFICULTY pace, not the constant.
+  const hard = new Sim(999);
+  hard.start(999, null, { difficulty: 'hard' });
+  const gap0 = hard.beast.gap;
+  hard.player.speed = TUNING.RUN.REDLINE_PACE; // baseline pace = 3 under hard's
+  for (let i = 0; i < 60; i++) {
+    hard.beast.step(1 / 60, hard.player);
+    hard.player.speed = TUNING.RUN.REDLINE_PACE;
+  }
+  const closed = gap0 - hard.beast.gap;
+  const expect = M.DIFFICULTY.hard.REDLINE_PACE - TUNING.RUN.REDLINE_PACE;
+  check('the Redline hunts at the difficulty pace (gap closes at the pace delta)',
+    Math.abs(closed - expect) < 0.05, `closed ${closed.toFixed(2)}m/s vs ${expect}`);
+
+  const rc5 = fs.readFileSync('src/rc5.js', 'utf8');
+  check('heart repair is gated on the rules in the bell collector',
+    rc5.includes("this.rules?.HEART_REPAIR !== false") &&
+    rc5.includes('if (heartRepair) this.bellCharge++'));
+
+  const storage = fs.readFileSync('src/storage/storage.js', 'utf8');
+  const main = fs.readFileSync('src/main.js', 'utf8');
+  check('bests, ghosts and run counts are stored per mode/difficulty variant',
+    storage.includes("vkey('best', seed)") && storage.includes("vkey('ghost', seed)") &&
+    storage.includes("vkey('runs', seed)") && main.includes('syncVariant()'));
+  check('the legacy default keeps its keys (pre-mode bests survive)',
+    storage.includes("`${type}.${seed}${VARIANT ? `.${VARIANT}` : ''}`") &&
+    main.includes("? '' : `${runMode}.${runDifficulty}`"));
+  check('the title exposes both choices and persists them',
+    main.includes('setModePref') && main.includes('setDifficultyPref') &&
+    fs.readFileSync('index.html', 'utf8').includes('id="difficultyRow"'));
+}
+
 // ── Wiring + module independence ─────────────────────────────────────────
 head('META — wiring and independence');
 

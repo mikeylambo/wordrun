@@ -45,7 +45,15 @@ export class Sim {
     this.stuntsCleared = 0;
   }
 
-  start(seed = this.seed, ghostData = null, grace = 0, wordSalt = 0) {
+  /**
+   * opts (Phase 10): { wordSalt, mode: 'endless'|'standard',
+   * difficulty: 'easy'|'normal'|'hard' }. Defaults reproduce the
+   * pre-mode game exactly. (The old grace parameter is gone: Phase 7's
+   * pure-differential Redline left it inert; easing now lives in the
+   * EASY difficulty's slower pace, chosen visibly instead of fading
+   * silently.)
+   */
+  start(seed = this.seed, ghostData = null, opts = {}) {
     if ((seed >>> 0) !== this.seed || !this.terrain) {
       this.seed = seed >>> 0;
       this.terrain = new Terrain(this.seed);
@@ -56,10 +64,19 @@ export class Sim {
     this.player.reset();
     this.beast.reset();
     this.secondBeast.reset();
+    const M = TUNING.MODES;
+    this.mode = M.RULES[opts.mode] ? opts.mode : 'endless';
+    this.rules = M.RULES[this.mode];
+    this.difficulty = M.DIFFICULTY[opts.difficulty] ? opts.difficulty : 'normal';
+    const diff = M.DIFFICULTY[this.difficulty];
     // Same daily track, fresh vocabulary per attempt (Phase 9): the salt
     // only touches the word rng lane, so ghosts and determinism hold.
-    this.wordGates.reset(this.seed, wordSalt);
-    this.beast.grace = Math.max(0, Math.min(1, grace));
+    // The difficulty profile shapes the word-tier curve and the Redline's
+    // pace — never the track or the speed curve.
+    this.wordGates.reset(this.seed, opts.wordSalt || 0, {
+      TIER_MIN: diff.TIER_MIN, TIER_MAX: diff.TIER_MAX, TIER_EVERY_M: diff.TIER_EVERY_M,
+    });
+    this.beast.pace = diff.REDLINE_PACE;
     this.recorder.reset();
     this.ghost.load(ghostData);
     this.phase = PHASE.RUNNING;

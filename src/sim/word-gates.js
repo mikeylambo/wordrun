@@ -34,8 +34,16 @@ const B = TUNING.BOOST;
 
 const WORD_STREAM = 0x77_6f_72; // 'wor' — its own rng lane, apart from terrain
 
-export function tierAt(d) {
-  return Math.min(tierCount() - 1, Math.floor(Math.max(0, d) / W.TIER_EVERY_M));
+/** The default reading-difficulty profile — identical to the pre-mode game. */
+export const DEFAULT_PROFILE = Object.freeze({
+  TIER_MIN: 0,
+  TIER_MAX: tierCount() - 1,
+  TIER_EVERY_M: W.TIER_EVERY_M,
+});
+
+export function tierAt(d, prof = DEFAULT_PROFILE) {
+  const t = prof.TIER_MIN + Math.floor(Math.max(0, d) / prof.TIER_EVERY_M);
+  return Math.max(prof.TIER_MIN, Math.min(Math.min(prof.TIER_MAX, tierCount() - 1), t));
 }
 
 /**
@@ -52,18 +60,19 @@ export function wordSeedFor(seed, salt = 0) {
 const tierStarts = new Map();
 
 /** First gate index whose distance reaches `tier` — memoized, monotonic. */
-export function tierStartIndex(tier) {
-  if (tier <= 0) return 0;
-  if (tierStarts.has(tier)) return tierStarts.get(tier);
+export function tierStartIndex(tier, prof = DEFAULT_PROFILE) {
+  if (tier <= prof.TIER_MIN) return 0;
+  const key = `${tier}:${prof.TIER_MIN}:${prof.TIER_MAX}:${prof.TIER_EVERY_M}`;
+  if (tierStarts.has(key)) return tierStarts.get(key);
   let lo = 0;
   let hi = 1;
-  while (tierAt(gateDistance(hi)) < tier) { lo = hi; hi *= 2; }
+  while (tierAt(gateDistance(hi), prof) < tier) { lo = hi; hi *= 2; }
   while (lo < hi) {
     const mid = (lo + hi) >> 1;
-    if (tierAt(gateDistance(mid)) >= tier) hi = mid;
+    if (tierAt(gateDistance(mid), prof) >= tier) hi = mid;
     else lo = mid + 1;
   }
-  tierStarts.set(tier, lo);
+  tierStarts.set(key, lo);
   return lo;
 }
 
@@ -90,13 +99,13 @@ export function gateDistance(index) {
  * stay in a tier). Real/fake and the fake's mutation keep their own
  * per-index rng stream.
  */
-export function makeGate(seed, index) {
+export function makeGate(seed, index, prof = DEFAULT_PROFILE) {
   const rng = mulberry32(mixSeed(mixSeed(seed, WORD_STREAM), index));
   const d = gateDistance(index);
-  const tier = tierAt(d);
+  const tier = tierAt(d, prof);
   const real = rng() >= W.FAKE_CHANCE;
   const laneRng = mulberry32(mixSeed(mixSeed(seed, WORD_STREAM), 0x7f000000 + tier));
-  const word = pickWordCycle(tier, index - tierStartIndex(tier), laneRng);
+  const word = pickWordCycle(tier, index - tierStartIndex(tier, prof), laneRng);
   return {
     index,
     d,
@@ -119,8 +128,9 @@ export class WordGates {
     this.reset(seed);
   }
 
-  reset(seed, wordSalt = 0) {
+  reset(seed, wordSalt = 0, profile = DEFAULT_PROFILE) {
     this.seed = wordSeedFor(seed, wordSalt);
+    this.profile = profile; // reading-difficulty profile (Phase 10)
     this.next = 0;          // first unresolved gate index
     this.gate = null;       // the gate currently in play (lazy-built)
     this.correctCount = 0;
@@ -135,7 +145,7 @@ export class WordGates {
   /** The gate the player is currently approaching (always exists). */
   current() {
     if (!this.gate || this.gate.index !== this.next) {
-      this.gate = makeGate(this.seed, this.next);
+      this.gate = makeGate(this.seed, this.next, this.profile);
     }
     return this.gate;
   }

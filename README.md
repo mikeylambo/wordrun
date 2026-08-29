@@ -70,6 +70,22 @@ have time to read can cost you the run, but never a heart.
 Spamming confirm buys nothing: the real/fake mix is a seeded coin, so
 "always tap" fails half the gates.
 
+## Modes (Phase 10)
+
+Two rule sets × three reading difficulties, chosen on the title and stored
+per combination (an EASY best can never claim the STANDARD board; the
+default combo keeps every pre-mode best and ghost):
+
+- **ENDLESS** — the game as it grew up: five bells repair a heart.
+- **STANDARD · 3 HITS** — the repair is off. Three tapped fakes, ever.
+- **EASY / NORMAL / HARD** — reading difficulty (which tiers feed the
+  gates and how fast they ramp) plus the Redline's pace (24 / 27 / 30).
+  The speed curve itself never changes — one system, shared. HARD skips
+  the warm-up tier; EASY caps at 7-letter words and a lazier pursuer.
+  This is also the honest replacement for the frame's new-player grace,
+  which the Phase 7 pure-differential rewrite had left as a dead knob:
+  easing is a visible choice now, not a hidden fading curve.
+
 ## How it plays now (Phase 7)
 
 - The track is **flat and winding** — Sonic-tradition S-curves authored into

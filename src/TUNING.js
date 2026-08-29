@@ -314,6 +314,29 @@ export const TUNING = {
     ACCEL_MULT: 2.0,           // gets you to the higher cap quickly
   },
 
+  // ── Modes (Phase 10) ────────────────────────────────────────────────────
+  // Two rule sets and three reading-difficulty profiles, all combinable.
+  // ENDLESS is the game as it grew up: five bells repair a heart, so a
+  // run ends when the Redline wins or hearts drain faster than bells
+  // restore. STANDARD removes the repair: three hits, ever — bells still
+  // pay meter and currency, the stakes just stop coming back.
+  MODES: {
+    RULES: {
+      endless: { HEART_REPAIR: true },
+      standard: { HEART_REPAIR: false },
+    },
+    // Difficulty is READING difficulty plus the Redline's pace — never the
+    // speed curve itself (one system, shared). This also properly replaces
+    // the frame's new-player grace, which Phase 7's pure-differential
+    // rewrite left as a dead knob (beast.grace is inert): easing now comes
+    // from choosing EASY, visibly, instead of a hidden fading curve.
+    DIFFICULTY: {
+      easy: { TIER_MIN: 0, TIER_MAX: 2, TIER_EVERY_M: 1100, REDLINE_PACE: 24 },
+      normal: { TIER_MIN: 0, TIER_MAX: 4, TIER_EVERY_M: 700, REDLINE_PACE: 27 },
+      hard: { TIER_MIN: 1, TIER_MAX: 4, TIER_EVERY_M: 500, REDLINE_PACE: 30 },
+    },
+  },
+
   // ── Meta economy ────────────────────────────────────────────────────────
   META: {
     // The bare-number spendable balance (◆, deliberately unnamed — the

@@ -48,7 +48,11 @@ export class Beast {
     this.killed = false;
     this.killT = 0;
     this.killAir = false;
-    this.grace = 0;                // inert: there is no grace curve
+    // Phase 10: pace is per-difficulty (EASY 24 / NORMAL 27 / HARD 30),
+    // set by sim.start; the default is the shipped baseline. This is the
+    // honest successor to the old grace curve, which the Phase 7 rewrite
+    // left inert — easing is a visible choice now, not a hidden fade.
+    this.pace = R.REDLINE_PACE;
 
     // Inert director surface, kept so consumers never branch differently.
     this.mode = 'run';
@@ -60,7 +64,7 @@ export class Beast {
     this.attackT = 0;
     this.airPounce = false;
     this.mistakePressure = 0;
-    this.pursuitSpeed = R.REDLINE_PACE;
+    this.pursuitSpeed = this.pace;
     this.avgSpeed = R.START_SPEED;
   }
 
@@ -85,9 +89,9 @@ export class Beast {
     // THE mechanic: gap is the speed differential over time. Nothing else
     // ever writes it.
     const v = player.effSpeed ?? player.speed;
-    this.gap = clamp(this.gap + (v - R.REDLINE_PACE) * dt, BE.KILL_GAP, BE.MAX_GAP);
+    this.gap = clamp(this.gap + (v - this.pace) * dt, BE.KILL_GAP, BE.MAX_GAP);
     this.desired = this.gap;
-    this.pursuitSpeed = R.REDLINE_PACE;
+    this.pursuitSpeed = this.pace;
     const k = 1 - Math.exp(-dt / BE.AVG_SPEED_TAU);
     this.avgSpeed += (v - this.avgSpeed) * k;
 

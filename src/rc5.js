@@ -251,10 +251,14 @@ function patchSim(sim, field) {
       }
     }
 
+    // Phase 10: heart repair is ENDLESS's rule. In STANDARD, three hits
+    // are the whole allowance — bells still pay meter and currency, the
+    // charge just never counts toward a heart.
+    const heartRepair = this.rules?.HEART_REPAIR !== false;
     const picked = field.collectNear(this.player);
     for (const bell of picked) {
       this.bellsCollected++;
-      this.bellCharge++;
+      if (heartRepair) this.bellCharge++;
       this.player.boostMeter = Math.min(
         TUNING.BOOST.METER_MAX,
         this.player.boostMeter + HEARTS.POWER_PER_BELL
@@ -263,7 +267,7 @@ function patchSim(sim, field) {
         t: 'bell', id: bell.id, x: bell.x, d: bell.d,
         charge: this.bellCharge, power: HEARTS.POWER_PER_BELL,
       });
-      if (this.bellCharge >= HEARTS.BELLS_PER_HEART) {
+      if (heartRepair && this.bellCharge >= HEARTS.BELLS_PER_HEART) {
         this.bellCharge = 0;
         if (this.hearts < this.maxHearts) {
           this.hearts++;

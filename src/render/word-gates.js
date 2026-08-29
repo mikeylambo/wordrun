@@ -196,7 +196,7 @@ export class WordGateActors {
       this.current.place(g.shown, g.d, terrain.heightAt(0, g.d), camera,
         1, terrain.corridorX(g.d));
       // Preview the one after, faint in the fog, so rhythm reads at speed.
-      const n = makeGate(wg.seed, g.index + 1);
+      const n = makeGate(wg.seed, g.index + 1, wg.profile);
       if (n.d - playerD < SHOW_AHEAD) {
         this.next.paint(n.shown, 'idle');
         this.next.place(n.shown, n.d, terrain.heightAt(0, n.d), camera, 0.55,

@@ -67,6 +67,21 @@ let shotTaken = false;
 let prevLunge = 'idle';
 let ghostEnabled = Storage.ghostEnabled();
 
+// ── Mode + difficulty (Phase 10) ─────────────────────────────────────────
+// Two rule sets (ENDLESS repairs hearts by bells; STANDARD is three hits,
+// ever) × three reading difficulties (word-tier curve + Redline pace).
+// Bests, ghosts and run counts are stored per variant so an EASY run can
+// never claim the STANDARD board; the default combo keeps legacy keys.
+let runMode = TUNING.MODES.RULES[Storage.modePref()] ? Storage.modePref() : 'endless';
+let runDifficulty = TUNING.MODES.DIFFICULTY[Storage.difficultyPref()]
+  ? Storage.difficultyPref() : 'normal';
+
+function syncVariant() {
+  Storage.setVariant(runMode === 'endless' && runDifficulty === 'normal'
+    ? '' : `${runMode}.${runDifficulty}`);
+}
+syncVariant();
+
 // Meta layer (ported from the SLU shell's Layer-1 managers): lifetime
 // stats, daily goals and the play streak, over one storage adapter.
 const metaAdapter = localStorageAdapter();
@@ -89,11 +104,9 @@ function warmStart() {
   audio.prewarm();
 
   // Paint the plates with the NEXT run's actual first two words (knowable
-  // from the salted seed) so the first in-run paint is a cache hit — no
-  // canvas raster, no texture upload on the start frame.
-  const nextWordSeed = wordSeedFor(SEED, Storage.runsToday(SEED) + 1);
-  wordGateActors.current.paint(makeGate(nextWordSeed, 0).shown, 'idle');
-  wordGateActors.next.paint(makeGate(nextWordSeed, 1).shown, 'idle');
+  // from the salted seed + difficulty) so the first in-run paint is a
+  // cache hit — no canvas raster, no texture upload on the start frame.
+  warmPlates();
   wordGateActors.fx.paint('ready', 'right');
   for (const plate of [wordGateActors.current, wordGateActors.next, wordGateActors.fx]) {
     stage.renderer.initTexture(plate.tex);
@@ -114,11 +127,14 @@ function startRun() {
   audio.start();
   const ghostData = ghostEnabled ? Storage.loadGhost(SEED) : null;
   const runs = Storage.runsToday(SEED);
-  const grace = Math.max(0, 1 - runs / TUNING.BEAST.GRACE_RUNS);
 
   // Words are salted per attempt: run N of the day reads fresh vocabulary
-  // on the same authored track. runs is the count of prior starts today.
-  sim.start(SEED, ghostData, grace, runs + 1);
+  // on the same authored track. Mode/difficulty come from the title chips.
+  sim.start(SEED, ghostData, {
+    wordSalt: runs + 1,
+    mode: runMode,
+    difficulty: runDifficulty,
+  });
   terrainMesh.terrain = sim.terrain;
   props.terrain = sim.terrain;
   landmarks.terrain = sim.terrain;
@@ -203,9 +219,16 @@ function endRun() {
 
   // Re-warm the plates for the NEXT attempt's fresh words while the death
   // card idles, keeping the AGAIN tap as hitch-free as the first DROP IN.
+  warmPlates();
+}
+
+/** Pre-paint the next attempt's first two plates (salt + difficulty aware). */
+function warmPlates() {
+  const d = TUNING.MODES.DIFFICULTY[runDifficulty];
+  const prof = { TIER_MIN: d.TIER_MIN, TIER_MAX: d.TIER_MAX, TIER_EVERY_M: d.TIER_EVERY_M };
   const nextWordSeed = wordSeedFor(SEED, Storage.runsToday(SEED) + 1);
-  wordGateActors.current.paint(makeGate(nextWordSeed, 0).shown, 'idle');
-  wordGateActors.next.paint(makeGate(nextWordSeed, 1).shown, 'idle');
+  wordGateActors.current.paint(makeGate(nextWordSeed, 0, prof).shown, 'idle');
+  wordGateActors.next.paint(makeGate(nextWordSeed, 1, prof).shown, 'idle');
 }
 
 function pauseGame() {
@@ -298,6 +321,36 @@ window.addEventListener('keydown', (e) => {
   if (e.code !== 'Space' && e.code !== 'Enter' && e.code !== 'KeyR') return;
   onAdvance();
 });
+
+// Mode/difficulty chips: persist the choice, swap the storage variant,
+// refresh the per-variant best and re-warm the next attempt's plates.
+function syncModeChips() {
+  for (const b of document.querySelectorAll('#modeRow .modeChip')) {
+    b.classList.toggle('on', b.dataset.mode === runMode);
+  }
+  for (const b of document.querySelectorAll('#difficultyRow .modeChip')) {
+    b.classList.toggle('on', b.dataset.difficulty === runDifficulty);
+  }
+}
+document.getElementById('modeRows')?.addEventListener('click', (e) => {
+  const chip = e.target.closest?.('.modeChip');
+  if (!chip || running) return;
+  e.stopPropagation();
+  if (chip.dataset.mode) {
+    runMode = chip.dataset.mode;
+    Storage.setModePref(runMode);
+  } else if (chip.dataset.difficulty) {
+    runDifficulty = chip.dataset.difficulty;
+    Storage.setDifficultyPref(runDifficulty);
+  }
+  syncVariant();
+  syncModeChips();
+  ui.setSeed(SEED_STRING, Storage.bestFor(SEED), Storage.runsToday(SEED));
+  ui.setDaily(metaDaily.status(SEED));
+  warmPlates();
+  audio.uiTap();
+});
+syncModeChips();
 
 ui.mute.addEventListener('click', (e) => {
   e.stopPropagation();

@@ -73,6 +73,12 @@ Slice history:
   near peak, bounded under the plate and the Redline — both gated); a
   tapped fake drains light and treble for a beat instead of white-flashing;
   the correct chime climbs a pentatonic ladder with the chain.
+- Phase 10 — modes. ENDLESS (bell heart-repair) vs STANDARD (three hits,
+  ever) × EASY/NORMAL/HARD reading difficulty (word-tier profile + the
+  Redline's pace — the discovered-dead grace knob's honest successor).
+  Title chips persist the choice; bests/ghosts/run counts store per
+  variant with legacy keys preserved. The harvested bank also gained an
+  audience filter (50 adult-register terms excluded and gated).
 - Meta layer — the SLU shell's Layer-1 managers ported into `src/meta/`
   (stats ledger, deterministic daily goals, play streak) and wired to the
   run: goal chips and the streak on the title, and a learning recap on

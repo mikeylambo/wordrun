@@ -350,6 +350,43 @@ head('WORDS — depth (bank scale, no repeats, fresh words per attempt)');
     }));
 }
 
+// ── Phase 10: difficulty profiles shape the tier curve, nothing else ─────
+head('WORDS — difficulty profiles');
+
+{
+  const D = TUNING.MODES.DIFFICULTY;
+  const prof = (d) => ({ TIER_MIN: d.TIER_MIN, TIER_MAX: d.TIER_MAX, TIER_EVERY_M: d.TIER_EVERY_M });
+  const seed = SEEDS[0];
+
+  check('the NORMAL profile is byte-identical to the pre-mode game',
+    D.normal.TIER_MIN === 0 && D.normal.TIER_MAX === 4 &&
+    D.normal.TIER_EVERY_M === W.TIER_EVERY_M &&
+    Array.from({ length: 60 }, (_, i) =>
+      makeGate(seed, i, prof(D.normal)).shown === makeGate(seed, i).shown).every(Boolean));
+
+  const easyTiers = Array.from({ length: 250 }, (_, i) => makeGate(seed, i, prof(D.easy)).tier);
+  check('EASY never leaves the short tiers, even 20km deep',
+    Math.max(...easyTiers) <= D.easy.TIER_MAX && D.easy.TIER_MAX <= 2,
+    `max tier ${Math.max(...easyTiers)} across 250 gates`);
+  check('EASY ramps slower than NORMAL', D.easy.TIER_EVERY_M > D.normal.TIER_EVERY_M);
+
+  const hardFirst = makeGate(seed, 0, prof(D.hard)).tier;
+  check('HARD skips the warm-up tier and ramps faster',
+    hardFirst >= 1 && D.hard.TIER_EVERY_M < D.normal.TIER_EVERY_M,
+    `first gate tier ${hardFirst}`);
+
+  check('difficulty paces bracket the baseline (easing is a visible choice now)',
+    D.easy.REDLINE_PACE < D.normal.REDLINE_PACE &&
+    D.normal.REDLINE_PACE === TUNING.RUN.REDLINE_PACE &&
+    D.hard.REDLINE_PACE > D.normal.REDLINE_PACE);
+
+  // Audience filter: the harvested catalog's adult register stays out.
+  const { EXCLUDED } = await import('./build-wordbank.mjs');
+  check('the audience filter holds at the shipped bank',
+    EXCLUDED.every((w) => !isValidWord(w)),
+    `${EXCLUDED.length} excluded terms verified absent`);
+}
+
 console.log(out.join('\n'));
 console.log(`\n${PASS} passed, ${FAIL} failed`);
 if (FAIL) process.exit(1);

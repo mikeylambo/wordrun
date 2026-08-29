@@ -8,6 +8,13 @@ const NS = 'wordrun.v1';
 const ONBOARDING_VERSION = 'rc9';
 const key = (k) => `${NS}.${k}`;
 
+// Mode/difficulty variant (Phase 10): bests, run counts and ghosts are
+// scoped per variant so an EASY run can never claim the STANDARD board.
+// The default combination keeps the legacy key shape, so every best and
+// ghost recorded before modes existed stays exactly where it was.
+let VARIANT = '';
+const vkey = (type, seed) => `${type}.${seed}${VARIANT ? `.${VARIANT}` : ''}`;
+
 function safeGet(k) {
   try { return localStorage.getItem(key(k)); } catch { return null; }
 }
@@ -19,6 +26,16 @@ function safeRemove(k) {
 }
 
 export const Storage = {
+  /** Select the mode/difficulty variant all seed-scoped reads/writes use.
+   *  '' = the legacy default (endless + normal). */
+  setVariant(v) { VARIANT = String(v || ''); },
+  variant() { return VARIANT; },
+
+  modePref() { return safeGet('pref.mode') || 'endless'; },
+  setModePref(m) { return safeSet('pref.mode', String(m)); },
+  difficultyPref() { return safeGet('pref.difficulty') || 'normal'; },
+  setDifficultyPref(d) { return safeSet('pref.difficulty', String(d)); },
+
   available() {
     try {
       const probe = key('__probe');
@@ -29,14 +46,14 @@ export const Storage = {
   },
 
   bestFor(seed) {
-    const v = Number(safeGet(`best.${seed}`));
+    const v = Number(safeGet(vkey('best', seed)));
     return Number.isFinite(v) && v > 0 ? v : 0;
   },
 
   setBestFor(seed, distance) {
     const d = Math.floor(distance);
     if (d <= this.bestFor(seed)) return false;
-    safeSet(`best.${seed}`, String(d));
+    safeSet(vkey('best', seed), String(d));
     if (d > this.bestAllTime()) safeSet('best.all', String(d));
     return true;
   },
@@ -47,13 +64,13 @@ export const Storage = {
   },
 
   runsToday(seed) {
-    const v = Number(safeGet(`runs.${seed}`));
+    const v = Number(safeGet(vkey('runs', seed)));
     return Number.isFinite(v) && v > 0 ? v : 0;
   },
 
   bumpRuns(seed) {
     const n = this.runsToday(seed) + 1;
-    safeSet(`runs.${seed}`, String(n));
+    safeSet(vkey('runs', seed), String(n));
     return n;
   },
 
@@ -78,14 +95,14 @@ export const Storage = {
 
   /** Your best run on this seed, or null. */
   loadGhost(seed) {
-    const raw = safeGet(`ghost.${seed}`);
+    const raw = safeGet(vkey('ghost', seed));
     if (!raw) return null;
     try {
       const data = JSON.parse(raw);
       if (!data || !Array.isArray(data.s) || data.s.length < 5) return null;
       return data;
     } catch {
-      safeRemove(`ghost.${seed}`);
+      safeRemove(vkey('ghost', seed));
       return null;
     }
   },
@@ -94,10 +111,10 @@ export const Storage = {
   saveGhostIfBest(seed, data) {
     const existing = this.loadGhost(seed);
     if (existing && existing.distance >= data.distance) return false;
-    const ok = safeSet(`ghost.${seed}`, JSON.stringify(data));
+    const ok = safeSet(vkey('ghost', seed), JSON.stringify(data));
     if (!ok) {
       this.pruneOldSeeds(seed);
-      return safeSet(`ghost.${seed}`, JSON.stringify(data));
+      return safeSet(vkey('ghost', seed), JSON.stringify(data));
     }
     return true;
   },
@@ -108,7 +125,7 @@ export const Storage = {
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
         if (!k || !k.startsWith(`${NS}.ghost.`)) continue;
-        if (k !== `${NS}.ghost.${keepSeed}`) doomed.push(k);
+        if (!k.startsWith(`${NS}.ghost.${keepSeed}`)) doomed.push(k);
       }
       for (const k of doomed) localStorage.removeItem(k);
     } catch { /* nothing to do */ }
