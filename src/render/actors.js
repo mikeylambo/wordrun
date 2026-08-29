@@ -269,8 +269,12 @@ export class PlayerActor {
     const nerve = Math.max(0, Math.min(1, 1 - beastGap / 45));
     this._blink += dt * (1.6 + nerve * 6.5);
     const blink = 0.86 + Math.abs(Math.sin(this._blink * Math.PI)) * 0.14;
-    this.coreMat.opacity = 0.96 * this.baseOpacity * blink;
-    this.halo.material.opacity = 0.22 * this.baseOpacity * (0.8 + speedN * 0.35) * blink;
+    // Flow (Phase 9): the figure itself burns brighter with the chain —
+    // main sets .flow each frame (glow × pulse); wrappers pass through.
+    const flow = this.flow ?? 1;
+    this.coreMat.opacity = Math.min(1, 0.96 * this.baseOpacity * blink * (0.85 + flow * 0.15));
+    this.halo.material.opacity =
+      Math.min(0.6, 0.22 * this.baseOpacity * (0.8 + speedN * 0.35) * blink * flow);
     // The halo stretches into a teardrop with speed — the whole construct
     // reads as motion even in a still frame.
     this.halo.scale.set(1.0 + speedN * 0.1, 1.55 + speedN * 0.12, 1.0 + speedN * 0.55);

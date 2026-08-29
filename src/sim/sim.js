@@ -45,7 +45,7 @@ export class Sim {
     this.stuntsCleared = 0;
   }
 
-  start(seed = this.seed, ghostData = null, grace = 0) {
+  start(seed = this.seed, ghostData = null, grace = 0, wordSalt = 0) {
     if ((seed >>> 0) !== this.seed || !this.terrain) {
       this.seed = seed >>> 0;
       this.terrain = new Terrain(this.seed);
@@ -56,7 +56,9 @@ export class Sim {
     this.player.reset();
     this.beast.reset();
     this.secondBeast.reset();
-    this.wordGates.reset(this.seed);
+    // Same daily track, fresh vocabulary per attempt (Phase 9): the salt
+    // only touches the word rng lane, so ghosts and determinism hold.
+    this.wordGates.reset(this.seed, wordSalt);
     this.beast.grace = Math.max(0, Math.min(1, grace));
     this.recorder.reset();
     this.ghost.load(ghostData);

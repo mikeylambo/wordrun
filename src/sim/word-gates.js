@@ -26,7 +26,7 @@
 
 import TUNING from '../TUNING.js';
 import { mulberry32, mixSeed } from './rng.js';
-import { pickWord, makeFake, tierCount } from '../words/wordlist.js';
+import { pickWordCycle, makeFake, tierCount } from '../words/wordlist.js';
 
 const W = TUNING.WORDS;
 const R = TUNING.RUN;
@@ -36,6 +36,35 @@ const WORD_STREAM = 0x77_6f_72; // 'wor' — its own rng lane, apart from terrai
 
 export function tierAt(d) {
   return Math.min(tierCount() - 1, Math.floor(Math.max(0, d) / W.TIER_EVERY_M));
+}
+
+/**
+ * Fresh words each attempt (Phase 9): the daily seed still authors the
+ * TRACK, the bells and the fake/real coin structure — the shared racing
+ * line — but the word rng lane is salted by the attempt number, so a
+ * second run of TODAY'S DRAFT reads new vocabulary on the same road.
+ * Salt 0 is the identity (tools and ghosts replay exactly).
+ */
+export function wordSeedFor(seed, salt = 0) {
+  return salt ? mixSeed(seed >>> 0, (0x73616c00 + (salt >>> 0)) >>> 0) : seed >>> 0;
+}
+
+const tierStarts = new Map();
+
+/** First gate index whose distance reaches `tier` — memoized, monotonic. */
+export function tierStartIndex(tier) {
+  if (tier <= 0) return 0;
+  if (tierStarts.has(tier)) return tierStarts.get(tier);
+  let lo = 0;
+  let hi = 1;
+  while (tierAt(gateDistance(hi)) < tier) { lo = hi; hi *= 2; }
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (tierAt(gateDistance(mid)) >= tier) hi = mid;
+    else lo = mid + 1;
+  }
+  tierStarts.set(tier, lo);
+  return lo;
 }
 
 export function gateDistance(index) {
@@ -53,13 +82,21 @@ export function gateDistance(index) {
   return W.FIRST_GATE_M + ramped + flat;
 }
 
-/** Build gate #index for a seed — pure, so tools can interrogate any gate. */
+/**
+ * Build gate #index for a seed — pure, so tools can interrogate any gate.
+ * The word comes from the no-repeat cycle walk: gate k of a tier draws the
+ * k-th word of a seeded coprime walk through that tier's pool, so a word
+ * cannot recur until the entire pool has been seen (longer than any run's
+ * stay in a tier). Real/fake and the fake's mutation keep their own
+ * per-index rng stream.
+ */
 export function makeGate(seed, index) {
   const rng = mulberry32(mixSeed(mixSeed(seed, WORD_STREAM), index));
   const d = gateDistance(index);
   const tier = tierAt(d);
-  const word = pickWord(tier, rng);
   const real = rng() >= W.FAKE_CHANCE;
+  const laneRng = mulberry32(mixSeed(mixSeed(seed, WORD_STREAM), 0x7f000000 + tier));
+  const word = pickWordCycle(tier, index - tierStartIndex(tier), laneRng);
   return {
     index,
     d,
@@ -82,8 +119,8 @@ export class WordGates {
     this.reset(seed);
   }
 
-  reset(seed) {
-    this.seed = seed >>> 0;
+  reset(seed, wordSalt = 0) {
+    this.seed = wordSeedFor(seed, wordSalt);
     this.next = 0;          // first unresolved gate index
     this.gate = null;       // the gate currently in play (lazy-built)
     this.correctCount = 0;

@@ -114,6 +114,15 @@ Spamming confirm buys nothing: the real/fake mix is a seeded coin, so
 - **Courage still pays.** Boost fill from correct reads is multiplied by the
   frame's proximity multiplier — reading well with the Redline in range banks
   more, exactly as clean landings did.
+- **The color grammar is machine-enforced (Phase 9).** Every channel owns
+  one meaning: red = the Redline alone; cyan→white heat = your speed;
+  world SATURATION/brilliance = your chain (one pure curve,
+  `src/render/flow-curve.js` — the reward-side mirror of the corruption
+  curve), pulsing marquee-style near peak flow but bounded so the plate
+  always wins the frame; and LOSS = darkness — a tapped fake drains
+  light and treble from the world for a beat (no white crash-flash, no
+  red spent on mistakes). The correct-read chime climbs a pentatonic
+  ladder with the chain; losing the chain audibly resets it.
 - **Bells are ambient reward, and they gate-provably get collected (Phase
   8).** The audit found strings still laid in the source frame's straight
   coordinates — functionally uncollectible against the ±15.5 m winding
@@ -152,10 +161,20 @@ game; this port lifts its meta design, not its runtime.
 
 ## The word-list module (reusable piece)
 
-`src/words/wordlist.js` is a standalone service — zero imports, no Barsmith,
-no runner dependencies — built to be lifted into the word-tile game later:
+`src/words/wordlist.js` is a standalone service — zero runtime dependencies,
+no runner imports — built to be lifted into the next word game unchanged.
+Phase 9 merged the Barsmith catalog banks into generated `bank.js` (data
+harvested by `tools/build-wordbank.mjs`, not a dependency):
 
-- 5 difficulty tiers, ~560 words, mean length rising 3.0 → 9.1.
+- 5 tiers re-cut by LENGTH (3-4 / 5 / 6-7 / 8-9 / 10-12 letters), ~6,700
+  words — length is what makes a spelling glance-hostile at speed.
+- **No repeats**: each tier is drawn as a seeded coprime walk through the
+  whole pool, so a word cannot recur until the entire tier has been seen
+  (940–2,200 words — longer than any run's stay in a tier). Gated.
+- **Fresh words each attempt**: the daily seed still authors the track,
+  the bells and the real/fake coin — the shared racing line — but the
+  word lane is salted by the attempt number, so run two of TODAY'S DRAFT
+  reads new vocabulary on the same road. Salt 0 is the identity (gated).
 - `isValidWord()` with **zero false negatives** on the shipped list (gated).
 - `makeFake()` builds one-edit misspellings (swap/double/drop/vowel) that are
   guaranteed to never be a shipped word *or* a common English word (a guard

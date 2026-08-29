@@ -78,6 +78,12 @@ export class DataworldPass {
     } catch { /* exotic geometry — dark body is enough */ }
   }
 
+  /** Flow (Phase 9): set-piece line art brightens with the chain. */
+  setFlow(factor) {
+    const op = EDGE_OPACITY * (0.62 + 0.38 * Math.min(1.6, factor));
+    for (const m of this.edgeMats) m.opacity = op;
+  }
+
   update(dt) {
     this.t += dt;
     if (this.t < SWEEP_EVERY) return;

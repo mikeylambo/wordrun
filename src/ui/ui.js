@@ -51,6 +51,9 @@ export class UI {
     this.titleStreak = $('titleStreak');
     this.titleGoalRow = $('titleGoalRow');
     this.deathRecap = $('deathRecap');
+    this.drainEl = $('drain');
+    this.drainDimEl = $('drainDim');
+    this._drainT = 0;
 
     this._lastDist = -1;
     this._flash = 0;
@@ -270,9 +273,21 @@ export class UI {
       this._flash = Math.max(0, this._flash - dt * 3.2);
       this.flash.style.opacity = (this._flash * 0.52).toFixed(3);
     }
+
+    // The drain: sharp onset, ~0.6s recovery — the light comes back as the
+    // world does.
+    if (this._drainT > 0) {
+      this._drainT = Math.max(0, this._drainT - dt * 1.7);
+      const k = this._drainT * this._drainT;
+      if (this.drainEl) this.drainEl.style.opacity = (k * 0.85).toFixed(3);
+      if (this.drainDimEl) this.drainDimEl.style.opacity = (k * 0.42).toFixed(3);
+    }
   }
 
   hitFlash() { this._flash = 1; }
+
+  /** A wrong tap drains the world instead of flashing it (Phase 9). */
+  drain() { this._drainT = 1; }
 
   chainLost(n) {
     if (n <= 0) return;
@@ -382,5 +397,8 @@ export class UI {
     if (this.staticVeil) this.staticVeil.style.opacity = '0';
     this.flash.style.opacity = '0';
     this._flash = 0;
+    if (this.drainEl) this.drainEl.style.opacity = '0';
+    if (this.drainDimEl) this.drainDimEl.style.opacity = '0';
+    this._drainT = 0;
   }
 }

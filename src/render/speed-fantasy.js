@@ -97,6 +97,12 @@ export class TrackPylons {
     this._m = new THREE.Matrix4();
   }
 
+  /** Flow (Phase 9): the stanchions are the marquee bulbs — they carry
+   *  the arcade pulse hardest of anything in the world. */
+  setFlow(factor) {
+    this.mat.opacity = Math.min(1, 0.45 + 0.38 * factor);
+  }
+
   update(playerD) {
     const first = Math.floor((playerD - PYLON_SPACING) / PYLON_SPACING);
     let i = 0;

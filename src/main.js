@@ -4,7 +4,7 @@
 
 import TUNING from './TUNING.js';
 import { Sim, PHASE, emptyInput } from './sim/sim.js';
-import { makeGate } from './sim/word-gates.js';
+import { makeGate, wordSeedFor } from './sim/word-gates.js';
 import { dailySeed, dailySeedString } from './sim/rng.js';
 import { Stage } from './render/scene.js';
 import { TerrainMesh } from './render/terrain-mesh.js';
@@ -17,6 +17,7 @@ import { WordGateActors } from './render/word-gates.js';
 import { DataworldPass } from './render/dataworld.js';
 import { StreakBurst } from './render/streak-burst.js';
 import { WindStreaks, TrackPylons } from './render/speed-fantasy.js';
+import { flowFactor } from './render/flow-curve.js';
 import { applyMaterialPass } from './render/material-pass.js';
 import { Audio } from './audio/audio.js';
 import { Input } from './input/input.js';
@@ -59,6 +60,7 @@ let running = false;
 let paused = false;
 let topSpeed = 0;
 let sprayAcc = 0;
+let flowChain = 0; // smoothed chain for the flow channel: eased up, snapped down
 let deathShownAt = 0;
 let shotUrl = null;
 let shotTaken = false;
@@ -86,11 +88,12 @@ input.onFirstGesture = () => audio.start();
 function warmStart() {
   audio.prewarm();
 
-  // Paint the plates with the run's ACTUAL first two words (knowable from
-  // the seed) so the first in-run paint is a cache hit — no canvas raster,
-  // no texture upload on the start frame. The fx plate just allocates.
-  wordGateActors.current.paint(makeGate(SEED, 0).shown, 'idle');
-  wordGateActors.next.paint(makeGate(SEED, 1).shown, 'idle');
+  // Paint the plates with the NEXT run's actual first two words (knowable
+  // from the salted seed) so the first in-run paint is a cache hit — no
+  // canvas raster, no texture upload on the start frame.
+  const nextWordSeed = wordSeedFor(SEED, Storage.runsToday(SEED) + 1);
+  wordGateActors.current.paint(makeGate(nextWordSeed, 0).shown, 'idle');
+  wordGateActors.next.paint(makeGate(nextWordSeed, 1).shown, 'idle');
   wordGateActors.fx.paint('ready', 'right');
   for (const plate of [wordGateActors.current, wordGateActors.next, wordGateActors.fx]) {
     stage.renderer.initTexture(plate.tex);
@@ -113,7 +116,9 @@ function startRun() {
   const runs = Storage.runsToday(SEED);
   const grace = Math.max(0, 1 - runs / TUNING.BEAST.GRACE_RUNS);
 
-  sim.start(SEED, ghostData, grace);
+  // Words are salted per attempt: run N of the day reads fresh vocabulary
+  // on the same authored track. runs is the count of prior starts today.
+  sim.start(SEED, ghostData, grace, runs + 1);
   terrainMesh.terrain = sim.terrain;
   props.terrain = sim.terrain;
   landmarks.terrain = sim.terrain;
@@ -137,6 +142,7 @@ function startRun() {
   shotTaken = false;
   topSpeed = 0;
   sprayAcc = 0;
+  flowChain = 0;
   paused = false;
   running = true;
   input.enabled = true;
@@ -194,6 +200,12 @@ function endRun() {
   ui.showHud(false);
   ui.showDeath(true);
   deathShownAt = performance.now();
+
+  // Re-warm the plates for the NEXT attempt's fresh words while the death
+  // card idles, keeping the AGAIN tap as hitch-free as the first DROP IN.
+  const nextWordSeed = wordSeedFor(SEED, Storage.runsToday(SEED) + 1);
+  wordGateActors.current.paint(makeGate(nextWordSeed, 0).shown, 'idle');
+  wordGateActors.next.paint(makeGate(nextWordSeed, 1).shown, 'idle');
 }
 
 function pauseGame() {
@@ -375,7 +387,7 @@ function drainSimEvents() {
       case 'kill': audio.kill(); break;
       case 'word_confirm': audio.uiTap(); break;
       case 'word_correct':
-        audio.gate();
+        audio.gate(e.chain);
         if (e.chain > 0) audio.chainLink(e.chain);
         if (e.proxMult > 1.05) audio.courageBank(e.proxMult);
         // The payoff is where the vibrancy lives: sparks scale with the
@@ -390,9 +402,12 @@ function drainSimEvents() {
         // word is only a slowdown — a deflating cue, no crash language, so
         // the player learns hearts are never lost by hesitating.
         if (e.hit) {
+          // The drain (Phase 9): a wrong tap pulls light and highs out of
+          // the world for a beat — no bright crash-flash; loss is darkness.
           audio.hit();
+          audio.duck();
           spray.emit(e.x, e.y, -e.d, 18, 7, 3.2, 0);
-          ui.hitFlash();
+          ui.drain();
         } else {
           audio.slip();
         }
@@ -476,6 +491,18 @@ function tick(dt) {
 
   const bands = sim.beast.bands();
   const dreadLive = !paused && (running || sim.phase === PHASE.KILL);
+
+  // The flow channel (Phase 9): the chain drives world brilliance through
+  // one pure curve — eased upward link by link, snapped down on a loss so
+  // the collapse lands with the drain.
+  flowChain = p.chain < flowChain
+    ? p.chain
+    : flowChain + (p.chain - flowChain) * (1 - Math.exp(-3.5 * dt));
+  const flowF = dreadLive && running ? flowFactor(flowChain, performance.now() / 1000) : 1;
+  materialPass.terrain.userData.uP9Flow.value = flowF;
+  dataworld.setFlow(flowF);
+  trackPylons.setFlow(flowF);
+  playerActor.flow = flowF;
   rig.update(dt, p, sim.beast.gap, dreadLive ? bands.shake : 0, killT, sim.terrain,
     sim.beast.x, sim.beast.side);
   stage.followLight(p.x, p.y, -p.d);

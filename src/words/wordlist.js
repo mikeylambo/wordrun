@@ -3,8 +3,11 @@
  *
  * Plain validity/difficulty-tiered word list: common, short, unambiguous words
  * at low tiers, ramping up. Deliberately built as its own module with its own
- * tests (tools/word-gates.mjs) and ZERO dependencies — no Barsmith, no runner
- * imports — so other games can pull it in later unchanged.
+ * tests (tools/word-gates.mjs) and ZERO runtime dependencies — no runner
+ * imports, no external packages — so other games can pull it in unchanged.
+ * (The DATA is partly harvested from the Barsmith catalog via
+ * tools/build-wordbank.mjs; the harvest is generated content, not a
+ * dependency — bank.js ships in this repo.)
  *
  * Determinism contract: every function that makes a choice takes `rand`, a
  * caller-supplied () => float in [0,1). Nothing in here touches Math.random,
@@ -12,117 +15,16 @@
  *
  * All words are lowercase a–z, no proper nouns, no hyphens or apostrophes.
  */
+import { BANK_TIERS } from './bank.js';
 
 /**
- * Difficulty tiers, easiest first. Tier 0 is short + high-frequency; later
- * tiers get longer and lean into classically hard spellings, because a fake
- * only creates tension when the real spelling takes a beat to verify.
+ * Difficulty tiers, easiest first — re-tiered by LENGTH (Phase 9), because
+ * this game's verb is recognizing a spelling inside a shrinking reading
+ * window, and length is what makes a word glance-hostile at speed. The data
+ * lives in generated bank.js: the original hand-authored list merged with
+ * the Barsmith catalog banks (~6,700 words, 3-12 letters, five tiers).
  */
-export const TIERS = [
-  // Tier 0 — short, everyday, unambiguous.
-  [
-    'run', 'sun', 'top', 'red', 'big', 'dog', 'cat', 'map', 'cup', 'box',
-    'bed', 'hat', 'pen', 'leg', 'arm', 'sky', 'ice', 'hot', 'wet', 'dry',
-    'old', 'new', 'day', 'yes', 'win', 'fun', 'sit', 'eat', 'ask', 'end',
-    'egg', 'car', 'bus', 'key', 'job', 'sea', 'tea', 'six', 'ten', 'zip',
-    'fox', 'owl', 'bee', 'ant', 'cow', 'pig', 'hen', 'fig', 'jam', 'pie',
-    'oak', 'elm', 'fog', 'mud', 'gem', 'ink', 'kit', 'log', 'net', 'oar',
-  ],
-  // Tier 1 — common four/five-letter words.
-  [
-    'jump', 'fast', 'snow', 'tree', 'word', 'game', 'hand', 'door', 'fire',
-    'wind', 'road', 'ship', 'fish', 'bird', 'milk', 'rain', 'star', 'moon',
-    'time', 'gold', 'ring', 'song', 'wolf', 'bear', 'lamp', 'desk', 'wall',
-    'rock', 'sand', 'wave', 'leaf', 'frog', 'king', 'coin', 'glass', 'sharp',
-    'quick', 'sleep', 'bread', 'chair', 'clock', 'cloud', 'dance', 'dream',
-    'green', 'happy', 'house', 'light', 'money', 'music', 'night', 'paper',
-    'plant', 'river', 'smile', 'sound', 'space', 'story', 'sugar', 'table',
-    'voice', 'water', 'white', 'world', 'queen', 'sword', 'tiger', 'mouse',
-    'horse', 'sheep', 'snake', 'whale', 'shark', 'eagle', 'tooth', 'heart',
-    'beach', 'stone', 'grass', 'storm', 'frost', 'flame', 'field', 'shore',
-    'brick', 'straw', 'wheel', 'brush', 'spoon', 'knife', 'plate', 'shelf',
-    'stair', 'porch', 'fence', 'crown', 'globe', 'torch', 'candy', 'peach',
-    'lemon', 'apple', 'grape', 'berry', 'honey', 'toast', 'salad', 'onion',
-  ],
-  // Tier 2 — five/six-letter words, still common but more to scan.
-  [
-    'animal', 'basket', 'bottle', 'branch', 'bridge', 'bright', 'button',
-    'camera', 'candle', 'castle', 'circle', 'coffee', 'copper', 'corner',
-    'cousin', 'danger', 'dinner', 'doctor', 'dragon', 'engine', 'family',
-    'finger', 'flower', 'forest', 'friend', 'garden', 'ground', 'guitar',
-    'hammer', 'hunger', 'island', 'jacket', 'kitten', 'ladder', 'letter',
-    'little', 'market', 'middle', 'minute', 'mirror', 'monkey', 'mother',
-    'number', 'orange', 'pencil', 'people', 'planet', 'pocket', 'rabbit',
-    'record', 'rocket', 'saddle', 'school', 'season', 'second', 'shadow',
-    'silver', 'simple', 'sister', 'spider', 'spring', 'street', 'strong',
-    'summer', 'sunset', 'ticket', 'tunnel', 'valley', 'window', 'winter',
-    'anchor', 'barrel', 'beacon', 'border', 'breeze', 'cactus', 'canyon',
-    'carpet', 'cellar', 'chapel', 'cherry', 'closet', 'cotton', 'crayon',
-    'donkey', 'ember', 'fabric', 'falcon', 'feather', 'fiddle', 'flannel',
-    'gallon', 'garlic', 'giant', 'ginger', 'goblin', 'harbor', 'helmet',
-    'hollow', 'jungle', 'kettle', 'lantern', 'lizard', 'magnet', 'mantle',
-    'marble', 'meadow', 'muffin', 'napkin', 'needle', 'nickel', 'oyster',
-    'paddle', 'parrot', 'pepper', 'pillow', 'pirate', 'pistol', 'puddle',
-    'puppet', 'raisin', 'ribbon', 'salmon', 'sponge', 'squash', 'temple',
-    'thread', 'timber', 'turtle', 'velvet', 'violin', 'wagon', 'walnut',
-    'wizard', 'yellow', 'zipper',
-  ],
-  // Tier 3 — longer words with spelling texture (doubles, silent letters,
-  // ie/ei) where a plausible fake starts to really cost a beat.
-  [
-    'address', 'already', 'ancient', 'balance', 'balloon', 'because',
-    'believe', 'between', 'bicycle', 'brought', 'business', 'calendar',
-    'capture', 'caution', 'ceiling', 'century', 'certain', 'channel',
-    'chimney', 'college', 'company', 'country', 'courage', 'curious',
-    'diamond', 'distance', 'evening', 'example', 'foreign', 'fortune',
-    'freedom', 'gallery', 'general', 'grammar', 'harbour', 'history',
-    'journey', 'kitchen', 'library', 'machine', 'measure', 'message',
-    'mineral', 'monster', 'morning', 'mystery', 'natural', 'neither',
-    'october', 'opinion', 'pattern', 'picture', 'pioneer', 'problem',
-    'promise', 'quarter', 'receive', 'science', 'special', 'stomach',
-    'strange', 'thought', 'through', 'thunder', 'tonight', 'trouble',
-    'village', 'weather', 'weight', 'whistle',
-    'account', 'airport', 'anxious', 'article', 'attempt', 'autumn',
-    'avenue', 'bandage', 'biscuit', 'blanket', 'blossom', 'breathe',
-    'cabbage', 'cabinet', 'captain', 'caravan', 'carriage', 'cattle',
-    'chamber', 'charity', 'chorus', 'climate', 'compass', 'conquer',
-    'costume', 'cottage', 'crystal', 'curtain', 'cushion', 'delight',
-    'descent', 'dolphin', 'drawer', 'eastern', 'echoes', 'elegant',
-    'fashion', 'feature', 'fiction', 'fifteen', 'fragile', 'furnace',
-    'genuine', 'glacier', 'gravity', 'harvest', 'herring', 'holiday',
-    'horizon', 'hundred', 'imagine', 'instant', 'january', 'leather',
-    'texture', 'theatre', 'triumph', 'vulture', 'warrior', 'weekend',
-  ],
-  // Tier 4 — long words and the classic traps.
-  [
-    'absolutely', 'accidentally', 'achievement', 'acknowledge', 'apparently',
-    'appearance', 'appreciate', 'atmosphere', 'beautiful', 'beginning',
-    'challenge', 'character', 'chocolate', 'committee',
-    'completely', 'conscience', 'continuous', 'dangerous', 'definitely',
-    'difference', 'difficulty', 'disappear', 'discipline', 'embarrass',
-    'environment', 'especially', 'excellent', 'experience', 'familiar',
-    'favourite', 'february', 'government', 'guarantee', 'happened',
-    'immediately', 'important', 'impossible', 'incredible', 'independent',
-    'interesting', 'knowledge', 'language', 'lightning', 'necessary',
-    'neighbour', 'occasion', 'occurred', 'orchestra', 'parallel',
-    'particular', 'personally', 'possession', 'privilege', 'pronounce',
-    'quantity', 'question', 'recommend', 'restaurant', 'rhythm',
-    'sandwich', 'separate', 'sincerely', 'strength', 'surprise',
-    'temperature', 'tomorrow', 'vegetable', 'wednesday', 'yesterday',
-    'adventure', 'ambitious', 'astonish', 'avalanche', 'boulevard',
-    'breakfast', 'brilliant', 'candidate', 'celebrate', 'ceremony',
-    'chandelier', 'colleague', 'community', 'conscious', 'curiosity',
-    'dictionary', 'direction', 'discovery', 'education', 'emergency',
-    'encourage', 'equipment', 'essential', 'exhausted', 'expensive',
-    'furniture', 'gymnasium', 'hurricane', 'ignorance', 'influence',
-    'invisible', 'labyrinth', 'landscape', 'magnificent', 'marvellous',
-    'mountain', 'muscle', 'mysterious', 'obedient', 'obstacle',
-    'peculiar', 'permanent', 'persuade', 'pneumonia', 'porcelain',
-    'precious', 'president', 'psychology', 'reservoir', 'satellite',
-    'scissors', 'sincere', 'souvenir', 'spaghetti', 'symphony',
-    'tournament', 'twilight', 'umbrella', 'vacuum', 'wilderness',
-  ],
-];
+export const TIERS = BANK_TIERS;
 
 /**
  * Common English words that are NOT in the shipped tiers but that a one-edit
@@ -311,6 +213,25 @@ export function tierWords(tier) {
 export function pickWord(tier, rand) {
   const words = tierWords(tier);
   return words[Math.floor(rand() * words.length) % words.length];
+}
+
+const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
+
+/**
+ * The no-repeat draw (Phase 9): the k-th word of a seeded coprime walk
+ * through a tier. `rand` must be a FRESH rng seeded per (run, tier) — two
+ * draws fix the walk's offset and stride — so for a given lane every k maps
+ * to a distinct word until the whole tier cycles (940-2,200 words: longer
+ * than any run's stay in a tier). Kills both back-to-back duplicates and
+ * the birthday-problem repeats a uniform draw guarantees.
+ */
+export function pickWordCycle(tier, k, rand) {
+  const words = tierWords(tier);
+  const n = words.length;
+  const offset = Math.floor(rand() * n) % n;
+  let stride = 1 + (Math.floor(rand() * (n - 1)) % (n - 1));
+  while (gcd(stride, n) !== 1) stride = (stride % (n - 1)) + 1;
+  return words[(offset + (k % n) * stride) % n];
 }
 
 const VOWELS = 'aeiou';

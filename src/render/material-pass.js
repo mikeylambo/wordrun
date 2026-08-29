@@ -71,6 +71,9 @@ function terrainMaterial() {
   terrain.name = 'rc8-terrain';
 
   terrain.onBeforeCompile = (shader) => {
+    // Flow (Phase 9): the etched light's brightness is a live uniform fed
+    // by the chain — glow × marquee pulse from flow-curve.js.
+    shader.uniforms.uP9Flow = terrain.userData.uP9Flow;
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nattribute float surface;\nattribute float lane;\nvarying float vRc8Surface;\nvarying float vP4Lane;\nvarying vec3 vP4World;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRc8Surface = surface;\nvP4Lane = lane;\nvP4World = (modelMatrix * vec4(transformed, 1.0)).xyz;');
@@ -97,10 +100,13 @@ function terrainMaterial() {
         vec3 p4GridCol = mix(vec3(0.05, 0.34, 0.46), vec3(0.30, 0.16, 0.52), p4Hue);
         p4GridCol = mix(p4GridCol, vec3(0.05, 0.44, 0.30), p4Hue2 * 0.55);
         vec3 p4RailCol = mix(vec3(0.10, 0.62, 0.80), vec3(0.52, 0.26, 0.86), p4Hue2);
-        totalEmissiveRadiance += p4GridCol * p4Line * 0.62;
-        totalEmissiveRadiance += p4RailCol * p4Rail * 1.15;`);
+        totalEmissiveRadiance += p4GridCol * p4Line * 0.62 * uP9Flow;
+        totalEmissiveRadiance += p4RailCol * p4Rail * 1.15 * uP9Flow;`)
+      .replace('#include <common>\nvarying float vP4Lane;',
+        '#include <common>\nuniform float uP9Flow;\nvarying float vP4Lane;');
   };
-  terrain.customProgramCacheKey = () => 'wordrun-p7-track-ribbon-v2';
+  terrain.userData.uP9Flow = { value: 1 };
+  terrain.customProgramCacheKey = () => 'wordrun-p9-flow-ribbon-v1';
   return terrain;
 }
 

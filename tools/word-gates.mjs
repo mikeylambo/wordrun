@@ -19,7 +19,9 @@ import { mulberry32 } from '../src/sim/rng.js';
 import {
   TIERS, ALL_WORDS, isValidWord, pickWord, makeFake, tierCount, tierWords,
 } from '../src/words/wordlist.js';
-import { makeGate, gateDistance, tierAt } from '../src/sim/word-gates.js';
+import {
+  makeGate, gateDistance, tierAt, wordSeedFor, tierStartIndex,
+} from '../src/sim/word-gates.js';
 
 let PASS = 0, FAIL = 0;
 const out = [];
@@ -276,6 +278,76 @@ head('WORDS — frame budget parity');
   const us = ((performance.now() - t0) / steps) * 1000;
   check('sim step with the word verb stays inside the frame budget',
     us < 250, `${us.toFixed(1)} µs/step — ${(us / 16600 * 100).toFixed(2)}% of a 16.6ms frame`);
+}
+
+// ── Phase 9: depth — the big bank, the no-repeat walk, fresh runs ────────
+head('WORDS — depth (bank scale, no repeats, fresh words per attempt)');
+
+{
+  check('the merged bank ships at scale (≥ 6,000 words, 5 tiers)',
+    ALL_WORDS.length >= 6000 && TIERS.length === 5,
+    `${ALL_WORDS.length} words — ${TIERS.map((t) => t.length).join(' / ')}`);
+  check('every tier is deep enough to outlast a run without cycling (≥ 800)',
+    TIERS.every((t) => t.length >= 800));
+  check('no word longer than 12 letters reaches the plate',
+    ALL_WORDS.every((w) => w.length <= 12));
+
+  // The no-repeat guarantee, observed: 400 consecutive gates, zero
+  // duplicate words inside any single tier stretch — and therefore zero
+  // back-to-back repeats anywhere.
+  for (const seed of [SEEDS[0], SEEDS[3]]) {
+    let dup = 0;
+    let backToBack = 0;
+    const seen = new Map(); // tier -> Set
+    let prev = null;
+    for (let i = 0; i < 400; i++) {
+      const g = makeGate(seed, i);
+      const base = g.answer; // the underlying real word
+      if (!seen.has(g.tier)) seen.set(g.tier, new Set());
+      if (seen.get(g.tier).has(base)) dup++;
+      seen.get(g.tier).add(base);
+      if (base === prev) backToBack++;
+      prev = base;
+    }
+    check(`seed ${seed}: 400 gates, no repeats within a tier, none back-to-back`,
+      dup === 0 && backToBack === 0, `${dup} dupes, ${backToBack} adjacent`);
+  }
+
+  // Per-attempt salt: identical without it, fresh words with it, and the
+  // real/fake structure of the DAY stays untouched by construction (the
+  // track and bells never see the salt).
+  const s = SEEDS[1];
+  check('salt 0 is the identity (tools/ghost replay unchanged)',
+    wordSeedFor(s, 0) === (s >>> 0) &&
+    makeGate(wordSeedFor(s, 0), 0).shown === makeGate(s, 0).shown);
+  const a = Array.from({ length: 30 }, (_, i) => makeGate(wordSeedFor(s, 1), i).answer);
+  const b = Array.from({ length: 30 }, (_, i) => makeGate(wordSeedFor(s, 2), i).answer);
+  const c = Array.from({ length: 30 }, (_, i) => makeGate(wordSeedFor(s, 1), i).answer);
+  check('the same attempt number replays identically',
+    JSON.stringify(a) === JSON.stringify(c));
+  const differing = a.filter((w, i) => w !== b[i]).length;
+  check('a new attempt reads mostly new vocabulary on the same track',
+    differing >= 24, `${differing}/30 gates differ between attempt 1 and 2`);
+
+  // Fake safety at scale: sample widely across the big bank — a generated
+  // fake must never be a shipped word (a correct read is never punished).
+  const rng = mulberry32(0xfa4e);
+  let fakes = 0;
+  let unsafe = 0;
+  for (let i = 0; i < 4000; i++) {
+    const word = ALL_WORDS[Math.floor(rng() * ALL_WORDS.length)];
+    const f = makeFake(word, rng);
+    fakes++;
+    if (f === word || isValidWord(f)) unsafe++;
+  }
+  check('4,000 sampled fakes across the merged bank: none are real words',
+    unsafe === 0, `${fakes} generated, ${unsafe} collisions`);
+
+  check('tier boundaries are exact (the walk index restarts per tier)',
+    [1, 2, 3, 4].every((t) => {
+      const i = tierStartIndex(t);
+      return tierAt(gateDistance(i)) >= t && (i === 0 || tierAt(gateDistance(i - 1)) < t);
+    }));
 }
 
 console.log(out.join('\n'));

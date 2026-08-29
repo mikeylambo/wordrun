@@ -53,8 +53,8 @@ const audioSrc = read('src/audio/audio.js');
 check(mainSrc.includes('function warmStart()') && mainSrc.includes('initTexture') &&
   mainSrc.includes('compileAsync'),
   'title idle pre-compiles shaders and pre-uploads canvas textures');
-check(mainSrc.includes('wordGateActors.current.paint(makeGate(SEED, 0).shown') &&
-  mainSrc.includes('wordGateActors.next.paint(makeGate(SEED, 1).shown'),
+check(mainSrc.includes('wordGateActors.current.paint(makeGate(nextWordSeed, 0).shown') &&
+  mainSrc.includes('wordGateActors.next.paint(makeGate(nextWordSeed, 1).shown'),
   "the run's first two plates are painted before DROP IN (cache-hit at start)");
 check(audioSrc.includes('prewarm()') && audioSrc.includes('this.prewarm();') &&
   !audioSrc.includes('if (!Ctx) return;\n    const ctx = new Ctx();\n\n    this.ready'),

@@ -64,6 +64,15 @@ Slice history:
   for parallax, and a comet tail stretching off the runner. A GitHub
   Pages workflow builds and publishes the branch so the game is playable
   from a phone.
+- Phase 9 — depth: words and the color grammar. The word bank grew 563 →
+  ~6,700 by harvesting the Barsmith catalog into generated bank.js,
+  re-tiered by length; words draw as a seeded no-repeat walk through each
+  tier and the word lane is salted per attempt (same daily track, fresh
+  vocabulary every run). The color grammar became a system: world
+  brilliance rides the chain through one pure flow curve (marquee pulse
+  near peak, bounded under the plate and the Redline — both gated); a
+  tapped fake drains light and treble for a beat instead of white-flashing;
+  the correct chime climbs a pentatonic ladder with the chain.
 - Meta layer — the SLU shell's Layer-1 managers ported into `src/meta/`
   (stats ledger, deterministic daily goals, play streak) and wired to the
   run: goal chips and the streak on the title, and a learning recap on

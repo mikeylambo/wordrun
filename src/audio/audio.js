@@ -81,7 +81,15 @@ export class Audio {
     this.limiter.ratio.value = 5;
     this.limiter.attack.value = 0.004;
     this.limiter.release.value = 0.18;
-    this.master.connect(this.limiter);
+    // The drain's ears (Phase 9): a master lowpass, wide open in play,
+    // slammed shut for a beat by duck() when a fake gets tapped — the
+    // whole mix goes dark with the world, then recovers.
+    this.duckFilter = ctx.createBiquadFilter();
+    this.duckFilter.type = 'lowpass';
+    this.duckFilter.frequency.value = 19500;
+    this.duckFilter.Q.value = 0.3;
+    this.master.connect(this.duckFilter);
+    this.duckFilter.connect(this.limiter);
     this.limiter.connect(ctx.destination);
 
     this.bus = {
@@ -370,7 +378,29 @@ export class Audio {
     this._tone({ type: 'square', f0: 142, f1: 42, dur: 0.27, vol: 0.16, bus: this.bus.surface });
   }
 
-  gate() { this._tone({ f0: 880, f1: 1320, dur: 0.13, vol: 0.10, bus: this.bus.ui }); }
+  /**
+   * The correct-read chime climbs a pentatonic ladder with the chain
+   * (Phase 9): a streak becomes an ascending melody, and losing the chain
+   * audibly resets the ladder. Bright = up = flow.
+   */
+  gate(chain = 0) {
+    const steps = [0, 2, 4, 7, 9];
+    const c = Math.max(0, Math.min(14, chain | 0));
+    const semis = steps[c % 5] + 12 * Math.floor(c / 5);
+    const f0 = 660 * Math.pow(2, semis / 12);
+    this._tone({ f0, f1: f0 * 1.5, dur: 0.13, vol: 0.10, bus: this.bus.ui });
+    if (c >= 5) this._tone({ type: 'sine', f0: f0 * 2, f1: f0 * 2.02, dur: 0.1, vol: 0.035, bus: this.bus.ui, delay: 0.01 });
+  }
+
+  /** The drain: the whole mix darkens for a beat, then the light returns. */
+  duck() {
+    if (!this.ready) return;
+    const f = this.duckFilter.frequency;
+    const now = this.ctx.currentTime;
+    f.cancelScheduledValues(now);
+    f.setValueAtTime(460, now);
+    f.setTargetAtTime(19500, now + 0.14, 0.22);
+  }
 
   // A missed real word: deflation, not a crash. Softer and shorter than
   // hit() with none of its impact burst — the rulebook asymmetry, audible.

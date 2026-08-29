@@ -327,6 +327,45 @@ head('VIBRANCY — red belongs to the Redline alone');
     burst.includes('chain >= 3'));
 }
 
+// ── The flow channel + the drain (Phase 9 color grammar) ─────────────────
+head('FLOW — brilliance is earned; loss is darkness');
+
+{
+  const { flowFactor, flowLevel, flowGlow, flowPulse } =
+    await import('../src/render/flow-curve.js');
+  const src = fs.readFileSync('src/render/flow-curve.js', 'utf8');
+  check('the flow curve is pure (no renderer or sim imports)',
+    !src.includes("from 'three'") && !src.includes('../sim/'));
+
+  check('idle world is dimmed but never dead; peak is bright but bounded',
+    flowFactor(0, 0) >= 0.6 && flowFactor(0, 0) < 1 &&
+    Math.max(...Array.from({ length: 60 }, (_, i) => flowFactor(8, i * 0.02))) < 2.5,
+    `idle ${flowFactor(0, 0).toFixed(2)}, peak ≤ ${Math.max(...Array.from({ length: 60 }, (_, i) => flowFactor(8, i * 0.02))).toFixed(2)}`);
+  check('flow rises monotonically with the chain (steady component)',
+    [0, 1, 2, 4, 6, 8].every((c, i, a) => i === 0 || flowGlow(flowLevel(c)) > flowGlow(flowLevel(a[i - 1]))));
+  check('the marquee pulse only wakes near peak flow',
+    flowPulse(0.4, 0.1) === 1 && flowPulse(1, 0.11) !== 1);
+
+  const main = fs.readFileSync('src/main.js', 'utf8');
+  check('the world consumes the one flow value (grid, line art, pylons, figure)',
+    main.includes('uP9Flow.value = flowF') && main.includes('dataworld.setFlow(flowF)') &&
+    main.includes('trackPylons.setFlow(flowF)') && main.includes('playerActor.flow = flowF'));
+
+  // The drain: a tapped fake darkens the frame — it must NOT white-flash,
+  // and red is never spent on mistakes (the Redline's channel stays pure).
+  check('a wrong tap drains (dark + desaturate), never a bright crash-flash',
+    main.includes('ui.drain()') && main.includes('audio.duck()') &&
+    !/case 'word_wrong':[\s\S]{0,600}?hitFlash/.test(main));
+  const indexHtml = fs.readFileSync('index.html', 'utf8');
+  check('the drain overlay is desaturation + dim, carrying no red',
+    indexHtml.includes("mix-blend-mode:saturation") && indexHtml.includes('#drainDim') &&
+    !/#drain\{[^}]*(255,\s*4?\d,)/.test(indexHtml));
+  const audio = fs.readFileSync('src/audio/audio.js', 'utf8');
+  check('the mix darkens with the drain and the chime climbs with the chain',
+    audio.includes('duckFilter') && audio.includes('gate(chain = 0)') &&
+    audio.includes('[0, 2, 4, 7, 9]'));
+}
+
 console.log(out.join('\n'));
 console.log(`\n${PASS} passed, ${FAIL} failed`);
 if (FAIL) process.exit(1);
