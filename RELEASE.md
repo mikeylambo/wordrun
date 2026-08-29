@@ -73,6 +73,16 @@ Slice history:
   near peak, bounded under the plate and the Redline — both gated); a
   tapped fake drains light and treble for a beat instead of white-flashing;
   the correct chime climbs a pentatonic ladder with the chain.
+- Phase 12 — DICTION DASH. The game is renamed (wordmark, new icon set,
+  manifest, page identity, share filenames, storage namespace with a
+  one-time legacy migration, service-worker cache; the old title joins
+  the retired-names gate). Playables readiness audited and green: zero
+  external network calls through a full run, 1.75 MB against the 30 MB
+  initial-load ceiling (npm run audit:size / audit:network). The dynamic
+  music engine landed ahead of the score: four looping stem layers
+  (drums/bass/lead/fx) on their own bus, volumes a pure gated function
+  of speed and chain, synthesized placeholder loops standing in — real
+  stems are a file drop into public/audio/stems/, no code changes.
 - Phase 11 — curation and access. The harvested catalog bank was
   deliberately removed: the game returns to the hand-curated list, whose
   variety is now carried by the no-repeat walk, the per-attempt salt and

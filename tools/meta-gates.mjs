@@ -244,6 +244,54 @@ head('MODES — rules, difficulty, and separated boards');
     fs.readFileSync('index.html', 'utf8').includes('id="difficultyRow"'));
 }
 
+// ── Music stems (Phase 12): the reactive engine, gated before the score ──
+head('MUSIC — stem levels are a pure function of speed and streak');
+
+{
+  const { stemLevels, STEM_LAYERS } = await import('../src/audio/stems.js');
+  const TUNING = (await import('../src/TUNING.js')).default;
+  const R = TUNING.RUN;
+
+  const a = stemLevels({ speed: 33, streak: 4 });
+  const b = stemLevels({ speed: 33, streak: 4 });
+  check('identical state yields identical levels (deterministic)',
+    JSON.stringify(a) === JSON.stringify(b));
+  check('four layers, every level bounded 0..1',
+    STEM_LAYERS.length === 4 && STEM_LAYERS.every((l) => {
+      const v = stemLevels({ speed: 50, streak: 6 })[l];
+      return v >= 0 && v <= 1;
+    }));
+
+  const speeds = [R.FLOOR, 24, 32, 40, 48, 56, R.CEILING];
+  const drumRamp = speeds.map((speed) => stemLevels({ speed, streak: 0 }).drums);
+  check('drums ride the speed curve monotonically floor -> ceiling',
+    drumRamp.every((v, i) => i === 0 || v >= drumRamp[i - 1]) &&
+    drumRamp[speeds.length - 1] > drumRamp[0] + 0.5,
+    drumRamp.map((v) => v.toFixed(2)).join(' -> '));
+  check('bass is the ever-present foundation (audible even at the floor)',
+    stemLevels({ speed: R.FLOOR, streak: 0 }).bass >= 0.5);
+
+  const leadRamp = [0, 2, 4, 6, 8].map((streak) => stemLevels({ speed: 30, streak }).lead);
+  check('lead wakes with the chain and is silent without one',
+    leadRamp[0] === 0 && leadRamp.every((v, i) => i === 0 || v >= leadRamp[i - 1]) &&
+    leadRamp[4] > 0.8, leadRamp.map((v) => v.toFixed(2)).join(' -> '));
+
+  check('fx is the peak layer: needs BOTH high speed and a deep chain',
+    stemLevels({ speed: R.CEILING, streak: 0 }).fx === 0 &&
+    stemLevels({ speed: R.FLOOR, streak: 8 }).fx === 0 &&
+    stemLevels({ speed: R.CEILING, streak: 8 }).fx > 0.8);
+
+  const src = fs.readFileSync('src/audio/stems.js', 'utf8');
+  check('real stems are a file drop, never a code change (loader + fallback)',
+    src.includes("audio/stems/${name}.${ext}") && src.includes('placeholderBuffer') &&
+    fs.existsSync('public/audio/stems/README.md'));
+  check('the stems ride the master chain (mute and the drain duck apply)',
+    fs.readFileSync('src/audio/audio.js', 'utf8').includes('new StemMix(ctx, this.master') &&
+    fs.readFileSync('src/audio/audio.js', 'utf8').includes('this.stems.update'));
+  check('the engine adds no player-facing copy (naming cap untouched)',
+    !/textContent|innerHTML|document\./.test(src));
+}
+
 // ── Wiring + module independence ─────────────────────────────────────────
 head('META — wiring and independence');
 

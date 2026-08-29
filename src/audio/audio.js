@@ -7,6 +7,7 @@
  */
 
 import TUNING from '../TUNING.js';
+import { StemMix } from './stems.js';
 import { corruptionIntensity } from '../render/corruption-curve.js';
 
 const A = TUNING.AUDIO;
@@ -63,6 +64,7 @@ export class Audio {
   start() {
     this.prewarm();
     if (this.ready && this.ctx.state === 'suspended') this.ctx.resume();
+    if (this.ready) this.stems.start();
   }
 
   /** Build the whole graph, suspended. Safe to call at page load. */
@@ -155,6 +157,10 @@ export class Audio {
       o.start();
     }
 
+    // Dynamic music stems (Phase 12): four looping layers on their own
+    // bus into the master chain — mute and the drain duck apply for free.
+    this.stems = new StemMix(ctx, this.master, './');
+
     this.ready = true;
     globalThis.__AUDIO_RC9 = { version: '9.0', buses: Object.keys(this.bus), shared: true };
   }
@@ -220,6 +226,13 @@ export class Audio {
     this._set(this.bus.ambience.gain, run ? (kill ? 0.20 : 0.92) : 0, 0.11);
     this._set(this.bus.surface.gain, run ? (kill ? 0.03 : 0.95) : 0, 0.08);
     this._set(this.bus.threat.gain, run ? (kill ? 0.30 : 0.92) : 0, 0.08);
+
+    // Music stems ride the same two values the visual vibrancy rides:
+    // speed (effective, so Overdrive lifts the score) and the chain.
+    this.stems.update(
+      { speed: p.effSpeed ?? p.speed, streak: p.chain ?? 0 },
+      !!running && !kill
+    );
 
     const speedN = clamp((p.speed - 10) / (TUNING.RUN.CEILING - 10)); // full range (P8.5)
     const edge = p.airborne ? 0 : clamp(Math.abs(p.heading) / TUNING.PLAYER.MAX_CARVE);
