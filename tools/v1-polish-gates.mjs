@@ -60,6 +60,24 @@ check(audioSrc.includes('prewarm()') && audioSrc.includes('this.prewarm();') &&
   !audioSrc.includes('if (!Ctx) return;\n    const ctx = new Ctx();\n\n    this.ready'),
   'audio graph builds suspended at load; the gesture only resumes it');
 
+// ── Phase 8.5: speed fantasy is keyed to the FULL floor→ceiling range ────
+const rigSrc = read('src/render/camera-rig.js');
+const actorsSrc = read('src/render/actors.js');
+const audioMix = read('src/audio/audio.js');
+const speedFx = read('src/render/speed-fantasy.js');
+check(rigSrc.includes('(p.speed - R.FLOOR) / (R.CEILING - R.FLOOR)') &&
+  rigSrc.includes('HEIGHT_SPEED_DROP') && rigSrc.includes('LOOK_SPEED_AHEAD'),
+  'camera speed feel spans the whole RUN range: closer-lower-wider, not boom-back');
+check(actorsSrc.includes('(p.speed - R.FLOOR) / (R.CEILING - R.FLOOR)') &&
+  actorsSrc.includes('this.tail.material.opacity'),
+  'runner cadence spans the range and the comet tail rides the top of it');
+check(audioMix.includes('TUNING.RUN.CEILING - 10'),
+  'wind and glide keep escalating all the way to the ceiling');
+check(mainSrc.includes('new WindStreaks(stage.camera)') &&
+  mainSrc.includes('new TrackPylons(stage.scene') &&
+  speedFx.includes('AdditiveBlending'),
+  'wind streaks ride the camera and pylons flank the track');
+
 check(input.includes('TOUCH_DRAG_RANGE_GROUND = 0.29') && input.includes('TOUCH_DRAG_RANGE_AIR = 0.22'),
   'mobile ground and air gestures use separate analog throws');
 check(input.includes('TOUCH_RESPONSE_GROUND = 24.0') && input.includes('TOUCH_RESPONSE_AIR = 34.0'),

@@ -432,6 +432,14 @@ export const TUNING = {
     LOOK_AHEAD: 12,
     LOOK_HEIGHT: 0.2,
     SMOOTH: 9.0,               // position lerp rate
+    // ── Speed fantasy (Phase 8.5) ─────────────────────────────────────────
+    // The old rig normalised speed against the 34 m/s era and pulled the
+    // boom BACK as you sped up — which reads as slower. Sonic grammar is
+    // the opposite: stay close, drop low, aim further down the track, and
+    // stretch the FOV, all keyed 0..1 across the RUN floor→ceiling range.
+    HEIGHT_SPEED_DROP: 1.7,    // rig sinks this much at the ceiling
+    LOOK_SPEED_AHEAD: 5,       // aim drifts this much further down-track
+    SPEED_SHAKE: 0.05,         // barely-in-control tremor near the ceiling
     AIR_HEIGHT_GAIN: 0.55,     // rig rises with you on big airs
     AIR_LOOK_GAIN: 0.62,       // and the aim rises too, or you exit frame
     LOOK_CENTRE_BIAS: 0.8,     // 1 = dead on you, 0 = always centred on the piste
@@ -446,7 +454,7 @@ export const TUNING = {
     KILL_BACK: 8.5,
     KILL_HEIGHT: 5.4,
     KILL_LOOK_PAST: 5.5,       // aim this far upslope of you at the end
-    FOV_SPEED_GAIN: 0.42,      // FOV stretch with speed
+    FOV_SPEED_GAIN: 0.68,      // FOV stretch across the full speed range
     FOV_BOOST: 9,              // extra FOV while Overdrive is up
   },
 

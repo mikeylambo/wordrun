@@ -16,6 +16,7 @@ import { Landmarks } from './render/landmarks.js';
 import { WordGateActors } from './render/word-gates.js';
 import { DataworldPass } from './render/dataworld.js';
 import { StreakBurst } from './render/streak-burst.js';
+import { WindStreaks, TrackPylons } from './render/speed-fantasy.js';
 import { applyMaterialPass } from './render/material-pass.js';
 import { Audio } from './audio/audio.js';
 import { Input } from './input/input.js';
@@ -47,6 +48,11 @@ const wordGateActors = new WordGateActors(stage.scene, sim);
 const materialPass = applyMaterialPass(stage.scene, terrainMesh, { playerActor, beastActor });
 const dataworld = new DataworldPass(stage.scene, [playerActor.root, ghostActor.root]);
 const streakBurst = new StreakBurst(stage.scene);
+// Speed-fantasy layers: wind lines live on the camera (which must be in
+// the scene graph for its children to render), pylons flank the track.
+stage.scene.add(stage.camera);
+const windStreaks = new WindStreaks(stage.camera);
+const trackPylons = new TrackPylons(stage.scene, sim.terrain);
 
 const simInput = emptyInput();
 let running = false;
@@ -447,6 +453,9 @@ function tick(dt) {
   const slope = sim.terrain.normalAt(p.x, p.d);
   playerActor.update(p, slope, dt, sim.beast.gap);
   ghostActor.update(sim.ghost, dt);
+  windStreaks.update(paused ? 0 : dt, running ? (p.effSpeed || p.speed) : 0, p.overdrive);
+  trackPylons.terrain = sim.terrain;
+  trackPylons.update(p.d);
 
   const beastGroundY = sim.terrain.heightAt(sim.beast.x, p.d - sim.beast.gap);
   const killT = sim.phase === PHASE.KILL || sim.phase === PHASE.DEAD ? sim.killTimer : 0;
@@ -455,7 +464,7 @@ function tick(dt) {
 
   if (!paused && running && !p.airborne) {
     const edge = Math.min(1, Math.abs(p.heading) / TUNING.PLAYER.MAX_CARVE);
-    const rate = (2 + edge * 46) * (0.35 + Math.min(1, p.speed / 34) * 0.65);
+    const rate = (2 + edge * 46) * (0.35 + Math.min(1, p.speed / TUNING.RUN.CEILING) * 0.65);
     sprayAcc += rate * dt;
     while (sprayAcc >= 1) {
       sprayAcc -= 1;

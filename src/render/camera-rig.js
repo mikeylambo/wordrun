@@ -33,9 +33,14 @@ export class CameraRig {
   }
 
   update(dt, p, gap, shakeAmp, killT, terrain, beastX = p.x, beastSide = 1) {
-    const speedN = Math.max(0, (p.speed - 14) / 20);
+    // Speed feel is keyed 0..1 across the whole floor→ceiling range (the
+    // old (v-14)/20 saturated — and kept growing past 1 — at 34 m/s era
+    // values, so the climb from 40 to the new ceiling showed nothing and
+    // the boom drifted away). Sonic grammar: closer, lower, wider, ahead.
+    const R = TUNING.RUN;
+    const speedN = Math.max(0, Math.min(1, (p.speed - R.FLOOR) / (R.CEILING - R.FLOOR)));
     let back = C.BACK + speedN * C.BACK_SPEED_GAIN * 20;
-    let height = C.HEIGHT;
+    let height = C.HEIGHT - speedN * C.HEIGHT_SPEED_DROP;
 
     const dread = Math.max(0, 1 - gap / C.DREAD_TILT_RANGE);
     back += dread * C.DREAD_TILT;
@@ -91,7 +96,10 @@ export class CameraRig {
       this.pos.lerp(target, killT > 0 ? Math.min(1, dt * 9) : k);
     }
 
-    const amp = shakeAmp;
+    // Barely-in-control tremor as the ceiling nears — additive with the
+    // dread shake, tiny enough to never smear a plate.
+    const speedShake = Math.max(0, speedN - 0.72) / 0.28 * C.SPEED_SHAKE;
+    const amp = Math.max(shakeAmp, speedShake);
     if (amp > 0.001) {
       const t = performance.now() * 0.001;
       // Bias dread shake vertically/downhill; random lateral vibration reads as
@@ -116,7 +124,7 @@ export class CameraRig {
         -p.d + C.KILL_LOOK_PAST * e
       );
     } else {
-      const aheadD = p.d + C.LOOK_AHEAD;
+      const aheadD = p.d + C.LOOK_AHEAD + speedN * C.LOOK_SPEED_AHEAD;
       const groundAhead = terrain
         ? terrain.heightAt(p.x, aheadD)
         : p.y - C.LOOK_AHEAD * TUNING.TERRAIN.GRADE;

@@ -308,6 +308,10 @@ head('VIBRANCY — red belongs to the Redline alone');
   check('the running figure of light carries no red',
     hexesIn(cursor).filter(saturatedRed).length === 0);
 
+  const speedFx = fs.readFileSync('src/render/speed-fantasy.js', 'utf8');
+  check('the speed-fantasy layers (streaks, pylons) carry no red',
+    hexesIn(speedFx).filter(saturatedRed).length === 0);
+
   const redline = fs.readFileSync('src/render/corruption.js', 'utf8');
   check('the Redline keeps its red scan bar',
     redline.includes('0xff2a1f'));

@@ -105,11 +105,18 @@ function buildRunner(ghost = false) {
   pool.position.y = 0.03;
   g.add(pool);
 
-  const materials = [coreMat, limbMat, halo.material, pool.material];
+  // The comet tail: a horizontal streak stretching behind the figure as
+  // speed climbs — invisible at a jog, unmistakable near the ceiling.
+  const tail = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1), glow(haloColor, 0));
+  tail.rotation.x = -Math.PI / 2;
+  tail.position.y = 1.05;
+  g.add(tail);
+
+  const materials = [coreMat, limbMat, halo.material, pool.material, tail.material];
   if (ghost) for (const m of materials) m.transparent = true;
 
   return {
-    group: g, hips, chest, head, halo, pool,
+    group: g, hips, chest, head, halo, pool, tail,
     armL, armR, legL, legR,
     coreMat, limbMat, materials, baseOpacity,
   };
@@ -239,7 +246,12 @@ export class PlayerActor {
       this.pivot.rotation.x *= 1 - settle;
     }
 
-    const speedN = Math.min(1.35, p.speed / 32) + (p.overdrive ? 0.5 : 0);
+    // Keyed 0..1.35 across the RUN floor→ceiling range (the old /32 maxed
+    // out the animation at 43 m/s, so the top half of the curve looked
+    // identical to the middle). Overdrive still stacks its own 0.5.
+    const R = TUNING.RUN;
+    const norm = Math.max(0, Math.min(1, (p.speed - R.FLOOR) / (R.CEILING - R.FLOOR)));
+    const speedN = norm * 1.35 + (p.overdrive ? 0.5 : 0);
 
     // The run cycle is driven by distance, so stride matches the ground:
     // ~2.4m per full stride pair at base, longer as the figure sprints.
@@ -259,7 +271,16 @@ export class PlayerActor {
     const blink = 0.86 + Math.abs(Math.sin(this._blink * Math.PI)) * 0.14;
     this.coreMat.opacity = 0.96 * this.baseOpacity * blink;
     this.halo.material.opacity = 0.22 * this.baseOpacity * (0.8 + speedN * 0.35) * blink;
-    this.halo.scale.set(1.0 + speedN * 0.1, 1.55 + speedN * 0.12, 1.0 + speedN * 0.1);
+    // The halo stretches into a teardrop with speed — the whole construct
+    // reads as motion even in a still frame.
+    this.halo.scale.set(1.0 + speedN * 0.1, 1.55 + speedN * 0.12, 1.0 + speedN * 0.55);
+    this.halo.position.z = speedN * 0.5;
+
+    // Comet tail: length and brightness ride the top half of the range.
+    const tailN = Math.max(0, norm - 0.25) / 0.75;
+    this.tail.material.opacity = tailN * 0.4 * this.baseOpacity;
+    this.tail.scale.y = 0.001 + tailN * 9;             // plane local y = world z
+    this.tail.position.z = (0.001 + tailN * 9) / 2 + 0.4;
 
     // Stagger: the construct destabilises — hard flicker, a shudder, arms
     // thrown wide — where the old rig windmilled.
@@ -285,6 +306,7 @@ export class GhostActor {
   constructor(scene) {
     const b = buildRunner(true);
     Object.assign(this, b);
+    this.tail.visible = false; // the comet tail is the live runner's alone
     this.root = new THREE.Group();
     this.root.add(this.group);
     this.root.visible = false;
@@ -302,7 +324,8 @@ export class GhostActor {
     // Stride from its own recorded motion, so the pale runner keeps pace.
     const v = this._lastD == null || dt <= 0 ? 0 : Math.max(0, (ghost.d - this._lastD) / dt);
     this._lastD = ghost.d;
-    const speedN = Math.min(1.35, v / 32);
+    const R = TUNING.RUN;
+    const speedN = Math.max(0, Math.min(1, (v - R.FLOOR) / (R.CEILING - R.FLOOR))) * 1.35;
     this._phase += v * dt * (Math.PI * 2) / (2.4 + speedN * 0.9);
     poseRunner(this, this._phase, speedN, false, dt);
     this.chest.rotation.x = -(0.16 + speedN * 0.22);

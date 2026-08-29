@@ -54,6 +54,16 @@ Slice history:
   coordinates — uncollectible against the winding line, inert in play —
   so they now ride the travel line itself and bank the bare-number
   spendable balance (◆) alongside their meter drip and heart repair.
+- Phase 8.5 — speed fantasy + phone play. Every speed cue (camera, runner
+  cadence, wind/glide audio, spray) was still normalised to the retired
+  34 m/s era and saturated halfway up the new curve; all are now keyed
+  0..1 across floor→ceiling. The camera speaks Sonic grammar — closer,
+  lower, wider, aimed further down-track, with a barely-in-control tremor
+  near the ceiling — and three new presentation layers sell the rush:
+  wind-streak lines riding the camera, glowing pylons flanking the track
+  for parallax, and a comet tail stretching off the runner. A GitHub
+  Pages workflow builds and publishes the branch so the game is playable
+  from a phone.
 - Meta layer — the SLU shell's Layer-1 managers ported into `src/meta/`
   (stats ledger, deterministic daily goals, play streak) and wired to the
   run: goal chips and the streak on the title, and a learning recap on

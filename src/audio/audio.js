@@ -213,7 +213,7 @@ export class Audio {
     this._set(this.bus.surface.gain, run ? (kill ? 0.03 : 0.95) : 0, 0.08);
     this._set(this.bus.threat.gain, run ? (kill ? 0.30 : 0.92) : 0, 0.08);
 
-    const speedN = clamp((p.speed - 7) / 30);
+    const speedN = clamp((p.speed - 10) / (TUNING.RUN.CEILING - 10)); // full range (P8.5)
     const edge = p.airborne ? 0 : clamp(Math.abs(p.heading) / TUNING.PLAYER.MAX_CARVE);
     const airborne = !!p.airborne;
     const onIce = !airborne && !!p.onIce;

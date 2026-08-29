@@ -89,7 +89,7 @@ if (!Audio.prototype.__v1ApprovedMix) {
     const phase = sim?.phase;
     const kill = phase === 'kill' || phase === 'dead';
     const live = !!running && !kill;
-    const speedN = clamp01((player.speed - 7) / 30);
+    const speedN = clamp01((player.speed - 10) / (TUNING.RUN.CEILING - 10));
     const edge = player.airborne ? 0 : clamp01(Math.abs(player.heading) / TUNING.PLAYER.MAX_CARVE);
     const onSnow = live && !player.airborne && !player.onIce && !player.inPowder;
 

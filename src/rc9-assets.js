@@ -60,7 +60,7 @@ function boot() {
     const phase = sim.phase;
     const live = !!running && phase === 'running';
     const kill = phase === 'kill' || phase === 'dead';
-    const speedN = clamp((p.speed - 7) / 30);
+    const speedN = clamp((p.speed - 10) / (TUNING.RUN.CEILING - 10));
     const edge = p.airborne ? 0 : clamp(Math.abs(p.heading) / TUNING.PLAYER.MAX_CARVE);
     const airborne = !!p.airborne;
     const onIce = live && !airborne && !!p.onIce;
