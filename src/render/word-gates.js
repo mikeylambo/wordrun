@@ -15,6 +15,7 @@
 import * as THREE from 'three';
 import TUNING from '../TUNING.js';
 import { makeGate } from '../sim/word-gates.js';
+import { ACCESS } from '../ui/access.js';
 
 
 
@@ -33,6 +34,8 @@ const COL = {
   edge: 'rgba(103,216,255,0.55)',
   ink: '#eefaff',
   confirm: '#67d8ff',
+  // right/wrong are SEMANTIC and colour-vision modes replace the axis that
+  // fails (ACCESS overrides at paint time); these are the shipped defaults.
   right: '#57e389',
   wrong: '#ff2a1f',
 };
@@ -68,16 +71,17 @@ class Plate {
   }
 
   paint(word, state) {
-    if (this.key === word && this.state === state) return;
-    this.key = word;
+    const cacheKey = `${word}|${ACCESS.epoch}`;
+    if (this.key === cacheKey && this.state === state) return;
+    this.key = cacheKey;
     this.state = state;
     const g = this.canvas.getContext('2d');
     const cw = this.canvas.width;
     const ch = this.canvas.height;
     g.clearRect(0, 0, cw, ch);
 
-    const accent = state === 'right' ? COL.right
-      : state === 'wrong' ? COL.wrong
+    const accent = state === 'right' ? ACCESS.right
+      : state === 'wrong' ? ACCESS.wrong
       : state === 'confirmed' ? COL.confirm
       : COL.edge;
 
@@ -95,7 +99,13 @@ class Plate {
     g.stroke();
     g.restore();
 
-    const font = (px) => `800 ${px}px ui-monospace, 'SF Mono', Menlo, Consolas, monospace`;
+    // READABLE TYPE (accessibility): a wider-spaced humanist face instead
+    // of the condensed monospace — Verdana-class faces are the widely
+    // recommended dyslexia-friendlier system fonts.
+    const font = ACCESS.readableType
+      ? (px) => `700 ${px}px Verdana, 'DejaVu Sans', Arial, sans-serif`
+      : (px) => `800 ${px}px ui-monospace, 'SF Mono', Menlo, Consolas, monospace`;
+    if ('letterSpacing' in g) g.letterSpacing = ACCESS.readableType ? '5px' : '0px';
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     let text = word;
@@ -123,7 +133,7 @@ class Plate {
     // Soft neon halo behind the core glyphs — halo only, cores stay solid.
     g.shadowColor = state === 'idle' ? 'rgba(103,216,255,0.75)' : accent;
     g.shadowBlur = 22;
-    g.fillStyle = state === 'wrong' ? COL.wrong : COL.ink;
+    g.fillStyle = state === 'wrong' ? ACCESS.wrong : COL.ink;
     g.fillText(text, cx, cy);
     g.shadowBlur = 0;
     g.fillText(text, cx, cy);

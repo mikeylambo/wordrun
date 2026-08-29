@@ -73,6 +73,16 @@ Slice history:
   near peak, bounded under the plate and the Redline — both gated); a
   tapped fake drains light and treble for a beat instead of white-flashing;
   the correct chime climbs a pentatonic ladder with the chain.
+- Phase 11 — curation and access. The harvested catalog bank was
+  deliberately removed: the game returns to the hand-curated list, whose
+  variety is now carried by the no-repeat walk, the per-attempt salt and
+  the difficulty profiles rather than raw volume. Accessibility landed as
+  a persisted settings surface: REDUCED FLASH (no marquee pulse, softer
+  drain, stilled veil), READABLE TYPE on the plates, and colour-vision
+  modes that port SIGNAL's axis-replacement palettes to this game's
+  semantic cues (danger accent, right/wrong pair, hearts). Eleven legacy
+  gate suites, the deploy logs and the retired air-beats module were
+  deleted after grep-proof of deadness.
 - Phase 10 — modes. ENDLESS (bell heart-repair) vs STANDARD (three hits,
   ever) × EASY/NORMAL/HARD reading difficulty (word-tier profile + the
   Redline's pace — the discovered-dead grace knob's honest successor).

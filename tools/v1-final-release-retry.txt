@@ -1,2 +1,0 @@
-Deployment retry for the final V1 portrait-viewport + priority-audio-mix candidate.
-No gameplay or presentation behavior changes in this file.

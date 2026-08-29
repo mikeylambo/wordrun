@@ -17,7 +17,8 @@ import { WordGateActors } from './render/word-gates.js';
 import { DataworldPass } from './render/dataworld.js';
 import { StreakBurst } from './render/streak-burst.js';
 import { WindStreaks, TrackPylons } from './render/speed-fantasy.js';
-import { flowFactor } from './render/flow-curve.js';
+import { flowFactor, flowGlow, flowLevel } from './render/flow-curve.js';
+import { ACCESS, initAccess, buildAccessPanel } from './ui/access.js';
 import { applyMaterialPass } from './render/material-pass.js';
 import { Audio } from './audio/audio.js';
 import { Input } from './input/input.js';
@@ -88,6 +89,11 @@ const metaAdapter = localStorageAdapter();
 const metaStats = new StatsManager(metaAdapter);
 const metaDaily = new DailyManager(metaAdapter);
 globalThis.__META = { stats: metaStats, daily: metaDaily };
+
+// Accessibility (Phase 11): load persisted options before the warm-start
+// pre-paints plates, so the readable-type/palette choice is baked in.
+initAccess();
+buildAccessPanel();
 
 ui.setSeed(SEED_STRING, Storage.bestFor(SEED), Storage.runsToday(SEED));
 ui.setDaily(metaDaily.status(SEED));
@@ -551,7 +557,12 @@ function tick(dt) {
   flowChain = p.chain < flowChain
     ? p.chain
     : flowChain + (p.chain - flowChain) * (1 - Math.exp(-3.5 * dt));
-  const flowF = dreadLive && running ? flowFactor(flowChain, performance.now() / 1000) : 1;
+  // REDUCED FLASH keeps the earned brightness but kills the marquee pulse.
+  const flowF = dreadLive && running
+    ? (ACCESS.reducedFlash
+      ? flowGlow(flowLevel(flowChain))
+      : flowFactor(flowChain, performance.now() / 1000))
+    : 1;
   materialPass.terrain.userData.uP9Flow.value = flowF;
   dataworld.setFlow(flowF);
   trackPylons.setFlow(flowF);

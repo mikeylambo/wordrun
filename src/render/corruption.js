@@ -19,6 +19,7 @@
 import * as THREE from 'three';
 import TUNING from '../TUNING.js';
 import { corruptionIntensity, fieldScale } from './corruption-curve.js';
+import { ACCESS } from '../ui/access.js';
 
 const REDRAW_EVERY = 0.085;   // seconds between static re-rolls
 const FIELD_MIN_BEHIND = 26;  // the field never crosses the camera boom
@@ -52,7 +53,7 @@ function drawStatic(canvas, tex, density, heat, pale = false) {
     const r = Math.random();
     g.fillStyle = pale
       ? (r < 0.5 ? 'rgba(220,245,255,0.85)' : r < 0.8 ? 'rgba(150,225,255,0.7)' : 'rgba(255,255,255,0.9)')
-      : r < 0.42 + heat * 0.4 ? (r < 0.18 + heat * 0.4 ? 'rgba(255,42,31,0.85)' : 'rgba(103,216,255,0.8)')
+      : r < 0.42 + heat * 0.4 ? (r < 0.18 + heat * 0.4 ? `rgba(${ACCESS.dangerCss},0.85)` : 'rgba(103,216,255,0.8)')
       : r < 0.8 ? 'rgba(220,245,255,0.75)' : 'rgba(10,16,23,0.9)';
     g.fillRect(Math.random() * w, Math.random() * h,
       1 + Math.random() * 2.5, 1 + Math.random() * 2.5);
@@ -62,7 +63,7 @@ function drawStatic(canvas, tex, density, heat, pale = false) {
     const y = Math.random() * h;
     g.fillStyle = pale
       ? `rgba(210,240,255,${0.14 + Math.random() * 0.25})`
-      : Math.random() < heat ? `rgba(255,42,31,${0.18 + Math.random() * 0.3})`
+      : Math.random() < heat ? `rgba(${ACCESS.dangerCss},${0.18 + Math.random() * 0.3})`
         : `rgba(103,216,255,${0.14 + Math.random() * 0.28})`;
     g.fillRect(0, y, w, 1 + Math.random() * 3);
   }
@@ -162,6 +163,10 @@ export class CorruptionActor {
     if (lunge === 'tell') heatTarget = 1;
     if (lunge === 'strike') heatTarget = 1;
     this._heat += (heatTarget - this._heat) * (1 - Math.exp(-9 * dt));
+
+    // Colour-vision modes retint the scan bar's danger accent at runtime;
+    // the shipped constant (0xff2a1f) remains the default.
+    this.bar.material.color.setHex(ACCESS.danger);
 
     this._redrawT -= dt;
     if (this._redrawT <= 0) {

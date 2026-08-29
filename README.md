@@ -179,11 +179,12 @@ game; this port lifts its meta design, not its runtime.
 
 `src/words/wordlist.js` is a standalone service — zero runtime dependencies,
 no runner imports — built to be lifted into the next word game unchanged.
-Phase 9 merged the Barsmith catalog banks into generated `bank.js` (data
-harvested by `tools/build-wordbank.mjs`, not a dependency):
+Every word is hand-curated (a ~6,700-word harvested catalog bank was
+tried in Phase 9 and deliberately removed in Phase 11 — curation beats
+volume now that the structures below carry the variety):
 
-- 5 tiers re-cut by LENGTH (3-4 / 5 / 6-7 / 8-9 / 10-12 letters), ~6,700
-  words — length is what makes a spelling glance-hostile at speed.
+- 5 difficulty tiers, ~560 words, from short high-frequency up to the
+  classic trap spellings.
 - **No repeats**: each tier is drawn as a seeded coprime walk through the
   whole pool, so a word cannot recur until the entire tier has been seen
   (940–2,200 words — longer than any run's stay in a tier). Gated.

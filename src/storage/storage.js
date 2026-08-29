@@ -36,6 +36,12 @@ export const Storage = {
   difficultyPref() { return safeGet('pref.difficulty') || 'normal'; },
   setDifficultyPref(d) { return safeSet('pref.difficulty', String(d)); },
 
+  accessPrefs() {
+    try { return JSON.parse(safeGet('pref.access') || '{}') || {}; }
+    catch { return {}; }
+  },
+  setAccessPrefs(prefs) { return safeSet('pref.access', JSON.stringify(prefs)); },
+
   available() {
     try {
       const probe = key('__probe');

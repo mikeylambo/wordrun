@@ -1,2 +1,0 @@
-DESCENT V1 preview retry — 2026-08-09 19:39 America/New_York
-No gameplay changes. Retriggers the GPT-v1-RC9 preview for the V1 candidate after Vercel build-rate limiting.

@@ -1,2 +1,0 @@
-DESCENT V1 polish deploy retry — 2026-08-09T23:31-04:00
-No gameplay changes. Retriggers the full V1 polish head so Vercel deploys bell HUD/audio, destruction SFX realism, terrain-only grace, controller support, and updated V1 gates together.

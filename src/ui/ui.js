@@ -5,6 +5,7 @@
 
 import TUNING from '../TUNING.js';
 import { corruptionIntensity, veilOpacity } from '../render/corruption-curve.js';
+import { ACCESS } from './access.js';
 import { bandForDistance } from '../render/art-direction.js';
 
 const $ = (id) => document.getElementById(id);
@@ -254,7 +255,9 @@ export class UI {
       this.staticVeil.style.opacity = op.toFixed(3);
       // Perf: the veil's steps() jitter animation repaints three full-screen
       // gradient layers forever — pause it whenever the layer is invisible.
-      this.staticVeil.style.animationPlayState = op > 0.005 ? 'running' : 'paused';
+      // REDUCED FLASH pauses the jitter outright (the texture still shows).
+      this.staticVeil.style.animationPlayState =
+        op > 0.005 && !ACCESS.reducedFlash ? 'running' : 'paused';
     }
     this.dread.style.opacity = (bands.footfall * 0.92).toFixed(3);
     this.dreadRed.style.opacity = (bands.scream * 0.9).toFixed(3);
@@ -275,10 +278,10 @@ export class UI {
     }
 
     // The drain: sharp onset, ~0.6s recovery — the light comes back as the
-    // world does.
+    // world does. REDUCED FLASH halves its bite.
     if (this._drainT > 0) {
       this._drainT = Math.max(0, this._drainT - dt * 1.7);
-      const k = this._drainT * this._drainT;
+      const k = this._drainT * this._drainT * (ACCESS.reducedFlash ? 0.5 : 1);
       if (this.drainEl) this.drainEl.style.opacity = (k * 0.85).toFixed(3);
       if (this.drainDimEl) this.drainDimEl.style.opacity = (k * 0.42).toFixed(3);
     }

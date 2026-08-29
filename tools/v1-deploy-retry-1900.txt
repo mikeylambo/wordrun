@@ -1,2 +1,0 @@
-DESCENT V1 deploy retry — 2026-08-09 19:00 ET
-No gameplay changes. This file exists only to retrigger the GPT-v1-RC9 preview after Vercel build-rate limiting.

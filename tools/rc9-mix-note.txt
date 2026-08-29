@@ -1,1 +1,0 @@
-RC9.4 mix hierarchy: bells/repair/danger > skis > wind; Hunt heartbeat/beast > skis > wind. Ski procedural bed trim 0.62, Hunt trim 0.54, pickup duck 0.44. Hard-carve and Big Air Foley are optional authored accents over procedural fallback.

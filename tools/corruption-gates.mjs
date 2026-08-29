@@ -153,6 +153,7 @@ head('CORRUPTION — identity');
     'src/ui/ui.js',
     'src/ui/onboarding.js',
     'src/ui/pause.js',
+    'src/ui/access.js',
     'src/v1-mobile-ui.js',
     'src/v1-finalize.js',
     'src/rc5.js',
@@ -364,6 +365,39 @@ head('FLOW — brilliance is earned; loss is darkness');
   check('the mix darkens with the drain and the chime climbs with the chain',
     audio.includes('duckFilter') && audio.includes('gate(chain = 0)') &&
     audio.includes('[0, 2, 4, 7, 9]'));
+}
+
+// ── Accessibility (Phase 11) ─────────────────────────────────────────────
+head('ACCESS — reduced flash, readable type, colour-vision axes');
+
+{
+  const access = fs.readFileSync('src/ui/access.js', 'utf8');
+  const main = fs.readFileSync('src/main.js', 'utf8');
+  const plates = fs.readFileSync('src/render/word-gates.js', 'utf8');
+  const world = fs.readFileSync('src/render/corruption.js', 'utf8');
+
+  check('reduced flash kills the marquee pulse, softens the drain, stills the veil',
+    main.includes('ACCESS.reducedFlash') && main.includes('flowGlow(flowLevel(flowChain))') &&
+    fs.readFileSync('src/ui/ui.js', 'utf8').includes('ACCESS.reducedFlash'));
+
+  // The SIGNAL rule, ported: each colour-vision mode replaces the axis
+  // that fails. Deuteranopia/protanopia lose red/green -> blue/orange
+  // right-wrong; tritanopia loses blue/yellow -> keeps red, red/cyan pair.
+  check('deuteranopia and protanopia replace the red/green axis with blue/orange',
+    /deuteranopia:.*right: '#3fa7ff', wrong: '#ff7800'/.test(access) &&
+    /protanopia:.*right: '#5bc4ff', wrong: '#ff8c42'/.test(access));
+  check('tritanopia keeps red and separates right/wrong as cyan vs red',
+    /tritanopia:.*right: '#00e0d5'/.test(access));
+  check('the default palette is the shipped grammar, untouched',
+    /off: \{ danger: 0xff2a1f/.test(access));
+  check('plates and the scan bar consume the live accent (source defaults stay)',
+    plates.includes('ACCESS.right') && plates.includes('ACCESS.wrong') &&
+    world.includes('ACCESS.danger') && world.includes('0xff2a1f'));
+  check('readable type swaps the plate face and widens spacing',
+    plates.includes('ACCESS.readableType') && plates.includes('Verdana'));
+  check('choices persist through storage prefs',
+    access.includes('Storage.setAccessPrefs') &&
+    fs.readFileSync('src/storage/storage.js', 'utf8').includes('accessPrefs()'));
 }
 
 console.log(out.join('\n'));

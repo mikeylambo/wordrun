@@ -284,19 +284,23 @@ head('WORDS — frame budget parity');
 head('WORDS — depth (bank scale, no repeats, fresh words per attempt)');
 
 {
-  check('the merged bank ships at scale (≥ 6,000 words, 5 tiers)',
-    ALL_WORDS.length >= 6000 && TIERS.length === 5,
+  // Phase 11: the harvested catalog bank was deliberately removed —
+  // curation beats volume now that the no-repeat walk and the per-attempt
+  // salt carry the variety. The depth guarantees are re-stated at the
+  // curated scale.
+  check('the curated bank ships whole (5 tiers, every word hand-picked)',
+    ALL_WORDS.length >= 550 && TIERS.length === 5,
     `${ALL_WORDS.length} words — ${TIERS.map((t) => t.length).join(' / ')}`);
-  check('every tier is deep enough to outlast a run without cycling (≥ 800)',
-    TIERS.every((t) => t.length >= 800));
+  check('every tier outlasts its own stretch without cycling (≥ 60)',
+    TIERS.every((t) => t.length >= 60));
   check('no word longer than 12 letters reaches the plate',
     ALL_WORDS.every((w) => w.length <= 12));
 
-  // The no-repeat guarantee, observed: 400 consecutive gates, zero
-  // duplicate words inside any single tier stretch — and therefore zero
-  // back-to-back repeats anywhere.
+  // The no-repeat guarantee, observed: across 400 consecutive gates a tier
+  // never repeats a word before its whole pool has been seen, and no word
+  // ever appears back-to-back.
   for (const seed of [SEEDS[0], SEEDS[3]]) {
-    let dup = 0;
+    let earlyDup = 0;
     let backToBack = 0;
     const seen = new Map(); // tier -> Set
     let prev = null;
@@ -304,13 +308,14 @@ head('WORDS — depth (bank scale, no repeats, fresh words per attempt)');
       const g = makeGate(seed, i);
       const base = g.answer; // the underlying real word
       if (!seen.has(g.tier)) seen.set(g.tier, new Set());
-      if (seen.get(g.tier).has(base)) dup++;
-      seen.get(g.tier).add(base);
+      const pool = seen.get(g.tier);
+      if (pool.has(base) && pool.size < TIERS[g.tier].length) earlyDup++;
+      pool.add(base);
       if (base === prev) backToBack++;
       prev = base;
     }
-    check(`seed ${seed}: 400 gates, no repeats within a tier, none back-to-back`,
-      dup === 0 && backToBack === 0, `${dup} dupes, ${backToBack} adjacent`);
+    check(`seed ${seed}: no repeat before a tier's pool cycles, none back-to-back`,
+      earlyDup === 0 && backToBack === 0, `${earlyDup} early dupes, ${backToBack} adjacent`);
   }
 
   // Per-attempt salt: identical without it, fresh words with it, and the
@@ -380,11 +385,13 @@ head('WORDS — difficulty profiles');
     D.normal.REDLINE_PACE === TUNING.RUN.REDLINE_PACE &&
     D.hard.REDLINE_PACE > D.normal.REDLINE_PACE);
 
-  // Audience filter: the harvested catalog's adult register stays out.
-  const { EXCLUDED } = await import('./build-wordbank.mjs');
-  check('the audience filter holds at the shipped bank',
-    EXCLUDED.every((w) => !isValidWord(w)),
-    `${EXCLUDED.length} excluded terms verified absent`);
+  // Audience check: the register that made the harvested bank unshippable
+  // must never creep into the curated one either.
+  const UNSHIPPABLE = ['arse', 'boob', 'piss', 'rape', 'nude', 'bastard',
+    'cocaine', 'suicide', 'murder', 'sperm', 'pussy', 'slave', 'corpse'];
+  check('the curated bank carries none of the flagged adult register',
+    UNSHIPPABLE.every((w) => !isValidWord(w)),
+    `${UNSHIPPABLE.length} terms verified absent`);
 }
 
 console.log(out.join('\n'));
