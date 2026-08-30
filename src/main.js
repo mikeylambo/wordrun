@@ -28,6 +28,7 @@ import { Storage } from './storage/storage.js';
 import { StatsManager, localStorageAdapter } from './meta/stats.js';
 import { DailyManager } from './meta/daily.js';
 import { buildStatsExport, formatStatsExport } from './meta/export.js';
+import { ObjectiveQueue } from './meta/objectives.js';
 import { UI } from './ui/ui.js';
 import { PauseUI } from './ui/pause.js';
 import { OnboardingUI } from './ui/onboarding.js';
@@ -101,7 +102,8 @@ syncVariant();
 const metaAdapter = localStorageAdapter();
 const metaStats = new StatsManager(metaAdapter);
 const metaDaily = new DailyManager(metaAdapter);
-globalThis.__META = { stats: metaStats, daily: metaDaily };
+const metaObjectives = new ObjectiveQueue(metaAdapter);
+globalThis.__META = { stats: metaStats, daily: metaDaily, objectives: metaObjectives };
 
 // Accessibility (Phase 11): load persisted options before the warm-start
 // pre-paints plates, so the readable-type/palette choice is baked in.
@@ -387,6 +389,23 @@ function finalizeRun() {
   const dailyCard = metaDaily.recordRun(DAILY_SEED, {
     distance, bestChain: sim.player.bestChain, correct: wg.correctCount,
   });
+  // The rotating queue (Phase 21). Only the three LIVE objectives are judged
+  // against this run — anything still in the queue gets no credit for a run
+  // that would have satisfied it, so one exceptional run cannot front-load
+  // months of progression. Rewards are currency, which is the cosmetic path;
+  // nothing here touches gameplay power.
+  const objectives = metaObjectives.recordRun({
+    distance,
+    wrong: wg.wrongCount,
+    falseTaps: wg.falseTaps,
+    correct: wg.correctCount,
+    bestChain: sim.player.bestChain,
+    bells: sim.bellsCollected || 0,
+    streak: dailyCard.streak,
+    dashMeterSpent: sim.player.boostSpent,
+  });
+  if (objectives.reward > 0) metaStats.increment('currency', objectives.reward);
+
   ui.setDaily(metaDaily.status(DAILY_SEED));
   shopUI?.sync();
 
@@ -397,6 +416,7 @@ function finalizeRun() {
     shotUrl,
     recap: wg.misses,
     daily: dailyCard,
+    objectives,
     lifetime: metaStats.snapshot(),
     continued: runContinued,
     challengeResult: CHALLENGE

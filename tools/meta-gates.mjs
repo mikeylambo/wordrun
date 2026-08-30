@@ -20,6 +20,7 @@ import fs from 'node:fs';
 import { StatsManager, memoryAdapter } from '../src/meta/stats.js';
 import { DailyManager, goalsFor } from '../src/meta/daily.js';
 import { buildStatsExport, formatStatsExport, EXPORT_VERSION } from '../src/meta/export.js';
+import { ObjectiveQueue, queueFor, POOL, LIVE_SLOTS, rewardFor } from '../src/meta/objectives.js';
 import TUNING from '../src/TUNING.js';
 import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
 import { makeGate } from '../src/sim/word-gates.js';
@@ -544,6 +545,95 @@ head('EXPORT — the calibration data path, hand-carried');
   check('peak speed is actually recorded during a run',
     fs.readFileSync('src/sim/word-gates.js', 'utf8').includes('player.peakSpeed = player.speed') &&
     fs.readFileSync('src/sim/player.js', 'utf8').includes('this.peakSpeed = R.START_SPEED'));
+}
+
+
+// ── Rotating objective queue (Phase 21) ─────────────────────────────────────
+head('OBJECTIVES — three live, drawn from a pool, no retroactive credit');
+{
+  const MONSTER = {
+    distance: 12000, wrong: 0, falseTaps: 0, correct: 200, bestChain: 40,
+    bells: 300, streak: 40, dashMeterSpent: 2000,
+  };
+
+  check('the pool is bigger than the live window', POOL.length > LIVE_SLOTS,
+    `${POOL.length} shapes, ${LIVE_SLOTS} live`);
+  check('every shape declares a rising ladder',
+    POOL.every((p) => p.steps.length > 1 &&
+      p.steps.every((t, i) => i === 0 || t > p.steps[i - 1])));
+  check('every shape reads only from the run result the game already tracks',
+    POOL.every((p) => typeof p.met === 'function' && typeof p.progress === 'function'));
+
+  const q = queueFor(12345);
+  check('the queue is pure from the seed — same seed, same list',
+    JSON.stringify(queueFor(12345)) === JSON.stringify(q));
+  check('two players do not walk an identical list',
+    JSON.stringify(queueFor(999)) !== JSON.stringify(q));
+  check('it ramps rung by rung across the pool, not shape by shape',
+    q.slice(0, POOL.length).every((e) => e.rung === 0) &&
+    new Set(q.slice(0, POOL.length).map((e) => e.id)).size === POOL.length,
+    `${q.length} objectives deep`);
+
+  // THE point of the design. One monster run may clear the three live
+  // objectives and NOTHING else — the replacements it draws are untouched
+  // by it, however far past their targets that run went.
+  const a = memoryAdapter();
+  const oq = new ObjectiveQueue(a, { seed: 12345 });
+  check('exactly three are live', oq.status().live.length === LIVE_SLOTS);
+  const first = oq.recordRun(MONSTER);
+  check('a monster run clears the live three and no more',
+    first.cleared.length === LIVE_SLOTS && first.clearedTotal === LIVE_SLOTS,
+    first.cleared.map((c) => c.label).join(', '));
+  check('the objectives it drew get no credit for the run that drew them',
+    first.live.length === LIVE_SLOTS && first.live.every((l) => l.fresh) &&
+    first.live.every((l) => l.progress === 0),
+    first.live.map((l) => l.label).join(', '));
+
+  // And the ratchet: the same run again clears only what is live and
+  // achievable now, so progression cannot be front-loaded.
+  const second = oq.recordRun(MONSTER);
+  check('running it again clears only the newly live ones',
+    second.clearedTotal <= LIVE_SLOTS * 2 && second.clearedTotal > LIVE_SLOTS,
+    `${second.clearedTotal} cleared over two identical monster runs`);
+
+  // A weak run clears nothing but must still report honest progress.
+  const b = memoryAdapter();
+  const oq2 = new ObjectiveQueue(b, { seed: 12345 });
+  const weak = oq2.recordRun({ distance: 400, wrong: 2, falseTaps: 1, correct: 12,
+    bestChain: 4, bells: 8, streak: 1, dashMeterSpent: 40 });
+  check('a run that clears nothing still shows what it moved',
+    weak.cleared.length === 0 && weak.live.some((l) => l.progress > 0) &&
+    weak.live.every((l) => !l.fresh));
+  check('a broken condition reads as zero progress, not partial',
+    weak.live.filter((l) => /CLEAN|NO FAKES/.test(l.label)).every((l) => l.progress === 0),
+    'a wrong read zeroes a clean objective rather than part-filling it');
+
+  check('state persists through the adapter', (() => {
+    const reload = new ObjectiveQueue(b);
+    return JSON.stringify(reload.status().live.map((l) => l.label))
+      === JSON.stringify(oq2.status().live.map((l) => l.label));
+  })());
+  check('the queue seed is per player and never reshuffles underneath them',
+    b._db.objectives.seed === 12345 && new ObjectiveQueue(b).state.seed === 12345);
+
+  // Rewards feed the leaderboard's credibility rather than undermining it.
+  check('rewards are currency only and rise with depth',
+    rewardFor(0) > 0 && rewardFor(30) > rewardFor(0) &&
+    !/speed|heart|ceiling|multiplier/i.test(
+      fs.readFileSync('src/meta/objectives.js', 'utf8').split('export function rewardFor')[1].slice(0, 200)));
+  const mainSrc = fs.readFileSync('src/main.js', 'utf8');
+  check('the run pays the reward into the same balance the bells feed',
+    mainSrc.includes("metaStats.increment('currency', objectives.reward)"));
+  check('the objectives are judged on the run that just ended, once',
+    (mainSrc.match(/metaObjectives\.recordRun\(/g) || []).length === 1);
+  check('the results card shows the queue',
+    fs.readFileSync('src/ui/ui.js', 'utf8').includes("'<div class=\"recapHead\">OBJECTIVES</div>'") &&
+    fs.readFileSync('index.html', 'utf8').includes('.objRow'));
+
+  // Standalone, like the word list: liftable into the next game whole.
+  const objSrc = fs.readFileSync('src/meta/objectives.js', 'utf8');
+  check('the module stays standalone — no sim, render or three imports',
+    !/from '\.\.\/(sim|render)\//.test(objSrc) && !/from 'three'/.test(objSrc));
 }
 
 console.log(out.join('\n'));

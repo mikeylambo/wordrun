@@ -282,7 +282,7 @@ export class UI {
     this._chainLostT = 0.9;
   }
 
-  renderDeath({ distance, best, isPb, shotUrl, recap, daily, lifetime, continued, challengeResult }) {
+  renderDeath({ distance, best, isPb, shotUrl, recap, daily, objectives, lifetime, continued, challengeResult }) {
     this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null };
     this.finalDist.textContent = Math.floor(distance);
     this.pbTag.style.visibility = isPb ? 'visible' : 'hidden';
@@ -293,7 +293,7 @@ export class UI {
     this.deathStats.style.display = 'none';
     this.deathSeed.style.display = 'none';
     this.deathScreen.classList.add('rc2Poster');
-    this._renderRecap(recap, daily, lifetime);
+    this._renderRecap(recap, daily, objectives, lifetime);
 
     if (shotUrl) {
       this.shot.src = shotUrl;
@@ -316,7 +316,7 @@ export class UI {
    * line. Teaches instead of only scolding — a wrong read always shows
    * the real spelling.
    */
-  _renderRecap(recap, daily, lifetime) {
+  _renderRecap(recap, daily, objectives, lifetime) {
     if (!this.deathRecap) return;
     const parts = [];
     const extras = this._deathExtras || {};
@@ -356,6 +356,28 @@ export class UI {
     if (daily?.goals) {
       parts.push(`<div class="goalRow">${daily.goals.map((g) =>
         `<span class="goalChip${g.done ? ' done' : ''}">${g.label}</span>`).join('')}</div>`);
+    }
+
+    // The rotating queue (Phase 21). Cleared first — that is the payoff —
+    // then the three now live with the progress this run actually made
+    // against them. A freshly drawn objective reports zero by construction:
+    // showing it part-filled would draw the retroactive credit the queue
+    // exists to refuse.
+    if (objectives?.live?.length) {
+      const bits = [];
+      for (const c of objectives.cleared || []) {
+        bits.push(`<div class="objRow done"><span class="ol">${c.label}</span>`
+          + '<span class="ob"><i style="width:100%"></i></span>'
+          + `<span class="ov">◆${c.reward}</span></div>`);
+      }
+      for (const o of objectives.live) {
+        const pct = Math.round(Math.max(0, Math.min(1, o.progress || 0)) * 100);
+        bits.push(`<div class="objRow"><span class="ol">${o.label}</span>`
+          + `<span class="ob"><i style="width:${pct}%"></i></span>`
+          + `<span class="ov">◆${o.reward}</span></div>`);
+      }
+      parts.push('<div class="recapHead">OBJECTIVES</div>');
+      parts.push(`<div class="objList">${bits.join('')}</div>`);
     }
 
     // The lifetime numbers as a broadcast stat bar: figure over label.

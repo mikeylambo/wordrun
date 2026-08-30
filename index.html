@@ -149,6 +149,15 @@
   #deathRecap .clean{font-size:13px;font-weight:800;letter-spacing:.24em;color:#8be4ff;text-align:center;margin:2px 0}
   /* Broadcast stat bar: number over label, three columns, one hairline. */
   .recapHead{font-size:11px;font-weight:800;letter-spacing:.26em;color:#dcecf7;margin:2px 0 -2px}
+    .objList{display:flex;flex-direction:column;gap:7px}
+  .objRow{display:grid;grid-template-columns:1fr 52px 34px;gap:9px;align-items:center}
+  .objRow .ol{font-size:9px;font-weight:600;letter-spacing:.17em;color:rgba(232,244,251,.62);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .objRow .ob{height:3px;background:rgba(103,216,255,.16);overflow:hidden}
+  .objRow .ob i{display:block;height:100%;background:var(--ice);transition:width .4s ease}
+  .objRow .ov{font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--dimmer);text-align:right}
+  .objRow.done .ol{color:#bff0ff}
+  .objRow.done .ob i{background:#eafcff}
+  .objRow.done .ov{color:#8be4ff}
     .statBar{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding-top:13px;border-top:1px solid rgba(255,255,255,.1)}
   .statBar div{display:flex;flex-direction:column;gap:5px;align-items:center}
   .statBar b{font-size:17px;font-weight:700;letter-spacing:-.02em;color:#eaf6fc}
