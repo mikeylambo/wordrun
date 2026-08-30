@@ -224,7 +224,7 @@ head('NAMING — five approved names, machine-enforced');
     // name, and this scan is case-sensitive by design).
     'WORD RUN',
   ];
-  const scanRoots = ['src', 'tools', 'public/ui', 'public/audio/approved'];
+  const scanRoots = ['src', 'tools', 'public/fonts', 'public/audio/approved'];
   const files = ['index.html', 'README.md', 'RELEASE.md',
     'public/manifest.webmanifest'];
   const walk = (dir) => {
@@ -234,7 +234,7 @@ head('NAMING — five approved names, machine-enforced');
       else if (/\.(js|mjs|md|html|svg|json|webmanifest)$/.test(e.name)) files.push(path);
     }
   };
-  for (const r of scanRoots) walk(r);
+  for (const r of scanRoots) if (fs.existsSync(r)) walk(r);
   // Case-sensitive on the two shapes a label takes (ALL CAPS display form,
   // Title Case doc form) — lowercase engine ids ('whiteout' the band id, the
   // weather variable) are namespace, not labels, and stay.
@@ -406,8 +406,18 @@ head('ACCESS — reduced flash, readable type, colour-vision axes');
   check('plates and the scan bar consume the live accent (source defaults stay)',
     plates.includes('ACCESS.right') && plates.includes('ACCESS.wrong') &&
     world.includes('ACCESS.danger') && world.includes('0xff2a1f'));
-  check('readable type swaps the plate face and widens spacing',
-    plates.includes('ACCESS.readableType') && plates.includes('Verdana'));
+  // The shipped plate face IS the legibility face now, so READABLE TYPE
+  // buys tracking and weight rather than swapping to a system fallback.
+  check('the plate is set in the bundled hyperlegible face',
+    plates.includes("const PLATE_FAMILY = 'Atkinson Hyperlegible Next'") &&
+    !/\$\{px\}px ui-monospace/.test(plates));
+  check('readable type widens tracking and weight, not the family',
+    plates.includes('ACCESS.readableType ? 800 : 700') &&
+    plates.includes("ACCESS.readableType ? '7px' : '1px'"));
+  check('plates repaint once the bundled face resolves',
+    plates.includes('plateFontReady') && plates.includes('fontEpoch') &&
+    plates.includes('${ACCESS.epoch}|${fontEpoch}') &&
+    fs.readFileSync('src/main.js', 'utf8').includes('Promise.race([plateFontReady'));
   check('choices persist through storage prefs',
     access.includes('Storage.setAccessPrefs') &&
     fs.readFileSync('src/storage/storage.js', 'utf8').includes('accessPrefs()'));
@@ -605,7 +615,8 @@ head('DASH — the second verb, finally legible');
 head('BROADCAST — few words, one type system, numbers first');
 
 {
-  const html = fs.readFileSync('index.html', 'utf8');
+  const htmlAll = fs.readFileSync('index.html', 'utf8');
+  const html = htmlAll;
   const uiSrc = fs.readFileSync('src/ui/ui.js', 'utf8');
   const injected = ['src/ui/pause.js', 'src/ui/onboarding.js', 'src/ui/access.js',
     'src/ui/shop.js', 'src/v1-mobile-ui.js', 'src/rc5.js', 'src/rc81-ui.js']
@@ -615,16 +626,37 @@ head('BROADCAST — few words, one type system, numbers first');
   //    rather than pinning its own — the old UI pinned ui-monospace in
   //    fourteen places, which is why it read as a terminal.
   check('the UI declares one display face and everything inherits it',
-    html.includes('--face:-apple-system') && html.includes('font-family:var(--face)') &&
+    html.includes("--face:'Archivo'") && html.includes('font-family:var(--face)') &&
     !/font(-family)?:[^;}]*ui-monospace/.test(injected),
     'no surface pins its own face');
-  check('the wordmark is set in the same face as the UI',
-    fs.readFileSync('public/ui/dictiondash-wordmark.svg', 'utf8').includes('-apple-system'));
+  check('the wordmark is inline so it can use that same face',
+    html.includes('<svg id="titleWordmark"') && html.includes('font-family="var(--face)"') &&
+    !fs.existsSync('public/ui/dictiondash-wordmark.svg'),
+    'an <img>-loaded SVG cannot see the page @font-face');
 
-  // 2. No webfont. A downloaded face would be the only external request in
-  //    the build, and zero is a platform-eligibility requirement.
-  check('the type system costs no network request',
-    !/@font-face|fonts\.googleapis|fonts\.gstatic/.test(html + injected));
+  // 2. Both faces are BUNDLED, not fetched. A font CDN would be the only
+  //    external request in the build, and zero is a platform-eligibility
+  //    requirement — but self-hosting was always allowed, and the system
+  //    stack cost the game its identity on every device it ran on.
+  check('the type system costs no external request',
+    !/fonts\.googleapis|fonts\.gstatic/.test(html + injected) &&
+    /@font-face\{font-family:'Archivo';src:url\(\.\/fonts\//.test(html) &&
+    /@font-face\{font-family:'Atkinson Hyperlegible Next';src:url\(\.\/fonts\//.test(html));
+  for (const f of ['archivo-latin-var.woff2', 'atkinson-next-latin-var.woff2']) {
+    const bytes = fs.existsSync(`public/fonts/${f}`) ? fs.statSync(`public/fonts/${f}`).size : 0;
+    check(`${f} ships with the build and is a real subset`,
+      bytes > 8_000 && bytes < 400_000, `${(bytes / 1024).toFixed(0)} KB`);
+  }
+  check('both faces are preloaded and offline-cached',
+    /rel="preload"[^>]*archivo-latin-var\.woff2[^>]*as="font"/.test(html) &&
+    /rel="preload"[^>]*atkinson-next-latin-var\.woff2[^>]*as="font"/.test(html) &&
+    fs.readFileSync('public/sw.js', 'utf8').includes('fonts/atkinson-next-latin-var.woff2'));
+  check('every face stack still ends in a generic family',
+    /--face:'Archivo'[^;]*sans-serif/.test(html) &&
+    /--plate:'Atkinson Hyperlegible Next'[^;]*sans-serif/.test(html));
+  check('the redistributed faces carry their licences',
+    fs.existsSync('public/fonts/OFL-Archivo.txt') &&
+    fs.existsSync('public/fonts/OFL-AtkinsonHyperlegibleNext.txt'));
 
   // 3. The retired copy stays retired. Each of these was a sentence doing
   //    a label's job on a screen the player reads in two seconds.
@@ -647,6 +679,9 @@ head('BROADCAST — few words, one type system, numbers first');
   // 4. Copy density. Count the words actually printed on the two screens a
   //    player reads most; a screen is allowed labels, not paragraphs.
   const screenWords = (id) => {
+    // The wordmark is a mark, not copy — its three chromatic strikes of the
+    // title are one logo however many <text> runs draw it.
+    const html = htmlAll.replace(/<svg id="titleWordmark"[\s\S]*?<\/svg>/, '<svg></svg>');
     const block = html.slice(html.indexOf(`id="${id}"`));
     const end = block.indexOf('\n  </div>');
     return [...block.slice(0, end).matchAll(/>([^<>{}\n]+)</g)]

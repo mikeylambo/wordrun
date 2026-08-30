@@ -26,6 +26,19 @@ const FONT_PX = 168;
 const SHOW_AHEAD = 260;       // build plates well inside fog range
 const LINGER = 0.65;          // seconds a resolved plate hangs on for feedback
 
+// The plates are baked into canvas textures, so a face that finishes loading
+// after the first bake would leave the word drawn in the fallback until the
+// next distinct word came along. Bump a paint epoch when the bundled face
+// resolves and every cached plate repaints itself once.
+const PLATE_FAMILY = 'Atkinson Hyperlegible Next';
+let fontEpoch = 0;
+export const plateFontReady = (typeof document !== 'undefined' && document.fonts?.load)
+  ? Promise.all([
+      document.fonts.load(`700 ${FONT_PX}px '${PLATE_FAMILY}'`),
+      document.fonts.load(`800 ${FONT_PX}px '${PLATE_FAMILY}'`),
+    ]).then(() => { fontEpoch++; }, () => {})
+  : Promise.resolve();
+
 // Neon identity: a dark glass plate on the bright snow is the highest
 // contrast ground available, and the glow never touches the glyph cores —
 // legibility (priority 1) outranks flourish (priority 4).
@@ -71,7 +84,7 @@ class Plate {
   }
 
   paint(word, state) {
-    const cacheKey = `${word}|${ACCESS.epoch}`;
+    const cacheKey = `${word}|${ACCESS.epoch}|${fontEpoch}`;
     if (this.key === cacheKey && this.state === state) return;
     this.key = cacheKey;
     this.state = state;
@@ -99,13 +112,22 @@ class Plate {
     g.stroke();
     g.restore();
 
-    // READABLE TYPE (accessibility): a wider-spaced humanist face instead
-    // of the condensed monospace — Verdana-class faces are the widely
-    // recommended dyslexia-friendlier system fonts.
-    const font = ACCESS.readableType
-      ? (px) => `700 ${px}px Verdana, 'DejaVu Sans', Arial, sans-serif`
-      : (px) => `800 ${px}px ui-monospace, 'SF Mono', Menlo, Consolas, monospace`;
-    if ('letterSpacing' in g) g.letterSpacing = ACCESS.readableType ? '5px' : '0px';
+    // The plate is the surface the entire game is read from, and it used to
+    // render in whatever `ui-monospace` resolved to — SF Mono on iOS, Consolas
+    // on Windows, something else again on Android. The word looked like a
+    // different game on every device, and none of those faces were chosen for
+    // telling letters apart. It is now Atkinson Hyperlegible Next, bundled
+    // with the build: the Braille Institute drew it so I/l/1, O/0 and rn/m
+    // cannot be confused, which is precisely the discrimination a one-edit
+    // fake asks for.
+    //
+    // READABLE TYPE (accessibility) therefore no longer swaps the family —
+    // the shipped face already is the legibility face. It opens the tracking
+    // and adds weight instead, which is what the toggle was really buying.
+    const FAMILY = `'${PLATE_FAMILY}', Verdana, 'DejaVu Sans', Arial, sans-serif`;
+    const weight = ACCESS.readableType ? 800 : 700;
+    const font = (px) => `${weight} ${px}px ${FAMILY}`;
+    if ('letterSpacing' in g) g.letterSpacing = ACCESS.readableType ? '7px' : '1px';
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     let text = word;

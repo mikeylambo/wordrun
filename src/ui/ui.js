@@ -19,6 +19,7 @@ export class UI {
     this.dist = $('dist');
     this.bestVal = $('bestVal');
     this.meterWrap = $('meterWrap');
+    this.meterZone = this.meterWrap?.closest('.meter-zone');
     this.meter = $('meter');
     this.dread = $('dread');
     this.dreadRed = $('dreadRed');
@@ -137,8 +138,9 @@ export class UI {
     const pct = (p.boostMeter / TUNING.BOOST.METER_MAX) * 100;
     this.meter.style.width = `${pct.toFixed(1)}%`;
     const armed = p.boostMeter >= TUNING.BOOST.MIN_ACTIVATE;
-    this.meterWrap.classList.toggle('armed', armed);
-    this.meterWrap.classList.toggle('spending', p.overdrive);
+    // The whole zone carries the state so the label lights with the cells.
+    this.meterZone?.classList.toggle('armed', armed);
+    this.meterZone?.classList.toggle('spending', p.overdrive);
 
     // The DASH's charged state (Phase 16). A hint that appears for 1.25s
     // and never returns is a hint most players never see; while the dash

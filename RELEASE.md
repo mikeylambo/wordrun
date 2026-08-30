@@ -239,3 +239,24 @@ Slice history:
   approved-name cap drops five to four — the Redline, REDACTED, PUBLISHED,
   TODAY'S DRAFT — and the gate suite now enforces four and bans the retired
   name from live copy. The start button reads BEGIN RUN.
+- Phase 20 — real type, and a meter that says what it holds. Both faces now
+  ship with the build as latin-subset variable WOFF2 (68 KB together): the
+  UI is Archivo, and the word plates are Atkinson Hyperlegible Next, drawn
+  by the Braille Institute so I/l/1, O/0 and rn/m cannot be confused —
+  exactly the discrimination a one-edit fake asks for. The plates had been
+  rendering in whatever `ui-monospace` resolved to, which meant the single
+  most important surface in the game looked like a different game on every
+  device. Self-hosting keeps the zero-external-request rule intact (audit
+  still reads 0); the faces are preloaded, service-worker cached, and their
+  OFL texts ship beside them. READABLE TYPE no longer swaps to a system
+  fallback — the shipped face already is the legibility face — so it buys
+  tracking and weight instead. Plates repaint once the face resolves, so a
+  pre-baked texture can never strand the fallback on screen. The wordmark
+  is inline SVG now: loaded through <img> it was an isolated document that
+  could not see the page's @font-face, so it could only ever have been set
+  in a system stack. The DASH charge stopped being the source game's smooth
+  glowing hairline and became a broadcast level meter — ten discrete cells,
+  each worth about 0.3 s of dash, label lighting with the fill — and it is
+  no longer called the GO METER, a name left over from before the mechanic
+  was renamed. Gates: 33 / 53 / 80 / meta 70; v1 25 / 55 / 14. Build 1.20 MB.
+

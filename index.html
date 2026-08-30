@@ -14,19 +14,27 @@
 <link rel="manifest" href="./manifest.webmanifest?v=4">
 <link rel="icon" href="./icons/dictiondash-192.png?v=4" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=4">
+<link rel="preload" href="./fonts/archivo-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="./fonts/atkinson-next-latin-var.woff2" as="font" type="font/woff2" crossorigin>
 <title>DICTION DASH</title>
 <style>
+  /* Type (Phase 20). Both faces are latin-subset variable WOFF2 served from
+     this origin — a font CDN would be the build's only external request and
+     zero is a hard requirement, but self-hosting was always allowed and the
+     system-stack compromise cost the game its identity on every device.
+       --face   Archivo. Display and UI: distance readout, buttons, the tiny
+                widely-tracked labels that make the lower-third grammar work.
+       --plate  Atkinson Hyperlegible Next, drawn by the Braille Institute so
+                I/l/1, O/0 and rn/m cannot be confused. This game asks players
+                to spot one wrong letter under time pressure, so on the word
+                plates glyph disambiguation is a mechanic, not a preference.
+       --mono   kept ONLY where glyphs must not shift between frames.
+     Licences and provenance: public/fonts/README.md. */
+  @font-face{font-family:'Archivo';src:url(./fonts/archivo-latin-var.woff2) format('woff2');font-weight:400 900;font-style:normal;font-display:block}
+  @font-face{font-family:'Atkinson Hyperlegible Next';src:url(./fonts/atkinson-next-latin-var.woff2) format('woff2');font-weight:400 800;font-style:normal;font-display:block}
   :root{--ink:#dff2fc;--pale:#edf5fa;--steel:#5b7181;--ice:#67d8ff;--red:#ff2a1f;--safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);
-    /* Broadcast type (Phase 19). The whole UI was ui-monospace, which reads
-       as terminal, not as television. Two roles now, one family:
-         --face  the display/label face — the platform's best grotesque
-                 (SF Pro on iOS, Segoe on Windows, Roboto on Android). No
-                 webfont: a downloaded face would be the only external
-                 request in the build, and zero is a hard requirement.
-         --mono  kept ONLY where glyphs must not shift between frames.
-       Scale is deliberately extreme: numbers enormous, labels tiny and
-       widely tracked. That contrast is the lower-third grammar. */
-    --face:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI Variable Display","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --face:'Archivo',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --plate:'Atkinson Hyperlegible Next',Verdana,"DejaVu Sans",Arial,sans-serif;
     --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;
     --tag:.34em;      /* label tracking */
     --dim:rgba(232,244,251,.42);
@@ -44,12 +52,25 @@
   #best{text-align:right;margin-right:42px;font-size:8px;line-height:1.5;letter-spacing:var(--tag);text-transform:uppercase;color:var(--dim)}
   #best b{display:block;margin-top:2px;font-size:15px;font-weight:700;letter-spacing:-.02em;color:#e8f7ff}
   #chain{display:none!important}
-  .meter-zone{display:flex;flex-direction:column;gap:8px}
-  #meterWrap{width:100%;height:4px;position:relative;overflow:hidden;background:rgba(103,216,255,.14);box-shadow:0 0 8px rgba(103,216,255,.18);transition:height .16s ease,box-shadow .16s ease,background .16s ease}
-  #meterWrap::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0 82%,rgba(255,255,255,.46));opacity:0;transition:opacity .16s ease}
-  #meterWrap.armed{height:7px;background:rgba(28,49,61,.26);box-shadow:0 0 18px rgba(103,216,255,.34)}
-  #meterWrap.armed::after{opacity:1}#meter{height:100%;width:0%;background:linear-gradient(90deg,#497d93,var(--ice),#ecfbff);transition:width .07s linear}
-  #meterWrap.spending{box-shadow:0 0 28px rgba(103,216,255,.72)}#meterWrap.spending #meter{background:linear-gradient(90deg,#dff8ff,#fff)}
+  /* The DASH charge (Phase 20). This was a smooth glowing hairline inherited
+     from the shell — the same bar the source game used, and it said nothing
+     about what it held. It is now a broadcast level meter: ten discrete
+     charges, cut by a mask so the track and the fill segment identically,
+     each cell worth ~0.3 s of dash. Emptying it reads as cells going out
+     rather than a line receding, which is what actually happens. */
+  .meter-zone{display:flex;flex-direction:column;gap:7px;--cells:10;--gap:3px}
+  #meterLabel{display:flex;align-items:baseline;gap:8px;font-size:8px;font-weight:700;letter-spacing:var(--tag);text-transform:uppercase;color:var(--dimmer);transition:color .16s ease}
+  #meterLabel i{flex:1;height:1px;background:currentColor;opacity:.3;font-style:normal}
+  .meter-zone.armed #meterLabel{color:rgba(190,238,255,.85)}
+  .meter-zone.spending #meterLabel{color:#fff}
+  #meterWrap{width:100%;height:7px;position:relative;background:rgba(103,216,255,.13);
+    -webkit-mask-image:repeating-linear-gradient(90deg,#000 0 calc(100%/var(--cells) - var(--gap)),transparent calc(100%/var(--cells) - var(--gap)) calc(100%/var(--cells)));
+    mask-image:repeating-linear-gradient(90deg,#000 0 calc(100%/var(--cells) - var(--gap)),transparent calc(100%/var(--cells) - var(--gap)) calc(100%/var(--cells)));
+    transition:height .16s ease,background .16s ease}
+  .meter-zone.armed #meterWrap{height:10px;background:rgba(28,49,61,.3)}
+  #meter{height:100%;width:0%;background:linear-gradient(90deg,#2f6d86,var(--ice) 62%,#bdefff);transition:width .07s linear}
+  .meter-zone.armed #meter{background:linear-gradient(90deg,#3f90ad,var(--ice) 55%,#e6fbff);filter:drop-shadow(0 0 7px rgba(103,216,255,.5))}
+  .meter-zone.spending #meter{background:linear-gradient(90deg,#dff8ff,#fff);filter:drop-shadow(0 0 12px rgba(160,236,255,.85))}
 
   #bandName,#coach,#powerHint{position:absolute;z-index:24;pointer-events:none;left:50%;transform:translateX(-50%);text-align:center;white-space:nowrap}
   #bandName{top:calc(var(--safe-t) + 15%);opacity:0;font-size:clamp(18px,5vw,28px);font-weight:800;letter-spacing:.34em;margin-left:.17em;color:rgba(223,242,252,.85);text-shadow:0 0 18px rgba(103,216,255,.35);transition:opacity .5s ease,transform .65s cubic-bezier(.2,.8,.2,1);transform:translateX(-50%) translateY(7px)}
@@ -84,7 +105,7 @@
   .screen.on{opacity:1;visibility:visible}
   #titleScreen{justify-content:space-between;background:linear-gradient(180deg,rgba(2,5,9,.5) 0%,transparent 30%,transparent 46%,rgba(2,5,9,.72) 68%,rgba(2,5,9,.92) 100%)}
   .title-lockup{margin-top:max(9vh,58px)}
-  #titleWordmark{display:block;width:min(82vw,1020px);height:auto;max-height:clamp(82px,19vw,218px);margin:0 auto;object-fit:contain;filter:drop-shadow(0 0 22px rgba(103,216,255,.35))}
+  #titleWordmark{display:block;width:min(72vw,880px);height:auto;max-height:clamp(74px,17vw,190px);margin:0 auto;overflow:visible;filter:drop-shadow(0 0 22px rgba(103,216,255,.35))}
   #titleHint{margin-top:14px;font-size:8px;font-weight:600;letter-spacing:var(--tag);color:var(--dim)}
   .drop-lockup{margin-bottom:2vh;display:flex;flex-direction:column;align-items:center;gap:18px}
   /* The one thing to do on this screen, sized like it. */
@@ -163,13 +184,26 @@
 
   <div id="hud">
     <div><div class="row"><div id="dist">0<small>M</small></div><div id="best"><span>BEST TODAY</span><b id="bestVal">—</b></div></div><div id="chain"></div></div>
-    <div class="meter-zone"><div id="meterWrap"><div id="meter"></div></div></div>
+    <div class="meter-zone"><div id="meterLabel">DASH<i></i></div><div id="meterWrap"><div id="meter"></div></div></div>
   </div>
 
   <button id="mute" aria-label="Toggle sound">♪</button>
 
   <div class="screen on" id="titleScreen">
-    <div class="title-lockup"><img id="titleWordmark" src="./ui/dictiondash-wordmark.svg?v=3" alt="DICTION DASH"><div id="titleHint"></div></div>
+    <div class="title-lockup">
+      <!-- Inline, not an <img>: an SVG loaded through <img> is an isolated
+           document that cannot see the page's @font-face, so an external
+           wordmark could only ever be set in a system fallback. Inlined it
+           uses the same bundled Archivo as the rest of the UI, and costs one
+           request less. The chromatic echo — cyan behind, Redline red behind
+           that — is the identity. -->
+      <svg id="titleWordmark" viewBox="0 0 1545 300" role="img" aria-label="DICTION DASH" preserveAspectRatio="xMidYMid meet">
+        <g font-family="var(--face)" font-size="190" font-weight="800" letter-spacing="-4" text-anchor="middle">
+          <text x="762" y="200" fill="#67d8ff" opacity="0.5">DICTION DASH</text>
+          <text x="768" y="203" fill="#ff2a1f" opacity="0.28">DICTION DASH</text>
+          <text x="774" y="206" fill="#f4fbff">DICTION DASH</text>
+        </g>
+      </svg><div id="titleHint"></div></div>
     <div class="drop-lockup"><div class="drop">BEGIN RUN</div><div id="modeRows"><div class="modeRow" id="modeRow"><button class="modeChip" type="button" data-mode="endless">ENDLESS</button><button class="modeChip" type="button" data-mode="standard">STANDARD</button></div><div class="modeRow" id="difficultyRow"><button class="modeChip" type="button" data-difficulty="easy">EASY</button><button class="modeChip" type="button" data-difficulty="normal">NORMAL</button><button class="modeChip" type="button" data-difficulty="hard">HARD</button></div></div><div id="titleGoals"><div class="goalRow" id="titleGoalRow"></div><div id="titleStreak"></div></div><div class="seed" id="seedLine"></div></div>
   </div>
 

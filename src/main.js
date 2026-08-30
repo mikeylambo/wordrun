@@ -15,7 +15,7 @@ import { PlayerActor, BeastActor, GhostActor } from './render/actors.js';
 import { CameraRig } from './render/camera-rig.js';
 import { Spray } from './render/fx.js';
 import { Landmarks } from './render/landmarks.js';
-import { WordGateActors } from './render/word-gates.js';
+import { WordGateActors, plateFontReady } from './render/word-gates.js';
 import { DataworldPass } from './render/dataworld.js';
 import { StreakBurst } from './render/streak-burst.js';
 import { WindStreaks, TrackPylons } from './render/speed-fantasy.js';
@@ -175,7 +175,13 @@ function warmStart() {
   if (compiled?.catch) compiled.catch(() => stage.renderer.compile(stage.scene, stage.camera));
   else stage.renderer.compile(stage.scene, stage.camera);
 }
-requestAnimationFrame(() => requestAnimationFrame(() => { try { warmStart(); } catch { /* warm-up is best-effort */ } }));
+// Warm once the plate face is actually loadable, so the pre-painted plates
+// bake in the shipped typeface rather than the fallback — capped, because a
+// font that never resolves must not hold the warm-up hostage.
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  const go = () => { try { warmStart(); } catch { /* warm-up is best-effort */ } };
+  Promise.race([plateFontReady, new Promise((r) => setTimeout(r, 700))]).then(go, go);
+}));
 
 function startRun() {
   audio.start();

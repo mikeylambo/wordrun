@@ -37,11 +37,6 @@ function addUiStyle() {
   const style = document.createElement('style');
   style.id = 'rc81-ui-style';
   style.textContent = `
-    .meter-zone::before{
-      content:'GO METER';align-self:center;margin-bottom:-3px;
-      font:700 8px/1 var(--face);letter-spacing:.2em;
-      color:rgba(226,244,250,.72);text-shadow:0 1px 8px rgba(8,15,20,.35)
-    }
     #rc5Threat{margin-left:-17px!important;margin-top:-34px!important}
     #rc5Threat.left,#rc5Threat.right,#rc5Threat.leap{margin-left:-17px!important}
   `;
@@ -85,7 +80,6 @@ function boot() {
     version: '8.1',
     threatAnchored: true,
     ghostLiveToggle: true,
-    goMeterLabel: true,
   };
 }
 requestAnimationFrame(boot);

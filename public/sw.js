@@ -8,7 +8,8 @@ const SHELL = [
   new URL('icons/dictiondash-192.png', BASE).href,
   new URL('icons/dictiondash-512.png', BASE).href,
   new URL('icons/dictiondash-maskable-512.png', BASE).href,
-  new URL('ui/dictiondash-wordmark.svg', BASE).href
+  new URL('fonts/archivo-latin-var.woff2', BASE).href,
+  new URL('fonts/atkinson-next-latin-var.woff2', BASE).href
 ];
 
 self.addEventListener('install', (event) => {
