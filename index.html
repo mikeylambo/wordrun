@@ -146,9 +146,10 @@
   .recapRow .v b{color:#a8ecff;font-weight:700}
   .recapRow .v s{color:rgba(255,150,142,.75);text-decoration-thickness:1.5px;margin-right:3px}
   .recapRow .v em{font-style:normal;color:var(--dimmer);font-size:11px}
-  #deathRecap .clean{font-size:9px;font-weight:600;letter-spacing:var(--tag);color:#8be4ff;text-align:center}
+  #deathRecap .clean{font-size:13px;font-weight:800;letter-spacing:.24em;color:#8be4ff;text-align:center;margin:2px 0}
   /* Broadcast stat bar: number over label, three columns, one hairline. */
-  .statBar{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding-top:13px;border-top:1px solid rgba(255,255,255,.1)}
+  .recapHead{font-size:11px;font-weight:800;letter-spacing:.26em;color:#dcecf7;margin:2px 0 -2px}
+    .statBar{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding-top:13px;border-top:1px solid rgba(255,255,255,.1)}
   .statBar div{display:flex;flex-direction:column;gap:5px;align-items:center}
   .statBar b{font-size:17px;font-weight:700;letter-spacing:-.02em;color:#eaf6fc}
   .statBar span{font-size:7px;font-weight:600;letter-spacing:.26em;color:var(--dimmer)}
@@ -209,7 +210,7 @@
 
   <div class="screen" id="deathScreen">
     <img id="shot" alt="The moment you were redacted">
-    <div id="deathTag">REDACTED</div>
+    <div id="deathTag">CROSSED OUT</div>
     <div class="big"><span id="finalDist">0</span><small>M</small></div>
     <div class="pb" id="pbTag" style="visibility:hidden">NEW BEST</div>
     <div id="deathRecap"></div>

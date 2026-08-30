@@ -202,7 +202,7 @@ head('NAMING — five approved names, machine-enforced');
   // Phase 20: four, not five. The Caret was removed outright — it had been
   // unreachable since Phase 7 deleted the hunt counter it armed from, so
   // the cap was carrying a name the game could not show.
-  const APPROVED = ['The Redline', 'REDACTED', 'PUBLISHED', "TODAY'S DRAFT"];
+  const APPROVED = ['The Redline', 'CROSSED OUT', 'PUBLISHED', "TODAY'S DRAFT"];
   check('the approved-name ceiling holds at exactly four',
     APPROVED.length === 4, APPROVED.join(' · '));
 
@@ -217,6 +217,11 @@ head('NAMING — five approved names, machine-enforced');
     // Phase 20: the retired second antagonist joins the list it used to
     // be exempt from, so it cannot come back by accident.
     'THE CARET',
+    // Phase 21: 'REDACTED' read as classified-document language — heavier
+    // than a general-audience death screen needs. CROSSED OUT keeps the
+    // Redline's active framing and echoes the strikethrough already shown
+    // on a tapped fake.
+    'REDACTED',
     // DESCENT-inherited stage names fall under the same cap:
     'THE STILL', 'FALSE DAWN', 'FIRST LIGHT', 'CLEAN SIGNAL',
     // Phase 12 rename: the old game title is retired everywhere (the
@@ -241,7 +246,10 @@ head('NAMING — five approved names, machine-enforced');
   const titleCase = (n) => n.toLowerCase().replace(/(^|\s)\w/g, (c) => c.toUpperCase());
   const retiredHits = [];
   for (const f of files) {
-    if (f.endsWith('corruption-gates.mjs')) continue; // the enforcement list itself
+    // Two exemptions, both necessary: this file must carry the list to
+    // enforce it, and RELEASE.md is a changelog — a gate that forbids
+    // naming what was removed would only make the record lie.
+    if (f.endsWith('corruption-gates.mjs') || f === 'RELEASE.md') continue;
     const text = fs.readFileSync(f, 'utf8');
     for (const name of RETIRED) {
       if (text.includes(name) || text.includes(titleCase(name))) {
@@ -265,14 +273,14 @@ head('NAMING — five approved names, machine-enforced');
   const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
   check('the transition announcer refuses a band without an approved name',
     ui.includes('this.bandName && band.name'));
-  check('death copy is REDACTED and the day is TODAY\'S DRAFT',
-    ui.includes("'REDACTED'") && ui.includes("TODAY'S DRAFT"));
+  check('death copy is CROSSED OUT and the day is TODAY\'S DRAFT',
+    ui.includes("'CROSSED OUT'") && ui.includes("TODAY'S DRAFT"));
   const readme = fs.readFileSync('README.md', 'utf8');
   // The removal note may explain what the Caret was; what it may not do is
   // present it as a live name (names are bolded in the README).
   check('the Redline is the named antagonist, alone',
     readme.includes('**the Redline**') && !readme.includes('**the Caret**') &&
-    readme.includes('## The four names'));
+    readme.includes('## The four names') && readme.includes('**CROSSED OUT**'));
 
   // No OTHER "The Xxx" proper-noun label may appear in player-facing display
   // strings — the pattern a sixth name would most likely take.
@@ -664,6 +672,8 @@ head('BROADCAST — few words, one type system, numbers first');
     'HOW FAR CAN YOU GO', 'TAP · SPACE · ENTER', 'STANDARD · 3 HITS',
     'THE READS THAT WENT WRONG', 'WAS REAL — IT SLIPPED BY', 'CHALLENGE LINK',
     'RUN TODAY TO KEEP IT', 'REACH ${dist}M', 'CLEAN READS`', 'READ FAST. RUN FAR.',
+    // Phase 21 relabels.
+    'SLIPPED BY', 'EVERY READ TRUE', "'REDACTED'",
   ];
   const tree = ['index.html', 'src/ui/ui.js', 'src/ui/onboarding.js', 'src/ui/pause.js',
     'src/meta/daily.js', 'src/v1-finalize.js', 'src/render/endgame-sky.js',
@@ -693,12 +703,25 @@ head('BROADCAST — few words, one type system, numbers first');
   check('the title screen stays under a dozen printed words', title <= 12, `${title} words`);
   check('the results card stays under a dozen printed words', death <= 12, `${death} words`);
 
+  // Phase 21 relabels: the teaching section earns a heading with weight, and
+  // each label says what it is without a sentence around it.
+  check('the recap section is headed MISSED WORDS, at heading weight',
+    uiSrc.includes("'<div class=\"recapHead\">MISSED WORDS</div>'") &&
+    /\.recapHead\{[^}]*font-weight:800/.test(html));
+  check('the missed-read labels are UNCAUGHT and NOT A WORD',
+    uiSrc.includes("row('UNCAUGHT'") && uiSrc.includes("row('NOT A WORD'"));
+  check('a clean run reads PERFECT RUN', uiSrc.includes('>PERFECT RUN<'));
+  check('the stat bar names the number it shows',
+    uiSrc.includes("'TRUE READS'"));
+  check('the chain goal chip carries its noun',
+    fs.readFileSync('src/meta/daily.js', 'utf8').includes('`×${chain} CHAIN`'));
+
   // 5. The results card leads with the number, and the recap is labelled
   //    rows rather than one sentence per wrong read.
   check('the score is the largest thing on the results card',
     /\.big\{[^}]*font-size:clamp\(72px/.test(html));
   check('the recap is labelled rows, not sentences',
-    uiSrc.includes("row('SLIPPED BY'") && uiSrc.includes("row('NOT A WORD'") &&
+    uiSrc.includes("row('UNCAUGHT'") && uiSrc.includes("row('NOT A WORD'") &&
     uiSrc.includes('class="statBar"'));
   check('the results card still teaches the true spelling of a tapped fake',
     uiSrc.includes('<s>${m.shown}</s><b>${m.answer}</b>'));

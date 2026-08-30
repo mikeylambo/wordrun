@@ -16,6 +16,7 @@
  * All words are lowercase a–z, no proper nouns, no hyphens or apostrophes.
  */
 import { EXTENDED_GUARD } from './guard.js';
+import { isBlocked } from './family-blocklist.js';
 
 /**
  * Difficulty tiers, easiest first. Tier 0 is short + high-frequency; later
@@ -231,7 +232,7 @@ export const TIERS = [
     'pardon', 'parent', 'parlor', 'parrot', 'parsley', 'patrol', 'pauper',
     'pebble', 'pedal', 'pellet', 'pencil', 'people', 'pepper', 'perch',
     'period', 'permit', 'person', 'pewter', 'phrase', 'picnic', 'pigeon',
-    'pillar', 'pillow', 'pilot', 'pincer', 'pirate', 'pistil', 'pistol',
+    'pillar', 'pillow', 'pilot', 'pincer', 'pirate', 'pistil',
     'pitch', 'planet', 'plaque', 'plasma', 'please', 'pledge', 'plenty',
     'pliers', 'plural', 'pocket', 'poetry', 'polish', 'pollen', 'ponder',
     'poplar', 'poppy', 'porous', 'portal', 'poster', 'potato', 'pottery',
@@ -341,7 +342,7 @@ export const TIERS = [
     'drought', 'drumbeat', 'duckling', 'dumbbell', 'dumpling', 'dumpster',
     'durable', 'duration', 'dwelling', 'dynamic', 'dynamite', 'eardrum',
     'earnings', 'earphone', 'earthly', 'eastern', 'eastward', 'echoes',
-    'eclipse', 'ecology', 'economy', 'ecstasy', 'educator', 'eggplant',
+    'eclipse', 'ecology', 'economy', 'educator', 'eggplant',
     'eighteen', 'elaborate', 'election', 'electron', 'elegant', 'elephant',
     'elevator', 'eligible', 'eloquent', 'embellish', 'emperor', 'emphasis',
     'emphatic', 'employee', 'employer', 'endless', 'engineer', 'enormous',
@@ -1155,7 +1156,12 @@ const MUTATIONS = [
  */
 export function makeFake(word, rand) {
   const w = String(word).toLowerCase();
-  const bad = (f) => !f || f === w || GUARD.has(f);
+  // A fake must not be a real word (the player would be punished for reading
+  // correctly) and must not be something a general-audience rating will not
+  // carry. The second is not hypothetical: one edit reaches 'cock' from
+  // 'clock', 'rape' from 'grape', 'fag' from 'flag'. tools/family-gate.mjs
+  // enumerates every reachable mutation and fails the build on a hit.
+  const bad = (f) => !f || f === w || GUARD.has(f) || isBlocked(f);
 
   for (let attempt = 0; attempt < 24; attempt++) {
     const m = MUTATIONS[Math.floor(rand() * MUTATIONS.length) % MUTATIONS.length];

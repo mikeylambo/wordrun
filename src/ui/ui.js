@@ -287,7 +287,7 @@ export class UI {
     this.finalDist.textContent = Math.floor(distance);
     this.pbTag.style.visibility = isPb ? 'visible' : 'hidden';
     this.pbTag.textContent = isPb ? 'NEW BEST' : '';
-    this.deathTag.textContent = 'REDACTED';
+    this.deathTag.textContent = 'CROSSED OUT';
     this.bestVal.textContent = best > 0 ? `${Math.floor(best)}M` : '—';
     this.deathStats.innerHTML = '';
     this.deathStats.style.display = 'none';
@@ -334,10 +334,14 @@ export class UI {
     if (recap?.length) {
       const slipped = recap.filter((m) => m.reason !== 'picked_fake');
       const tapped = recap.filter((m) => m.reason === 'picked_fake');
+      // Phase 21: the section that teaches gets a real heading rather than a
+      // caption. UNCAUGHT pairs with NOT A WORD and drops the awkward
+      // "slipped by a list of words" construction the old label produced.
+      parts.push('<div class="recapHead">MISSED WORDS</div>');
       if (slipped.length) {
         const shown = slipped.slice(0, 4).map((m) => m.shown).join('  ');
         const more = slipped.length > 4 ? ` <em>+${slipped.length - 4}</em>` : '';
-        parts.push(row('SLIPPED BY', shown + more));
+        parts.push(row('UNCAUGHT', shown + more));
       }
       if (tapped.length) {
         const shown = tapped.slice(0, 3)
@@ -346,7 +350,7 @@ export class UI {
         parts.push(row('NOT A WORD', shown + more));
       }
     } else if (recap) {
-      parts.push('<div class="clean">EVERY READ TRUE</div>');
+      parts.push('<div class="clean">PERFECT RUN</div>');
     }
 
     if (daily?.goals) {
@@ -363,7 +367,7 @@ export class UI {
       parts.push(`<div class="statBar">${[
         [runs, runs === 1 ? 'RUN' : 'RUNS'],
         [km, 'KM'],
-        [`${acc}%`, 'TRUE'],
+        [`${acc}%`, 'TRUE READS'],
       ].map(([v, k]) => `<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>`);
     }
 

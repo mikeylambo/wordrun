@@ -47,7 +47,7 @@ export function goalsFor(seed) {
   // '30 READS' say on their own, three times over, on two screens.
   return [
     { id: 'dist', label: `${dist}M`, target: dist },
-    { id: 'chain', label: `×${chain}`, target: chain },
+    { id: 'chain', label: `×${chain} CHAIN`, target: chain },
     { id: 'reads', label: `${reads} READS`, target: reads },
   ];
 }

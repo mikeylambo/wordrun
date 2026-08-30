@@ -323,7 +323,7 @@ head('META — wiring and independence');
   // Phase 19 compressed the sentence into the row's label. Same teaching,
   // same gentle framing, one line instead of one line per wrong read.
   check('an omission is explained without crash language',
-    ui.includes("row('SLIPPED BY'") && !/\b(FAILED|WRONG|BAD|MISTAKE)\b/.test(ui));
+    ui.includes("row('UNCAUGHT'") && !/\b(FAILED|WRONG|BAD|MISTAKE)\b/.test(ui));
   check('the title shows the goal card and the streak',
     ui.includes('setDaily(') && ui.includes('goalChip') && ui.includes('DAY ${card.streak}'));
 

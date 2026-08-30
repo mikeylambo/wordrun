@@ -18,7 +18,7 @@ when the Redline closes, drawing an ink stroke down the page as it runs.
 ## The four names (a ceiling, not a starting point)
 
 Exactly four invented names exist in the whole game, machine-enforced by
-the gate suite: **the Redline** (the antagonist), **REDACTED** (death),
+the gate suite: **the Redline** (the antagonist), **CROSSED OUT** (death),
 **PUBLISHED** (the 30 km finish), and **TODAY'S DRAFT** (the daily seed).
 There were five until Phase 20, when the Caret — a second pursuer that had
 been unreachable since Phase 7 deleted the counter it armed from — was
@@ -28,7 +28,7 @@ ids, no zone titles, no transition cards. The gates fail the build if a
 retired stage name reappears anywhere or if a fifth name-shaped label
 lands in player-facing copy. Words rush at
 you; read them right or **the Redline** — a red editing-pen — closes in
-behind you, eating the frame edge by edge until you are REDACTED.
+behind you, eating the frame edge by edge until it crosses you out.
 
 ```bash
 npm install

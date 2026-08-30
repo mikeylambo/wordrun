@@ -6,7 +6,7 @@
  * generator's mutation classes. A fake can NEVER be one of these, so a
  * correct read is never punished by generator luck. None of this is
  * playable vocabulary. Regenerate after bank changes:
- * node tools/build-guard.mjs  (9028 words)
+ * node tools/build-guard.mjs  (9026 words)
  */
 
 export const EXTENDED_GUARD = [
@@ -304,7 +304,7 @@ export const EXTENDED_GUARD = [
   'escalade', 'escapee', 'escribe', 'esile', 'ess', 'esse', 'est', 'establisher',
   'establishes', 'estival', 'estivate', 'estivation', 'estrich', 'eta', 'etch',
   'ethane', 'ether', 'ethic', 'etranger', 'ettle', 'eucalypts', 'euge', 'euk',
-  'eustasy', 'evacuation', 'evaporite', 'evection', 'even', 'evens', 'ever', 'eversible',
+  'evacuation', 'evaporite', 'evection', 'even', 'evens', 'ever', 'eversible',
   'evert', 'evet', 'evil', 'evo', 'evolue', 'ewk', 'ewt', 'exalt', 'examine', 'examined',
   'examinee', 'examines', 'excellency', 'excentric', 'exchangeably', 'exciding',
   'excising', 'excusive', 'exemple', 'exemplifier', 'exemplifies', 'exert', 'exhauster',
@@ -680,8 +680,8 @@ export const EXTENDED_GUARD = [
   'ping', 'pinger', 'pingle', 'pinguin', 'pinier', 'pinion', 'pinker', 'pinnace',
   'pinner', 'pinot', 'pins', 'pint', 'piny', 'piolet', 'pion', 'pioner', 'pionic',
   'pip', 'pipa', 'pipelike', 'piper', 'piperine', 'pipi', 'pippy', 'pips', 'pipy',
-  'pir', 'pirl', 'pis', 'pise', 'pish', 'piss', 'piston', 'pistou', 'pith', 'pitten',
-  'pitter', 'pity', 'piu', 'pium', 'pivot', 'pix', 'pize', 'pizzle', 'place', 'placemen',
+  'pir', 'pirl', 'pis', 'pise', 'pish', 'piss', 'pistol', 'pith', 'pitten', 'pitter',
+  'pity', 'piu', 'pium', 'pivot', 'pix', 'pize', 'pizzle', 'place', 'placemen',
   'placet', 'plage', 'plagiarise', 'plague', 'plait', 'planation', 'plane', 'planed',
   'planer', 'planes', 'planform', 'plank', 'plans', 'plap', 'plash', 'plasm', 'plasms',
   'plast', 'plasticity', 'plat', 'plats', 'platy', 'plausibly', 'pleach', 'pleas',

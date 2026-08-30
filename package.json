@@ -8,7 +8,7 @@
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview --host",
-    "gates": "node tools/gates.mjs && node tools/word-gates.mjs && node tools/corruption-gates.mjs && node tools/meta-gates.mjs",
+    "gates": "node tools/gates.mjs && node tools/word-gates.mjs && node tools/corruption-gates.mjs && node tools/meta-gates.mjs && node tools/family-gate.mjs",
     "gate:p1": "node tools/gates.mjs p1",
     "gate:p2": "node tools/gates.mjs p2",
     "gate:p3": "node tools/gates.mjs p3",
@@ -18,6 +18,8 @@
     "audio:generate": "node tools/generate-elevenlabs-audio.mjs",
     "gate:words": "node tools/word-gates.mjs",
     "gate:corruption": "node tools/corruption-gates.mjs",
+    "gate:family": "node tools/family-gate.mjs",
+    "build:family": "node tools/build-family-blocklist.mjs",
     "calibrate:speed": "node tools/speed-calibration.mjs",
     "audit:size": "node tools/build-report.mjs",
     "audit:network": "node tools/network-audit.mjs"

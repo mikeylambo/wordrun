@@ -1,0 +1,213 @@
+# DICTION DASH — family-content blocklist
+#
+# Every other invariant in this codebase is machine-gated: the approved-name
+# cap, the Redline's exclusive red, the one-edit fake-collision guard. Word-bank
+# content safety was the exception — pure hand curation, with nothing stopping a
+# future addition from landing something the platform's general-audience rating
+# will not carry. This file closes that gap.
+#
+# General-audience framing is a hard platform-eligibility requirement, and the
+# check runs against BOTH the shipped bank and every misspelling the fake
+# generator can reach from it — a mutation that lands on something ugly is the
+# failure mode hand curation cannot see.
+#
+# FORMAT
+#   exact <term>     the whole word must not equal this
+#   part  <term>     the term must not appear anywhere inside a word
+#   safe  <word>     a control: proves the `part` rules do not fire on it
+#
+# `part` is the dangerous kind — 'ass' inside 'class', 'grape', 'assess' is the
+# classic false positive — so it is reserved for strings that cannot be
+# innocent, and every one is proved against the `safe` controls below.
+# Entries are lowercase a-z, one per line, sorted within a section.
+
+# ── Profanity ────────────────────────────────────────────────────────────────
+exact arse
+exact arsehole
+exact ass
+exact asshole
+exact bastard
+exact bitch
+exact bollocks
+exact bugger
+exact bullshit
+exact crap
+exact cunt
+exact damn
+exact dick
+exact dickhead
+exact douche
+exact fuck
+exact fucker
+exact fucking
+exact goddamn
+exact jackass
+exact motherfucker
+exact piss
+exact pissed
+exact prick
+exact shit
+exact shite
+exact shitty
+exact slut
+exact twat
+exact wanker
+exact whore
+part  cunt
+part  fuck
+part  shit
+
+# ── Slurs and hate terms ─────────────────────────────────────────────────────
+# Severity here is absolute: any embedding is a failure, and the `safe`
+# controls below prove none of these fires on ordinary vocabulary.
+part  chink
+part  dyke
+part  fag
+part  kike
+part  nigg
+part  paki
+part  raghead
+part  retard
+part  spast
+part  tranny
+part  wetback
+
+# ── Sexual content ───────────────────────────────────────────────────────────
+exact anal
+exact anus
+exact areola
+exact blowjob
+exact boob
+exact boobs
+exact breast
+exact clitoris
+exact cock
+exact condom
+exact copulate
+exact ejaculate
+exact erection
+exact erotic
+exact fellatio
+exact fetish
+exact foreplay
+exact genital
+exact genitalia
+exact horny
+exact incest
+exact intercourse
+exact labia
+exact lust
+exact masturbate
+exact nipple
+exact nude
+exact nudity
+exact orgasm
+exact orgy
+exact penis
+exact porn
+exact pornography
+exact prostitute
+exact pubic
+exact scrotum
+exact semen
+exact sperm
+exact testicle
+exact titty
+exact vagina
+exact vulva
+part  masturb
+part  orgasm
+
+# ── Drugs, alcohol and tobacco ───────────────────────────────────────────────
+exact bong
+exact cannabis
+exact cigarette
+exact cocaine
+exact crack
+exact drunk
+exact ecstasy
+exact heroin
+exact hashish
+exact junkie
+exact ketamine
+exact marijuana
+exact meth
+exact methamphetamine
+exact narcotic
+exact opiate
+exact opium
+exact overdose
+exact stoned
+exact vodka
+exact whiskey
+part  cocaine
+part  heroin
+
+# ── Weapons, violence and self-harm ──────────────────────────────────────────
+exact behead
+exact bloodshed
+exact bomb
+exact bullet
+exact carnage
+exact corpse
+exact dagger
+exact decapitate
+exact firearm
+exact gore
+exact grenade
+exact gunshot
+exact homicide
+exact machete
+exact manslaughter
+exact massacre
+exact molest
+exact murder
+exact mutilate
+exact pistol
+exact rape
+exact rapist
+exact revolver
+exact rifle
+exact shotgun
+exact slaughter
+exact stab
+exact strangle
+exact suicide
+exact torture
+part  molest
+part  suicide
+
+# ── Gambling ─────────────────────────────────────────────────────────────────
+exact betting
+exact blackjack
+exact casino
+exact gamble
+exact gambling
+exact roulette
+exact wager
+
+# ── Scunthorpe controls ──────────────────────────────────────────────────────
+# Ordinary vocabulary that a careless `part` rule would swallow. The gate
+# fails if any of these ever matches, which is what keeps the `part` list
+# honest as it grows.
+safe analysis
+safe assassin
+safe brassiere
+safe assess
+safe assume
+safe bassoon
+safe class
+safe cockpit
+safe cocktail
+safe dictionary
+safe grape
+safe harassment
+safe massachusetts
+safe passage
+safe peacock
+safe shiitake
+safe shuttlecock
+safe skyscraper
+safe sussex
+safe therapist
+safe titular

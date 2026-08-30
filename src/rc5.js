@@ -197,7 +197,7 @@ class RC6Hud {
     const death = document.getElementById('deathScreen');
     if (death?.classList.contains('on') && this.sim.deathCause === 'wipeout') {
       const tag = document.getElementById('deathTag');
-      if (tag) tag.textContent = 'REDACTED'; // one death word, whatever kills you
+      if (tag) tag.textContent = 'CROSSED OUT'; // one death phrase, whatever stops you
     }
   }
 }
