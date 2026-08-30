@@ -49,8 +49,9 @@ function apply() {
   Object.assign(ACCESS, p);
   ACCESS.epoch++;
 
-  // DOM consumers of the danger accent: hearts, the lunge tell, the
-  // close-range red wash. Source constants stay the shipped red; modes
+  // DOM consumers of the danger accent: the hearts and the close-range
+  // red wash. (The lunge tell went with the lunge in Phase 18 — the
+  // Redline has had no lunge states since the Phase 7 pursuit rewrite.) Source constants stay the shipped red; modes
   // override at runtime only.
   if (!styleEl) {
     styleEl = document.createElement('style');
@@ -60,7 +61,6 @@ function apply() {
   const c = p.dangerCss;
   styleEl.textContent = ACCESS.palette === 'off' ? '' : `
     .rc5-heart{color:rgb(${c}) !important}
-    #tell{box-shadow:inset 0 -150px 110px -52px rgba(${c},.82) !important}
     #dreadRed{background:radial-gradient(135% 90% at 50% 118%,rgba(${c},.5) 0%,rgba(${c},0) 58%) !important}
   `;
 }

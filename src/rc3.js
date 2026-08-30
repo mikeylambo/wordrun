@@ -232,7 +232,6 @@ function tuneAir(T) {
 function quietUI() {
   const style = document.createElement('style');
   style.textContent = `
-    #styleWord, #courage { display:none !important; }
     #titleScreen .eyebrow { display:none !important; }
   `;
   document.head.appendChild(style);

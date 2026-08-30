@@ -45,7 +45,7 @@ export class Audio {
     this.ready = false;
     this.ctx = null;
     this.muted = false;
-    this.surfaceMode = 'snow';
+    this.surfaceMode = 'ground';
     this._footT = 0;
     this._huntBeatT = 0;
     this._huntBeat = 0;
@@ -108,7 +108,11 @@ export class Audio {
 
     this.wind = this._noiseVoice(720, 'bandpass', 0.8, this.bus.ambience);
     this.air = this._noiseVoice(2350, 'highpass', 0.55, this.bus.ambience);
-    this.snow = this._noiseVoice(1800, 'bandpass', 2.7, this.bus.surface);
+    // The runner's contact with the track. Called 'snow' until Phase 18 —
+    // the last piece of ski vocabulary left in the engine, kept that long
+    // only because it is scaled by an approved mix baseline and renaming
+    // it meant re-verifying the whole mix. Its numbers are untouched.
+    this.glide = this._noiseVoice(1800, 'bandpass', 2.7, this.bus.surface);
     this.powder = this._noiseVoice(620, 'lowpass', 0.7, this.bus.surface);
     this.ice = this._noiseVoice(3900, 'bandpass', 5.2, this.bus.surface);
     this.goRush = this._noiseVoice(2800, 'bandpass', 1.1, this.bus.ambience);
@@ -239,8 +243,8 @@ export class Audio {
     const airborne = !!p.airborne;
     const onIce = !airborne && !!p.onIce;
     const inPowder = !airborne && !!p.inPowder;
-    const onSnow = !airborne && !onIce && !inPowder;
-    this.surfaceMode = onIce ? 'ice' : inPowder ? 'powder' : airborne ? 'air' : 'snow';
+    const onGround = !airborne && !onIce && !inPowder;
+    this.surfaceMode = onIce ? 'ice' : inPowder ? 'powder' : airborne ? 'air' : 'ground';
 
     this._set(this.wind.gain.gain, A.WIND_MAX * speedN * speedN * (airborne ? 1.18 : 0.82));
     this._set(this.wind.filter.frequency, 460 + speedN * 1040 + (airborne ? 260 : 0));
@@ -248,8 +252,8 @@ export class Audio {
     this._set(this.air.filter.frequency, 1600 + speedN * 3200, 0.05);
 
     const glide = RC9.GLIDE * (0.32 + speedN * 0.68);
-    this._set(this.snow.gain.gain, onSnow ? glide * (0.48 + edge * 1.35) : 0, 0.045);
-    this._set(this.snow.filter.frequency, 1180 + speedN * 1050 + edge * 1900, 0.04);
+    this._set(this.glide.gain.gain, onGround ? glide * (0.48 + edge * 1.35) : 0, 0.045);
+    this._set(this.glide.filter.frequency, 1180 + speedN * 1050 + edge * 1900, 0.04);
     this._set(this.powder.gain.gain, inPowder ? RC9.POWDER * (0.48 + speedN * 0.52) * (0.72 + edge * 0.28) : 0, 0.06);
     this._set(this.powder.filter.frequency, 430 + speedN * 560, 0.05);
     this._set(this.ice.gain.gain, onIce ? RC9.ICE * (0.42 + speedN * 0.38 + edge * 0.74) : 0, 0.035);
@@ -510,20 +514,7 @@ export class Audio {
 
   uiTap() { this._tone({ f0: 660, f1: 990, dur: 0.08, vol: 0.07, bus: this.bus.ui }); }
 
-  lungeTell() {
-    if (!this.ready || this.muted) return;
-    const pan = this._panFor(globalThis.__SIM?.beast?.x ?? 0);
-    const dur = TUNING.BEAST.LUNGE_TELL;
-    // The wind-up you get to react to: a static swell sweeping upward.
-    this._tone({ type: 'sawtooth', f0: 160, f1: 1350, dur, vol: 0.13, pan, bus: this.bus.threat, filter: { type: 'bandpass', freq: 1900, q: 3 } });
-    this._burst(dur * 0.85, 0.16, 3400, 'highpass', pan, this.bus.threat, 0.8);
-  }
 
-  lungeStrike() {
-    const pan = this._panFor(globalThis.__SIM?.beast?.x ?? 0);
-    this._burst(0.30, 0.46, 2600, 'bandpass', pan, this.bus.threat, 1.6);
-    this._tone({ type: 'square', f0: 640, f1: 52, dur: 0.26, vol: 0.16, pan, bus: this.bus.threat });
-  }
 
   courageBank(mult) {
     if (!this.ready || this.muted) return;

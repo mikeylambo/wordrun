@@ -91,7 +91,7 @@ if (!Audio.prototype.__v1ApprovedMix) {
     const live = !!running && !kill;
     const speedN = clamp01((player.speed - 10) / (TUNING.RUN.CEILING - 10));
     const edge = player.airborne ? 0 : clamp01(Math.abs(player.heading) / TUNING.PLAYER.MAX_CARVE);
-    const onSnow = live && !player.airborne && !player.onIce && !player.inPowder;
+    const onGround = live && !player.airborne && !player.onIce && !player.inPowder;
 
     if (this.wind?.gain?.gain) {
       const target = TUNING.AUDIO.WIND_MAX * speedN * speedN *
@@ -99,10 +99,10 @@ if (!Audio.prototype.__v1ApprovedMix) {
       this._set(this.wind.gain.gain, target, 0.06);
     }
 
-    if (this.snow?.gain?.gain) {
-      const glideBase = globalThis.__DASH_V1_FINAL_MIX?.packedSnowGlide ?? 0.075;
+    if (this.glide?.gain?.gain) {
+      const glideBase = globalThis.__DASH_V1_FINAL_MIX?.surfaceGlide ?? 0.075;
       const glide = glideBase * (0.32 + speedN * 0.68) * APPROVED.surface * relativeGain('surface');
-      this._set(this.snow.gain.gain, onSnow ? glide * (0.48 + edge * 1.35) : 0, 0.045);
+      this._set(this.glide.gain.gain, onGround ? glide * (0.48 + edge * 1.35) : 0, 0.045);
     }
 
     if (this.roar?.gain?.gain) {
@@ -131,7 +131,7 @@ if (!ApprovedAudioAssets.prototype.__v1ApprovedMix) {
   const baseShot = ApprovedAudioAssets.prototype.oneShot;
   ApprovedAudioAssets.prototype.oneShot = function oneShotV1Approved(id, options = {}) {
     let scale = 1;
-    if (id === 'beast_main_distant' || id === 'beast_main_close' || id === 'beast_main_leap' ||
+    if (id === 'beast_main_distant' || id === 'beast_main_leap' ||
         id === 'frost_beast_enter' || id === 'frost_beast_charge' || id === 'frost_beast_vault' || id === 'frost_beast_kill') {
       scale = APPROVED.beast;
     }
@@ -145,7 +145,7 @@ globalThis.__DASH_V1_APPROVED_MIX = {
   effective: {
     master: TUNING.AUDIO.MASTER,
     windMax: TUNING.AUDIO.WIND_MAX * APPROVED.wind,
-    packedSnowGlide: (globalThis.__DASH_V1_FINAL_MIX?.packedSnowGlide ?? 0.075) * APPROVED.surface,
+    surfaceGlide: (globalThis.__DASH_V1_FINAL_MIX?.surfaceGlide ?? 0.075) * APPROVED.surface,
     roarMax: TUNING.AUDIO.ROAR_MAX * APPROVED.beast,
   },
   mixerZeroIsApprovedBaseline: true,

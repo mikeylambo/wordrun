@@ -72,7 +72,6 @@ let flowChain = 0; // smoothed chain for the flow channel: eased up, snapped dow
 let deathShownAt = 0;
 let shotUrl = null;
 let shotTaken = false;
-let prevLunge = 'idle';
 let ghostEnabled = Storage.ghostEnabled();
 
 // ── Mode + difficulty (Phase 10) ─────────────────────────────────────────
@@ -729,12 +728,6 @@ function tick(dt) {
       input.enabled = false;
       pauseUI.setButton(false);
     }
-  }
-
-  if (!paused && sim.beast.lunge !== prevLunge) {
-    if (sim.beast.lunge === 'tell') audio.lungeTell();
-    else if (sim.beast.lunge === 'strike') audio.lungeStrike();
-    prevLunge = sim.beast.lunge;
   }
 
   terrainMesh.update(p.d);

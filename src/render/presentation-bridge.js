@@ -160,7 +160,7 @@ function quietUI() {
   if (document.getElementById('rc4-quiet-ui')) return;
   const style = document.createElement('style');
   style.id = 'rc4-quiet-ui';
-  style.textContent = `#styleWord,#courage,#titleScreen .eyebrow{display:none!important}`;
+  style.textContent = `#titleScreen .eyebrow{display:none!important}`;
   document.head.appendChild(style);
 
   const power = document.getElementById('powerHint');

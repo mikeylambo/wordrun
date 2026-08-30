@@ -483,6 +483,24 @@ head('RESIDUE — the frame this was cloned from must not show through');
     bed.includes('export function bedLevels') && rc9.includes('pageBed?.update(') &&
     !fs.existsSync('public/audio/approved/wind_alpine_bed-v02.mp3'),
     bed ? 'page grain + turns + ink blooms, no file' : 'page-bed.js missing');
+  // Phase 18: the last ski word in the engine was the surface-glide synth
+  // voice itself, kept that long only because an approved mix baseline
+  // scales it. The rename was verified by intercepting Audio._set and
+  // comparing every parameter TARGET (value, tau and call order) across 56
+  // speed x surface x dash states: 1,792 targets, zero differences. The
+  // smoothed AudioParam readings are NOT a valid check — setTargetAtTime
+  // never lands exactly and drifts with wall-clock.
+  const audioSrc = fs.readFileSync('src/audio/audio.js', 'utf8');
+  const mixSrcs = ['src/v1-final-mix.js', 'src/v1-mixer.js', 'src/v1-approved-mix.js']
+    .map((f) => fs.readFileSync(f, 'utf8')).join('\n');
+  check('the surface-glide voice carries no ski vocabulary',
+    audioSrc.includes('this.glide = this._noiseVoice') && !/this\.snow\b/.test(audioSrc) &&
+    !/packedSnow/i.test(audioSrc + mixSrcs) && !/onSnow/.test(audioSrc + mixSrcs),
+    'voice, constant and mix keys all renamed');
+  check('the approved mix baseline itself is untouched',
+    mixSrcs.includes('const SURFACE_GLIDE = 0.075') && mixSrcs.includes('surface: -5.5'),
+    'glide reference 0.075 and the approved -5.5 dB trim stand');
+
   check('the bed keeps playing even if the approved manifest never loads',
     rc9.includes('pageBed?.update(') && !/if \(!assets\) return;/.test(rc9),
     'no approved-asset guard stands between the run and its atmosphere');

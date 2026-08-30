@@ -2,7 +2,7 @@ import TUNING from './TUNING.js';
 import { Audio } from './audio/audio.js';
 
 const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
-const PACKED_SNOW_GLIDE = 0.075;
+const SURFACE_GLIDE = 0.075;
 
 // Final V1 mix: the isolated playtest showed the continuous surface-glide
 // voice, not the wind, was doing most of the masking. Restore some atmospheric
@@ -30,14 +30,14 @@ if (!Audio.prototype.__v1FinalPriorityMix) {
     const live = !!running && !kill;
     const speedN = clamp((player.speed - 10) / (TUNING.RUN.CEILING - 10));
     const edge = player.airborne ? 0 : clamp(Math.abs(player.heading) / TUNING.PLAYER.MAX_CARVE);
-    const onSnow = live && !player.airborne && !player.onIce && !player.inPowder;
+    const onGround = live && !player.airborne && !player.onIce && !player.inPowder;
 
     // The continuous glide bed was the masking layer on phone speakers. Keep all of
     // its speed/carve expression, but lower the actual continuous ceiling by
     // ~29% from the previous V1 mix (and ~38% from the original RC9 glide).
-    if (this.snow?.gain?.gain) {
-      const glide = PACKED_SNOW_GLIDE * (0.32 + speedN * 0.68);
-      this._set(this.snow.gain.gain, onSnow ? glide * (0.48 + edge * 1.35) : 0, 0.045);
+    if (this.glide?.gain?.gain) {
+      const glide = SURFACE_GLIDE * (0.32 + speedN * 0.68);
+      this._set(this.glide.gain.gain, onGround ? glide * (0.48 + edge * 1.35) : 0, 0.045);
     }
 
     // Short priority ducking lets bells / heartbeat / roars read without making
@@ -104,19 +104,14 @@ if (!Audio.prototype.__v1FinalPriorityMix) {
     return baseHuntStart.call(this, ...args);
   };
 
-  const baseLungeTell = Audio.prototype.lungeTell;
-  Audio.prototype.lungeTell = function lungeTellV1FinalMix(...args) {
-    requestBedDuck(this, 0.10, 0.42);
-    return baseLungeTell.call(this, ...args);
-  };
 }
 
 globalThis.__DASH_V1_FINAL_MIX = {
   version: '1.1',
   windMax: 0.285,
-  packedSnowGlide: PACKED_SNOW_GLIDE,
+  surfaceGlide: SURFACE_GLIDE,
   windRebalancedUp: true,
-  packedSnowReducedFurther: true,
+  glideReducedFurther: true,
   bellLift: true,
   heartbeatLift: true,
   roarLift: true,

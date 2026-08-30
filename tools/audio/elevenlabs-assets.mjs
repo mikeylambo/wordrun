@@ -56,10 +56,6 @@ export const SFX_ASSETS = [
     prompt: 'Distant low mechanical proofreading pass sweeping across an empty archive, deep resonant hum with tape-like drag and faint paper displacement, impersonal and inevitable, no human speech, no music.'
   },
   {
-    id: 'beast_main_close', duration: 2.8, loop: false, influence: 0.58,
-    prompt: 'Close aggressive red pen scoring hard through paper at speed, tearing fibrous rasp over a low pressurized hum, physical and threatening, no human words, no music.'
-  },
-  {
     id: 'beast_main_step', duration: 1.2, loop: false, influence: 0.68,
     prompt: 'Single heavy rubber stamp slammed onto a document, low body-weight thump with a short paper compression and faint metal ring, no voice, no music, isolated game Foley.'
   },

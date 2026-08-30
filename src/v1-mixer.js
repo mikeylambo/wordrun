@@ -15,7 +15,7 @@ const DEFAULT_DB = Object.freeze({
 const BASE = Object.freeze({
   master: TUNING.AUDIO.MASTER,
   windMax: TUNING.AUDIO.WIND_MAX,
-  packedSnowGlide: globalThis.__DASH_V1_FINAL_MIX?.packedSnowGlide ?? 0.075,
+  surfaceGlide: globalThis.__DASH_V1_FINAL_MIX?.surfaceGlide ?? 0.075,
   roarMax: TUNING.AUDIO.ROAR_MAX,
 });
 
@@ -52,7 +52,7 @@ function snapshot() {
     base: {
       master: BASE.master,
       windMax: TUNING.AUDIO.WIND_MAX,
-      packedSnowGlide: globalThis.__DASH_V1_FINAL_MIX?.packedSnowGlide ?? BASE.packedSnowGlide,
+      surfaceGlide: globalThis.__DASH_V1_FINAL_MIX?.surfaceGlide ?? BASE.surfaceGlide,
       roarMax: TUNING.AUDIO.ROAR_MAX,
     },
   };
@@ -116,17 +116,17 @@ if (!Audio.prototype.__v1LiveMixCategories) {
     const live = !!running && !kill;
     const speedN = Math.max(0, Math.min(1, (player.speed - 10) / (TUNING.RUN.CEILING - 10)));
     const edge = player.airborne ? 0 : Math.max(0, Math.min(1, Math.abs(player.heading) / TUNING.PLAYER.MAX_CARVE));
-    const onSnow = live && !player.airborne && !player.onIce && !player.inPowder;
+    const onGround = live && !player.airborne && !player.onIce && !player.inPowder;
 
     if (this.wind?.gain?.gain) {
       const target = TUNING.AUDIO.WIND_MAX * speedN * speedN * (player.airborne ? 1.18 : 0.82) * gain('wind');
       this._set(this.wind.gain.gain, target, 0.06);
     }
 
-    if (this.snow?.gain?.gain) {
-      const glideBase = globalThis.__DASH_V1_FINAL_MIX?.packedSnowGlide ?? BASE.packedSnowGlide;
+    if (this.glide?.gain?.gain) {
+      const glideBase = globalThis.__DASH_V1_FINAL_MIX?.surfaceGlide ?? BASE.surfaceGlide;
       const glide = glideBase * (0.32 + speedN * 0.68) * gain('surface');
-      this._set(this.snow.gain.gain, onSnow ? glide * (0.48 + edge * 1.35) : 0, 0.045);
+      this._set(this.glide.gain.gain, onGround ? glide * (0.48 + edge * 1.35) : 0, 0.045);
     }
 
     if (this.roar?.gain?.gain) {
@@ -155,7 +155,7 @@ if (!ApprovedAudioAssets.prototype.__v1LiveMix) {
   const baseShot = ApprovedAudioAssets.prototype.oneShot;
   ApprovedAudioAssets.prototype.oneShot = function oneShotV1Mix(id, options = {}) {
     let scale = 1;
-    if (id === 'beast_main_distant' || id === 'beast_main_close' || id === 'beast_main_leap' ||
+    if (id === 'beast_main_distant' || id === 'beast_main_leap' ||
         id === 'frost_beast_enter' || id === 'frost_beast_charge' || id === 'frost_beast_vault' || id === 'frost_beast_kill') {
       scale = gain('beast');
     }

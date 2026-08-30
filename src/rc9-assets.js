@@ -97,10 +97,6 @@ function boot() {
 
   layer('huntStart', (side, kind) => kind === 'leap' ? 'beast_main_leap' : 'beast_main_distant',
     (side) => ({ bus: 'threat', gain: 0.42, pan: clamp(side * 0.72, -1, 1) }));
-  layer('lungeTell', () => 'beast_main_close', () => ({
-    bus: 'threat', gain: 0.42,
-    pan: clamp(((sim.beast?.x ?? sim.player.x) - sim.player.x) / 8, -1, 1),
-  }));
 
   // Keep exact procedural cadence, but do not stack a 1.2s organic sample on
   // every pursuit beat. The body sample is an accent; the procedural transient
@@ -135,7 +131,7 @@ function boot() {
     manifest: '/audio/approved/manifest.json',
     slots: [
       'go_rush',
-      'beast_main_distant', 'beast_main_close', 'beast_main_step', 'beast_main_leap',
+      'beast_main_distant', 'beast_main_step', 'beast_main_leap',
       'frost_beast_enter', 'frost_beast_charge', 'frost_beast_vault', 'frost_beast_kill',
     ],
     get status() { return assets?.status?.() || { ready: false, loaded: 0, expected: 0, ids: [] }; },

@@ -323,6 +323,37 @@ head('WORDS — depth (bank scale, no repeats, fresh words per attempt)');
     TIERS.every((t) => t.length >= 300),
     TIERS.map((t) => t.length).join(' / '));
 
+  // Phase 18: one spelling convention, enforced. A game whose entire verb
+  // is "is that spelled right?" cannot be casually bilingual — asking a
+  // player to judge 'neighbour' while the bank elsewhere ships 'neighbor'
+  // asks them to guess which convention this particular gate uses. The
+  // bank leaned American already; ten British forms that arrived early
+  // were swapped or dropped and this list keeps them out.
+  //
+  // 'dialogue' and 'axe' are deliberately absent from the list: both are
+  // standard American usage ('dialog' is the computing sense, 'ax' a rare
+  // variant), so "correcting" them would make the bank worse.
+  const BRITISH_FORMS = [
+    'armour', 'harbour', 'theatre', 'endeavour', 'kilometre', 'manoeuvre',
+    'marvellous', 'neighbour', 'skilful', 'judgement', 'colour', 'favour',
+    'honour', 'behaviour', 'flavour', 'humour', 'labour', 'rumour', 'odour',
+    'vapour', 'splendour', 'parlour', 'saviour', 'candour', 'centre', 'metre',
+    'litre', 'fibre', 'calibre', 'sombre', 'lustre', 'spectre', 'defence',
+    'offence', 'licence', 'pretence', 'organise', 'realise', 'recognise',
+    'apologise', 'analyse', 'paralyse', 'travelling', 'traveller', 'cancelled',
+    'jewellery', 'counsellor', 'woollen', 'labelled', 'modelling',
+    'encyclopaedia', 'foetus', 'anaemia', 'paediatric', 'grey', 'plough',
+    'mould', 'smoulder', 'kerb', 'tyre', 'pyjamas', 'aluminium', 'sceptical',
+    'storey', 'cheque', 'draught', 'programme', 'aeroplane', 'moustache',
+    'fulfil', 'instalment', 'enrol', 'appal', 'practise', 'tranquillity',
+    'ageing', 'gaol', 'sulphur',
+  ];
+  const shipped = new Set(ALL_WORDS);
+  const bilingual = BRITISH_FORMS.filter((w) => shipped.has(w));
+  check('the bank speaks one spelling convention, not two',
+    bilingual.length === 0,
+    bilingual.join(', ') || `${BRITISH_FORMS.length} British forms checked, none shipped`);
+
   // The extended fake-guard (guard data, never playable): a fake can no
   // longer collide with common real English outside the shipped tiers.
   const { EXTENDED_GUARD } = await import('../src/words/guard.js');

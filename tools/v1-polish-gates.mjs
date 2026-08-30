@@ -123,8 +123,8 @@ check(viewport.includes('safe-area-inset-bottom') && viewport.includes('position
 check(!viewport.includes('requestAnimationFrame'),
   'viewport shell fix adds no runtime loop');
 
-check(finalMix.includes('TUNING.AUDIO.WIND_MAX = 0.285') && finalMix.includes('const PACKED_SNOW_GLIDE = 0.075'),
-  'final mix establishes the post-isolation wind and packed-snow reference');
+check(finalMix.includes('TUNING.AUDIO.WIND_MAX = 0.285') && finalMix.includes('const SURFACE_GLIDE = 0.075'),
+  'final mix establishes the post-isolation wind and surface-glide reference');
 check(approvedMix.includes('wind: -2') && approvedMix.includes('surface: -5.5') &&
   approvedMix.includes('bells: 4') && approvedMix.includes('heartbeat: 6') && approvedMix.includes('beast: 1'),
   'user-approved live mix is baked as the canonical V1 dB baseline');

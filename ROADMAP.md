@@ -28,22 +28,16 @@ this file only holds what is NOT built yet.
 
 ## Noted in passing, not yet scheduled
 
-- **The bank's spelling convention is mixed.** It leans American
-  (neighbor, flavor, center, gray, plow) but carries a few British forms
-  that arrived early (neighbour, theatre, axe). Phase 17 standardised all
-  *new* intake on the American form; the handful of existing British
-  entries were left alone because removing shipped words is a content
-  call, not a cleanup. Worth a ruling.
-- **A dead UI path.** `#pitchName` and `#styleWord` are hidden by CSS
-  (`display:none!important`) but `ui.js` still computes and writes to
-  them every frame, including a PITCH_LABEL table naming terrain types
-  this game no longer has. Harmless, but it is the same class of thing
-  Phase 15 spent a day removing.
-- **The `snow` / `packedSnowGlide` audio voice.** Phase 15 renamed the
-  ski vocabulary everywhere except the surface-glide synth voice itself,
-  which is still called snow internally and is scaled by the user's
-  approved mix. Renaming it is mechanical but touches an approved audio
-  baseline, so it was left for a phase that can re-verify the mix.
+- **The Caret cannot appear.** One of the five approved names — the rare
+  pale second pursuer the README describes cutting across the track — is
+  structurally unreachable. It arms off `beast.hunts`, the Redline's hunt
+  counter, and Phase 7's pure-differential rewrite deleted the hunt state
+  machine: `hunts` is initialised to 0 and never incremented, so the arming
+  check returns on its first line, every run. Five full 30 km runs
+  (106,775 sim steps) produced zero appearances. Two honest options, and
+  it is a design call: re-arm it on something that still exists (distance
+  beats, or the gap crossing a threshold), or retire it and drop to four
+  names. Until then the README promises a character the game cannot show.
 
 ## Waiting on a human
 

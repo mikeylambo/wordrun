@@ -128,7 +128,7 @@ class RC6Hud {
     const style = document.createElement('style');
     style.id = 'rc6-ui-style';
     style.textContent = `
-      #pitchName,#styleWord,#courage,#chain,#titleScreen .eyebrow{display:none!important}
+      #chain,#titleScreen .eyebrow{display:none!important}
       #rc5Vitals{position:absolute;z-index:25;left:18px;top:calc(var(--safe-t) + 60px);display:flex;gap:9px;pointer-events:none;transition:opacity .18s ease}
       .rc5-heart{font:900 30px/1 system-ui,sans-serif;color:#d62d24;text-shadow:0 1px 0 rgba(255,255,255,.42),0 2px 8px rgba(60,0,0,.18);opacity:.97;transition:opacity .18s ease,transform .18s ease}
       .rc5-heart.empty{opacity:.14;transform:scale(.82)}
