@@ -179,12 +179,20 @@ game; this port lifts its meta design, not its runtime.
 
 `src/words/wordlist.js` is a standalone service — zero runtime dependencies,
 no runner imports — built to be lifted into the next word game unchanged.
-Every word is hand-curated (a ~6,700-word harvested catalog bank was
-tried in Phase 9 and deliberately removed in Phase 11 — curation beats
-volume now that the structures below carry the variety):
+Every word is hand-curated — Phase 13 grew the bank 563 → ~3,070 by
+authoring, not harvesting (a catalog import was tried in Phase 9 and
+deliberately removed; every addition since is picked for the
+reading-at-speed verb and dictionary-validated before shipping):
 
-- 5 difficulty tiers, ~560 words, from short high-frequency up to the
-  classic trap spellings.
+- 5 difficulty tiers (339 / 787 / 837 / 652 / 458), from short
+  high-frequency up to the classic trap spellings.
+- An EXTENDED fake-guard (guard data, never playable): the *complete*
+  one-edit collision set — every string the fake generator's mutation
+  classes can produce from any bank word that is also a real English
+  word (~7,600, computed against a 275k-word dictionary by
+  `node tools/build-guard.mjs`; rerun after any bank change). A fake
+  can therefore never land on a real word the bank doesn't ship
+  ('gray' -> 'grey', 'sage' -> 'sago' class, closed and gated).
 - **No repeats**: each tier is drawn as a seeded coprime walk through the
   whole pool, so a word cannot recur until the entire tier has been seen
   (940–2,200 words — longer than any run's stay in a tier). Gated.
