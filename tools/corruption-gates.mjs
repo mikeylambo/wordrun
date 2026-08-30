@@ -199,9 +199,12 @@ head('NAMING — five approved names, machine-enforced');
   // The complete approved set. This is a CEILING: adding a sixth name to the
   // game means consciously editing this list, and the checks below make any
   // back-door label channel (band announcements, retired vocabulary) fail.
-  const APPROVED = ['The Redline', 'The Caret', 'REDACTED', 'PUBLISHED', "TODAY'S DRAFT"];
-  check('the approved-name ceiling holds at exactly five',
-    APPROVED.length === 5, APPROVED.join(' · '));
+  // Phase 20: four, not five. The Caret was removed outright — it had been
+  // unreachable since Phase 7 deleted the hunt counter it armed from, so
+  // the cap was carrying a name the game could not show.
+  const APPROVED = ['The Redline', 'REDACTED', 'PUBLISHED', "TODAY'S DRAFT"];
+  check('the approved-name ceiling holds at exactly four',
+    APPROVED.length === 4, APPROVED.join(' · '));
 
   // Gate 1: every retired stage name is gone from code, docs and copy —
   // scan the whole tracked tree except this gate file (which must carry the
@@ -211,6 +214,9 @@ head('NAMING — five approved names, machine-enforced');
     'TRACKED CHANGES', 'DEAD LETTERS', 'WHITEOUT', 'BLACK INK', 'AFTERWORD',
     'OLD DRAFTS', 'THE BLANK PAGE', 'VELLUM', 'THE APPENDIX',
     'THE SMALL HOURS', 'CLEAN COPY',
+    // Phase 20: the retired second antagonist joins the list it used to
+    // be exempt from, so it cannot come back by accident.
+    'THE CARET',
     // DESCENT-inherited stage names fall under the same cap:
     'THE STILL', 'FALSE DAWN', 'FIRST LIGHT', 'CLEAN SIGNAL',
     // Phase 12 rename: the old game title is retired everywhere (the
@@ -262,8 +268,11 @@ head('NAMING — five approved names, machine-enforced');
   check('death copy is REDACTED and the day is TODAY\'S DRAFT',
     ui.includes("'REDACTED'") && ui.includes("TODAY'S DRAFT"));
   const readme = fs.readFileSync('README.md', 'utf8');
-  check('the Redline and the Caret are the named antagonists',
-    readme.includes('the Redline') && readme.includes('the Caret'));
+  // The removal note may explain what the Caret was; what it may not do is
+  // present it as a live name (names are bolded in the README).
+  check('the Redline is the named antagonist, alone',
+    readme.includes('**the Redline**') && !readme.includes('**the Caret**') &&
+    readme.includes('## The four names'));
 
   // No OTHER "The Xxx" proper-noun label may appear in player-facing display
   // strings — the pattern a sixth name would most likely take.
@@ -279,7 +288,7 @@ head('NAMING — five approved names, machine-enforced');
     ].map((m) => m[1]);
     for (const str of strings) {
       for (const m of str.matchAll(/\bThe ([A-Z][a-z]+)\b/g)) {
-        if (!['Redline', 'Caret'].includes(m[1])) nameShaped.push(`${f}: "The ${m[1]}"`);
+        if (m[1] !== 'Redline') nameShaped.push(`${f}: "The ${m[1]}"`);
       }
     }
   }

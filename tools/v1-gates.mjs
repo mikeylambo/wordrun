@@ -87,14 +87,15 @@ check(!chaseSource.includes('pickStalkBand') && !beastSource.includes('mistakePr
 check(escapeSource.includes('!sim.escapeConsumed') && escapeSource.includes('sim.postFinishActive = true') &&
   escapeSource.includes("t: 'beast_return'"),
   'finish is consumed once and the Redline can become lethal again afterward');
-check(escapeSource.includes('SecondBeast.prototype.step') && escapeSource.includes('if (sim?.escaped)') &&
-  escapeSource.includes('return baseStep.call(this, dt, player, main, terrain)'),
-  'the Caret withdraws for the finish but resumes its pattern afterward');
+// Phase 20 removed the Caret, so the finish only has to hold off one
+// pursuer — and nothing may reintroduce a second.
+check(!escapeSource.includes('SecondBeast') && !escapeSource.includes('secondBeast'),
+  'the finish sequence has one pursuer to withdraw, not two');
 check(!/textContent\s*=\s*['\"](?:OVER ?RUN|OVERRUN)/i.test(chaseSource + finalSource + escapeSource),
   'no post-finish mode name is exposed through player-facing text');
 
 check(mobileSource.includes("go.id = 'v1MobileDash'") && mobileSource.includes("guide.id = 'v1TouchGuide'"),
-  'mobile has visible GO affordance and contextual gesture overlay');
+  'mobile has a visible DASH affordance and a contextual gesture overlay');
 
 check(!finalSource.includes('requestAnimationFrame') && !contactSource.includes('requestAnimationFrame') &&
   !chaseSource.includes('requestAnimationFrame') && !escapeSource.includes('requestAnimationFrame') &&

@@ -64,22 +64,6 @@ export const SFX_ASSETS = [
     prompt: 'A long red stroke accelerating across a page in one lunge, explosive fibrous attack into a heavy rushing whoosh, brief pressurized exertion, no human voice, no music.'
   },
   {
-    id: 'frost_beast_enter', duration: 3.0, loop: false, influence: 0.58,
-    prompt: 'A sudden burst of brittle static and torn paper as a second correction mark cuts into the page, glassy digital crackle over dry fibre, strange and uncanny, no human voice, no music.'
-  },
-  {
-    id: 'frost_beast_charge', duration: 3.2, loop: false, influence: 0.62,
-    prompt: 'A sharp correction mark driving diagonally across a document at speed, rapid fibrous impacts, rushing air, brittle glassy rattle and interference crackle, no human voice, no music.'
-  },
-  {
-    id: 'frost_beast_vault', duration: 2.8, loop: false, influence: 0.60,
-    prompt: 'A glassy insertion mark vaulting over a line of text, explosive brittle takeoff, rising resonant whoosh, crystalline ring, firm paper landing tail, no voice, no music.'
-  },
-  {
-    id: 'frost_beast_kill', duration: 2.4, loop: false, influence: 0.60,
-    prompt: 'Final redaction climax for an arcade word game, heavy stamp impact, sharp brittle crack and a low collapsing hum, dramatic but not gory, no human scream, no music.'
-  },
-  {
     id: 'go_rush', duration: 3.0, loop: true, influence: 0.54,
     prompt: 'Seamless stylized high-speed acceleration rush, compressed air opening into a bright aerodynamic whoosh with a subtle paper-flutter shimmer, energetic game boost texture, no engine, no voice, no music.'
   }

@@ -66,8 +66,6 @@ function boot() {
   let lastMode = sim.beast.mode;
   let lastHearts = sim.hearts;
   let lastBells = sim.bellsCollected;
-  let lastSecondActive = !!sim.secondBeast?.active;
-  let lastSecondPhase = sim.secondBeast?.phase || 'idle';
 
   // RC5's render wrapper calls system.update by property lookup every frame.
   // Replacing that property removes the old beep layer without adding a loop.
@@ -84,8 +82,6 @@ function boot() {
       lastHearts = sim.hearts;
       lastBells = sim.bellsCollected;
       lastMode = sim.beast.mode;
-      lastSecondActive = !!sim.secondBeast?.active;
-      lastSecondPhase = sim.secondBeast?.phase || 'idle';
     }
 
     if (sim.hearts !== lastHearts) {
@@ -116,18 +112,6 @@ function boot() {
         audio.huntEnd?.();
       }
       lastMode = sim.beast.mode;
-    }
-
-    const second = sim.secondBeast;
-    if (second) {
-      if (second.active && !lastSecondActive) {
-        audio.secondBeastEnter?.(second.side, second.kind);
-      }
-      if (second.active && second.phase === 'charge' && lastSecondPhase !== 'charge') {
-        audio.secondBeastCharge?.(second.side, second.kind);
-      }
-      lastSecondActive = !!second.active;
-      lastSecondPhase = second.phase;
     }
   };
 

@@ -26,19 +26,6 @@ this file only holds what is NOT built yet.
    worth featuring. Pairs with the input-parity and aggressive-caching
    notes from the platform-fit review.
 
-## Noted in passing, not yet scheduled
-
-- **The Caret cannot appear.** One of the five approved names — the rare
-  pale second pursuer the README describes cutting across the track — is
-  structurally unreachable. It arms off `beast.hunts`, the Redline's hunt
-  counter, and Phase 7's pure-differential rewrite deleted the hunt state
-  machine: `hunts` is initialised to 0 and never incremented, so the arming
-  check returns on its first line, every run. Five full 30 km runs
-  (106,775 sim steps) produced zero appearances. Two honest options, and
-  it is a design call: re-arm it on something that still exists (distance
-  beats, or the gap crossing a threshold), or retire it and drop to four
-  names. Until then the README promises a character the game cannot show.
-
 ## Waiting on a human
 
 - **Calibration verdicts** — everything is wired, each is a one-line

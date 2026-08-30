@@ -8,7 +8,6 @@
 import TUNING from './TUNING.js';
 import { Terrain } from './sim/terrain.js';
 import { Beast, LUNGE, CHASE_MODE } from './sim/beast.js';
-import { SecondBeast } from './sim/second-beast.js';
 import { UI } from './ui/ui.js';
 import { bandForDistance } from './render/art-direction.js';
 import { ENDGAME, applyEndgameTerrain } from './design/endgame.js';
@@ -73,7 +72,6 @@ if (!Beast.prototype.__rc97EscapePatched) {
       this.killAir = false;
       this.desired = this.gap;
 
-      const second = sim.secondBeast;
       if (second) {
         second.active = false;
         second.killed = false;
@@ -143,26 +141,6 @@ if (!Beast.prototype.__rc97EscapePatched) {
   };
 }
 
-if (!SecondBeast.prototype.__rc97EscapePatched) {
-  SecondBeast.prototype.__rc97EscapePatched = true;
-  const baseStep = SecondBeast.prototype.step;
-  SecondBeast.prototype.step = function stepRC97(dt, player, main, terrain) {
-    const sim = globalThis.__SIM;
-    if (sim?.escaped) {
-      this.active = false;
-      this.killed = false;
-      this.killT = 0;
-      this.phase = 'idle';
-      this.phaseT = 0;
-      this.armedHunt = 0;
-      this.triggerAt = Infinity;
-      this.lift = 0;
-      this.event = null;
-      return null;
-    }
-    return baseStep.call(this, dt, player, main, terrain);
-  };
-}
 
 // Hide late-zone labels and keep the title mechanically innocent. The world
 // reveals its late run through light, not UI naming the secret progression.

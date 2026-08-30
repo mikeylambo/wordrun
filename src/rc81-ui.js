@@ -2,7 +2,6 @@
 // No extra animation loop: all screen anchoring rides the existing player update.
 import * as THREE from 'three';
 import Storage from './storage/storage.js';
-import './rc82-two-beast.js';
 
 function patchGhostPreference() {
   if (Storage.__rc81GhostPatched) return;

@@ -149,7 +149,7 @@ if (CHALLENGE) {
 }
 
 // ── Run-start warm-up (Phase 8) ───────────────────────────────────────────
-// Profiling the DROP IN hitch found three first-use costs landing on one
+// Profiling the BEGIN RUN hitch found three first-use costs landing on one
 // frame: shader compilation for every material hidden on the title screen
 // (plates, corruption, bursts), the first canvas→GPU texture uploads, and
 // the AudioContext graph build. All three are paid here instead, while the
@@ -318,7 +318,6 @@ function reviveRun() {
   sim.beast.gap = TUNING.BEAST.START_GAP;
   sim.beast.lunge = 'idle';
   sim.beast.lungeT = 0;
-  if (sim.secondBeast.killed) sim.secondBeast.reset();
   const R = TUNING.RUN;
   p.speed = Math.max(R.FLOOR, Math.min(R.CEILING, sim.beast.pace + CONT.REVIVE_SPEED_PAD));
   sim.phase = PHASE.RUNNING;
@@ -402,7 +401,7 @@ function finalizeRun() {
   deathShownAt = performance.now();
 
   // Re-warm the plates for the NEXT attempt's fresh words while the death
-  // card idles, keeping the AGAIN tap as hitch-free as the first DROP IN.
+  // card idles, keeping the AGAIN tap as hitch-free as the first BEGIN RUN.
   warmPlates();
 }
 

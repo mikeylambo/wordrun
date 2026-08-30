@@ -227,3 +227,15 @@ Slice history:
   the results card that shows the true spelling behind every wrong read
   (fixing a latent bug where the true spelling was dropped exactly for
   fakes). New meta gate suite; all suites green.
+- Phase 20 — the unreachable second pursuer retired. The rare pale figure
+  that was supposed to cut across the track armed off the Redline's hunt
+  counter, and Phase 7's pure-differential rewrite had deleted the hunt
+  state machine: the counter is initialised to zero and never incremented,
+  so the arming check returned on its first line, every run. Five full
+  30 km runs (106,775 sim steps) produced zero appearances. Rather than
+  re-arm a character nothing else in the design needs, it is gone: sim
+  module, render module, escape patch, four interference stems and their
+  manifest entries, the audio cue watcher and the two mixer layers. The
+  approved-name cap drops five to four — the Redline, REDACTED, PUBLISHED,
+  TODAY'S DRAFT — and the gate suite now enforces four and bans the retired
+  name from live copy. The start button reads BEGIN RUN.

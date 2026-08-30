@@ -15,20 +15,20 @@ low-poly human of glow, arms pumping, stride lengthening as your reading
 earns speed. It still pulses like a text caret: calm at distance, frantic
 when the Redline closes, drawing an ink stroke down the page as it runs.
 
-## The five names (a ceiling, not a starting point)
+## The four names (a ceiling, not a starting point)
 
-Exactly five invented names exist in the whole game, machine-enforced by
-the gate suite: **the Redline** and **the Caret** (the antagonists),
-**REDACTED** (death), **PUBLISHED** (the 30 km finish), and **TODAY'S
-DRAFT** (the daily seed). The mood arc underneath — twenty-one palette
+Exactly four invented names exist in the whole game, machine-enforced by
+the gate suite: **the Redline** (the antagonist), **REDACTED** (death),
+**PUBLISHED** (the 30 km finish), and **TODAY'S DRAFT** (the daily seed).
+There were five until Phase 20, when the Caret — a second pursuer that had
+been unreachable since Phase 7 deleted the counter it armed from — was
+removed rather than repaired. The mood arc underneath — twenty-one palette
 bands with their own hues and blend math — is deliberately unnamed: plain
 ids, no zone titles, no transition cards. The gates fail the build if a
-retired stage name reappears anywhere or if a sixth name-shaped label
+retired stage name reappears anywhere or if a fifth name-shaped label
 lands in player-facing copy. Words rush at
 you; read them right or **the Redline** — a red editing-pen — closes in
-behind you, eating the frame edge by edge until you are REDACTED. Its rare
-pale companion, **the Caret**, cuts across the track on its own authored
-beats.
+behind you, eating the frame edge by edge until you are REDACTED.
 
 ```bash
 npm install

@@ -103,7 +103,7 @@
 
   /* Daily goals + play streak (title) and the run recap (death card). */
   /* Mode + difficulty chips (Phase 10). Buttons, so the tap-anywhere
-     DROP IN handler ignores them. */
+     BEGIN RUN handler ignores them. */
   #modeRows{display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:auto}
   .modeRow{display:flex;gap:7px;justify-content:center}
   .modeChip{pointer-events:auto;cursor:pointer;border:1px solid rgba(255,255,255,.13);border-radius:2px;background:transparent;color:var(--dim);font-family:inherit;font-size:8px;font-weight:600;letter-spacing:.22em;padding:9px 14px;-webkit-tap-highlight-color:transparent;transition:color .16s ease,border-color .16s ease}
@@ -170,7 +170,7 @@
 
   <div class="screen on" id="titleScreen">
     <div class="title-lockup"><img id="titleWordmark" src="./ui/dictiondash-wordmark.svg?v=3" alt="DICTION DASH"><div id="titleHint"></div></div>
-    <div class="drop-lockup"><div class="drop">DROP IN</div><div id="modeRows"><div class="modeRow" id="modeRow"><button class="modeChip" type="button" data-mode="endless">ENDLESS</button><button class="modeChip" type="button" data-mode="standard">STANDARD</button></div><div class="modeRow" id="difficultyRow"><button class="modeChip" type="button" data-difficulty="easy">EASY</button><button class="modeChip" type="button" data-difficulty="normal">NORMAL</button><button class="modeChip" type="button" data-difficulty="hard">HARD</button></div></div><div id="titleGoals"><div class="goalRow" id="titleGoalRow"></div><div id="titleStreak"></div></div><div class="seed" id="seedLine"></div></div>
+    <div class="drop-lockup"><div class="drop">BEGIN RUN</div><div id="modeRows"><div class="modeRow" id="modeRow"><button class="modeChip" type="button" data-mode="endless">ENDLESS</button><button class="modeChip" type="button" data-mode="standard">STANDARD</button></div><div class="modeRow" id="difficultyRow"><button class="modeChip" type="button" data-difficulty="easy">EASY</button><button class="modeChip" type="button" data-difficulty="normal">NORMAL</button><button class="modeChip" type="button" data-difficulty="hard">HARD</button></div></div><div id="titleGoals"><div class="goalRow" id="titleGoalRow"></div><div id="titleStreak"></div></div><div class="seed" id="seedLine"></div></div>
   </div>
 
   <div class="screen" id="deathScreen">

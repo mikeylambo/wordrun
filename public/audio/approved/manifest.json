@@ -13,25 +13,9 @@
       "url": "/audio/approved/corruption_leap-v01.wav",
       "gain": 0.36
     },
-    "frost_beast_charge": {
-      "url": "/audio/approved/interference_charge-v01.wav",
-      "gain": 0.34
-    },
-    "frost_beast_vault": {
-      "url": "/audio/approved/interference_vault-v01.wav",
-      "gain": 0.35
-    },
-    "frost_beast_kill": {
-      "url": "/audio/approved/interference_kill-v01.wav",
-      "gain": 0.33
-    },
     "beast_main_distant": {
       "url": "/audio/approved/corruption_distant-v01.wav",
       "gain": 0.3
-    },
-    "frost_beast_enter": {
-      "url": "/audio/approved/interference_enter-v01.wav",
-      "gain": 0.33
     }
   }
 }

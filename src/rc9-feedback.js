@@ -569,20 +569,6 @@ if (!Audio.prototype.__rc9SkiTrimInstalled) {
   // Frost beast must read through the black beast's low-frequency Hunt bed.
   // Give the entrance a short, spatial high-frequency ice split rather than
   // simply making the whole cue louder or telegraphing it earlier.
-  const baseSecondBeastEnter = Audio.prototype.secondBeastEnter;
-  Audio.prototype.secondBeastEnter = function secondBeastEnterWithIceSplit(side = 0, kind = 'diagonal', ...args) {
-    const out = baseSecondBeastEnter.call(this, side, kind, ...args);
-    if (this.ready && !this.muted) {
-      const pan = Math.max(-1, Math.min(1, side * 0.92));
-      this._burst(0.16, 0.12, 6100, 'highpass', pan, this.bus.threat, 3.0);
-      this._tone({
-        type: 'triangle', f0: kind === 'vault' ? 2850 : 2420, f1: 980,
-        dur: 0.18, vol: 0.060, pan, bus: this.bus.threat,
-        filter: { type: 'bandpass', freq: 2600, q: 5 },
-      });
-    }
-    return out;
-  };
 
   Audio.prototype.__rc9SkiTrimInstalled = true;
 }

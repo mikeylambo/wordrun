@@ -4,7 +4,7 @@
  * The runner is a RUNNING FIGURE OF LIGHT: a low-poly humanoid built from
  * glowing primitives with a procedural run cycle — no skeleton, no skinning,
  * just pivot groups swung by distance-driven phase, so it stays in the same
- * error-absorbent line-art language as the Redline and the Caret. It is a
+ * error-absorbent line-art language as the Redline. It is a
  * visual swap on the existing controller: PlayerActor keeps the exact
  * update(p, slope, dt, gap) contract, the pivot for airborne rotation, and
  * the track-ribbon system (the ink stroke the runner draws down the page).

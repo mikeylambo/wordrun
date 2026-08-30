@@ -131,8 +131,7 @@ if (!ApprovedAudioAssets.prototype.__v1ApprovedMix) {
   const baseShot = ApprovedAudioAssets.prototype.oneShot;
   ApprovedAudioAssets.prototype.oneShot = function oneShotV1Approved(id, options = {}) {
     let scale = 1;
-    if (id === 'beast_main_distant' || id === 'beast_main_leap' ||
-        id === 'frost_beast_enter' || id === 'frost_beast_charge' || id === 'frost_beast_vault' || id === 'frost_beast_kill') {
+    if (id === 'beast_main_distant' || id === 'beast_main_leap') {
       scale = APPROVED.beast;
     }
     return baseShot.call(this, id, { ...options, gain: (options.gain ?? 1) * scale });

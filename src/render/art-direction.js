@@ -7,7 +7,7 @@
  * stays, the literary label layer is gone. The single exception is the
  * canonical 30K finish band, which carries the game's finish state name,
  * PUBLISHED — one of exactly five approved names in the whole game (with
- * the Redline, the Caret, REDACTED and TODAY'S DRAFT). That set is a
+ * the Redline, REDACTED, PUBLISHED and TODAY'S DRAFT). That set is a
  * ceiling, machine-enforced in tools/corruption-gates.mjs.
  */
 

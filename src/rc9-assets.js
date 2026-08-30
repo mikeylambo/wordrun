@@ -118,12 +118,6 @@ function boot() {
     };
   }
 
-  layer('secondBeastEnter', () => 'frost_beast_enter',
-    (side) => ({ bus: 'threat', gain: 0.44, pan: clamp(side * 0.88, -1, 1) }));
-  layer('secondBeastCharge', (side, kind) => kind === 'vault' ? 'frost_beast_vault' : 'frost_beast_charge',
-    (side) => ({ bus: 'threat', gain: 0.48, pan: clamp(side * 0.92, -1, 1) }));
-  layer('kill', (source) => (source || sim.killSource) === 'second' ? 'frost_beast_kill' : null,
-    () => ({ bus: 'cinematic', gain: 0.52 }));
 
   window.__RC9_ASSETS = {
     version: '9.5',
@@ -132,7 +126,6 @@ function boot() {
     slots: [
       'go_rush',
       'beast_main_distant', 'beast_main_step', 'beast_main_leap',
-      'frost_beast_enter', 'frost_beast_charge', 'frost_beast_vault', 'frost_beast_kill',
     ],
     get status() { return assets?.status?.() || { ready: false, loaded: 0, expected: 0, ids: [] }; },
   };

@@ -58,7 +58,7 @@ export class Audio {
    * Resume from a user gesture. The node graph itself is built by
    * prewarm() — construction is allowed before any gesture (the context
    * just starts suspended), only resume() needs the tap. Building the
-   * ~40 node graph and two noise buffers used to happen ON the DROP IN
+   * ~40 node graph and two noise buffers used to happen ON the BEGIN RUN
    * tap and was one of the three run-start stutter sources (Phase 8).
    */
   start() {
@@ -457,18 +457,7 @@ export class Audio {
     this._tone({ f0: 165, f1: 110, dur: 0.42, vol: 0.025, bus: this.bus.score, delay: 0.03 });
   }
 
-  secondBeastEnter(side = 0, kind = 'diagonal') {
-    const pan = clamp(side * 0.9, -1, 1);
-    this._burst(0.42, 0.17, 4300, 'highpass', pan, this.bus.threat, 2.4);
-    this._tone({ type: 'triangle', f0: kind === 'vault' ? 780 : 620, f1: 205, dur: 0.72, vol: 0.09, pan, bus: this.bus.threat, filter: { type: 'bandpass', freq: 1250, q: 4 } });
-    this._tone({ type: 'sine', f0: 94, f1: 52, dur: 0.64, vol: 0.085, pan, bus: this.bus.threat, delay: 0.06 });
-  }
 
-  secondBeastCharge(side = 0, kind = 'diagonal') {
-    const pan = clamp(side * 0.95, -1, 1);
-    this._burst(kind === 'vault' ? 0.62 : 0.48, 0.24, 3200, 'bandpass', pan, this.bus.threat, 1.8);
-    this._tone({ type: 'sawtooth', f0: kind === 'vault' ? 180 : 140, f1: kind === 'vault' ? 620 : 84, dur: 0.55, vol: 0.065, pan, bus: this.bus.threat, filter: { type: 'lowpass', freq: 1200, q: 2 } });
-  }
 
   /**
    * The DASH (Phase 16) — its own sound, not the shove it used to borrow.

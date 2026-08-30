@@ -59,7 +59,7 @@ check(mainSrc.includes('function warmStart()') && mainSrc.includes('initTexture'
 check(mainSrc.includes('wordGateActors.current.paint(makeGate(nextWordSeed, 0, prof).shown') &&
   mainSrc.includes('wordGateActors.next.paint(makeGate(nextWordSeed, 1, prof).shown') &&
   mainSrc.includes('function warmStart()') && mainSrc.includes('warmPlates();'),
-  "the run's first two plates are painted before DROP IN (cache-hit at start)");
+  "the run's first two plates are painted before BEGIN RUN (cache-hit at start)");
 check(audioSrc.includes('prewarm()') && audioSrc.includes('this.prewarm();') &&
   !audioSrc.includes('if (!Ctx) return;\n    const ctx = new Ctx();\n\n    this.ready'),
   'audio graph builds suspended at load; the gesture only resumes it');

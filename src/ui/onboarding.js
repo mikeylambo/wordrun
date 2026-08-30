@@ -67,7 +67,7 @@ export class OnboardingUI {
           <div class="rule"><b>♥ ♥ ♥</b><span>ONLY A TAPPED FAKE COSTS ONE</span></div>
         </div>
         <div class="ghost"><span>BEST RUN</span><button class="toggle" data-act="ghost"></button></div>
-        <button class="start" data-act="start">DROP IN</button>
+        <button class="start" data-act="start">BEGIN RUN</button>
       </div>`;
     document.getElementById('app').appendChild(this.root);
     this.toggle = this.root.querySelector('[data-act="ghost"]');
@@ -98,7 +98,7 @@ export class OnboardingUI {
 
   show() {
     this.helpMode = false;
-    this.startButton.textContent = 'DROP IN';
+    this.startButton.textContent = 'BEGIN RUN';
     this.root.classList.add('on');
   }
 

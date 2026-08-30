@@ -6,7 +6,6 @@ import TUNING from '../TUNING.js';
 import { Terrain } from './terrain.js';
 import { Player } from './player.js';
 import { Beast } from './beast.js';
-import { SecondBeast } from './second-beast.js';
 import { GhostRecorder, GhostPlayer } from './ghost.js';
 import { WordGates } from './word-gates.js';
 // Phase 7: the RC6 beat/pursuit pass and the landing-feel pass are retired
@@ -30,7 +29,6 @@ export class Sim {
     this.terrain = new Terrain(this.seed);
     this.player = new Player(this.terrain);
     this.beast = new Beast(this.seed);
-    this.secondBeast = new SecondBeast(this.seed);
     this.wordGates = new WordGates(this.seed);
     this.recorder = new GhostRecorder();
     this.ghost = new GhostPlayer(null);
@@ -58,12 +56,10 @@ export class Sim {
       this.seed = seed >>> 0;
       this.terrain = new Terrain(this.seed);
       this.player.terrain = this.terrain;
-      this.secondBeast.seed = this.seed;
     }
     this.terrain.chunks.clear();
     this.player.reset();
     this.beast.reset();
-    this.secondBeast.reset();
     const M = TUNING.MODES;
     this.mode = M.RULES[opts.mode] ? opts.mode : 'endless';
     this.rules = M.RULES[this.mode];
@@ -99,7 +95,6 @@ export class Sim {
     if (this.phase === PHASE.KILL) {
       this.killTimer += dt;
       this.beast.step(dt, this.player);
-      if (this.secondBeast.killed) this.secondBeast.killT += dt;
       this.ghost.step(dt);
       if (this.killTimer >= TUNING.BEAST.KILL_CAM_TIME) this.phase = PHASE.DEAD;
       return;
@@ -116,24 +111,18 @@ export class Sim {
 
 
     this.beast.step(dt, this.player);
-    const secondEvent = this.secondBeast.step(dt, this.player, this.beast, this.terrain);
-    if (secondEvent) this.events.push(secondEvent);
 
     this.recorder.step(dt, this.player);
     this.ghost.step(dt);
     this.terrain.prune(Math.floor(this.player.d / TUNING.TERRAIN.CHUNK_LEN));
 
-    if (this.beast.killed || this.secondBeast.killed) {
+    if (this.beast.killed) {
       this.player.dead = true;
       this.recorder.finish(this.player);
       this.phase = PHASE.KILL;
       this.killTimer = 0;
-      this.killSource = this.secondBeast.killed ? 'second' : 'main';
-      this.events.push({
-        t: 'kill',
-        source: this.killSource,
-        air: this.killSource === 'main' ? !!this.beast.killAir : !!this.player.airborne,
-      });
+      this.killSource = 'main';
+      this.events.push({ t: 'kill', source: 'main', air: !!this.beast.killAir });
     }
   }
 
@@ -177,9 +166,6 @@ export class Sim {
       wordsWrong: this.wordGates.wrongCount,
       wordStreak: this.wordGates.streak,
       bestWordStreak: this.wordGates.bestStreak,
-      secondBeastActive: this.secondBeast.active,
-      secondBeastKind: this.secondBeast.active ? this.secondBeast.kind : null,
-      secondBeastAppearances: this.secondBeast.appearances,
       killSource: this.killSource,
     };
   }
@@ -215,15 +201,6 @@ export class Sim {
       mistakePressure: +this.beast.mistakePressure.toFixed(3),
       avgSpeed: +this.beast.avgSpeed.toFixed(3),
       proximityMult: +this.beast.proximityMult().toFixed(4),
-      secondBeastActive: this.secondBeast.active,
-      secondBeastPhase: this.secondBeast.phase,
-      secondBeastKind: this.secondBeast.kind,
-      secondBeastX: +this.secondBeast.x.toFixed(3),
-      secondBeastD: +this.secondBeast.d.toFixed(3),
-      secondBeastLift: +this.secondBeast.lift.toFixed(3),
-      secondBeastAppearances: this.secondBeast.appearances,
-      secondBeastDiagonal: this.secondBeast.diagonalCount,
-      secondBeastVault: this.secondBeast.vaultCount,
       killSource: this.killSource,
       lastLanding: p.lastLanding,
       ghostActive: this.ghost.active,
