@@ -2,7 +2,7 @@
  * RC9.7+ — true ending and late-run contract patch.
  *
  * No new render loop. At the canonical finish the runner genuinely escapes and
- * both creatures withdraw. Choosing KEEP GOING may later resume the pursuit;
+ * the Redline withdraws. Choosing KEEP GOING may later resume the pursuit;
  * the finish itself is consumed once and can never interrupt that run again.
  */
 import TUNING from './TUNING.js';
@@ -71,17 +71,6 @@ if (!Beast.prototype.__rc97EscapePatched) {
       this.airPounce = false;
       this.killAir = false;
       this.desired = this.gap;
-
-      if (second) {
-        second.active = false;
-        second.killed = false;
-        second.killT = 0;
-        second.phase = 'idle';
-        second.phaseT = 0;
-        second.armedHunt = 0;
-        second.triggerAt = Infinity;
-        second.lift = 0;
-      }
 
       sim.events?.push?.({
         t: 'escape', d: player.d, x: player.x, y: player.y,

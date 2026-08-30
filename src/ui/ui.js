@@ -7,6 +7,7 @@ import TUNING from '../TUNING.js';
 import { corruptionIntensity, veilOpacity } from '../render/corruption-curve.js';
 import { ACCESS } from './access.js';
 import { bandForDistance } from '../render/art-direction.js';
+import { defineWord } from '../words/definitions.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -348,6 +349,23 @@ export class UI {
           .map((m) => `<s>${m.shown}</s><b>${m.answer}</b>`).join('  ');
         const more = tapped.length > 3 ? ` <em>+${tapped.length - 3}</em>` : '';
         parts.push(row('NOT A WORD', shown + more));
+      }
+      // The literacy loop closes here (Phase 21). Every word game will tell
+      // you which spelling was right; none of them tell you what the word
+      // means, which is the only part a player carries away from the run.
+      // Two at most — the card is read in about two seconds and a wall of
+      // definitions is a wall. For a tapped fake the lesson is the TRUE
+      // word, not the misspelling that caught them out.
+      const taught = [];
+      for (const m of recap) {
+        const word = m.reason === 'picked_fake' ? m.answer : m.shown;
+        if (!word || taught.some((t) => t.word === word)) continue;
+        const meaning = defineWord(word);
+        if (meaning) taught.push({ word, meaning });
+        if (taught.length === 2) break;
+      }
+      for (const t of taught) {
+        parts.push(`<div class="defRow"><b>${t.word}</b> ${t.meaning}</div>`);
       }
     } else if (recap) {
       parts.push('<div class="clean">PERFECT RUN</div>');

@@ -453,14 +453,15 @@ head('RESIDUE — the frame this was cloned from must not show through');
 
   // 1. No live code identifier or asset id may carry the retired vocabulary.
   //    Comments are exempt (provenance is allowed to be stated); the word
-  //    list and its generated guard are exempt because "ski" is a real
-  //    English word a player is legitimately asked to read.
+  //    list, its generated guard and the generated definitions are exempt
+  //    because "ski" is a real English word a player is legitimately asked
+  //    to read, and a dictionary entry for it is data, not the game's voice.
   const stripComments = (s) => s
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
   const identifierHits = [];
   for (const f of tree) {
-    if (/words\/(wordlist|guard)\.js$/.test(f)) continue;
+    if (/words\/(wordlist|guard|definitions|family-blocklist)\.js$/.test(f)) continue;
     if (f.endsWith('corruption-gates.mjs')) continue; // this list itself
     for (const line of stripComments(fs.readFileSync(f, 'utf8')).split('\n')) {
       if (skiWord.test(line)) identifierHits.push(`${f}: ${line.trim().slice(0, 46)}`);

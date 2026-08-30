@@ -22,6 +22,9 @@ import { DailyManager, goalsFor } from '../src/meta/daily.js';
 import { buildStatsExport, formatStatsExport, EXPORT_VERSION } from '../src/meta/export.js';
 import { ObjectiveQueue, queueFor, POOL, LIVE_SLOTS, rewardFor } from '../src/meta/objectives.js';
 import { buildReview } from '../src/meta/review.js';
+import { DEFINITIONS, defineWord } from '../src/words/definitions.js';
+import { TIERS } from '../src/words/wordlist.js';
+import { isBlocked } from '../src/words/family-blocklist.js';
 import TUNING from '../src/TUNING.js';
 import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
 import { makeGate } from '../src/sim/word-gates.js';
@@ -707,6 +710,94 @@ head('REVIEW — the run as a shape, from data already recorded');
   check('the results card draws it',
     fs.readFileSync('src/ui/ui.js', 'utf8').includes("'<div class=\"recapHead\">THE RUN</div>'") &&
     fs.readFileSync('index.html', 'utf8').includes('.runPlot'));
+}
+
+
+// ── Definitions + the PUBLISHED payoff (Phase 21) ───────────────────────────
+head('DEFINITIONS — what the word actually means');
+{
+  const bank = TIERS.flat();
+  const covered = bank.filter((w) => defineWord(w));
+  const pct = (covered.length / bank.length) * 100;
+  check('nearly the whole bank can be explained', pct >= 95,
+    `${covered.length}/${bank.length} — ${pct.toFixed(1)}%`);
+
+  // A definition is a plate-sized line on a card read in two seconds. A
+  // paragraph is not a definition here even when it is one in a dictionary.
+  const longest = Math.max(...covered.map((w) => defineWord(w).length));
+  check('every definition fits a results-card line', longest <= 80, `longest ${longest} chars`);
+  const withExample = covered.filter((w) => /"|;/.test(defineWord(w)));
+  check('usage examples and second clauses are cut, not shipped',
+    withExample.length === 0, withExample.slice(0, 3).join(', ') || 'first clause only');
+  const domainMarked = covered.filter((w) => /^\(/.test(defineWord(w)));
+  check('domain markers are stripped from the front',
+    domainMarked.length === 0, domainMarked.slice(0, 3).join(', ') || 'no leading parentheticals');
+
+  // Definitions are player-facing copy and clear the same bar the words do.
+  const dirty = covered.filter((w) => {
+    const d = defineWord(w);
+    return isBlocked(d) || d.split(/[^a-z]+/).some((t) => t && isBlocked(t));
+  });
+  check('every shipped definition clears the family blocklist',
+    dirty.length === 0, dirty.slice(0, 4).join(', ') || `${covered.length} definitions clean`);
+
+  check('an unknown word answers null rather than guessing',
+    defineWord('zzzznotaword') === null && defineWord('') === null &&
+    defineWord(undefined) === null);
+  check('lookup is case-forgiving so no UI plumbing can miss',
+    defineWord('ABLE') === defineWord('able') && defineWord('able') !== null);
+
+  // Offline, like everything else. The data is bundled at build time.
+  const defSrc = fs.readFileSync('src/words/definitions.js', 'utf8');
+  check('the data ships with the build, never fetched',
+    !/fetch\(|import\(|XMLHttpRequest/.test(defSrc) && defSrc.includes('export const DEFINITIONS'));
+  check('the source it is redistributed from is credited and licensed',
+    defSrc.includes('Princeton University') && fs.existsSync('public/WORDNET-LICENSE.txt'));
+  check('the generator is a devDependency, never a runtime one', (() => {
+    const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+    return !!pkg.devDependencies?.['wordnet-db'] && !pkg.dependencies?.['wordnet-db'];
+  })());
+
+  // The teaching moment: a tapped fake teaches the TRUE word, not the
+  // misspelling that caught the player out.
+  const uiSrc2 = fs.readFileSync('src/ui/ui.js', 'utf8');
+  check('the recap teaches the true word, not the fake',
+    uiSrc2.includes("m.reason === 'picked_fake' ? m.answer : m.shown") &&
+    uiSrc2.includes('defineWord(word)'));
+  check('the card shows at most two definitions',
+    uiSrc2.includes('taught.length === 2'));
+}
+
+head('PUBLISHED — the 30 km finish is a title card, not a dialog');
+{
+  const sky = fs.readFileSync('src/render/endgame-sky.js', 'utf8');
+  const endgame = fs.readFileSync('src/design/endgame.js', 'utf8');
+
+  // It used to say 50 KM against a 30 km finish, hard-coded. The card now
+  // reports the distance actually run.
+  check('the distance shown is the one that was run, not a literal',
+    !sky.includes('50 KM') && sky.includes('run.distance ?? ENDGAME.ESCAPE_DISTANCE') &&
+    endgame.includes('ESCAPE_DISTANCE: 30000'));
+  check('the run\'s own numbers are on it',
+    sky.includes('READS') && sky.includes('% TRUE') && sky.includes('run.bestChain'));
+  check('a missing number is left off rather than shown as zero',
+    sky.includes('if (read > 0)') && sky.includes('if (run.bestChain > 0)'));
+
+  check('the name carries the wordmark\'s chromatic echo',
+    sky.includes('class="e1"') && sky.includes('class="e2"') && sky.includes('class="e3"') &&
+    sky.includes('#67d8ff') && sky.includes('#ff2a1f'));
+  check('it is set in the UI face, not the terminal one',
+    /#rc97Ending[^`]*var\(--face\)/.test(sky) && !/#rc97Ending[^`]*ui-monospace/.test(sky));
+
+  // Motion is an accessibility surface, and REDUCED FLASH may not cost a
+  // player any of the words.
+  check('REDUCED FLASH drops the motion and keeps every word',
+    sky.includes("classList.toggle('calm', !!ACCESS.reducedFlash)") &&
+    sky.includes('#rc97Ending.calm .mark'));
+  check('the OS reduced-motion preference is honoured too',
+    sky.includes('prefers-reduced-motion:reduce'));
+  check('the card is fed from the run that reached it',
+    sky.includes('this.ending.show({') && sky.includes('bestChain: sim.player?.bestChain'));
 }
 
 console.log(out.join('\n'));

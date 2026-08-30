@@ -91,6 +91,34 @@ check(escapeSource.includes('!sim.escapeConsumed') && escapeSource.includes('sim
 // pursuer — and nothing may reintroduce a second.
 check(!escapeSource.includes('SecondBeast') && !escapeSource.includes('secondBeast'),
   'the finish sequence has one pursuer to withdraw, not two');
+
+// The finish had never been RUN by a gate, only read — and the second-pursuer
+// removal left a bare `second` reference inside the escape branch, which is
+// unreachable until 30 km and therefore invisible to every other test. This
+// drives a real Sim across the canonical finish; a dangling identifier throws
+// here instead of on a player's best run of the game.
+{
+  // Importing the patch is the point — it is what installs the escape branch
+  // onto Beast.prototype. Reading the file as text, which every other check
+  // here does, is exactly how the dangling reference survived.
+  await import('../src/rc97-endgame.js');
+  const { Sim } = await import('../src/sim/sim.js');
+  const { ENDGAME } = await import('../src/design/endgame.js');
+  const sim = new Sim(12345);
+  globalThis.__SIM = sim;
+  sim.start();
+  sim.player.d = ENDGAME.ESCAPE_DISTANCE - 5;
+  const input = { carve: 0, flip: 0, jump: false, confirm: false, boostHeld: false, dragging: false };
+  let threw = null;
+  try {
+    for (let i = 0; i < 400 && !sim.escaped; i++) sim.step(1 / 60, input);
+  } catch (e) { threw = e; }
+  globalThis.__SIM = undefined;
+  check(!threw && sim.escaped === true &&
+    sim.events.some((e) => e.t === 'escape') && sim.player.dead === false,
+    'a real sim crosses the canonical finish and escapes without throwing'
+    + (threw ? ` — ${threw.message}` : ` — escaped at ${Math.floor(sim.escapeD || 0)} m`));
+}
 check(!/textContent\s*=\s*['\"](?:OVER ?RUN|OVERRUN)/i.test(chaseSource + finalSource + escapeSource),
   'no post-finish mode name is exposed through player-facing text');
 

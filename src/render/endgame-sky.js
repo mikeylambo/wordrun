@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { MOUNTAIN_BANDS, bandBlend } from './art-direction.js';
 import { ENDGAME, overrunPrestige } from '../design/endgame.js';
 import { Storage } from '../storage/storage.js';
+import { ACCESS } from '../ui/access.js';
 
 const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
 const smooth = (a, b, v) => {
@@ -128,18 +129,40 @@ class EscapeOverlay {
     const style = document.createElement('style');
     style.id = 'rc97-ending-style';
     style.textContent = `
+      /* PUBLISHED (Phase 21). This was two grey buttons under a monospace
+         caption — the rarest moment in the game, presented as a dialog. It
+         is the title card now: the name at wordmark scale with the same
+         chromatic echo the logo uses, the distance as the hero number, and
+         the run's own numbers underneath. REDUCED FLASH keeps every word
+         and drops the motion. */
       #rc97Ending{position:absolute;inset:0;z-index:92;display:none;align-items:center;justify-content:center;
-        padding:24px;color:#f7fbfd;background:linear-gradient(180deg,rgba(21,31,40,.08),rgba(16,24,31,.58));
-        backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);pointer-events:auto}
+        padding:24px;color:#f7fbfd;background:radial-gradient(120% 90% at 50% 42%,rgba(10,26,38,.42),rgba(4,9,15,.88));
+        backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);pointer-events:auto}
       #rc97Ending.on{display:flex}
-      #rc97Ending .card{width:min(90vw,430px);text-align:center}
-      #rc97Ending .eyebrow{font:900 9px/1 ui-monospace,monospace;letter-spacing:.28em;opacity:.7;margin-bottom:12px}
-      #rc97Ending h2{font:900 clamp(38px,11vw,68px)/.9 ui-monospace,monospace;letter-spacing:-.04em;margin:0}
-      #rc97Ending .distance{margin:16px 0 28px;font:800 14px/1 ui-monospace,monospace;letter-spacing:.24em;opacity:.78}
+      #rc97Ending .card{width:min(92vw,440px);text-align:center}
+      #rc97Ending .mark{position:relative;line-height:.86;margin-bottom:6px}
+      #rc97Ending .mark span{display:block;font:800 clamp(34px,10.5vw,62px)/.86 var(--face);letter-spacing:-.035em}
+      #rc97Ending .mark .e1{position:absolute;inset:0;color:#67d8ff;opacity:.46;transform:translate(-3px,-1.5px)}
+      #rc97Ending .mark .e2{position:absolute;inset:0;color:#ff2a1f;opacity:.24;transform:translate(-1.5px,-.5px)}
+      #rc97Ending .mark .e3{position:relative;color:#f6fdff}
+      #rc97Ending .rule{height:1px;width:0;margin:16px auto 15px;background:linear-gradient(90deg,transparent,rgba(159,232,255,.85),transparent)}
+      #rc97Ending .big{font:800 clamp(44px,14.5vw,88px)/.86 var(--face);letter-spacing:-.05em;color:#fbfeff}
+      #rc97Ending .big i{font-style:normal;font-size:.24em;font-weight:600;opacity:.34;letter-spacing:.14em;margin-left:.3em}
+      #rc97Ending .facts{margin:15px 0 26px;font:700 9px/1 var(--face);letter-spacing:.26em;color:rgba(226,242,251,.44)}
       #rc97Ending .actions{display:flex;gap:9px;justify-content:center}
-      #rc97Ending button{appearance:none;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.08);
-        color:#f6fbfd;padding:13px 16px;min-width:138px;font:900 10px/1 ui-monospace,monospace;letter-spacing:.16em;cursor:pointer}
-      #rc97Ending button.primary{background:rgba(246,251,253,.92);color:#16212a}
+      #rc97Ending button{appearance:none;border:1px solid rgba(255,255,255,.26);background:transparent;
+        color:#eaf6fc;padding:15px 16px;min-width:142px;font:700 10px/1 var(--face);letter-spacing:.24em;cursor:pointer}
+      #rc97Ending button.primary{background:#f4fbfe;border-color:#f4fbfe;color:#0a141c}
+      #rc97Ending.on .mark{animation:rc97Land .62s cubic-bezier(.16,.9,.24,1) both}
+      #rc97Ending.on .rule{animation:rc97Rule .8s .22s cubic-bezier(.2,.8,.2,1) both}
+      #rc97Ending.on .big{animation:rc97Rise .5s .12s cubic-bezier(.16,.9,.24,1) both}
+      @keyframes rc97Land{from{opacity:0;transform:scale(1.16);filter:blur(9px)}to{opacity:1;transform:none;filter:none}}
+      @keyframes rc97Rule{from{width:0}to{width:78%}}
+      @keyframes rc97Rise{from{opacity:0;transform:translateY(13px)}to{opacity:1;transform:none}}
+      #rc97Ending.calm .mark,#rc97Ending.calm .big{animation:none}
+      #rc97Ending.calm .rule{animation:none;width:78%}
+      @media(prefers-reduced-motion:reduce){#rc97Ending .mark,#rc97Ending .big{animation:none!important}
+        #rc97Ending .rule{animation:none!important;width:78%}}
       @media(max-width:430px){#rc97Ending .actions{flex-direction:column}#rc97Ending button{width:100%}}
     `;
     document.head.appendChild(style);
@@ -149,10 +172,16 @@ class EscapeOverlay {
     this.root.dataset.rc97Ui = '1';
     this.root.innerHTML = `
       <div class="card">
-        <h2>PUBLISHED.</h2>
-        <div class="distance">50 KM</div>
+        <div class="mark">
+          <span class="e1">PUBLISHED</span>
+          <span class="e2">PUBLISHED</span>
+          <span class="e3">PUBLISHED</span>
+        </div>
+        <div class="rule"></div>
+        <div class="big" id="rc97Dist">0<i>M</i></div>
+        <div class="facts" id="rc97Facts"></div>
         <div class="actions">
-          <button data-act="finish">FINISH RUN</button>
+          <button data-act="finish">FINISH</button>
           <button class="primary" data-act="continue">KEEP GOING</button>
         </div>
       </div>`;
@@ -173,7 +202,30 @@ class EscapeOverlay {
     }, true);
   }
 
-  show() { this.root.classList.add('on'); }
+  /**
+   * @param {object} [run] the run's own numbers — the card is about THIS run,
+   *   not about the milestone in the abstract, and the numbers are already
+   *   counted. Anything missing is simply left off rather than shown as zero.
+   */
+  show(run = {}) {
+    const dist = Math.floor(run.distance ?? ENDGAME.ESCAPE_DISTANCE);
+    const distEl = this.root.querySelector('#rc97Dist');
+    if (distEl) distEl.innerHTML = `${dist.toLocaleString('en-US')}<i>M</i>`;
+
+    const read = (run.correct ?? 0) + (run.wrong ?? 0);
+    const facts = [];
+    if (read > 0) {
+      facts.push(`${run.correct} READS`);
+      facts.push(`${Math.round((run.correct / read) * 100)}% TRUE`);
+    }
+    if (run.bestChain > 0) facts.push(`×${run.bestChain}`);
+    const factsEl = this.root.querySelector('#rc97Facts');
+    if (factsEl) factsEl.textContent = facts.join('  ·  ');
+
+    // REDUCED FLASH keeps every word and drops the motion.
+    this.root.classList.toggle('calm', !!ACCESS.reducedFlash);
+    this.root.classList.add('on');
+  }
   hide() { this.root.classList.remove('on'); }
   get visible() { return this.root.classList.contains('on'); }
 }
@@ -331,7 +383,12 @@ export class EndgameSky {
       }
       // The chase has stopped. Let the ending card arrive in literal silence.
       globalThis.__AUDIO?.suspend?.();
-      this.ending.show();
+      this.ending.show({
+        distance: sim.distance,
+        correct: sim.wordGates?.correctCount ?? 0,
+        wrong: sim.wordGates?.wrongCount ?? 0,
+        bestChain: sim.player?.bestChain ?? 0,
+      });
     }
 
     if (this.overrun && distance - this.lastSavedDistance >= 250) {

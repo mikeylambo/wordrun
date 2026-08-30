@@ -486,13 +486,12 @@ export class Audio {
 
   overdriveOff() { this._tone({ type: 'triangle', f0: 520, f1: 140, dur: 0.28, vol: 0.065, bus: this.bus.ambience }); }
 
-  kill(source = globalThis.__SIM?.killSource || 'main') {
+  // One pursuer, so one death sound. The second-pursuer branch that used to
+  // live here went with the character it belonged to; `killSource` has only
+  // ever been 'main' since.
+  kill() {
     if (!this.ready || this.muted) return;
-    if (source === 'second') {
-      this._burst(0.82, 0.46, 3200, 'bandpass', 0, this.bus.cinematic, 2.6);
-      this._tone({ type: 'triangle', f0: 720, f1: 82, dur: 0.92, vol: 0.20, bus: this.bus.cinematic });
-      this._thump(0.30, 0, this.bus.cinematic);
-    } else {
+    {
       // Signal death: a full-band static crush collapsing into a power-down.
       this._burst(0.85, 0.5, 2400, 'bandpass', 0, this.bus.cinematic, 0.8);
       this._burst(0.6, 0.3, 6400, 'highpass', 0, this.bus.cinematic, 0.6);

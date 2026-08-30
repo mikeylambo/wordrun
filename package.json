@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "DICTION DASH — endless word-gate runner: read fast, pick right, outrun the pursuit.",
+  "description": "DICTION DASH \u2014 endless word-gate runner: read fast, pick right, outrun the pursuit.",
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
@@ -22,13 +22,15 @@
     "build:family": "node tools/build-family-blocklist.mjs",
     "calibrate:speed": "node tools/speed-calibration.mjs",
     "audit:size": "node tools/build-report.mjs",
-    "audit:network": "node tools/network-audit.mjs"
+    "audit:network": "node tools/network-audit.mjs",
+    "build:definitions": "node tools/build-definitions.mjs"
   },
   "dependencies": {
     "three": "^0.169.0"
   },
   "devDependencies": {
     "an-array-of-english-words": "^2.0.0",
-    "vite": "^5.4.10"
+    "vite": "^5.4.10",
+    "wordnet-db": "^3.1.14"
   }
 }

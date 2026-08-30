@@ -259,4 +259,31 @@ Slice history:
   each worth about 0.3 s of dash, label lighting with the fill — and it is
   no longer called the GO METER, a name left over from before the mechanic
   was renamed. Gates: 33 / 53 / 80 / meta 70; v1 25 / 55 / 14. Build 1.20 MB.
+- Phase 21 — roadmap items 2 through 7. **Copy:** REDACTED became CROSSED
+  OUT (classified-document language is heavier than a general-audience death
+  screen needs); the recap gained a real MISSED WORDS heading, SLIPPED BY
+  became UNCAUGHT, EVERY READ TRUE became PERFECT RUN, and the stat bar's
+  bare TRUE became TRUE READS. **Family gate:** a maintained blocklist,
+  machine-checked against the bank AND every misspelling the fake generator
+  can reach — 402,101 mutations, 104 of them blocked, 83 of which the old
+  rejection predicate would have shipped (`country → cuntry`,
+  `etching → etchink`, `capacity → capakity`). Fixed at the source: makeFake
+  now consults the blocklist alongside the real-word guard. **Stats export:**
+  the local ledger, the run just played and the dials that were in force, as
+  a blob a player can paste back — the only data path the calibration
+  verdicts have in a zero-network build. **Objective queue:** three live at a
+  time from a pool of 49, with no retroactive credit, so one exceptional run
+  cannot front-load months of progression. **Replay review:** THE RUN plots
+  the speed curve recovered from the ghost track with every wrong read hung
+  where it happened, and names the worst stretch only when the data supports
+  one. **Definitions:** 99% of the bank carries a short WordNet gloss,
+  bundled offline and filtered through the same family blocklist, so the
+  recap can say what a missed word means. **PUBLISHED:** the 30 km finish
+  was two grey buttons under a caption reading 50 KM against a 30 km
+  finish; it is a title card now, with the run's own numbers. Driving a
+  test to that finish surfaced a crash left by the Phase 20 removal — a
+  dangling reference in the escape branch, unreachable until 30 km and
+  therefore invisible to every other test. The finish is now actually run
+  by a gate rather than only read. Gates: 33 / 53 / 85 / meta 136 /
+  family 11; v1 26 / 55 / 14. Build 1.51 MB.
 
