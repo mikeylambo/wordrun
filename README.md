@@ -218,14 +218,27 @@ no runner imports — built to be lifted into the next word game unchanged.
 Every word is hand-curated — Phase 13 grew the bank 563 → ~3,070 by
 authoring, not harvesting (a catalog import was tried in Phase 9 and
 deliberately removed; every addition since is picked for the
-reading-at-speed verb and dictionary-validated before shipping):
+reading-at-speed verb and dictionary-validated before shipping).
+Phase 17's intake ran four filters past that: a plain inflection of a word
+already in the bank is not a new word to read and is dropped; so is a
+non-primary spelling variant, because a spelling game cannot be casually
+bilingual; and so is anything in the wrong register — a gate must ask
+"is that spelled right?", never "have you met this word?":
 
-- 5 difficulty tiers (339 / 787 / 837 / 652 / 458), from short
-  high-frequency up to the classic trap spellings.
+- 5 difficulty tiers (339 / 787 / 837 / 1,300 / 2,022), from short
+  high-frequency up to the classic trap spellings. Phase 17 grew the top
+  two deliberately unevenly: measuring a full 30 km run showed NORMAL and
+  HARD parked in tier 4 for nearly the whole distance, eating **48% and
+  50% of that tier every single run** — two runs and a dedicated player
+  had seen all of it, which defeats the no-repeat walk built to prevent
+  exactly that. Tier 4 is now 2,022 words and a full run takes 11% of it;
+  tiers 0–1 are behind you inside the first kilometre whatever difficulty
+  you pick, so they were left alone. The gate suite now holds the ratio,
+  not a raw word count.
 - An EXTENDED fake-guard (guard data, never playable): the *complete*
   one-edit collision set — every string the fake generator's mutation
   classes can produce from any bank word that is also a real English
-  word (~7,600, computed against a 275k-word dictionary by
+  word (~9,000, computed against a 275k-word dictionary by
   `node tools/build-guard.mjs`; rerun after any bank change). A fake
   can therefore never land on a real word the bank doesn't ship
   ('gray' -> 'grey', 'sage' -> 'sago' class, closed and gated).

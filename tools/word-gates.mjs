@@ -289,17 +289,45 @@ head('WORDS — depth (bank scale, no repeats, fresh words per attempt)');
   // curation beats volume now that the no-repeat walk and the per-attempt
   // salt carry the variety. The depth guarantees are re-stated at the
   // curated scale.
-  check('the curated bank ships at Phase 13 scale (5 tiers, every word hand-picked)',
-    ALL_WORDS.length >= 3000 && TIERS.length === 5,
+  check('the curated bank ships at Phase 17 scale (5 tiers, every word hand-picked)',
+    ALL_WORDS.length >= 5000 && TIERS.length === 5,
     `${ALL_WORDS.length} words — ${TIERS.map((t) => t.length).join(' / ')}`);
-  check('every tier outlasts its own stretch without cycling (≥ 330)',
-    TIERS.every((t) => t.length >= 330));
+  // Phase 17 replaced a flat depth floor with the thing that floor was a
+  // proxy for. What matters is not how big a tier is but how much of it a
+  // single run eats: a run that consumes half a tier defeats the coprime
+  // no-repeat walk built to stop exactly that, because two runs then show
+  // a dedicated player the whole pool.
+  //
+  // Measured by driving the real sim 30 km on each difficulty (the tier a
+  // run PLATEAUS in is the only one that matters — tiers 0-1 are behind
+  // you inside the first kilometre whatever you pick):
+  //
+  //   EASY   plateaus in tier 2 — 225 distinct real words drawn per run
+  //   NORMAL plateaus in tier 4 — 221
+  //   HARD   plateaus in tier 4 — 228
+  //
+  // Before Phase 17 tier 4 held 458 words, so NORMAL and HARD were eating
+  // 48% and 50% of it every single run. Tier 2 sat at a healthy 27%, and
+  // that is the ratio this gate holds everyone to.
+  const PLATEAU_DRAW = { 2: 225, 4: 228 };
+  const overEaten = Object.entries(PLATEAU_DRAW)
+    .map(([tier, drawn]) => ({ tier, drawn, pool: TIERS[tier].length }))
+    .filter(({ drawn, pool }) => drawn / pool > 0.30);
+  check('no full run eats more than 30% of the tier it plateaus in',
+    overEaten.length === 0,
+    overEaten.map(({ tier, drawn, pool }) =>
+      `tier ${tier}: ${drawn}/${pool} = ${(drawn / pool * 100).toFixed(0)}%`).join(', ') ||
+    Object.entries(PLATEAU_DRAW).map(([tier, drawn]) =>
+      `tier ${tier} ${(drawn / TIERS[tier].length * 100).toFixed(0)}%`).join(' · '));
+  check('no tier is thin enough to cycle inside the stretch that uses it',
+    TIERS.every((t) => t.length >= 300),
+    TIERS.map((t) => t.length).join(' / '));
 
   // The extended fake-guard (guard data, never playable): a fake can no
   // longer collide with common real English outside the shipped tiers.
   const { EXTENDED_GUARD } = await import('../src/words/guard.js');
   check('the extended guard is wired and at catalog scale',
-    EXTENDED_GUARD.length >= 6000 &&
+    EXTENDED_GUARD.length >= 8500 &&
     fs.readFileSync('src/words/wordlist.js', 'utf8').includes('...EXTENDED_GUARD]'));
   {
     const rng = mulberry32(0x9ead);

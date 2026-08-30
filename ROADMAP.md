@@ -5,55 +5,14 @@ this file only holds what is NOT built yet.
 
 ## Build next
 
-1. **DESCENT/ski residue removal + GOLD/VIOLET color-grammar fix.** Two
-   fast, low-risk corrections bundled because both are the kind of thing
-   that reads badly fast if anyone outside the studio opens the build
-   during a platform review. Retire the "HOW TO SKI" copy and its
-   `descent:show-how` event; rename the remaining `__DESCENT_*` globals;
-   replace `wind_alpine_bed` and any ski-named loops with page/ink-textured
-   atmosphere. Same pass: the Phase 14 shop's GOLD (`0xffd75e`) and VIOLET
-   (`0xb387ff`) skins collide with the streak-burst escalation colors
-   (`0xffd977` / `0xb18cff`) that are supposed to be an exclusive "you're
-   at peak flow" signal — a player wearing GOLD looks perpetually
-   mid-streak. Shift both hues in `TUNING.js`; no architecture change, and
-   red already got this protection via the Redline gate, gold and violet
-   didn't.
-
-2. **Make the dash the headline mechanic.** The mechanic already exists —
-   the "GO" button is a hold-to-burn Overdrive burst — but `TUNING.js`
-   carries its own comment admitting some players "never see a cliff or
-   learn Overdrive exists." Rename GO to DASH everywhere player-facing
-   (button, aria-labels, onboarding, HUD), make the charged-and-ready
-   state read louder than the current conic-fill, land a signature
-   camera/audio spike the instant it fires (FOV_BOOST already exists —
-   pair it with a dash-specific sound and a speed-line burst instead of a
-   reused effect), and give it its own dedicated teaching beat rather than
-   one line among five in the rules card.
-
-3. **Word bank growth — tier 3/4, not uniform.** The escalation cadence
-   means NORMAL and HARD spend nearly all of a long run parked in tier 4
-   (NORMAL caps there by 2,800 m, HARD by 1,500 m); a single full 30 km
-   finish draws roughly 210 real words from tier 4's pool of 458 — about
-   45% of the entire tier in one run. Two runs and a dedicated player has
-   effectively seen all of it, which defeats the coprime-walk system built
-   to prevent exactly that. Tier 2, by comparison (EASY's plateau tier),
-   only gives up about 25% of its pool per full run — that's the healthier
-   ratio to match. Grow tier 4 roughly 4× (458 → ~1,800–2,000) and tier 3
-   about 1.5× (652 → ~1,000); tiers 0–1 are seen only in the first
-   700–1,100 m of every run regardless of difficulty and don't need more.
-   Net bank target: ~5,000–5,300 words, up from 3,073. Regenerate the
-   fake-collision guard after this lands — `node tools/build-guard.mjs` —
-   the current `guard.js` was built against the pre-growth bank and won't
-   cover collisions from the new tier 3/4 words.
-
-4. **PUBLISHED celebration + definitions on the recap.** The 30 km finish
+1. **PUBLISHED celebration + definitions on the recap.** The 30 km finish
    moment is currently two gray buttons — it deserves a payoff scene. And
    the recap can teach harder: "here's what the word you missed *means*"
    (definitions data for most of the curated bank exists in the studio's
    earlier word-game assets) completes the literacy loop, and nothing in
    the genre does it.
 
-5. **Leaderboard.** Clone the daily-board pattern from the studio's
+2. **Leaderboard.** Clone the daily-board pattern from the studio's
    earlier brain-training game (Supabase, daily seed, display names).
    **Blocked on a policy ruling first:** should daily goals and boards
    require NORMAL difficulty, or stay per-variant? Today goals can be
@@ -62,10 +21,29 @@ this file only holds what is NOT built yet.
    rule is that they are not: a continue never sets BEST TODAY and never
    saves a ghost.
 
-6. **120 fps / WebGPU showcase pass.** Real work, but it is
+3. **120 fps / WebGPU showcase pass.** Real work, but it is
    courting-featuring work — it earns most after there is a public link
    worth featuring. Pairs with the input-parity and aggressive-caching
    notes from the platform-fit review.
+
+## Noted in passing, not yet scheduled
+
+- **The bank's spelling convention is mixed.** It leans American
+  (neighbor, flavor, center, gray, plow) but carries a few British forms
+  that arrived early (neighbour, theatre, axe). Phase 17 standardised all
+  *new* intake on the American form; the handful of existing British
+  entries were left alone because removing shipped words is a content
+  call, not a cleanup. Worth a ruling.
+- **A dead UI path.** `#pitchName` and `#styleWord` are hidden by CSS
+  (`display:none!important`) but `ui.js` still computes and writes to
+  them every frame, including a PITCH_LABEL table naming terrain types
+  this game no longer has. Harmless, but it is the same class of thing
+  Phase 15 spent a day removing.
+- **The `snow` / `packedSnowGlide` audio voice.** Phase 15 renamed the
+  ski vocabulary everywhere except the surface-glide synth voice itself,
+  which is still called snow internally and is scaled by the user's
+  approved mix. Renaming it is mechanical but touches an approved audio
+  baseline, so it was left for a phase that can re-verify the mix.
 
 ## Waiting on a human
 
