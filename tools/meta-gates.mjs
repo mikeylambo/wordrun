@@ -19,6 +19,8 @@
 import fs from 'node:fs';
 import { StatsManager, memoryAdapter } from '../src/meta/stats.js';
 import { DailyManager, goalsFor } from '../src/meta/daily.js';
+import { buildStatsExport, formatStatsExport, EXPORT_VERSION } from '../src/meta/export.js';
+import TUNING from '../src/TUNING.js';
 import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
 import { makeGate } from '../src/sim/word-gates.js';
 
@@ -473,6 +475,78 @@ head('ECONOMY — the balance finally spends');
     shop.includes('balance() >= c.cost') && shop.includes('b.disabled = !has'));
 }
 
+// ── Run-stats export (Phase 21) ─────────────────────────────────────────────
+head('EXPORT — the calibration data path, hand-carried');
+{
+  const sample = {
+    stats: { runs: 12, metres: 9800, correct: 210, wrong: 19, falseTaps: 7,
+      missedReals: 12, bestChain: 14, bestDistance: 1830, currency: 46 },
+    daily: { streak: 3, playedToday: true },
+    run: { distance: 1204, seconds: 74.5, mode: 'endless', difficulty: 'hard',
+      correct: 41, wrong: 4, falseTaps: 2, missedReals: 2, bestChain: 11,
+      peakSpeed: 47.318, endSpeed: 31.2, dashMeterSpent: 214.6, heartsLeft: 0,
+      bells: 9, endGap: 0.4 },
+    tuning: TUNING,
+    access: { reducedFlash: true, readableType: false, mode: 'deuteranopia' },
+    seed: '2026-08-30', at: '2026-08-30T21:00:00.000Z',
+  };
+  const p = buildStatsExport(sample);
+
+  check('the export is versioned so a pasted blob can be read later',
+    p.v === EXPORT_VERSION && typeof p.v === 'number');
+  check('it is pure — same input, byte-identical output',
+    formatStatsExport(buildStatsExport(sample)) === formatStatsExport(p));
+  check('it round-trips as JSON',
+    JSON.parse(formatStatsExport(p)).lifetime.runs === 12);
+
+  // The whole point: the numbers are unreadable without the dials that
+  // produced them, and the difficulty played picks the Redline's pace.
+  check('the dials in force travel with the numbers',
+    p.tuning.ceiling === TUNING.RUN.CEILING && p.tuning.floor === TUNING.RUN.FLOOR &&
+    p.tuning.meterMax === TUNING.BOOST.METER_MAX &&
+    p.tuning.minActivate === TUNING.BOOST.MIN_ACTIVATE);
+  check('the Redline pace reported is the one the run was played at',
+    p.tuning.redlinePace === TUNING.MODES.DIFFICULTY.hard.REDLINE_PACE,
+    `hard -> ${p.tuning.redlinePace}`);
+  check('the ceiling question is answerable from the blob',
+    p.run.peakSpeed === 47.3 && p.run.endSpeed === 31.2);
+  check('the two failure modes stay separate, never averaged',
+    p.run.falseTaps === 2 && p.run.missedReals === 2 &&
+    p.lifetime.falseTaps === 7 && p.lifetime.missedReals === 12);
+  check('accessibility settings travel too — they change perceived difficulty',
+    p.access.reducedFlash === true && p.access.colorVision === 'deuteranopia');
+
+  // Privacy: this is a blob a human pastes into a message. Nothing in it may
+  // be free text, and no key may carry an identifier.
+  const flat = formatStatsExport(p);
+  check('nothing player-typed or identifying is in the blob',
+    !/name|user|id"|email|uuid|token/i.test(flat), 'keys are counters, dials and settings');
+  check('a run-less export (title screen) still builds',
+    buildStatsExport({ stats: {}, tuning: TUNING }).run === null);
+
+  // And the wiring: the button exists, and it reaches for the clipboard
+  // before the share sheet, with no network either way.
+  const html = fs.readFileSync('index.html', 'utf8');
+  const main = fs.readFileSync('src/main.js', 'utf8');
+  check('the results card offers the export as a footnote action',
+    html.includes('id="copyStats"') && html.includes('>STATS<'));
+  // Scoped to the handler: main.js does fetch once, for the screenshot's own
+  // object URL, which never leaves the device either. What must be true is
+  // that the export path has no transport but the clipboard and the share
+  // sheet the player invokes themselves.
+  const handler = main.slice(main.indexOf("copyStats?.addEventListener"),
+    main.indexOf("ui.saveShot.addEventListener"));
+  check('the export never leaves the device on its own',
+    handler.includes('navigator.clipboard.writeText(blob)') &&
+    handler.includes('navigator.share') &&
+    !/fetch\(|XMLHttpRequest|sendBeacon|WebSocket/.test(handler),
+    `${handler.length} chars of handler, no transport`);
+  check('peak speed is actually recorded during a run',
+    fs.readFileSync('src/sim/word-gates.js', 'utf8').includes('player.peakSpeed = player.speed') &&
+    fs.readFileSync('src/sim/player.js', 'utf8').includes('this.peakSpeed = R.START_SPEED'));
+}
+
 console.log(out.join('\n'));
+
 console.log(`\nMeta gates: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

@@ -56,6 +56,10 @@ export class Player {
     this.gatesThreaded = 0;
     this.chain = 0;
     this.bestChain = 0;
+    // Calibration ledger (Phase 21): the highest speed this run actually
+    // reached, so a pasted stats export can answer whether the ceiling is
+    // ever approached rather than only whether it is set.
+    this.peakSpeed = R.START_SPEED;
     this.lastCourage = 1;
     this.dead = false;
     this._hitCooldown = 0;

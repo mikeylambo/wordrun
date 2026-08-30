@@ -159,8 +159,8 @@
   #deathActions{display:flex;gap:10px;margin-top:22px}
   /* Everything after AGAIN is a footnote, and is sized like one. */
   #shotBtns{display:flex;gap:0;margin-top:14px}
-  #shotBtns .btn,#copyChallenge{border:0;background:transparent;min-width:0;padding:8px 13px;font-size:8px;letter-spacing:.22em;color:var(--dimmer)}
-  #shotBtns .btn:active,#copyChallenge:active{color:#cfeaf6;background:transparent}
+  #shotBtns .btn,#copyChallenge,#copyStats{border:0;background:transparent;min-width:0;padding:8px 13px;font-size:8px;letter-spacing:.22em;color:var(--dimmer)}
+  #shotBtns .btn:active,#copyChallenge:active,#copyStats:active{color:#cfeaf6;background:transparent}
 
   /* The priced continue (Phase 14): a short offer between death and the
      card. One primary button carrying its ◆ cost, a decline, a draining
@@ -216,7 +216,7 @@
     <div id="deathRecap"></div>
     <div class="stats" id="deathStats"></div>
     <div id="deathActions"><button class="btn primary" id="deathAgain" data-rc2-ui>AGAIN</button><button class="btn" id="deathMenu" data-rc2-ui>MENU</button></div>
-    <div id="shotBtns"><button class="btn" id="copyChallenge" data-rc2-ui>LINK</button><button class="btn" id="saveShot" data-rc2-ui>SAVE</button></div>
+    <div id="shotBtns"><button class="btn" id="copyChallenge" data-rc2-ui>LINK</button><button class="btn" id="saveShot" data-rc2-ui>SAVE</button><button class="btn" id="copyStats" data-rc2-ui>STATS</button></div>
     <div class="seed" id="deathSeed"></div>
   </div>
 

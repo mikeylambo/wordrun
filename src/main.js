@@ -27,6 +27,7 @@ import { Input } from './input/input.js';
 import { Storage } from './storage/storage.js';
 import { StatsManager, localStorageAdapter } from './meta/stats.js';
 import { DailyManager } from './meta/daily.js';
+import { buildStatsExport, formatStatsExport } from './meta/export.js';
 import { UI } from './ui/ui.js';
 import { PauseUI } from './ui/pause.js';
 import { OnboardingUI } from './ui/onboarding.js';
@@ -591,6 +592,45 @@ copyChallenge?.addEventListener('click', async (e) => {
   }
   copyChallenge.textContent = ok ? 'COPIED' : 'COPY BLOCKED';
   setTimeout(() => { copyChallenge.textContent = 'CHALLENGE LINK'; }, 1400);
+});
+
+// COPY STATS (Phase 21): the calibration verdicts on the roadmap all want
+// numbers from real runs, and the build is deliberately zero-network — there
+// is no telemetry path from anyone but this keyboard. This is the manual one:
+// the local ledger plus the run just played plus the dials that were in force,
+// as a blob a player can paste back. Nothing typed by the player leaves with
+// it, and nothing leaves at all unless they choose to paste it.
+const copyStats = document.getElementById('copyStats');
+copyStats?.addEventListener('click', async (e) => {
+  e.stopPropagation();
+  audio.uiTap();
+  const wg = sim.wordGates;
+  const p = sim.player;
+  const blob = formatStatsExport(buildStatsExport({
+    stats: metaStats.snapshot(),
+    daily: metaDaily.status(DAILY_SEED),
+    run: {
+      distance: sim.distance, seconds: sim.time,
+      mode: runMode, difficulty: runDifficulty, continued: runContinued,
+      correct: wg.correctCount, wrong: wg.wrongCount,
+      falseTaps: wg.falseTaps, missedReals: wg.missedReals,
+      bestChain: p.bestChain, peakSpeed: p.peakSpeed, endSpeed: p.speed,
+      dashMeterSpent: p.boostSpent, heartsLeft: sim.hearts,
+      bells: sim.bellsCollected, endGap: sim.beast.gap,
+    },
+    tuning: TUNING,
+    access: ACCESS,
+    seed: SEED_STRING,
+  }));
+  let ok = false;
+  try { await navigator.clipboard.writeText(blob); ok = true; }
+  catch { /* clipboard denied — fall through to the share sheet */ }
+  if (!ok && navigator.share) {
+    try { await navigator.share({ text: blob, title: 'DICTION DASH stats' }); ok = true; }
+    catch { /* dismissed */ }
+  }
+  copyStats.textContent = ok ? 'COPIED' : 'COPY BLOCKED';
+  setTimeout(() => { copyStats.textContent = 'STATS'; }, 1400);
 });
 
 ui.saveShot.addEventListener('click', async (e) => {

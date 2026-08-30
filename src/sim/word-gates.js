@@ -188,6 +188,7 @@ export class WordGates {
       const gain = R.SPEED_GAIN_MAX *
         Math.max(0, (R.CEILING - player.speed) / (R.CEILING - R.FLOOR));
       player.speed = Math.min(R.CEILING, player.speed + gain);
+      if (player.speed > player.peakSpeed) player.peakSpeed = player.speed;
       player.chain++;
       if (player.chain > player.bestChain) player.bestChain = player.chain;
       player.boostMeter = Math.min(B.METER_MAX,
