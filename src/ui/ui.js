@@ -282,7 +282,7 @@ export class UI {
     this._chainLostT = 0.9;
   }
 
-  renderDeath({ distance, best, isPb, shotUrl, recap, daily, objectives, lifetime, continued, challengeResult }) {
+  renderDeath({ distance, best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult }) {
     this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null };
     this.finalDist.textContent = Math.floor(distance);
     this.pbTag.style.visibility = isPb ? 'visible' : 'hidden';
@@ -293,7 +293,7 @@ export class UI {
     this.deathStats.style.display = 'none';
     this.deathSeed.style.display = 'none';
     this.deathScreen.classList.add('rc2Poster');
-    this._renderRecap(recap, daily, objectives, lifetime);
+    this._renderRecap(recap, daily, objectives, review, lifetime);
 
     if (shotUrl) {
       this.shot.src = shotUrl;
@@ -316,7 +316,7 @@ export class UI {
    * line. Teaches instead of only scolding — a wrong read always shows
    * the real spelling.
    */
-  _renderRecap(recap, daily, objectives, lifetime) {
+  _renderRecap(recap, daily, objectives, review, lifetime) {
     if (!this.deathRecap) return;
     const parts = [];
     const extras = this._deathExtras || {};
@@ -356,6 +356,31 @@ export class UI {
     if (daily?.goals) {
       parts.push(`<div class="goalRow">${daily.goals.map((g) =>
         `<span class="goalChip${g.done ? ' done' : ''}">${g.label}</span>`).join('')}</div>`);
+    }
+
+    // The run itself, as a shape (Phase 21). The speed curve recovered from
+    // the ghost track, with every wrong read hung at the distance it
+    // happened. It says the one thing a list of missed words cannot: not
+    // that four went wrong, but that three of them came inside 200 m.
+    if (review?.bins?.length > 1 && review.peak > 0) {
+      const H = 30;
+      const pts = review.bins
+        .map((b) => `${(b.x * 100).toFixed(2)},${(H - (b.speed / review.peak) * (H - 3)).toFixed(2)}`)
+        .join(' ');
+      const marks = review.marks.map((m) => {
+        const x = (m.x * 100).toFixed(2);
+        return `<line class="rm ${m.kind}" x1="${x}" y1="0" x2="${x}" y2="${H}"/>`;
+      }).join('');
+      parts.push('<div class="recapHead">THE RUN</div>');
+      parts.push(
+        `<svg class="runPlot" viewBox="0 0 100 ${H}" preserveAspectRatio="none" aria-hidden="true">`
+        + `<polygon class="rf" points="0,${H} ${pts} 100,${H}"/>`
+        + `<polyline class="rl" points="${pts}"/>${marks}</svg>`
+      );
+      if (review.worst) {
+        parts.push(`<div class="runNote">${review.worst.from}–${review.worst.to} M`
+          + ` · ${review.worst.count} MISSED</div>`);
+      }
     }
 
     // The rotating queue (Phase 21). Cleared first — that is the payoff —

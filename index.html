@@ -149,7 +149,14 @@
   #deathRecap .clean{font-size:13px;font-weight:800;letter-spacing:.24em;color:#8be4ff;text-align:center;margin:2px 0}
   /* Broadcast stat bar: number over label, three columns, one hairline. */
   .recapHead{font-size:11px;font-weight:800;letter-spacing:.26em;color:#dcecf7;margin:2px 0 -2px}
-    .objList{display:flex;flex-direction:column;gap:7px}
+    .runPlot{display:block;width:100%;height:38px;overflow:visible}
+  .runPlot .rf{fill:rgba(103,216,255,.13)}
+  .runPlot .rl{fill:none;stroke:var(--ice);stroke-width:.9;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+  .runPlot .rm{stroke-width:1.4;vector-effect:non-scaling-stroke}
+  .runPlot .rm.fake{stroke:rgba(255,150,142,.82)}
+  .runPlot .rm.real{stroke:rgba(232,244,251,.32)}
+  .runNote{margin-top:5px;font-size:8px;font-weight:600;letter-spacing:.22em;color:var(--dimmer);text-align:center}
+  .objList{display:flex;flex-direction:column;gap:7px}
   .objRow{display:grid;grid-template-columns:1fr 52px 34px;gap:9px;align-items:center}
   .objRow .ol{font-size:9px;font-weight:600;letter-spacing:.17em;color:rgba(232,244,251,.62);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .objRow .ob{height:3px;background:rgba(103,216,255,.16);overflow:hidden}

@@ -21,6 +21,7 @@ import { StatsManager, memoryAdapter } from '../src/meta/stats.js';
 import { DailyManager, goalsFor } from '../src/meta/daily.js';
 import { buildStatsExport, formatStatsExport, EXPORT_VERSION } from '../src/meta/export.js';
 import { ObjectiveQueue, queueFor, POOL, LIVE_SLOTS, rewardFor } from '../src/meta/objectives.js';
+import { buildReview } from '../src/meta/review.js';
 import TUNING from '../src/TUNING.js';
 import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
 import { makeGate } from '../src/sim/word-gates.js';
@@ -634,6 +635,78 @@ head('OBJECTIVES — three live, drawn from a pool, no retroactive credit');
   const objSrc = fs.readFileSync('src/meta/objectives.js', 'utf8');
   check('the module stays standalone — no sim, render or three imports',
     !/from '\.\.\/(sim|render)\//.test(objSrc) && !/from 'three'/.test(objSrc));
+}
+
+
+// ── Replay review (Phase 21) ────────────────────────────────────────────────
+head('REVIEW — the run as a shape, from data already recorded');
+{
+  // A ghost track: 60 s at a steady 20 m/s, then 60 s at 40 m/s. Format v1
+  // quintuples, exactly as GhostRecorder writes them.
+  const samples = [];
+  let d = 0;
+  for (let i = 0; i <= 240; i++) {          // 4 Hz for 60 s
+    samples.push(i * 25, 0, 0, Math.round(d * 10), 0);
+    d += 20 / 4;
+  }
+  for (let i = 1; i <= 240; i++) {
+    samples.push(6000 + i * 25, 0, 0, Math.round(d * 10), 0);
+    d += 40 / 4;
+  }
+  const misses = [
+    { d: 200, reason: 'picked_fake', shown: 'ablo', answer: 'able' },
+    { d: 260, reason: 'picked_fake', shown: 'yyear', answer: 'year' },
+    { d: 300, reason: 'missed_real', shown: 'pellet', answer: 'pellet' },
+    { d: 3000, reason: 'missed_real', shown: 'ridge', answer: 'ridge' },
+  ];
+  const r = buildReview({ samples, misses });
+
+  check('the speed curve is recovered from the ghost track alone',
+    Math.abs(r.peak - 40) < 1.5, `peak ${r.peak} m/s against a true 40`);
+  check('the curve spans the whole run and rises where the run did',
+    r.bins.length > 10 && r.bins[0].speed < r.bins[r.bins.length - 1].speed,
+    `${r.bins[0].speed} -> ${r.bins[r.bins.length - 1].speed} m/s`);
+  check('distance and duration come out of the samples, not a caller',
+    Math.abs(r.distance - d + 10) < 20 && Math.abs(r.seconds - 120) < 1,
+    `${Math.round(r.distance)} m in ${r.seconds}s`);
+  check('every mistake is placed where it happened',
+    r.marks.length === 4 && r.marks[0].d === 200 &&
+    r.marks[0].kind === 'fake' && r.marks[2].kind === 'real');
+  check('the two mistake kinds stay distinguishable on the plot',
+    new Set(r.marks.map((m) => m.kind)).size === 2);
+
+  // The claim the chart makes has to be one the data supports.
+  check('a real cluster is named as the worst stretch',
+    r.worst && r.worst.count === 3 && r.worst.from === 200 && r.worst.to === 300,
+    `${r.worst?.from}-${r.worst?.to} M, ${r.worst?.count} missed`);
+  check('scattered mistakes are NOT called a stretch',
+    buildReview({ samples, misses: [
+      { d: 100, reason: 'picked_fake' }, { d: 1500, reason: 'picked_fake' },
+      { d: 3000, reason: 'missed_real' },
+    ] }).worst === null, 'three misses 1.5 km apart is not a cluster');
+
+  check('a run too short to plot degrades to nothing, not to a crash',
+    buildReview({ samples: [0, 0, 0, 0, 0], misses }).bins.length === 0 &&
+    buildReview({}).peak === 0);
+  check('a mistake with no recorded distance is dropped from the plot, not guessed',
+    buildReview({ samples, misses: [{ reason: 'picked_fake', shown: 'x' }] }).marks.length === 0);
+  check('it is pure — same samples, same plot',
+    JSON.stringify(buildReview({ samples, misses })) === JSON.stringify(r));
+
+  // No new data collection: the recorder was already sampling for the ghost,
+  // and the miss record already existed. The only addition is where.
+  const wgSrc = fs.readFileSync('src/sim/word-gates.js', 'utf8');
+  check('the miss record carries where it happened',
+    wgSrc.includes('d: g.d, index: g.index'));
+  const mainSrc2 = fs.readFileSync('src/main.js', 'utf8');
+  check('the review reads the recorder the ghost already fills',
+    mainSrc2.includes('buildReview({ samples: sim.recorder.samples, misses: wg.misses })'));
+  const reviewSrc = fs.readFileSync('src/meta/review.js', 'utf8');
+  check('the review module stays standalone and collects nothing itself',
+    !/from '\.\.\/(sim|render)\//.test(reviewSrc) && !/localStorage|fetch\(/.test(reviewSrc));
+  check('the results card draws it',
+    fs.readFileSync('src/ui/ui.js', 'utf8').includes("'<div class=\"recapHead\">THE RUN</div>'") &&
+    fs.readFileSync('index.html', 'utf8').includes('.runPlot'));
 }
 
 console.log(out.join('\n'));

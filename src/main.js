@@ -29,6 +29,7 @@ import { StatsManager, localStorageAdapter } from './meta/stats.js';
 import { DailyManager } from './meta/daily.js';
 import { buildStatsExport, formatStatsExport } from './meta/export.js';
 import { ObjectiveQueue } from './meta/objectives.js';
+import { buildReview } from './meta/review.js';
 import { UI } from './ui/ui.js';
 import { PauseUI } from './ui/pause.js';
 import { OnboardingUI } from './ui/onboarding.js';
@@ -417,6 +418,11 @@ function finalizeRun() {
     recap: wg.misses,
     daily: dailyCard,
     objectives,
+    // Replay review (Phase 21): the ghost recorder has sampled this run's
+    // position and clock all along for the racing feature. Differentiating
+    // that track recovers the speed curve, and the recap's misses already
+    // know where they happened — no new data, a second read of the old.
+    review: buildReview({ samples: sim.recorder.samples, misses: wg.misses }),
     lifetime: metaStats.snapshot(),
     continued: runContinued,
     challengeResult: CHALLENGE

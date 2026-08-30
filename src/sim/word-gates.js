@@ -224,6 +224,10 @@ export class WordGates {
         this.misses.push({
           shown: g.shown, answer: g.answer, real: g.real,
           reason: g.real ? 'missed_real' : 'picked_fake',
+          // Where it happened (Phase 21). The recap has always known WHAT
+          // went wrong; the replay review needs WHERE, and the gate has
+          // carried its own distance since Phase 7.
+          d: g.d, index: g.index,
         });
       }
       player.speed = Math.max(R.FLOOR, player.speed - R.SPEED_LOSS);
