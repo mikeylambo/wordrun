@@ -268,33 +268,19 @@ function destructionSnapshot(sim, player) {
   return map;
 }
 
-function breakRate(c) {
-  const n = Math.sin((c.x || 0) * 12.9898 + (c.d || 0) * 0.017) * 43758.5453;
-  return 0.92 + (n - Math.floor(n)) * 0.14;
-}
-
 function playOrganicBreak(audio, c, sim) {
   if (!audio?.ready || audio.muted || !audio.ctx) return;
   const player = sim?.player;
   const pan = clamp(((c.x || 0) - (player?.x || 0)) / 10, -0.92, 0.92);
   const presence = clamp(1 - (sim?.beast?.gap || 0) / 100, 0.38, 1);
-  const assets = audio.approvedAssets;
 
-  if (c.type === FEATURE.TREE && assets?.has?.('tree_hit')) {
-    assets.oneShot('tree_hit', {
-      bus: 'threat', gain: 0.60 * presence, pan, rate: breakRate(c),
-    });
-    return;
-  }
-  if (c.type === FEATURE.ROCK && assets?.has?.('rock_hit')) {
-    assets.oneShot('rock_hit', {
-      bus: 'threat', gain: 0.58 * presence, pan, rate: breakRate(c) * 0.96,
-    });
-    return;
-  }
-
-  // Gate poles do not yet have a dedicated recorded asset. Make the fallback
-  // noise-first and multi-impact so it reads as bent metal rather than a synth.
+  // Phase 15/16: the tree and rock recordings this used to reach for went
+  // with the rest of the unreachable inherited Foley. Nothing solid spawns
+  // in this game (TREE_COUNT and ROCK_COUNT are both [0,0], GATE_CHANCE is
+  // 0), so the destruction snapshot that calls this is always empty and
+  // none of this can sound at all — the whole path is kept only because it
+  // is structurally guarded and costs nothing. What survives is the
+  // procedural fallback, which needs no assets.
   if (c.type === FEATURE.GATE) {
     const bus = audio.bus?.threat || audio.bus?.surface;
     audio._burst?.(0.055, 0.080 * presence, 6200, 'highpass', pan, bus, 0.9);

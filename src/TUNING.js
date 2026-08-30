@@ -307,11 +307,29 @@ export const TUNING = {
     CHAIN_CAP: 8,              // links counted
     CHAIN_GATE_CREDIT: true,   // threading a gate also extends the chain
 
-    MIN_ACTIVATE: 8,           // meter needed to kick Overdrive on
+    MIN_ACTIVATE: 8,           // meter needed to kick the DASH on
     DRAIN_RATE: 34,            // meter units per second while active
     SPEED_MULT: 1.40,          // +40% (brief)
     CARVE_SCALE: 0.55,         // turn radius widens while active
     ACCEL_MULT: 2.0,           // gets you to the higher cap quickly
+
+    // ── The DASH (Phase 16) ────────────────────────────────────────────────
+    // The mechanic above is the game's second verb, and for fifteen phases
+    // it was called GO, hinted at once, and — by this file's own earlier
+    // admission — missed entirely by players who never learned it existed.
+    // The sim is unchanged. What changed is that firing it now LANDS: a
+    // camera punch that decays on top of the sustained FOV lift, a burst of
+    // speed lines, and its own sound instead of a borrowed one. A mechanic
+    // nobody notices is a mechanic nobody uses.
+    DASH: {
+      KICK_FOV: 7,             // extra FOV on the instant of firing...
+      KICK_DECAY: 3.4,         // ...decaying at this rate (e-folds/second)
+      STREAK_BURST: 0.85,      // speed-line spike added on fire
+      STREAK_DECAY: 2.2,       // and how fast that spike falls away
+      // The teaching beat holds until the player has actually dashed once
+      // — ever, not per run. A lesson that times out teaches nobody.
+      TEACH_HOLD_S: 3.2,
+    },
   },
 
   // ── Modes (Phase 10) ────────────────────────────────────────────────────
@@ -536,7 +554,7 @@ export const TUNING = {
     KILL_HEIGHT: 5.4,
     KILL_LOOK_PAST: 5.5,       // aim this far upslope of you at the end
     FOV_SPEED_GAIN: 0.68,      // FOV stretch across the full speed range
-    FOV_BOOST: 9,              // extra FOV while Overdrive is up
+    FOV_BOOST: 9,              // extra FOV held for the length of a DASH
   },
 
   // ── Fog / draw distance ─────────────────────────────────────────────────

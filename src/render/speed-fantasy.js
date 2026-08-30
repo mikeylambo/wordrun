@@ -6,7 +6,7 @@
  *   WindStreaks — anime-style wind lines rushing past the camera. Live as
  *   a child of the camera (no fog, no culling), so they cost one small
  *   attribute update per frame. Silent below ~40% of the range; a torrent
- *   near the ceiling and in Overdrive.
+ *   near the ceiling, in a DASH, and spiking on the instant one fires.
  *
  *   TrackPylons — glowing stanchions flanking the track every few metres.
  *   Nearby verticals sweeping through the frame are the classic parallax
@@ -49,9 +49,18 @@ export class WindStreaks {
     camera.add(this.lines);
   }
 
+  /** Spike the streaks on the instant a DASH fires (Phase 16). */
+  burst() { this._burst = TUNING.BOOST.DASH.STREAK_BURST; }
+
   update(dt, speed, overdrive) {
-    const n = norm(speed) + (overdrive ? 0.35 : 0);
-    // Fade in from 40% of the range; full torrent at the ceiling.
+    // The burst is what makes the instant of firing visible. The sustained
+    // +0.35 below only says "dashing"; this says "just now".
+    this._burst = Math.max(0, (this._burst || 0) *
+      Math.exp(-TUNING.BOOST.DASH.STREAK_DECAY * dt));
+    const n = norm(speed) + (overdrive ? 0.35 : 0) + this._burst;
+    // Fade in from 40% of the range; full torrent at the ceiling. A dash
+    // burst can push the streaks up from nothing even at a walking pace —
+    // deliberately: the player must SEE the mechanic the first time.
     const vis = Math.max(0, (n - 0.4) / 0.6);
     this.lines.material.opacity = Math.min(1, vis) * 0.5;
     this.lines.visible = vis > 0.001;

@@ -74,6 +74,12 @@ export const Storage = {
   equippedCosmetic() { return safeGet('pref.cosmetics.equipped') || 'default'; },
   setEquippedCosmetic(id) { return safeSet('pref.cosmetics.equipped', String(id)); },
 
+  // The DASH teaching beat (Phase 16) retires permanently the first time
+  // the player actually dashes — a lesson that resets every run is a
+  // lesson the game keeps re-teaching to someone who already knows.
+  dashLearned() { return safeGet('pref.dashLearned') === '1'; },
+  setDashLearned(learned = true) { return safeSet('pref.dashLearned', learned ? '1' : '0'); },
+
   accessPrefs() {
     try { return JSON.parse(safeGet('pref.access') || '{}') || {}; }
     catch { return {}; }

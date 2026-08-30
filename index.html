@@ -43,8 +43,16 @@
   #pitchName,#courage,#styleWord{display:none!important}
   #coach{bottom:calc(var(--safe-b) + 70px);opacity:0;font-size:9px;font-weight:800;letter-spacing:.21em;color:rgba(238,248,252,.9);text-shadow:0 2px 10px rgba(8,13,18,.6);transition:opacity .25s ease}
   #coach.on{opacity:.9}
+  /* The DASH's charged state (Phase 16). The old 9px hint at 0.84 opacity
+     flashed for a beat and was, by measurement of its own tuning comment,
+     missed entirely by players who never learned the mechanic existed.
+     The `teaching` state — held while the dash is still unlearned — is
+     deliberately loud: bigger, boxed, pulsing. REDUCED FLASH omits the
+     class, so the instruction stays and only the pulse goes. */
   #powerHint{bottom:calc(var(--safe-b) + 42px);opacity:0;font-size:9px;font-weight:900;letter-spacing:.28em;color:#dff9ff;text-shadow:0 0 16px rgba(103,216,255,.52);transition:opacity .2s ease}
   #powerHint.on{opacity:.84}#powerHint.spending{opacity:1}
+  #powerHint.teaching{opacity:1;font-size:11px;letter-spacing:.22em;padding:8px 14px;border:1px solid rgba(103,216,255,.55);background:rgba(8,20,28,.62);color:#eafcff;box-shadow:0 0 26px rgba(103,216,255,.34);animation:dashReady 1.15s ease-in-out infinite}
+  @keyframes dashReady{0%,100%{box-shadow:0 0 18px rgba(103,216,255,.24);border-color:rgba(103,216,255,.4)}50%{box-shadow:0 0 34px rgba(103,216,255,.62);border-color:rgba(160,236,255,.9)}}
 
   #dread{position:absolute;inset:0;z-index:8;pointer-events:none;opacity:0;background:radial-gradient(150% 62% at 50% 100%,rgba(4,6,8,.96) 0%,rgba(4,6,8,0) 70%),radial-gradient(68% 52% at 1% 98%,rgba(3,4,6,.84) 0%,transparent 72%),radial-gradient(68% 52% at 99% 98%,rgba(3,4,6,.84) 0%,transparent 72%)}
   #dreadRed{position:absolute;inset:0;z-index:9;pointer-events:none;opacity:0;background:radial-gradient(135% 90% at 50% 118%,rgba(255,42,31,.5) 0%,rgba(255,42,31,0) 58%);mix-blend-mode:multiply}

@@ -501,6 +501,79 @@ head('RESIDUE — the frame this was cloned from must not show through');
       'nothing solid spawns, nothing launches, so none of it could ever sound');
 }
 
+// ── The DASH as a headline mechanic (Phase 16) ───────────────────────────
+head('DASH — the second verb, finally legible');
+
+{
+  // The mechanic existed for fifteen phases under a name that explained
+  // nothing (GO), taught in one line among five, and fired with a borrowed
+  // sound and no camera event. These gates hold the correction in place.
+  const files = {
+    ui: fs.readFileSync('src/ui/ui.js', 'utf8'),
+    mobile: fs.readFileSync('src/v1-mobile-ui.js', 'utf8'),
+    onboard: fs.readFileSync('src/ui/onboarding.js', 'utf8'),
+    main: fs.readFileSync('src/main.js', 'utf8'),
+    audio: fs.readFileSync('src/audio/audio.js', 'utf8'),
+    rig: fs.readFileSync('src/render/camera-rig.js', 'utf8'),
+    speed: fs.readFileSync('src/render/speed-fantasy.js', 'utf8'),
+    index: fs.readFileSync('index.html', 'utf8'),
+    storage: fs.readFileSync('src/storage/storage.js', 'utf8'),
+  };
+
+  // 1. The name. No player-facing surface may still call it GO.
+  const goHits = [];
+  for (const [name, text] of Object.entries(files)) {
+    const strings = [
+      ...text.matchAll(/'([^'\n]*)'/g),
+      ...text.matchAll(/>([^<>{}\n]+)</g),
+      ...text.matchAll(/aria-label', '([^']+)'/g),
+    ].map((m) => m[1]);
+    for (const s of strings) {
+      if (/\bGO\b/.test(s) && !/HOW FAR CAN YOU GO/.test(s)) goHits.push(`${name}: "${s.slice(0, 32)}"`);
+    }
+  }
+  check('the mechanic is called DASH everywhere a player can read it',
+    goHits.length === 0, goHits.slice(0, 3).join(' | ') || 'no GO label survives');
+  check('the button, its label and its aria name all say DASH',
+    files.mobile.includes('<span>DASH</span>') &&
+    files.mobile.includes("'Hold DASH for a burst of speed'") &&
+    files.mobile.includes('percent dash charge'));
+
+  // 2. Charged reads louder than it did, and the teaching state is real.
+  check('the charged state is a distinct loud style, not a dimmer one',
+    files.index.includes('#powerHint.teaching') && files.index.includes('@keyframes dashReady') &&
+    files.mobile.includes('#v1MobileDash.ready') && files.mobile.includes('@keyframes dashButtonReady'));
+  check('the charged hint names the actual input',
+    files.ui.includes("this.touch ? 'HOLD DASH' : 'HOLD F'"));
+  check('REDUCED FLASH keeps the instruction and drops only the pulse',
+    files.ui.includes("classList.toggle('teaching', !ACCESS.reducedFlash)") &&
+    files.mobile.includes('!ACCESS.reducedFlash'));
+
+  // 3. Firing it lands across three channels on the same frame.
+  check('a dash fires its own sound, a camera punch and a speed-line burst',
+    files.main.includes('audio.dash();') && files.main.includes('rig.dashKick();') &&
+    files.main.includes('windStreaks.burst();') && !files.main.includes('audio.shove();\n        break'));
+  check('the dash sound is its own, not the borrowed shove',
+    files.audio.includes('  dash() {') && files.audio.includes('_thump(0.34'));
+  check('the camera punch is instant and decays (not eased like everything else)',
+    files.rig.includes('dashKick()') && files.rig.includes('KICK_DECAY') &&
+    files.rig.indexOf('this.fov += (wantFov') < files.rig.indexOf('this._dashKick * TUNING.BOOST.DASH.KICK_FOV'));
+  check('the speed lines spike on the instant of firing',
+    files.speed.includes('burst()') && files.speed.includes('STREAK_BURST') &&
+    files.speed.includes('STREAK_DECAY'));
+
+  // 4. The lesson is a real teaching beat, and it ends when it should.
+  check('the dash gets its own onboarding rule line, by name',
+    files.onboard.includes('class="rule dash"') && files.onboard.includes('THE DASH.'));
+  check('the coach explains where the charge comes from',
+    files.ui.includes('CLEAN READS CHARGE THE DASH'));
+  check('the teaching beat holds until the player dashes, then retires for good',
+    files.ui.includes('dashFired()') && files.ui.includes('_dashLearned') &&
+    files.storage.includes('dashLearned()') && files.main.includes('Storage.setDashLearned(true)'));
+  check('the retired lesson does not come back next run',
+    files.main.includes('let dashLearned = Storage.dashLearned();'));
+}
+
 console.log(out.join('\n'));
 console.log(`\n${PASS} passed, ${FAIL} failed`);
 if (FAIL) process.exit(1);

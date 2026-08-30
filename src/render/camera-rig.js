@@ -29,6 +29,7 @@ export class CameraRig {
     this.first = true;
     this.whip = 0;
     this.roll = 0;
+    this._dashKick = 0;
     this.shake.set(0, 0, 0);
   }
 
@@ -150,14 +151,27 @@ export class CameraRig {
     this.roll += (wantRoll - this.roll) * (1 - Math.exp(-7 * dt));
     this.camera.rotateZ(this.roll);
 
+    // The DASH kick (Phase 16): the sustained FOV_BOOST says "you are
+    // dashing"; this decaying punch on top says "you just dashed". Without
+    // it the camera eases into the boost and the moment of firing has no
+    // instant — which is most of why the mechanic went unnoticed.
+    this._dashKick = Math.max(0, (this._dashKick || 0) *
+      Math.exp(-TUNING.BOOST.DASH.KICK_DECAY * dt));
+
     const wantFov = C.FOV + speedN * C.FOV_SPEED_GAIN * 20 +
       (p.overdrive ? C.FOV_BOOST + 2.0 : 0) +
       (p.airborne ? Math.min(2.4, airHeight * 0.22) : 0) +
       heroAir * 4.5;
     this.fov += (wantFov - this.fov) * (1 - Math.exp(-6 * dt));
-    if (Math.abs(this.camera.fov - this.fov) > 0.01) {
-      this.camera.fov = this.fov;
+    // The kick is added AFTER the smoothing on purpose: everything else
+    // about this camera eases, and an eased punch is not a punch.
+    const fov = this.fov + this._dashKick * TUNING.BOOST.DASH.KICK_FOV;
+    if (Math.abs(this.camera.fov - fov) > 0.01) {
+      this.camera.fov = fov;
       this.camera.updateProjectionMatrix();
     }
   }
+
+  /** Fire the DASH camera punch. Decays from here on its own. */
+  dashKick() { this._dashKick = 1; }
 }

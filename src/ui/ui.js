@@ -73,7 +73,7 @@ export class UI {
     this._lastFlubbed = 0;
     this._lastHits = 0;
     this._firstRun = true;
-    this._showedPowerLesson = false;
+    this._showedChargeLesson = false;
 
     this.touch = (navigator.maxTouchPoints || 0) > 0 ||
       'ontouchstart' in window || window.matchMedia('(pointer: coarse)').matches;
@@ -137,10 +137,12 @@ export class UI {
     if (d < 220) text = this.touch ? 'TAP IF THE WORD IS REAL' : 'SPACE IF THE WORD IS REAL';
     else if (d < 390) text = 'LET FAKES PASS';
     else if (d < 560) text = 'RIGHT READS RUN FASTER';
-    else if (p.gatesThreaded > 0 && !this._showedPowerLesson) {
-      text = 'STYLE MAKES POWER';
-      this._showedPowerLesson = true;
-      this._powerT = Math.max(this._powerT, 1.7);
+    else if (p.gatesThreaded > 0 && !this._showedChargeLesson) {
+      // Where the dash comes from. The line that used to sit here ("STYLE
+      // MAKES POWER") named a system this game no longer has and told
+      // nobody what to do about it.
+      text = 'CLEAN READS CHARGE THE DASH';
+      this._showedChargeLesson = true;
     }
 
     if (text) {
@@ -163,20 +165,41 @@ export class UI {
     this.meterWrap.classList.toggle('armed', armed);
     this.meterWrap.classList.toggle('spending', p.overdrive);
 
-    if (running && armed && !this._wasArmed && this.powerHint) {
-      this.powerHint.textContent = 'POWER READY';
-      this.powerHint.classList.add('on');
-      this._powerT = 1.25;
+    // The DASH's charged state (Phase 16). A hint that appears for 1.25s
+    // and never returns is a hint most players never see; while the dash
+    // is still unlearned this holds for as long as the meter is charged,
+    // and it names the input instead of describing a feeling. REDUCED
+    // FLASH drops the pulse but keeps every word of the instruction.
+    if (running && this.powerHint) {
+      const teaching = !this._dashLearned;
+      if (armed && !this._wasArmed) {
+        this.powerHint.textContent = 'DASH READY';
+        this.powerHint.classList.add('on');
+        this._powerT = teaching ? Infinity : 1.25;
+      }
+      if (teaching && armed) {
+        this.powerHint.textContent = `DASH READY · ${this.touch ? 'HOLD DASH' : 'HOLD F'}`;
+        this.powerHint.classList.add('on');
+        this.powerHint.classList.toggle('teaching', !ACCESS.reducedFlash);
+        this._powerT = Infinity;
+      } else if (teaching && !armed) {
+        // The lesson waits for the meter rather than expiring mid-charge.
+        this.powerHint.classList.remove('on', 'teaching');
+        this._powerT = 0;
+      }
     }
     this._wasArmed = armed;
     if (p.overdrive && this.powerHint) {
-      this.powerHint.textContent = 'GO';
+      this.powerHint.textContent = 'DASH';
       this.powerHint.classList.add('on', 'spending');
+      this.powerHint.classList.remove('teaching');
       this._powerT = 0.25;
     }
-    if (this._powerT > 0) {
+    if (this._powerT > 0 && this._powerT !== Infinity) {
       this._powerT = Math.max(0, this._powerT - dt);
-      if (this._powerT === 0 && this.powerHint) this.powerHint.classList.remove('on', 'spending');
+      if (this._powerT === 0 && this.powerHint) {
+        this.powerHint.classList.remove('on', 'spending', 'teaching');
+      }
     }
 
     if (this._chainLostT > 0) {
@@ -294,6 +317,15 @@ export class UI {
     }
   }
 
+  /** Whether the player has ever dashed — retires the teaching beat. */
+  setDashLearned(learned) { this._dashLearned = !!learned; }
+
+  /** The player just dashed: the lesson is over, permanently. */
+  dashFired() {
+    this._dashLearned = true;
+    this.powerHint?.classList.remove('teaching');
+  }
+
   hitFlash() { this._flash = 1; }
 
   /** A wrong tap drains the world instead of flashing it (Phase 9). */
@@ -389,7 +421,7 @@ export class UI {
     this.pitchName.classList.remove('on');
     if (this.bandName) this.bandName.classList.remove('on');
     if (this.styleWord) this.styleWord.className = '';
-    if (this.powerHint) this.powerHint.classList.remove('on', 'spending');
+    if (this.powerHint) this.powerHint.classList.remove('on', 'spending', 'teaching');
     if (this.coach) this.coach.classList.remove('on');
     this.tell.style.opacity = '0';
     this._lastChain = -1;
@@ -403,7 +435,7 @@ export class UI {
     this._styleT = 0;
     this._bandT = 0;
     this._powerT = 0;
-    this._showedPowerLesson = false;
+    this._showedChargeLesson = false;
     this.deathScreen.classList.remove('rc2Poster');
     this.deathScreen.style.backgroundImage = '';
     this.deathStats.style.display = '';

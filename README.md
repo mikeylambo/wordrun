@@ -102,8 +102,13 @@ default combo keeps every pre-mode best and ghost):
   of your speed minus that pace — no hunt states, no pressure, no lunges.
   Read above pace and you pull away; sink below it and it gains at exactly
   the rate you're slow. `TUNING.RUN` is the whole difficulty surface.
-- Overdrive still spends banked meter for real speed — which now means real
-  gap, at exactly the extra metres per second it buys.
+- **The DASH** spends banked meter for real speed — which means real gap,
+  at exactly the extra metres per second it buys. Clean reads charge it.
+  Phase 16 made it legible: it is named DASH on every surface, its charged
+  state is loud rather than dim, and firing it lands as one event across
+  its own sound, a camera punch and a burst of speed lines. The teaching
+  beat holds while the meter is charged and retires for good the first
+  time it is used.
 
 ## What the measurements decided
 

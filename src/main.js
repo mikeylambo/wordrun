@@ -108,6 +108,13 @@ globalThis.__META = { stats: metaStats, daily: metaDaily };
 initAccess();
 buildAccessPanel();
 
+// The DASH teaching beat (Phase 16) runs until the player has used the
+// mechanic once — ever, not per run. __DASH_LEARNED lets the mobile
+// button read the same state without importing the UI.
+let dashLearned = Storage.dashLearned();
+globalThis.__DASH_LEARNED = dashLearned;
+ui.setDashLearned(dashLearned);
+
 ui.setChallenge(CHALLENGE);
 ui.setSeed(SEED_STRING, Storage.bestFor(SEED), Storage.runsToday(SEED));
 ui.setDaily(metaDaily.status(DAILY_SEED));
@@ -637,8 +644,19 @@ function drainSimEvents() {
         break;
       case 'chain_lost': audio.chainLost(); break;
       case 'overdrive_on':
-        audio.overdriveOn();
-        audio.shove();
+        // The DASH lands as one event across three channels (Phase 16):
+        // its own sound, a camera punch that decays, and a burst of speed
+        // lines. Firing it used to reuse the generic shove and read as
+        // nothing in particular — which is how a whole verb went unseen.
+        audio.dash();
+        rig.dashKick();
+        windStreaks.burst();
+        ui.dashFired();
+        if (!dashLearned) {
+          dashLearned = true;
+          globalThis.__DASH_LEARNED = true;
+          Storage.setDashLearned(true);
+        }
         break;
       case 'overdrive_off': audio.overdriveOff(); break;
       case 'stunt_escape':

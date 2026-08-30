@@ -77,7 +77,7 @@ export class Input {
 
     // Dedicated mobile GO button sets this directly. It is OR'd with the old
     // second-finger shortcut, keyboard and (later) gamepad mappings.
-    this.__v1GoButtonHeld = false;
+    this.__v1DashButtonHeld = false;
 
     // Keyboard axes, ramped so digital keys still feel analog.
     this.keyX = 0; this.keyY = 0;
@@ -218,7 +218,7 @@ export class Input {
     this.keyBoost = false;
     this.keyX = 0; this.keyY = 0;
     this.touchX = 0; this.touchY = 0;
-    this.__v1GoButtonHeld = false;
+    this.__v1DashButtonHeld = false;
     this._lastGrounded = null;
     this.carve = 0; this.flip = 0; this.jump = false; this.boostHeld = false;
   }
@@ -310,7 +310,7 @@ export class Input {
       const held = this.pointerMeta.get(id);
       if (!held || now - held.downT >= GO_HOLD_MS) { extraHeld = true; break; }
     }
-    this.boostHeld = extraHeld || this.keyBoost || this.__v1GoButtonHeld;
+    this.boostHeld = extraHeld || this.keyBoost || this.__v1DashButtonHeld;
   }
 
   /** The sim consumes jump as an edge; call after stepping. */

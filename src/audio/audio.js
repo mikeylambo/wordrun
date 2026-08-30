@@ -466,6 +466,26 @@ export class Audio {
     this._tone({ type: 'sawtooth', f0: kind === 'vault' ? 180 : 140, f1: kind === 'vault' ? 620 : 84, dur: 0.55, vol: 0.065, pan, bus: this.bus.threat, filter: { type: 'lowpass', freq: 1200, q: 2 } });
   }
 
+  /**
+   * The DASH (Phase 16) — its own sound, not the shove it used to borrow.
+   *
+   * Three parts, deliberately front-loaded so the transient lands on the
+   * exact frame the camera punches: a hard low thump for the shove in the
+   * back, a fast upward sweep that keeps rising after the thump has gone,
+   * and a bright air burst over the top. The old cue was a single mid
+   * sawtooth that read as "something changed" rather than "you launched".
+   */
+  dash() {
+    if (!this.ready || this.muted) return;
+    const bus = this.bus.ambience;
+    this._thump(0.34, 0, bus);
+    this._tone({ type: 'sawtooth', f0: 180, f1: 1450, dur: 0.46, vol: 0.15, bus,
+      filter: { type: 'lowpass', freq: 2400, q: 4.5 } });
+    this._tone({ type: 'triangle', f0: 620, f1: 2400, dur: 0.30, vol: 0.075, bus });
+    this._burst(0.36, 0.17, 3400, 'bandpass', 0, bus, 1.6);
+    this._burst(0.5, 0.06, 7200, 'highpass', 0, bus, 0.7);
+  }
+
   overdriveOn() {
     this._tone({ type: 'sawtooth', f0: 145, f1: 920, dur: 0.38, vol: 0.13, bus: this.bus.ambience, filter: { type: 'lowpass', freq: 1700, q: 3 } });
     this._burst(0.42, 0.14, 2500, 'bandpass', 0, this.bus.ambience);

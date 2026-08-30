@@ -93,7 +93,7 @@ check(escapeSource.includes('SecondBeast.prototype.step') && escapeSource.includ
 check(!/textContent\s*=\s*['\"](?:OVER ?RUN|OVERRUN)/i.test(chaseSource + finalSource + escapeSource),
   'no post-finish mode name is exposed through player-facing text');
 
-check(mobileSource.includes("go.id = 'v1MobileGo'") && mobileSource.includes("guide.id = 'v1TouchGuide'"),
+check(mobileSource.includes("go.id = 'v1MobileDash'") && mobileSource.includes("guide.id = 'v1TouchGuide'"),
   'mobile has visible GO affordance and contextual gesture overlay');
 
 check(!finalSource.includes('requestAnimationFrame') && !contactSource.includes('requestAnimationFrame') &&

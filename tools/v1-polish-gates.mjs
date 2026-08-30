@@ -35,15 +35,18 @@ check(polish.includes('Bell charge ${charge} of 5') && polish.includes('.v1-bell
 check(polish.includes('bellShipPolish') && polish.includes('vol: 0.038'),
   'bell gets an additional bright upper-partial presence lift');
 
-check(polish.includes("assets?.has?.('tree_hit')") && polish.includes("assets?.has?.('rock_hit')"),
-  'Beast destruction layers approved organic tree and rock recordings');
+// Phase 15/16: the tree and rock recordings are gone with the rest of the
+// unreachable inherited Foley, so what has to hold now is that this path
+// needs no assets at all.
+check(!polish.includes("assets?.has?.('tree_hit')") && !polish.includes("assets?.has?.('rock_hit')"),
+  'destruction audio reaches for no retired recording');
 check(polish.includes("c.type === FEATURE.GATE") && polish.includes("'highpass'") && polish.includes("'bandpass'"),
   'gate destruction keeps a noise-first multi-impact metal fallback');
 
 check(polish.includes('Input.prototype.__v1GamepadSupport') && polish.includes('navigator.getGamepads'),
   'standard browser gamepad polling is installed on the existing Input path');
 check(polish.includes('button(pad, 0)') && polish.includes('button(pad, 7)') && polish.includes('button(pad, 9)'),
-  'controller maps A/Cross jump, RT/R2 GO and Start pause');
+  'controller maps A/Cross jump, RT/R2 DASH and Start pause');
 check(polish.includes('visibleControllerRoot') && polish.includes('focusControllerButton') && polish.includes('PointerEvent'),
   'controller can navigate and activate core game overlays');
 
@@ -85,18 +88,22 @@ check(input.includes('TOUCH_RESPONSE_GROUND = 24.0') && input.includes('TOUCH_RE
   'mobile air tricks respond faster than grounded carving');
 check(input.includes('_lastGrounded') && input.includes('_reanchorTouch') && input.includes('grounded !== this._lastGrounded'),
   'held touch re-anchors when takeoff/landing changes gesture context');
-check(input.includes('__v1GoButtonHeld') && input.includes('extraHeld || this.keyBoost || this.__v1GoButtonHeld'),
-  'dedicated GO button and held second-finger shortcut share the same input contract');
+check(input.includes('__v1DashButtonHeld') && input.includes('extraHeld || this.keyBoost || this.__v1DashButtonHeld'),
+  'dedicated DASH button and held second-finger shortcut share the same input contract');
 check(input.includes('GO_HOLD_MS') && input.includes('TAP_MS'),
-  'a quick second-finger tap reads as the word verb, not as GO');
+  'a quick second-finger tap reads as the word verb, not as a DASH');
 check(mobile.includes("guide.id = 'v1TouchGuide'"),
   'mobile exposes a touch ring while the thumb is down');
-check(mobile.includes("go.id = 'v1MobileGo'"),
-  'mobile exposes a dedicated hold-GO control');
+check(mobile.includes("go.id = 'v1MobileDash'"),
+  'mobile exposes a dedicated hold-DASH control');
 check(mobile.includes("jump.id = 'v1MobileJump'") && mobile.includes('input.jump = true'),
   'mobile exposes a dedicated tap-JUMP control independent from steering touch');
-check(mobile.includes("#powerHint{display:none!important}"),
-  'mobile removes redundant floating GO hint above the labeled meter');
+// Phase 16 reversed this one deliberately. The hint used to be hidden on
+// touch because the button "already explained GO"; it plainly did not, so
+// the hint now shows on touch while the dash is unlearned and disappears
+// for good the moment the player uses it.
+check(mobile.includes("#powerHint:not(.teaching){display:none!important}"),
+  'mobile shows the floating dash hint only while the mechanic is unlearned');
 check(mobile.includes("content:'REAL'") &&
   !mobile.includes("content:'SPIN'") && !mobile.includes("content:'FLIP'") && !mobile.includes("content:'CARVE'"),
   'touch ring teaches the confirm verb; retired carve/spin/flip labels are gone');
@@ -104,8 +111,9 @@ check(mobile.includes('Audio.prototype.__v1MobileTouchUi'),
   'mobile presentation updates through the existing audio/presentation chain');
 check(onboarding.includes("touch ? 'TAP' : 'SPACE'") && onboarding.includes('IF THE SPELLING IS REAL'),
   'touch onboarding teaches the confirm verb rather than requiring discovery');
-check(onboarding.includes("touch ? 'HOLD GO' : 'F'"),
-  'touch onboarding teaches visible HOLD GO rather than requiring discovery of second finger');
+check(onboarding.includes("touch ? 'HOLD DASH' : 'HOLD F'") &&
+  onboarding.includes('class="rule dash"'),
+  'onboarding teaches the DASH by name, with its own rule line and its input spelled out');
 check(index.includes('/src/v1-mobile-ui.js'), 'mobile control presentation is loaded by the release page');
 
 check(viewport.includes('height:100dvh!important') && viewport.includes('#rc2Pause,#rc7Onboarding'),
