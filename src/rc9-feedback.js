@@ -23,9 +23,9 @@ import { Terrain, FEATURE } from './sim/terrain.js';
 // - Beast One tears through generated trees, rocks and gate poles with debris/snow FX;
 // - chase timing and Beast One behaviour are deliberately untouched.
 
-const SKI_TRIM_NORMAL = 0.57;
-const SKI_TRIM_HUNT = 0.50;
-const SKI_TRIM_PICKUP = 0.38;
+const SURFACE_TRIM_NORMAL = 0.57;
+const SURFACE_TRIM_HUNT = 0.50;
+const SURFACE_TRIM_PICKUP = 0.38;
 const WIND_TRIM_NORMAL = 0.78;
 const WIND_TRIM_AIR = 0.66;
 const WIND_TRIM_HUNT = 0.70;
@@ -128,7 +128,7 @@ const lmFlatRing = (id, anchorD, x, y, z, ringR, tubeR, depthR = tubeR) => ({
 });
 
 const RC910_STRUCTURES = [
-  // DICTION DASH Phase 7: the flat track carries no authored ski-resort
+  // DICTION DASH Phase 7: the flat track carries no authored resort
   // structures. The table is empty by design; the plumbing around it stays.
 ];
 
@@ -157,9 +157,9 @@ if (!Terrain.prototype.__rc910WorldSolids) {
   };
 }
 
-// Player.y is ski/ground height, not torso centre. Treat the skier as a short
+// Player.y is ground height, not torso centre. Treat the runner as a short
 // vertical capsule so a big-air body hitting a beam/hoop counts even when the
-// skis themselves happen to pass just underneath it.
+// runner's feet happen to pass just underneath it.
 if (!Player.prototype.__rc910CollisionTruth) {
   Player.prototype.__rc910CollisionTruth = true;
   Player.prototype._collide = function collideRC910(events) {
@@ -383,7 +383,7 @@ function updateBeastDestruction(dt, p) {
       if (dx * dx + dd * dd > reach * reach) continue;
 
       // The beast has actually destroyed this generated prop. It is behind the
-      // skier, so removing the collider cannot create a new forward safe route;
+      // runner, so removing the collider cannot create a new forward safe route;
       // a new run regenerates the deterministic chunk from the same seed.
       chunk.colliders.splice(i, 1);
       spawnBeastDebris(c, sim.terrain, render, beast.x);
@@ -443,7 +443,7 @@ function ensureRC99Presentation() {
 
   // TorusGeometry is already a vertical XY hoop. The old X rotation turned THE
   // TUNNEL into horizontal donuts while gameplay collision expected vertical
-  // ski-through hoops. Align the render to the physical annulus.
+  // run-through hoops. Align the render to the physical annulus.
   const tunnel = render.landmarks.entries?.find?.((entry) => entry.def?.id === 'tunnel');
   tunnel?.group?.traverse?.((obj) => {
     if (obj.geometry?.type === 'TorusGeometry') obj.rotation.x = 0;
@@ -467,16 +467,16 @@ if (!Audio.prototype.__rc9SkiTrimInstalled) {
   Audio.prototype.start = function startWithMixTrims(...args) {
     const out = baseAudioStart.apply(this, args);
     if (this.ready && !this.__rc9SkiTrim && this.ctx && this.bus?.surface) {
-      const skiTrim = this.ctx.createGain();
-      skiTrim.gain.value = SKI_TRIM_NORMAL;
-      skiTrim.connect(this.bus.surface);
+      const surfaceTrim = this.ctx.createGain();
+      surfaceTrim.gain.value = SURFACE_TRIM_NORMAL;
+      surfaceTrim.connect(this.bus.surface);
       for (const voice of [this.snow, this.powder, this.ice]) {
         if (!voice) continue;
         const output = voice.pan || voice.gain;
         try { output.disconnect(this.bus.surface); } catch { try { output.disconnect(); } catch {} }
-        output.connect(skiTrim);
+        output.connect(surfaceTrim);
       }
-      this.__rc9SkiTrim = skiTrim;
+      this.__rc9SkiTrim = surfaceTrim;
 
       const windTrim = this.ctx.createGain();
       windTrim.gain.value = WIND_TRIM_NORMAL;
@@ -506,9 +506,9 @@ if (!Audio.prototype.__rc9SkiTrimInstalled) {
     const hunting = sim?.phase === 'running' && sim?.beast?.mode === 'hunt';
     const pickup = now < (this.__rc9PickupDuckUntil || 0);
 
-    let skiTarget = hunting ? SKI_TRIM_HUNT : SKI_TRIM_NORMAL;
-    if (pickup) skiTarget = Math.min(skiTarget, SKI_TRIM_PICKUP);
-    this.__rc9SkiTrim.gain.setTargetAtTime(skiTarget, now, 0.045);
+    let surfaceTarget = hunting ? SURFACE_TRIM_HUNT : SURFACE_TRIM_NORMAL;
+    if (pickup) surfaceTarget = Math.min(surfaceTarget, SURFACE_TRIM_PICKUP);
+    this.__rc9SkiTrim.gain.setTargetAtTime(surfaceTarget, now, 0.045);
 
     if (this.__rc9WindTrim) {
       let windTarget = p?.airborne ? WIND_TRIM_AIR : WIND_TRIM_NORMAL;
@@ -600,9 +600,9 @@ globalThis.__RC910_FINISH = {
 globalThis.__RC9_FEEDBACK = {
   version: '9.10',
   airSpinNatural: true,
-  skiTrim: SKI_TRIM_NORMAL,
-  huntSkiTrim: SKI_TRIM_HUNT,
-  pickupDuck: SKI_TRIM_PICKUP,
+  surfaceTrim: SURFACE_TRIM_NORMAL,
+  huntSkiTrim: SURFACE_TRIM_HUNT,
+  pickupDuck: SURFACE_TRIM_PICKUP,
   windTrim: WIND_TRIM_NORMAL,
   airWindTrim: WIND_TRIM_AIR,
   heartbeatPriority: true,

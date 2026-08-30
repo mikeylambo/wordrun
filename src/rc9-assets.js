@@ -1,5 +1,6 @@
 import TUNING from './TUNING.js';
 import { ApprovedAudioAssets } from './audio/approved-assets.js';
+import { PageBed } from './audio/page-bed.js';
 
 const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
 
@@ -13,11 +14,8 @@ function boot() {
   if (window.__RC9_ASSETS) return;
 
   let assets = null;
-  let lastHitKind = null;
-  let lastLanding = null;
-  let lastTakeoffKind = 'terrain';
+  let pageBed = null;
   let lastOrganicStepAt = -Infinity;
-  let lastHardCarveAt = -Infinity;
 
   const ensureAssets = () => {
     if (assets || !audio.ready || !audio.ctx || !audio.bus) return;
@@ -35,17 +33,16 @@ function boot() {
   ensureAssets();
 
   // Capture semantic event detail without changing the main-loop API.
+  // Phase 15 trimmed this to the one field a live consumer still reads:
+  // rc9-feedback's procedural takeoff shaping. The landing and hit kinds
+  // only ever fed authored Foley this game cannot reach — see the note in
+  // the update below, and the reachability gate in corruption-gates.
   const baseDrain = sim.drainEvents.bind(sim);
   sim.drainEvents = function drainEventsForApprovedAudio() {
     const events = baseDrain();
     if (events) {
       for (const e of events) {
-        if (e.t === 'hit') lastHitKind = e.kind || null;
-        if (e.t === 'land_clean' || e.t === 'land_flub') lastLanding = e;
-        if (e.t === 'takeoff') {
-          lastTakeoffKind = e.kind || 'terrain';
-          audio.__rc9TakeoffKind = lastTakeoffKind;
-        }
+        if (e.t === 'takeoff') audio.__rc9TakeoffKind = e.kind || 'terrain';
       }
     }
     return events;
@@ -55,43 +52,31 @@ function boot() {
   audio.update = function updateWithApprovedBeds(dt, p, bands, running) {
     baseUpdate(dt, p, bands, running);
     ensureAssets();
-    if (!assets) return;
 
     const phase = sim.phase;
-    const live = !!running && phase === 'running';
-    const kill = phase === 'kill' || phase === 'dead';
+    const live = !!running && phase === 'running' && !(phase === 'kill' || phase === 'dead');
     const speedN = clamp((p.speed - 10) / (TUNING.RUN.CEILING - 10));
-    const edge = p.airborne ? 0 : clamp(Math.abs(p.heading) / TUNING.PLAYER.MAX_CARVE);
-    const airborne = !!p.airborne;
-    const onIce = live && !airborne && !!p.onIce;
-    const inPowder = live && !airborne && !!p.inPowder;
-    const onSnow = live && !airborne && !onIce && !inPowder;
 
-    // Generated ski loops remain optional/disabled in the current manifest.
-    assets.setLoop('ski_packed_loop', onSnow ? (0.34 + speedN * 0.38) * (0.82 + edge * 0.18) : 0,
-      { bus: 'surface', gain: 0.48, rate: 0.96 + speedN * 0.10, tau: 0.08 });
-    assets.setLoop('ski_powder_loop', inPowder ? 0.42 + speedN * 0.34 : 0,
-      { bus: 'surface', gain: 0.52, rate: 0.95 + speedN * 0.08, tau: 0.10 });
-    assets.setLoop('ski_ice_loop', onIce ? (0.28 + speedN * 0.34) * (0.72 + edge * 0.28) : 0,
-      { bus: 'surface', gain: 0.42, rate: 0.97 + speedN * 0.08, tau: 0.06 });
-
-    // Keep organic ambience behind the procedural wind; RC9.5 gives bells and
-    // threat cues the foreground and lets air feel spacious rather than loud.
-    assets.setLoop('wind_alpine_bed', live && !kill ? 0.20 + speedN * 0.13 : 0,
-      { bus: 'ambience', gain: 0.25, rate: 1, tau: 0.18 });
-
-    // Hard carving gets an occasional authored sweep rather than another
-    // continuous layer. The cooldown keeps a held turn from machine-gunning Foley.
-    const now = audio.ctx?.currentTime ?? 0;
-    if (onSnow && edge >= 0.82 && speedN >= 0.42 && assets.has('carve_hard') && now - lastHardCarveAt >= 1.15) {
-      lastHardCarveAt = now;
-      assets.oneShot('carve_hard', {
-        bus: 'surface',
-        gain: 0.28 + edge * 0.08,
-        pan: clamp(Math.sign(p.heading) * 0.18, -1, 1),
-        rate: 0.97 + speedN * 0.06,
-      });
+    // Phase 15: the recorded alpine-wind bed and the three ski surface loops
+    // are retired — wrong world, and the ski loops were never in the manifest
+    // to begin with (referenced, never loaded, inert in play). The atmosphere
+    // is now this game's own: procedural page grain, page turns and ink
+    // blooms, built from the engine's noise buffers. No file, no download —
+    // so unlike the bed it replaces, it plays even if the manifest never
+    // loads, which is why it needs no approved-asset guard at all.
+    //
+    // The same pass retired six inherited Foley assets — a hard carve
+    // sweep, a launch, two landings, a tree hit and a rock hit — after
+    // measuring that none of them can sound in this game. Five full 30 km
+    // runs (106,775 sim steps) produced zero airborne frames and zero
+    // obstacle hits, because nothing solid spawns and the confirm verb
+    // never jumps; the carve sweep needed 82% of MAX_CARVE and the
+    // auto-followed line peaks at 48%. Eight files that could only ever be
+    // downloaded, never heard. What is left here is the bed alone.
+    if (!pageBed && audio.ctx && audio.bus?.ambience && audio.noise) {
+      pageBed = new PageBed(audio.ctx, audio.bus.ambience, audio.noise);
     }
+    pageBed?.update(dt, { live, speedN });
   };
 
   const layer = (method, idFor, optionsFor) => {
@@ -105,14 +90,9 @@ function boot() {
     };
   };
 
-  // Hero launch Foley is now terrain-only. A player tapping jump at random gets
-  // the lighter procedural hop from rc9-feedback instead of a giant ramp sound.
-  layer('takeoff', () => lastTakeoffKind === 'terrain' ? 'takeoff_big_air' : null,
-    () => ({ bus: 'surface', gain: 0.34 }));
-  layer('landClean', () => 'landing_clean', () => ({ bus: 'surface', gain: lastLanding?.hang > 1.2 ? 0.48 : 0.36 }));
-  layer('landFlub', () => 'landing_heavy', () => ({ bus: 'surface', gain: lastLanding?.hang > 1.0 ? 0.52 : 0.40 }));
-  layer('hit', () => lastHitKind === 'tree' ? 'tree_hit' : lastHitKind === 'rock' ? 'rock_hit' : null,
-    () => ({ bus: 'surface', gain: 0.46 }));
+  // The takeoff/landing/tree/rock layers are gone with their assets: they
+  // wrapped events this game cannot produce. The procedural voices they
+  // wrapped are untouched — `layer` only ever added a sample on top.
   layer('overdriveOn', () => 'go_rush', () => ({ bus: 'ambience', gain: 0.34 }));
 
   layer('huntStart', (side, kind) => kind === 'leap' ? 'beast_main_leap' : 'beast_main_distant',
@@ -152,11 +132,9 @@ function boot() {
   window.__RC9_ASSETS = {
     version: '9.5',
     proceduralFallback: true,
-    terrainOnlyHeroLaunch: true,
     manifest: '/audio/approved/manifest.json',
     slots: [
-      'ski_packed_loop', 'ski_powder_loop', 'ski_ice_loop', 'wind_alpine_bed', 'go_rush',
-      'carve_hard', 'takeoff_big_air', 'landing_clean', 'landing_heavy', 'tree_hit', 'rock_hit',
+      'go_rush',
       'beast_main_distant', 'beast_main_close', 'beast_main_step', 'beast_main_leap',
       'frost_beast_enter', 'frost_beast_charge', 'frost_beast_vault', 'frost_beast_kill',
     ],

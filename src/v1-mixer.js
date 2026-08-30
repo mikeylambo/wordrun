@@ -2,12 +2,12 @@ import TUNING from './TUNING.js';
 import { Audio } from './audio/audio.js';
 import { ApprovedAudioAssets } from './audio/approved-assets.js';
 
-const STORAGE_KEY = 'descent:v1-live-mix';
+const STORAGE_KEY = 'dictiondash:live-mix';
 const ENABLED = typeof location !== 'undefined' && new URLSearchParams(location.search).get('mix') === '1';
 const DEFAULT_DB = Object.freeze({
   master: 0,
   wind: 0,
-  ski: 0,
+  surface: 0,
   bells: 0,
   heartbeat: 0,
   beast: 0,
@@ -15,7 +15,7 @@ const DEFAULT_DB = Object.freeze({
 const BASE = Object.freeze({
   master: TUNING.AUDIO.MASTER,
   windMax: TUNING.AUDIO.WIND_MAX,
-  packedSnowGlide: globalThis.__DESCENT_V1_FINAL_MIX?.packedSnowGlide ?? 0.075,
+  packedSnowGlide: globalThis.__DASH_V1_FINAL_MIX?.packedSnowGlide ?? 0.075,
   roarMax: TUNING.AUDIO.ROAR_MAX,
 });
 
@@ -52,13 +52,13 @@ function snapshot() {
     base: {
       master: BASE.master,
       windMax: TUNING.AUDIO.WIND_MAX,
-      packedSnowGlide: globalThis.__DESCENT_V1_FINAL_MIX?.packedSnowGlide ?? BASE.packedSnowGlide,
+      packedSnowGlide: globalThis.__DASH_V1_FINAL_MIX?.packedSnowGlide ?? BASE.packedSnowGlide,
       roarMax: TUNING.AUDIO.ROAR_MAX,
     },
   };
 }
 
-globalThis.__DESCENT_MIX = {
+globalThis.__DASH_MIX = {
   enabled: ENABLED,
   get db() { return { ...db }; },
   gain,
@@ -124,8 +124,8 @@ if (!Audio.prototype.__v1LiveMixCategories) {
     }
 
     if (this.snow?.gain?.gain) {
-      const glideBase = globalThis.__DESCENT_V1_FINAL_MIX?.packedSnowGlide ?? BASE.packedSnowGlide;
-      const glide = glideBase * (0.32 + speedN * 0.68) * gain('ski');
+      const glideBase = globalThis.__DASH_V1_FINAL_MIX?.packedSnowGlide ?? BASE.packedSnowGlide;
+      const glide = glideBase * (0.32 + speedN * 0.68) * gain('surface');
       this._set(this.snow.gain.gain, onSnow ? glide * (0.48 + edge * 1.35) : 0, 0.045);
     }
 
@@ -148,8 +148,7 @@ if (!ApprovedAudioAssets.prototype.__v1LiveMix) {
   const baseLoop = ApprovedAudioAssets.prototype.setLoop;
   ApprovedAudioAssets.prototype.setLoop = function setLoopV1Mix(id, target, options = {}) {
     let scale = 1;
-    if (id === 'wind_alpine_bed') scale = 1.12 * gain('wind');
-    else if (id.startsWith('ski_')) scale = 0.80 * gain('ski');
+    if (id === 'page_grain_bed') scale = 1.12 * gain('wind');
     return baseLoop.call(this, id, target * scale, options);
   };
 
@@ -195,7 +194,7 @@ function createMixerUi() {
   const rows = [
     ['master', 'MASTER', -18, 6],
     ['wind', 'WIND', -18, 9],
-    ['ski', 'SKI / SNOW', -24, 9],
+    ['surface', 'SURFACE', -24, 9],
     ['bells', 'BELLS', -18, 9],
     ['heartbeat', 'HEARTBEAT', -18, 9],
     ['beast', 'BEAST', -18, 9],
@@ -277,7 +276,7 @@ function createMixerUi() {
 
 createMixerUi();
 
-globalThis.__DESCENT_V1_MIXER = {
+globalThis.__DASH_V1_MIXER = {
   version: '1.0',
   hiddenByDefault: true,
   query: '?mix=1',

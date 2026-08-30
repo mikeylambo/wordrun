@@ -28,12 +28,12 @@ export const PALETTE = {
   GATE_POLE: 0x2a3f55,
   GATE_TIP: 0x9fe8ff,
 
-  // The skier gets one deliberate saturated identity colour. Danger still owns
+  // The runner gets one deliberate saturated identity colour. Danger still owns
   // red; the player owns glacial cyan.
   PLAYER_BODY: 0x222c36,
   PLAYER_LIGHT: 0xe4edf3,
   PLAYER_DARK: 0x111820,
-  PLAYER_SKI: 0x1c242c,
+  PLAYER_BOARD: 0x1c242c,
   PLAYER_ACCENT,
 
   BEAST_BODY: 0x08090b,

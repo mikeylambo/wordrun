@@ -215,7 +215,7 @@ if (!Audio.prototype.__v1MobileTouchUi) {
   };
 }
 
-globalThis.__DESCENT_MOBILE_UI = {
+globalThis.__DASH_MOBILE_UI = {
   version: '1.2-dictiondash',
   tapVerbTouchRing: true,        // replaces the retired carve/spin/flip guide
   dedicatedJumpButton: true,     // the REAL button (confirm verb)

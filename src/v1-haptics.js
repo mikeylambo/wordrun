@@ -74,7 +74,7 @@ if (!Audio.prototype.__v1Haptics) {
   }
 }
 
-globalThis.__DESCENT_HAPTICS = {
+globalThis.__DASH_HAPTICS = {
   version: '1.0-rc',
   pulse,
   setEnabled: setHapticsEnabled,

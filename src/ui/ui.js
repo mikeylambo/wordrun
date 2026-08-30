@@ -1,5 +1,5 @@
 /**
- * DESCENT player-facing UI.
+ * DICTION DASH player-facing UI.
  * Tiny vocabulary, deadpan delivery. The game is already funny.
  */
 

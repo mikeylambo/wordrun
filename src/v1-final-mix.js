@@ -4,9 +4,9 @@ import { Audio } from './audio/audio.js';
 const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
 const PACKED_SNOW_GLIDE = 0.075;
 
-// Final V1 mix: the isolated playtest showed the continuous packed-snow ski
+// Final V1 mix: the isolated playtest showed the continuous surface-glide
 // voice, not the wind, was doing most of the masking. Restore some atmospheric
-// wind while pulling the ski bed down more decisively. These are presentation-
+// air while pulling the glide bed down more decisively. These are presentation-
 // only values; the hidden ?mix=1 calibration panel can trim them live in dB.
 TUNING.AUDIO.WIND_MAX = 0.285;
 TUNING.AUDIO.ROAR_MAX = 0.35;
@@ -32,7 +32,7 @@ if (!Audio.prototype.__v1FinalPriorityMix) {
     const edge = player.airborne ? 0 : clamp(Math.abs(player.heading) / TUNING.PLAYER.MAX_CARVE);
     const onSnow = live && !player.airborne && !player.onIce && !player.inPowder;
 
-    // Packed-snow skiing was the masking layer on phone speakers. Keep all of
+    // The continuous glide bed was the masking layer on phone speakers. Keep all of
     // its speed/carve expression, but lower the actual continuous ceiling by
     // ~29% from the previous V1 mix (and ~38% from the original RC9 glide).
     if (this.snow?.gain?.gain) {
@@ -111,7 +111,7 @@ if (!Audio.prototype.__v1FinalPriorityMix) {
   };
 }
 
-globalThis.__DESCENT_V1_FINAL_MIX = {
+globalThis.__DASH_V1_FINAL_MIX = {
   version: '1.1',
   windMax: 0.285,
   packedSnowGlide: PACKED_SNOW_GLIDE,

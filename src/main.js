@@ -1,5 +1,5 @@
 /**
- * DESCENT — entry point. Deterministic game, expressive presentation.
+ * DICTION DASH — entry point. Deterministic game, expressive presentation.
  */
 
 import TUNING from './TUNING.js';

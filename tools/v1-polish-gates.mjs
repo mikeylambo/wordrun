@@ -117,10 +117,10 @@ check(!viewport.includes('requestAnimationFrame'),
 
 check(finalMix.includes('TUNING.AUDIO.WIND_MAX = 0.285') && finalMix.includes('const PACKED_SNOW_GLIDE = 0.075'),
   'final mix establishes the post-isolation wind and packed-snow reference');
-check(approvedMix.includes('wind: -2') && approvedMix.includes('ski: -5.5') &&
+check(approvedMix.includes('wind: -2') && approvedMix.includes('surface: -5.5') &&
   approvedMix.includes('bells: 4') && approvedMix.includes('heartbeat: 6') && approvedMix.includes('beast: 1'),
   'user-approved live mix is baked as the canonical V1 dB baseline');
-check(approvedMix.includes('mixerZeroIsApprovedBaseline: true') && approvedMix.includes('__DESCENT_MIX?.reset?.()'),
+check(approvedMix.includes('mixerZeroIsApprovedBaseline: true') && approvedMix.includes('__DASH_MIX?.reset?.()'),
   'hidden mixer resets to zero around the approved release baseline');
 check(finalMix.includes('TUNING.AUDIO.ROAR_MAX = 0.35') && finalMix.includes('roar * 0.055'),
   'final mix gives Beast roar more foreground presence');

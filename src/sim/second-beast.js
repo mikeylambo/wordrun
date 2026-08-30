@@ -31,7 +31,7 @@ export const SECOND_BEAST_RULES = {
 };
 
 /**
- * Rare second creature. It never rubber-bands behind the skier.
+ * Rare second creature. It never rubber-bands behind the runner.
  * It is armed by some main-beast Hunts, commits to one readable world-space
  * ambush, then physically exits the scene. Appearances rotate through a small
  * choreography vocabulary so seeing it again is not the same event mirrored.
@@ -119,7 +119,7 @@ export class SecondBeast {
     this.phaseT = 0;
     this.kind = this._chooseKind();
 
-    // When the skier has committed to an edge, enter from the opposite side.
+    // When the runner has committed to an edge, enter from the opposite side.
     // This prevents an appearance from becoming irrelevant because both actors
     // happened to live on opposite margins for the whole encounter.
     this.side = Math.abs(player.x) > 3.5

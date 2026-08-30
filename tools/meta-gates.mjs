@@ -385,11 +385,59 @@ head('ECONOMY — the balance finally spends');
     Array.isArray(cos) && cos.length >= 4 && cos[0].id === 'default' &&
     cos[0].cost === 0 && cos.slice(1).every((c) => c.cost > 0),
     cos.map((c) => `${c.label}:${c.cost}`).join(' '));
-  check('no palette claims the danger red (red stays the Redline\'s)',
-    cos.every((c) => {
-      const r = (c.halo >> 16) & 0xff, g = (c.halo >> 8) & 0xff, b = c.halo & 0xff;
-      return !(r > 200 && g < 90 && b < 90);
-    }));
+  // Phase 15: a cosmetic may never wear a hue the game uses to MEAN
+  // something. The first cut of this list put GOLD and VIOLET exactly on
+  // the streak-burst escalation hues and EMBER within 1 degree of the
+  // deuteranopia danger accent; this gate is what stops the next skin
+  // from doing it again.
+  const hueOf = (hex) => {
+    const r = ((hex >> 16) & 0xff) / 255, g = ((hex >> 8) & 0xff) / 255, b = (hex & 0xff) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    if (d === 0) return null; // greyscale carries no hue, so it can't collide
+    const x = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return (x * 60 + 360) % 360;
+  };
+  const hueGap = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
+  const RES = T.META.RESERVED_HUES;
+  const collisions = [];
+  for (const c of cos) {
+    const h = hueOf(c.halo);
+    if (h == null) continue;
+    for (const r of RES.HUES) {
+      const gap = hueGap(h, r.deg);
+      if (gap < RES.MIN_SEPARATION_DEG) {
+        collisions.push(`${c.label} ${gap.toFixed(0)}deg from ${r.why}`);
+      }
+    }
+  }
+  check('no cosmetic wears a hue that already means something',
+    collisions.length === 0,
+    collisions.join(' | ') ||
+      `${cos.length} palettes clear of ${RES.HUES.length} reserved hues by >= ${RES.MIN_SEPARATION_DEG}deg`);
+
+  // The reservation is only worth anything if it still describes the real
+  // colours. Pin it to the actual escalation palette and danger accents.
+  const burst = fs.readFileSync('src/render/streak-burst.js', 'utf8');
+  const burstHexes = [...burst.matchAll(/0x([0-9a-f]{6})/g)].map((m) => parseInt(m[1], 16));
+  const burstHues = [...new Set(burstHexes.map(hueOf).filter((h) => h != null))];
+  const reserved = RES.HUES.map((r) => r.deg);
+  const unreservedBurst = burstHues.filter((h) =>
+    // cyan is the world's resting tone, deliberately not reserved
+    hueGap(h, 195) > 12 && !reserved.some((r) => hueGap(h, r) <= 3));
+  check('every earned escalation hue is actually in the reserved list',
+    unreservedBurst.length === 0,
+    unreservedBurst.map((h) => `${h.toFixed(0)}deg unreserved`).join(', ') ||
+      `burst hues ${burstHues.map((h) => h.toFixed(0)).join('/')} accounted for`);
+
+  const access = fs.readFileSync('src/ui/access.js', 'utf8');
+  const dangerHues = [...access.matchAll(/danger:\s*0x([0-9a-f]{6})/g)]
+    .map((m) => hueOf(parseInt(m[1], 16)));
+  const unreservedDanger = dangerHues.filter((h) =>
+    h != null && !reserved.some((r) => hueGap(h, r) <= 3));
+  check('every colour-vision danger accent is in the reserved list',
+    unreservedDanger.length === 0,
+    unreservedDanger.map((h) => `${h.toFixed(0)}deg unreserved`).join(', ') ||
+      `${dangerHues.length} danger accents accounted for`);
 
   const main = fs.readFileSync('src/main.js', 'utf8');
   check('the continue spends the same ledger the bells feed',

@@ -404,6 +404,103 @@ head('ACCESS — reduced flash, readable type, colour-vision axes');
     fs.readFileSync('src/storage/storage.js', 'utf8').includes('accessPrefs()'));
 }
 
+// ── Source-frame residue (Phase 15) ──────────────────────────────────────
+head('RESIDUE — the frame this was cloned from must not show through');
+
+{
+  // The clone brought the source game's vocabulary along in places a
+  // player could reach (a HOW TO SKI button, a "Share this DESCENT run"
+  // label) and in a lot of places only a developer could. Provenance
+  // credit in a comment is honest and stays; a live identifier, an event
+  // name, an asset id or any player-visible string is residue.
+  const skiWord = /\b(ski|skis|skiing|skier|skiers|alpine|snowboard)\b/i;
+  const walk = (dir, out = []) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = `${dir}/${e.name}`;
+      if (e.isDirectory()) walk(p, out);
+      else if (/\.(js|mjs|html|json|webmanifest)$/.test(e.name)) out.push(p);
+    }
+    return out;
+  };
+  const tree = [...walk('src'), ...walk('tools'), 'index.html'];
+
+  // 1. No live code identifier or asset id may carry the retired vocabulary.
+  //    Comments are exempt (provenance is allowed to be stated); the word
+  //    list and its generated guard are exempt because "ski" is a real
+  //    English word a player is legitimately asked to read.
+  const stripComments = (s) => s
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+  const identifierHits = [];
+  for (const f of tree) {
+    if (/words\/(wordlist|guard)\.js$/.test(f)) continue;
+    if (f.endsWith('corruption-gates.mjs')) continue; // this list itself
+    for (const line of stripComments(fs.readFileSync(f, 'utf8')).split('\n')) {
+      if (skiWord.test(line)) identifierHits.push(`${f}: ${line.trim().slice(0, 46)}`);
+    }
+  }
+  check('no ski vocabulary survives in live code, ids or copy',
+    identifierHits.length === 0,
+    identifierHits.slice(0, 3).join(' | ') || `${tree.length} files clean`);
+
+  // 2. The source game's name may not appear in a global, an event name,
+  //    a storage key or anything a player can read.
+  const nameHits = [];
+  for (const f of tree) {
+    if (f.endsWith('corruption-gates.mjs')) continue;
+    // Comments may state provenance ("cloned from DESCENT") — that is
+    // honest history. Code, ids and copy may not.
+    const text = stripComments(fs.readFileSync(f, 'utf8'));
+    for (const m of text.matchAll(/__DESCENT[A-Z_]*/g)) nameHits.push(`${f}: ${m[0]}`);
+    for (const m of text.matchAll(/'descent:[^']*'/g)) nameHits.push(`${f}: ${m[0]}`);
+    for (const m of text.matchAll(/['"`>][^'"`<]*\bDESCENT\b[^'"`<]*['"`<]/g)) {
+      nameHits.push(`${f}: ${m[0].slice(0, 40)}`);
+    }
+  }
+  check('the source game name is gone from globals, events, keys and copy',
+    nameHits.length === 0, nameHits.slice(0, 3).join(' | ') || 'clean');
+
+  // 3. Every id the audio layer asks for must exist in the manifest.
+  //    Three ski loops were referenced for phases without ever being
+  //    shipped — wired on paper, silent in play. That class of dead
+  //    reference is what let the vocabulary survive unnoticed.
+  const manifest = JSON.parse(fs.readFileSync('public/audio/approved/manifest.json', 'utf8'));
+  const shipped = new Set(Object.keys(manifest.files || {}));
+  const rc9 = fs.readFileSync('src/rc9-assets.js', 'utf8');
+  const asked = new Set([
+    ...[...rc9.matchAll(/setLoop\('([^']+)'/g)].map((m) => m[1]),
+    ...[...rc9.matchAll(/oneShot\('([^']+)'/g)].map((m) => m[1]),
+    ...[...rc9.matchAll(/=> '([a-z_]+)'/g)].map((m) => m[1]),
+  ]);
+  const phantom = [...asked].filter((id) => !shipped.has(id));
+  check('every audio id the game asks for is actually shipped',
+    phantom.length === 0, phantom.join(', ') || `${asked.size} ids all in the manifest`);
+
+  // 4. The atmosphere is this game's own, and costs no download.
+  const bed = fs.existsSync('src/audio/page-bed.js')
+    ? fs.readFileSync('src/audio/page-bed.js', 'utf8') : '';
+  check('the ambience bed is procedural page texture, not a recorded loop',
+    bed.includes('export function bedLevels') && rc9.includes('pageBed?.update(') &&
+    !fs.existsSync('public/audio/approved/wind_alpine_bed-v02.mp3'),
+    bed ? 'page grain + turns + ink blooms, no file' : 'page-bed.js missing');
+  check('the bed keeps playing even if the approved manifest never loads',
+    rc9.includes('pageBed?.update(') && !/if \(!assets\) return;/.test(rc9),
+    'no approved-asset guard stands between the run and its atmosphere');
+
+  // Reachability: nothing may ship an audio file the game cannot sound.
+  // Six inherited ski-Foley assets were removed on this evidence — five
+  // full 30km runs produced zero airborne frames and zero obstacle hits.
+  const RETIRED_FOLEY = ['carve_hard', 'takeoff_big_air', 'landing_clean',
+    'landing_heavy', 'tree_hit', 'rock_hit'];
+  const stillThere = RETIRED_FOLEY.filter((id) => shipped.has(id) || asked.has(id));
+  check('no unreachable inherited Foley is shipped or wired',
+    stillThere.length === 0 &&
+    TUNING.FEATURES.TREE_COUNT[1] === 0 && TUNING.FEATURES.ROCK_COUNT[1] === 0 &&
+    TUNING.FEATURES.CLIFF_CHANCE === 0,
+    stillThere.join(', ') ||
+      'nothing solid spawns, nothing launches, so none of it could ever sound');
+}
+
 console.log(out.join('\n'));
 console.log(`\n${PASS} passed, ${FAIL} failed`);
 if (FAIL) process.exit(1);

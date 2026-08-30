@@ -90,7 +90,7 @@ export class OnboardingUI {
       }
     });
 
-    document.addEventListener('descent:show-how', () => this.showHelp());
+    document.addEventListener('dictiondash:show-how', () => this.showHelp());
   }
 
   _sync() { this.toggle.textContent = this.ghostEnabled ? 'ON' : 'OFF'; }

@@ -437,7 +437,7 @@ export class EndgameSky {
     this.sundogL.position.set(this.sun.position.x - 17, this.sun.position.y, this.sun.position.z + 1);
     this.sundogR.position.set(this.sun.position.x + 17, this.sun.position.y, this.sun.position.z + 1);
 
-    globalThis.__DESCENT_ENDGAME = {
+    globalThis.__DASH_ENDGAME = {
       version: '9.7',
       escaped: !!globalThis.__SIM?.escaped,
       overrun: this.overrun,

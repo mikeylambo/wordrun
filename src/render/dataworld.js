@@ -2,7 +2,7 @@
  * Dataworld pass — converts every world set piece into neon line-art.
  *
  * The landmark meshes (bridge, towers, arches, distance boards) are authored
- * alpine props. Rather than re-modelling them, this pass drops each mesh to a
+ * inherited props. Rather than re-modelling them, this pass drops each mesh to a
  * near-black body and traces its silhouette with glowing edges — the
  * "error-absorbent" line-art conversion. Meshes appear lazily as their code
  * paths stream them in, so the pass sweeps the scene on a slow cadence and

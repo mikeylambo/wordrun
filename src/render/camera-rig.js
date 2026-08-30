@@ -1,5 +1,5 @@
 /**
- * DESCENT camera rig.
+ * DICTION DASH camera rig.
  *
  * Flow stays stable and readable. Flair lets the camera breathe around air.
  * Dread lowers and crowds the frame. Death is the one moment the camera breaks
@@ -48,7 +48,7 @@ export class CameraRig {
 
     const airHeight = p.airborne && terrain
       ? Math.max(0, p.y - terrain.heightAt(p.x, p.d)) : 0;
-    // Ordinary hops keep the familiar close camera. Once the skier is truly
+    // Ordinary hops keep the familiar close camera. Once the runner is truly
     // high above the slope, open the boom and raise it so the whole arc reads.
     // This is composition, not extra spectacle: the subject must remain visible
     // at the apex of the authored Bridge / Moonshot-size airs.
@@ -128,7 +128,7 @@ export class CameraRig {
       const groundAhead = terrain
         ? terrain.heightAt(p.x, aheadD)
         : p.y - C.LOOK_AHEAD * TUNING.TERRAIN.GRADE;
-      // On hero air, aim closer to the skier's vertical level instead of
+      // On hero air, aim closer to the runner's vertical level instead of
       // continuing to stare down the piste while the subject exits frame above.
       const airLookGain = C.AIR_LOOK_GAIN + heroAir * 0.28;
       this.look.set(

@@ -1,7 +1,7 @@
 /**
  * RC9.7+ — true ending and late-run contract patch.
  *
- * No new render loop. At the canonical finish the skier genuinely escapes and
+ * No new render loop. At the canonical finish the runner genuinely escapes and
  * both creatures withdraw. Choosing KEEP GOING may later resume the pursuit;
  * the finish itself is consumed once and can never interrupt that run again.
  */
@@ -93,7 +93,7 @@ if (!Beast.prototype.__rc97EscapePatched) {
     }
 
     // The earned coast is literal peace. Beast One remains fixed in world
-    // space while the skier moves away. KEEP GOING starts a separate grace
+    // space while the runner moves away. KEEP GOING starts a separate grace
     // timer; only when that expires is pursuit allowed to exist again.
     if (sim?.escaped) {
       this._playerD = player.d;

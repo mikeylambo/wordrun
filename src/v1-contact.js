@@ -3,7 +3,7 @@ import { Player } from './sim/player.js';
 
 // Final contact-entry guard. v1-finalize already latches named landmarks; this
 // outer layer extends the exact same rule to generated trees, rocks and gate
-// poles. No object may drain multiple hearts simply because the skier remains
+// poles. No object may drain multiple hearts simply because the runner remains
 // overlapping it after the generic hit cooldown expires.
 //
 // Ship polish: after any physical-world hit, grant a short deterministic grace
@@ -76,7 +76,7 @@ if (!Player.prototype.__v1AllPhysicalContactDamage) {
     const locks = this.__v1AllPhysicalLocks || (this.__v1AllPhysicalLocks = new Set());
     const vicinity = original.call(terrain, this.d, 8, 8);
 
-    // Release only after the skier has genuinely cleared the object's physical
+    // Release only after the runner has genuinely cleared the object's physical
     // neighborhood. Re-entering later is a new contact and can cost one heart.
     for (const key of [...locks]) {
       const live = vicinity.some((c) => contactKey(c) === key && stillNear(this, c));
@@ -116,7 +116,7 @@ if (!Player.prototype.__v1AllPhysicalContactDamage) {
   };
 }
 
-globalThis.__DESCENT_CONTACT = {
+globalThis.__DASH_CONTACT = {
   version: '1.0-rc',
   oneHeartPerPhysicalContact: true,
   generatedPropsIncluded: true,

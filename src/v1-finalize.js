@@ -117,7 +117,7 @@ function installSingleContactDamage() {
     const hadOwn = Object.prototype.hasOwnProperty.call(terrain, 'collidersNear');
     const vicinity = original.call(terrain, this.d, 8, 8);
 
-    // A structure becomes dangerous again only after the skier has actually
+    // A structure becomes dangerous again only after the runner has actually
     // cleared its physical neighborhood. Staying inside the house cannot drain
     // another heart when the generic hit cooldown expires.
     for (const key of [...locks]) {
@@ -201,7 +201,7 @@ function installAudioFinish() {
   Audio.prototype.__v1FinishAudio = true;
 
   // The bell already has a good musical identity; this is a small +presence
-  // layer so it reads above wind/skis without becoming an arcade alarm.
+  // layer so it reads above the wind and glide beds without becoming an alarm.
   const baseBell = Audio.prototype.bell;
   Audio.prototype.bell = function bellV1(step = 0, ...args) {
     const out = baseBell.call(this, step, ...args);
@@ -364,7 +364,7 @@ function installSkyFinale() {
     this.sundogL.position.set(this.sun.position.x - 17, this.sun.position.y, this.sun.position.z + 1);
     this.sundogR.position.set(this.sun.position.x + 17, this.sun.position.y, this.sun.position.z + 1);
 
-    globalThis.__DESCENT_ENDGAME = {
+    globalThis.__DASH_ENDGAME = {
       version: '1.0-rc',
       escaped: !!globalThis.__SIM?.escaped,
       overrun: this.overrun,
@@ -399,7 +399,7 @@ function installV1Finalize() {
   installSkyFinale();
   installUiConsolidation();
 
-  globalThis.__DESCENT_V1 = {
+  globalThis.__DASH_V1 = {
     version: '1.0-rc',
     escapeDistance: ENDGAME.ESCAPE_DISTANCE,
     finalBreakD: FINAL_MOUNTAIN.BREAK_D,

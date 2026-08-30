@@ -28,7 +28,7 @@ export const CHASE = {
   STALK_SHORT_WEIGHT: 0.27,
   STALK_NORMAL_WEIGHT: 0.50,
 
-  // KEEP GOING never advertises a new mode. The skier receives genuine quiet
+  // KEEP GOING never advertises a new mode. The runner receives genuine quiet
   // after the finish before the distant pursuit gradually finds them again.
   RETURN_GRACE_MIN: 8.5,
   RETURN_GRACE_MAX: 12.5,

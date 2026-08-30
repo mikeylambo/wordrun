@@ -3,7 +3,7 @@
  *
  * The mountain changes visual pressure as the player descends. RC9.7 hands the
  * late run to EndgameSky, which turns that pressure into a complete impossible
- * alpine day: sunset, moon country, high night, false dawn and morning.
+ * long day: sunset, moon country, high night, false dawn and morning.
  */
 
 import * as THREE from 'three';

@@ -63,7 +63,7 @@ async function shareRun(button) {
     setTimeout(() => { button.textContent = old; }, 1100);
   } catch {
     // Last-resort fallback: selecting the URL is still more useful than failing.
-    prompt('Copy your DESCENT run', `${text} ${url}`);
+    prompt('Copy your DICTION DASH run', `${text} ${url}`);
   }
 }
 
@@ -87,7 +87,7 @@ function installShareUi() {
     share.className = 'btn';
     share.dataset.rc2Ui = '1';
     share.textContent = 'SHARE';
-    share.setAttribute('aria-label', 'Share this DESCENT run');
+    share.setAttribute('aria-label', 'Share this DICTION DASH run');
     tray.prepend(share);
   }
   share.addEventListener('click', (e) => {
@@ -108,7 +108,7 @@ function installShareUi() {
 
 installShareUi();
 
-globalThis.__DESCENT_SHARE = {
+globalThis.__DASH_SHARE = {
   version: '1.0-rc',
   nativeShare: typeof navigator !== 'undefined' && typeof navigator.share === 'function',
   fileShare: typeof navigator !== 'undefined' && typeof navigator.canShare === 'function',

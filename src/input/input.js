@@ -240,7 +240,7 @@ export class Input {
       return;
     }
 
-    // A held thumb gets a fresh local coordinate frame whenever skiing context
+    // A held thumb gets a fresh local coordinate frame whenever the run context
     // changes. Entering air no longer makes tricks fight the old carve origin;
     // landing likewise starts a clean carve from the thumb's current position.
     if (this._lastGrounded !== null && grounded !== this._lastGrounded) {

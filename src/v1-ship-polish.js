@@ -307,7 +307,7 @@ function playOrganicBreak(audio, c, sim) {
 if (!Audio.prototype.__v1ShipPolish) {
   Audio.prototype.__v1ShipPolish = true;
 
-  // Make bells carry above skis/wind with a bright acoustic-looking upper
+  // Make bells carry above the beds with a bright acoustic-looking upper
   // partial rather than simply cranking the whole UI bus.
   const baseBell = Audio.prototype.bell;
   Audio.prototype.bell = function bellShipPolish(step = 0, ...args) {
@@ -343,7 +343,7 @@ if (!Audio.prototype.__v1ShipPolish) {
   };
 }
 
-globalThis.__DESCENT_SHIP_POLISH = {
+globalThis.__DASH_SHIP_POLISH = {
   version: '1.0-rc',
   bellChargeHud: true,
   bellShineLift: true,

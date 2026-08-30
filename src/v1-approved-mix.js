@@ -8,7 +8,7 @@ import { ApprovedAudioAssets } from './audio/approved-assets.js';
 const APPROVED_DB = Object.freeze({
   master: 0,
   wind: -2,
-  ski: -5.5,
+  surface: -5.5,
   bells: 4,
   heartbeat: 6,
   beast: 1,
@@ -22,16 +22,16 @@ const APPROVED = Object.freeze(Object.fromEntries(
 // The previous calibration values were persisted by the live mixer. Clear them
 // once when this approved baseline first arrives so they are not applied twice.
 try {
-  const markerKey = 'descent:v1-live-mix-baseline';
+  const markerKey = 'dictiondash:live-mix-baseline';
   const marker = 'approved-2026-08-11-a';
   if (localStorage.getItem(markerKey) !== marker) {
-    globalThis.__DESCENT_MIX?.reset?.();
+    globalThis.__DASH_MIX?.reset?.();
     localStorage.setItem(markerKey, marker);
   }
 } catch { /* storage is optional */ }
 
 const relativeGain = (key) => {
-  const g = globalThis.__DESCENT_MIX?.gain?.(key);
+  const g = globalThis.__DASH_MIX?.gain?.(key);
   return Number.isFinite(g) ? g : 1;
 };
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
@@ -100,8 +100,8 @@ if (!Audio.prototype.__v1ApprovedMix) {
     }
 
     if (this.snow?.gain?.gain) {
-      const glideBase = globalThis.__DESCENT_V1_FINAL_MIX?.packedSnowGlide ?? 0.075;
-      const glide = glideBase * (0.32 + speedN * 0.68) * APPROVED.ski * relativeGain('ski');
+      const glideBase = globalThis.__DASH_V1_FINAL_MIX?.packedSnowGlide ?? 0.075;
+      const glide = glideBase * (0.32 + speedN * 0.68) * APPROVED.surface * relativeGain('surface');
       this._set(this.snow.gain.gain, onSnow ? glide * (0.48 + edge * 1.35) : 0, 0.045);
     }
 
@@ -116,7 +116,7 @@ if (!Audio.prototype.__v1ApprovedMix) {
 }
 
 // Keep approved recorded layers aligned with the exact mix that was heard while
-// calibrating: the existing asset-side wind/ski trims remain inside v1-mixer;
+// calibrating: the existing asset-side wind/surface trims remain inside v1-mixer;
 // these factors bake only the user's final relative offsets.
 if (!ApprovedAudioAssets.prototype.__v1ApprovedMix) {
   ApprovedAudioAssets.prototype.__v1ApprovedMix = true;
@@ -124,8 +124,7 @@ if (!ApprovedAudioAssets.prototype.__v1ApprovedMix) {
   const baseLoop = ApprovedAudioAssets.prototype.setLoop;
   ApprovedAudioAssets.prototype.setLoop = function setLoopV1Approved(id, target, options = {}) {
     let scale = 1;
-    if (id === 'wind_alpine_bed') scale = APPROVED.wind;
-    else if (id.startsWith('ski_')) scale = APPROVED.ski;
+    if (id === 'page_grain_bed') scale = APPROVED.wind;
     return baseLoop.call(this, id, target * scale, options);
   };
 
@@ -140,13 +139,13 @@ if (!ApprovedAudioAssets.prototype.__v1ApprovedMix) {
   };
 }
 
-globalThis.__DESCENT_V1_APPROVED_MIX = {
+globalThis.__DASH_V1_APPROVED_MIX = {
   version: '1.0',
   db: { ...APPROVED_DB },
   effective: {
     master: TUNING.AUDIO.MASTER,
     windMax: TUNING.AUDIO.WIND_MAX * APPROVED.wind,
-    packedSnowGlide: (globalThis.__DESCENT_V1_FINAL_MIX?.packedSnowGlide ?? 0.075) * APPROVED.ski,
+    packedSnowGlide: (globalThis.__DASH_V1_FINAL_MIX?.packedSnowGlide ?? 0.075) * APPROVED.surface,
     roarMax: TUNING.AUDIO.ROAR_MAX * APPROVED.beast,
   },
   mixerZeroIsApprovedBaseline: true,

@@ -199,9 +199,12 @@ Bells feed the balance; two sinks finally spend it:
   a run can be a challenge someone else must chase.
 - **Runner-light palettes** — the ◆ button on the title opens the shop:
   five palettes tinting the halo, ground pool, comet tail and track trail
-  (the core stays white so the figure always reads). Cosmetic only — no
-  palette touches the semantic grammar, and none may claim the Redline's
-  red (machine-gated).
+  (the core stays white so the figure always reads). Cosmetic only, and
+  the rule is now explicit: a skin may never wear a colour the game uses
+  to MEAN something. `TUNING.META.RESERVED_HUES` lists every semantic hue
+  — the danger accent in each colour-vision mode, both earned
+  streak-burst escalation tiers — and the gate suite fails any palette
+  within 25° of one. Phase 15 moved three skins that broke it.
 
 ## The word-list module (reusable piece)
 

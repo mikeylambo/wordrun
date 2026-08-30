@@ -1,5 +1,5 @@
 /**
- * DESCENT — single source of truth for every tunable number.
+ * DICTION DASH — single source of truth for every tunable number.
  *
  * Rule: no magic numbers anywhere else in src/sim or src/render. If you find
  * yourself typing a float into a system file, it belongs here instead.
@@ -155,7 +155,7 @@ export const TUNING = {
     // the trees are coming") instead of only reacting.
     //
     // This is not the biome switching the brief rules out: the palette stays
-    // alpine throughout. It is density and terrain character only.
+    // uniform throughout. It is density and terrain character only.
     PITCH_CHUNKS: 5,           // 300m per pitch
     PITCHES: {
       // multipliers on the base counts and chances below
@@ -274,7 +274,7 @@ export const TUNING = {
   AIR: {
     SPIN_RATE: 8.5,            // rad/s of yaw at full horizontal drag
     FLIP_RATE: 6.5,            // rad/s of pitch at full vertical drag
-    // With no edges in the snow, a skier in the air drifts back toward the
+    // With no edges in the snow, a runner in the air drifts back toward the
     // direction of travel. Without this, launching mid-carve at 30 m/s throws
     // you 20m+ sideways before you land and air lines become unreadable.
     HEADING_BLEED_TAU: 0.55,
@@ -358,18 +358,49 @@ export const TUNING = {
       REVIVE_SPEED_PAD: 6,     // revive at Redline pace + this, clamped to RUN range
     },
 
-    // Sink 2 (Phase 14): runner light palettes — the halo, ground pool,
-    // comet tail and track trail take the hue; the core stays white so
-    // the figure always reads. Cosmetic only: no palette touches the
-    // semantic grammar (red stays the Redline's, plate cues stay ACCESS's).
-    // Labels are functional color words, not names — the cap stays at five.
+    // Sink 2 (Phase 14, re-hued Phase 15): runner light palettes — the
+    // halo, ground pool, comet tail and track trail take the hue; the core
+    // stays white so the figure always reads. Cosmetic only: no palette
+    // touches the semantic grammar.
+    //
+    // Phase 15 moved three of them. A cosmetic must never wear a colour
+    // the game uses to MEAN something, and the first cut of this list
+    // broke that twice over: GOLD (0xffd75e) and VIOLET (0xb387ff) sat on
+    // top of the streak-burst escalation hues (0xffd977 / 0xb18cff), so a
+    // player who bought GOLD looked permanently mid-streak and the peak
+    // -flow payoff stopped meaning anything; EMBER (0xff9a3c) sat on the
+    // deuteranopia danger accent (0xff7800), dressing the runner as the
+    // thing chasing it for exactly the players who can least afford the
+    // confusion. Red already had this protection through the Redline
+    // gate — RESERVED_HUES below extends it to every semantic colour, and
+    // the gate suite enforces the separation so the next skin can't
+    // reintroduce the bug. Cyan is deliberately NOT reserved: it is the
+    // world's resting tone, not an earned signal.
+    //
+    // Labels are functional colour words, not names — the cap stays at five.
     COSMETICS: [
       { id: 'default', label: 'CYAN', cost: 0, halo: 0x67d8ff, limb: 0x9fe8ff },
-      { id: 'ember', label: 'EMBER', cost: 120, halo: 0xff9a3c, limb: 0xffd9a8 },
-      { id: 'violet', label: 'VIOLET', cost: 120, halo: 0xb387ff, limb: 0xdcc8ff },
+      { id: 'lime', label: 'LIME', cost: 120, halo: 0xb6ff4d, limb: 0xe4ffc0 },
+      { id: 'magenta', label: 'MAGENTA', cost: 120, halo: 0xff5ed6, limb: 0xffc4f1 },
       { id: 'aurora', label: 'AURORA', cost: 250, halo: 0x7dffc4, limb: 0xd2ffe9 },
-      { id: 'gold', label: 'GOLD', cost: 400, halo: 0xffd75e, limb: 0xfff0bd },
+      { id: 'cobalt', label: 'COBALT', cost: 400, halo: 0x3d7cff, limb: 0xc0d4ff },
     ],
+
+    // Hues (degrees) a cosmetic may not sit near, with the minimum
+    // separation. Every entry is a colour that carries meaning: the
+    // Redline's danger accent in each colour-vision mode, and the two
+    // earned streak-burst escalation tiers.
+    RESERVED_HUES: {
+      MIN_SEPARATION_DEG: 25,
+      HUES: [
+        { deg: 3, why: 'the Redline danger accent' },
+        { deg: 28, why: 'the deuteranopia danger accent' },
+        { deg: 24, why: 'the protanopia danger accent' },
+        { deg: 350, why: 'the tritanopia wrong-read cue' },
+        { deg: 262, why: 'streak-burst escalation tier 2' },
+        { deg: 45, why: 'streak-burst escalation tier 3' },
+      ],
+    },
   },
 
   // ── Beast ───────────────────────────────────────────────────────────────

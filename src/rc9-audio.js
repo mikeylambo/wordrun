@@ -16,7 +16,7 @@ import './v1-approved-mix.js';
 // implementations rather than racing earlier prototype shims.
 
 function installSharedAudioContext() {
-  if (typeof window === 'undefined' || window.__DESCENT_SHARED_AUDIO_CONTEXT__) return;
+  if (typeof window === 'undefined' || window.__DASH_SHARED_AUDIO_CONTEXT__) return;
   const Native = window.AudioContext || window.webkitAudioContext;
   if (!Native) return;
 
@@ -30,7 +30,7 @@ function installSharedAudioContext() {
 
   window.AudioContext = SharedAudioContext;
   if (window.webkitAudioContext) window.webkitAudioContext = SharedAudioContext;
-  window.__DESCENT_SHARED_AUDIO_CONTEXT__ = {
+  window.__DASH_SHARED_AUDIO_CONTEXT__ = {
     native: Native,
     get: () => shared,
   };

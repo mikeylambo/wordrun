@@ -38,7 +38,7 @@ if (typeof document !== 'undefined' && !document.getElementById('v1-viewport-sty
   document.head.appendChild(style);
 }
 
-globalThis.__DESCENT_V1_VIEWPORT = {
+globalThis.__DASH_V1_VIEWPORT = {
   dynamicViewportFill: true,
   standaloneSafeAreaFill: true,
   noExtraRaf: true,

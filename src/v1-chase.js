@@ -8,7 +8,7 @@
 
 export const V1_CHASE = { retired: true };
 
-globalThis.__DESCENT_V1_CHASE = {
+globalThis.__DASH_V1_CHASE = {
   version: 'phase7',
   retired: true,
   pursuit: 'pure-speed-differential',

@@ -1,5 +1,5 @@
 /**
- * DESCENT endgame rules.
+ * DICTION DASH endgame rules.
  *
  * The canonical run is one continuous 30 km descent. At 30,000 m the chase is
  * actually escapable: the main beast stops at the world-space point where the
@@ -137,7 +137,7 @@ export function applyEndgameTerrain(Terrain, TUNING) {
       solidKeep = Math.min(solidKeep, 0.48 - t * 0.34);
       heightKeep = Math.min(heightKeep, 0.42 - t * 0.28);
     } else if (mid >= ENDGAME.ESCAPE_DISTANCE + 650) {
-      // Overrun remains a real ski run, just with more breathing room.
+      // Overrun remains a real run, just with more breathing room.
       solidKeep = Math.min(solidKeep, 0.56);
       heightKeep = Math.min(heightKeep, 0.62);
     }

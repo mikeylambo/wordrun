@@ -107,7 +107,7 @@ if (existing?.entries) {
   if (house) house.laidOut = false;
 }
 
-globalThis.__DESCENT_V1_HOUSE_PAD = {
+globalThis.__DASH_V1_HOUSE_PAD = {
   authoredTerrace: true,
   generatedClutterReserved: true,
   anchorX: HOUSE.x,
