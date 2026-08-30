@@ -14,14 +14,14 @@ export class OnboardingUI {
         padding:24px;background:rgba(8,13,17,.78);backdrop-filter:blur(10px);color:#f4fafc}
       #rc7Onboarding.on{display:flex}
       #rc7Onboarding .card{width:min(90vw,390px);text-align:center}
-      #rc7Onboarding h2{font:900 clamp(28px,8vw,46px)/.95 ui-monospace,monospace;letter-spacing:.08em;margin:0 0 20px;margin-right:-.08em}
+      #rc7Onboarding h2{font:800 clamp(28px,8vw,46px)/.95 var(--face);letter-spacing:.08em;margin:0 0 20px;margin-right:-.08em}
       #rc7Onboarding .rules{display:grid;gap:9px;text-align:left;margin:0 0 18px}
       #rc7Onboarding .rule{display:grid;grid-template-columns:78px 1fr;gap:12px;align-items:start;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08)}
-      #rc7Onboarding .rule b{font:900 10px/1.4 ui-monospace,monospace;letter-spacing:.15em;color:#fff}
-      #rc7Onboarding .rule span{font:700 10px/1.45 ui-monospace,monospace;letter-spacing:.04em;opacity:.72}
+      #rc7Onboarding .rule b{font:700 10px/1.4 var(--face);letter-spacing:.15em;color:#fff}
+      #rc7Onboarding .rule span{font:700 10px/1.45 var(--face);letter-spacing:.04em;opacity:.72}
       #rc7Onboarding .ghost{display:flex;align-items:center;justify-content:space-between;margin:15px 0 18px;padding:11px 12px;border:1px solid rgba(255,255,255,.14)}
-      #rc7Onboarding .ghost span{font:900 10px/1 ui-monospace,monospace;letter-spacing:.15em}
-      #rc7Onboarding button{appearance:none;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#f7fbfd;cursor:pointer;font:900 11px/1 ui-monospace,monospace;letter-spacing:.2em}
+      #rc7Onboarding .ghost span{font:700 10px/1 var(--face);letter-spacing:.15em}
+      #rc7Onboarding button{appearance:none;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#f7fbfd;cursor:pointer;font:700 11px/1 var(--face);letter-spacing:.2em}
       #rc7Onboarding .toggle{padding:8px 10px;min-width:62px}
       #rc7Onboarding .start{width:100%;padding:14px}
 
@@ -58,13 +58,13 @@ export class OnboardingUI {
     const dash = touch ? 'HOLD DASH' : 'HOLD F';
     this.root.innerHTML = `
       <div class="card">
-        <h2>READ FAST. RUN FAR.</h2>
+        <h2>READ FAST</h2>
         <div class="rules">
-          <div class="rule"><b>${confirm}</b><span>WORDS RUSH AT YOU. ${confirm} IF THE SPELLING IS REAL.</span></div>
-          <div class="rule"><b>FAKES</b><span>LET A MISSPELLED WORD PASS.</span></div>
-          <div class="rule"><b>SPEED</b><span>RIGHT READS SPEED YOU UP. SLOW READING LETS IT CATCH YOU.</span></div>
-          <div class="rule dash"><b>${dash}</b><span>THE DASH. CLEAN READS CHARGE IT; SPEND IT TO TEAR AWAY FROM THE REDLINE.</span></div>
-          <div class="rule"><b>♥ ♥ ♥</b><span>ONLY ${confirm === 'TAP' ? 'TAPPING' : 'CALLING'} A FAKE COSTS A HEART. A MISSED WORD JUST SLOWS YOU.</span></div>
+          <div class="rule"><b>${confirm}</b><span>IF THE SPELLING IS REAL</span></div>
+          <div class="rule"><b>PASS</b><span>IF IT IS NOT</span></div>
+          <div class="rule"><b>SPEED</b><span>RIGHT READS RUN FASTER</span></div>
+          <div class="rule dash"><b>${dash}</b><span>THE DASH. CLEAN READS CHARGE IT</span></div>
+          <div class="rule"><b>♥ ♥ ♥</b><span>ONLY A TAPPED FAKE COSTS ONE</span></div>
         </div>
         <div class="ghost"><span>BEST RUN</span><button class="toggle" data-act="ghost"></button></div>
         <button class="start" data-act="start">DROP IN</button>

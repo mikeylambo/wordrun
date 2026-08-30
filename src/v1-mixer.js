@@ -170,17 +170,17 @@ function createMixerUi() {
   style.id = 'v1-live-mixer-style';
   style.textContent = `
     #v1MixDock{position:fixed;z-index:180;left:max(10px,env(safe-area-inset-left,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));font-family:ui-monospace,"SF Mono",monospace;color:#f4fafc;pointer-events:auto}
-    #v1MixToggle{border:1px solid rgba(255,255,255,.3);background:rgba(9,15,20,.78);color:#fff;padding:9px 11px;font:900 10px/1 inherit;letter-spacing:.16em;backdrop-filter:blur(8px);border-radius:3px}
+    #v1MixToggle{border:1px solid rgba(255,255,255,.3);background:rgba(9,15,20,.78);color:#fff;padding:9px 11px;font:700 10px/1 inherit;letter-spacing:.16em;backdrop-filter:blur(8px);border-radius:3px}
     #v1LiveMixer{display:none;width:min(310px,86vw);margin-bottom:7px;padding:12px;background:rgba(7,12,16,.90);border:1px solid rgba(255,255,255,.18);border-radius:4px;backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,.24)}
     #v1LiveMixer.open{display:block}
-    #v1LiveMixer h3{margin:0 0 4px;font:900 11px/1 inherit;letter-spacing:.18em}
+    #v1LiveMixer h3{margin:0 0 4px;font:700 11px/1 inherit;letter-spacing:.18em}
     #v1LiveMixer .sub{margin:0 0 10px;font:700 8px/1.35 inherit;letter-spacing:.07em;opacity:.58}
     .v1MixRow{display:grid;grid-template-columns:78px 1fr 54px;gap:8px;align-items:center;margin:8px 0}
-    .v1MixRow label{font:900 9px/1 inherit;letter-spacing:.08em}
+    .v1MixRow label{font:700 9px/1 inherit;letter-spacing:.08em}
     .v1MixRow input{width:100%;accent-color:#67d8ff;touch-action:none}
-    .v1MixVal{text-align:right;font:800 9px/1 inherit;font-variant-numeric:tabular-nums;opacity:.82}
+    .v1MixVal{text-align:right;font:600 9px/1 inherit;font-variant-numeric:tabular-nums;opacity:.82}
     .v1MixActions{display:flex;gap:7px;margin-top:11px}
-    .v1MixActions button{flex:1;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:#fff;padding:9px 7px;font:900 8px/1 inherit;letter-spacing:.12em}
+    .v1MixActions button{flex:1;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:#fff;padding:9px 7px;font:700 8px/1 inherit;letter-spacing:.12em}
   `;
   document.head.appendChild(style);
 

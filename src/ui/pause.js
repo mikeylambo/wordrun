@@ -11,13 +11,13 @@ export class PauseUI {
 
     const style = document.createElement('style');
     style.textContent = `
-      #rc2PauseBtn{position:absolute;z-index:81;right:15px;top:calc(env(safe-area-inset-top,0px) + 15px);width:38px;height:38px;border-radius:50%;border:1px solid rgba(12,20,27,.32);background:rgba(235,245,250,.68);color:#111a21;font:900 14px/1 ui-monospace,monospace;display:none;place-items:center;cursor:pointer;backdrop-filter:blur(7px)}
+      #rc2PauseBtn{position:absolute;z-index:81;right:15px;top:calc(env(safe-area-inset-top,0px) + 15px);width:38px;height:38px;border-radius:50%;border:1px solid rgba(12,20,27,.32);background:rgba(235,245,250,.68);color:#111a21;font:700 14px/1 var(--face);display:none;place-items:center;cursor:pointer;backdrop-filter:blur(7px)}
       #rc2PauseBtn.on{display:grid}
       #mute{right:15px!important;top:calc(env(safe-area-inset-top,0px) + 61px)!important}
       #rc2Pause{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;background:rgba(8,13,17,.72);backdrop-filter:blur(8px);color:#f4fafc;padding:24px}
       #rc2Pause.on{display:flex}#rc2Pause .card{width:min(88vw,340px);text-align:center}
-      #rc2Pause h2{font:900 clamp(34px,10vw,58px)/.9 ui-monospace,monospace;letter-spacing:.12em;margin-right:-.12em;margin-bottom:24px}
-      #rc2Pause .actions{display:grid;gap:8px}#rc2Pause button.menu{appearance:none;width:100%;padding:13px 14px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#f7fbfd;cursor:pointer;font:900 11px/1 ui-monospace,monospace;letter-spacing:.22em}
+      #rc2Pause h2{font:800 clamp(34px,10vw,58px)/.9 var(--face);letter-spacing:.12em;margin-right:-.12em;margin-bottom:24px}
+      #rc2Pause .actions{display:grid;gap:8px}#rc2Pause button.menu{appearance:none;width:100%;padding:13px 14px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#f7fbfd;cursor:pointer;font:700 11px/1 var(--face);letter-spacing:.22em}
       #rc2Pause button.menu:hover{background:rgba(255,255,255,.11)}
       #rc2Pause button.menu.secondary{opacity:.78}
       #deathScreen.rc2Poster{justify-content:flex-end!important;padding-bottom:max(7vh,48px)!important;gap:9px!important}

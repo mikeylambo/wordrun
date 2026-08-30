@@ -105,8 +105,13 @@ check(audioBridge.includes("import './v1-finalize.js'") && audioBridge.includes(
   'V1 finalization, contact guard and retired-director stub load after RC9 feedback');
 check(!onboarding.includes('READ THE MOUNTAIN. COMMIT TO THE LINE.') && !onboarding.includes('class="lead"'),
   'onboarding tagline is removed at source, not only hidden at runtime');
-check(ui.includes("this.titleHint.textContent = 'HOW FAR CAN YOU GO?'"),
-  'mystery title is native in UI source');
+// Phase 19 retired the tagline. A title screen that asks the player a
+// rhetorical question does not trust its own wordmark; the line carries
+// the day's identity instead, and three later layers that used to
+// re-assert the tagline now write the same thing.
+check(ui.includes('this.titleHint.textContent = "TODAY\'S DRAFT"') &&
+  !/HOW FAR CAN YOU GO/.test(ui),
+  'the title line names the day, not a tagline');
 
 console.log(`\nV1 release gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

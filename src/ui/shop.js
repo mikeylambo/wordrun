@@ -17,11 +17,11 @@ const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
 export function buildShopPanel({ stats, onEquip }) {
   const style = document.createElement('style');
   style.textContent = `
-    #shopBtn{position:absolute;top:calc(var(--safe-t) + 160px);right:14px;z-index:41;min-width:34px;height:34px;padding:0 8px;border-radius:17px;border:1px solid rgba(255,255,255,.2);background:rgba(14,22,28,.6);color:#dff2fc;font:900 11px/1 ui-monospace,monospace;pointer-events:auto;cursor:pointer}
+    #shopBtn{position:absolute;top:calc(var(--safe-t) + 160px);right:14px;z-index:41;min-width:34px;height:34px;padding:0 8px;border-radius:17px;border:1px solid rgba(255,255,255,.2);background:rgba(14,22,28,.6);color:#dff2fc;font:700 11px/1 var(--face);pointer-events:auto;cursor:pointer}
     #shopPanel{position:absolute;inset:0;z-index:70;display:none;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:rgba(4,7,10,.82);pointer-events:auto}
     #shopPanel.on{display:flex}
-    #shopPanel h3{margin:0;font:900 12px/1 ui-monospace,monospace;letter-spacing:.3em;color:rgba(244,250,253,.8)}
-    #shopBalance{font:800 10px/1 ui-monospace,monospace;letter-spacing:.2em;color:#a8ecff}
+    #shopPanel h3{margin:0;font:700 12px/1 var(--face);letter-spacing:.3em;color:rgba(244,250,253,.8)}
+    #shopBalance{font:600 10px/1 var(--face);letter-spacing:.2em;color:#a8ecff}
     .shopChips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:min(88vw,420px)}
     .shopChip{display:flex;flex-direction:column;gap:5px;align-items:center;min-width:74px}
     .shopChip .swatch{width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.25)}

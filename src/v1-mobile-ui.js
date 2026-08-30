@@ -35,13 +35,13 @@ function ensureMobileUi() {
     #v1TouchGuide.on{opacity:1}
     #v1TouchFrame{position:absolute;left:0;top:0;width:84px;height:84px;transform:translate(-50%,-50%);border:1px solid rgba(103,216,255,.46);border-radius:50%;box-shadow:0 0 20px rgba(103,216,255,.20),inset 0 0 14px rgba(103,216,255,.10)}
     #v1TouchDot{position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:50%;background:rgba(248,252,254,.85);box-shadow:0 0 12px rgba(163,232,255,.5);transform:translate(-50%,-50%)}
-    .v1TouchLabel{position:absolute;font:900 9px/1 ui-monospace,monospace;letter-spacing:.18em;text-shadow:0 1px 5px rgba(7,12,16,.45);white-space:nowrap}
+    .v1TouchLabel{position:absolute;font:600 9px/1 var(--face);letter-spacing:.18em;text-shadow:0 1px 5px rgba(7,12,16,.45);white-space:nowrap}
     #v1TouchX{left:50%;top:calc(50% + 26px);transform:translateX(-50%)}
     #v1TouchX::after{content:'REAL'}
 
     .v1MobileAction{position:fixed;z-index:67;border:0;border-radius:50%;padding:0;display:none;place-items:center;pointer-events:auto;touch-action:none;color:#f7fcff;-webkit-tap-highlight-color:transparent;transition:opacity .12s ease,transform .08s ease,box-shadow .12s ease}
     .v1MobileAction::before{content:'';position:absolute;inset:5px;border-radius:50%;background:rgba(14,22,28,.64);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
-    .v1MobileAction span{position:relative;z-index:1;font:900 12px/1 ui-monospace,monospace;letter-spacing:.12em;margin-right:-.12em}
+    .v1MobileAction span{position:relative;z-index:1;font:600 12px/1 var(--face);letter-spacing:.12em;margin-right:-.12em}
     .v1MobileAction.running{display:grid}
     .v1MobileAction:focus{outline:none}
 

@@ -592,6 +592,74 @@ head('DASH — the second verb, finally legible');
     files.main.includes('let dashLearned = Storage.dashLearned();'));
 }
 
+// ── Broadcast presentation (Phase 19) ────────────────────────────────────
+head('BROADCAST — few words, one type system, numbers first');
+
+{
+  const html = fs.readFileSync('index.html', 'utf8');
+  const uiSrc = fs.readFileSync('src/ui/ui.js', 'utf8');
+  const injected = ['src/ui/pause.js', 'src/ui/onboarding.js', 'src/ui/access.js',
+    'src/ui/shop.js', 'src/v1-mobile-ui.js', 'src/rc5.js', 'src/rc81-ui.js']
+    .map((f) => fs.readFileSync(f, 'utf8')).join('\n');
+
+  // 1. One face, declared once. Every injected stylesheet inherits it
+  //    rather than pinning its own — the old UI pinned ui-monospace in
+  //    fourteen places, which is why it read as a terminal.
+  check('the UI declares one display face and everything inherits it',
+    html.includes('--face:-apple-system') && html.includes('font-family:var(--face)') &&
+    !/font(-family)?:[^;}]*ui-monospace/.test(injected),
+    'no surface pins its own face');
+  check('the wordmark is set in the same face as the UI',
+    fs.readFileSync('public/ui/dictiondash-wordmark.svg', 'utf8').includes('-apple-system'));
+
+  // 2. No webfont. A downloaded face would be the only external request in
+  //    the build, and zero is a platform-eligibility requirement.
+  check('the type system costs no network request',
+    !/@font-face|fonts\.googleapis|fonts\.gstatic/.test(html + injected));
+
+  // 3. The retired copy stays retired. Each of these was a sentence doing
+  //    a label's job on a screen the player reads in two seconds.
+  const RETIRED_COPY = [
+    'HOW FAR CAN YOU GO', 'TAP · SPACE · ENTER', 'STANDARD · 3 HITS',
+    'THE READS THAT WENT WRONG', 'WAS REAL — IT SLIPPED BY', 'CHALLENGE LINK',
+    'RUN TODAY TO KEEP IT', 'REACH ${dist}M', 'CLEAN READS`', 'READ FAST. RUN FAR.',
+  ];
+  const tree = ['index.html', 'src/ui/ui.js', 'src/ui/onboarding.js', 'src/ui/pause.js',
+    'src/meta/daily.js', 'src/v1-finalize.js', 'src/render/endgame-sky.js',
+    'src/rc97-endgame.js'];
+  const wordy = [];
+  for (const f of tree) {
+    const text = fs.readFileSync(f, 'utf8');
+    for (const c of RETIRED_COPY) if (text.includes(c)) wordy.push(`${f}: ${c}`);
+  }
+  check('no retired long-form copy survives', wordy.length === 0,
+    wordy.slice(0, 3).join(' | ') || `${RETIRED_COPY.length} retired strings, none present`);
+
+  // 4. Copy density. Count the words actually printed on the two screens a
+  //    player reads most; a screen is allowed labels, not paragraphs.
+  const screenWords = (id) => {
+    const block = html.slice(html.indexOf(`id="${id}"`));
+    const end = block.indexOf('\n  </div>');
+    return [...block.slice(0, end).matchAll(/>([^<>{}\n]+)</g)]
+      .map((m) => m[1].trim()).filter(Boolean).join(' ')
+      .split(/\s+/).filter((w) => /[A-Za-z]/.test(w)).length;
+  };
+  const title = screenWords('titleScreen');
+  const death = screenWords('deathScreen');
+  check('the title screen stays under a dozen printed words', title <= 12, `${title} words`);
+  check('the results card stays under a dozen printed words', death <= 12, `${death} words`);
+
+  // 5. The results card leads with the number, and the recap is labelled
+  //    rows rather than one sentence per wrong read.
+  check('the score is the largest thing on the results card',
+    /\.big\{[^}]*font-size:clamp\(72px/.test(html));
+  check('the recap is labelled rows, not sentences',
+    uiSrc.includes("row('SLIPPED BY'") && uiSrc.includes("row('NOT A WORD'") &&
+    uiSrc.includes('class="statBar"'));
+  check('the results card still teaches the true spelling of a tapped fake',
+    uiSrc.includes('<s>${m.shown}</s><b>${m.answer}</b>'));
+}
+
 console.log(out.join('\n'));
 console.log(`\n${PASS} passed, ${FAIL} failed`);
 if (FAIL) process.exit(1);

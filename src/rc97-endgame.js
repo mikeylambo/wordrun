@@ -174,7 +174,11 @@ if (!UI.prototype.__rc97MysteryPatched) {
   const baseSetSeed = UI.prototype.setSeed;
   UI.prototype.setSeed = function setSeedRC97(...args) {
     const out = baseSetSeed.apply(this, args);
-    if (this.titleHint) this.titleHint.textContent = 'HOW FAR CAN YOU GO?';
+    if (this.titleHint) {
+      // Phase 19: the retired tagline used to be re-asserted here after a
+      // finish. The title line carries the day's identity now.
+      this.titleHint.textContent = globalThis.__CHALLENGE ? 'CHALLENGE' : "TODAY'S DRAFT";
+    }
     return out;
   };
 

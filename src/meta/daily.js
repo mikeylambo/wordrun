@@ -42,10 +42,13 @@ export function goalsFor(seed) {
   const dist = 800 + Math.floor(roll(s, 1) * 5) * 200;   // 800..1600 m
   const chain = 5 + Math.floor(roll(s, 2) * 4);          // x5..x8
   const reads = 15 + Math.floor(roll(s, 3) * 4) * 5;     // 15..30
+  // Phase 19: labels are the target, nothing else. 'REACH 1200M' and
+  // '30 CLEAN READS' spent five words each saying what '1200M' and
+  // '30 READS' say on their own, three times over, on two screens.
   return [
-    { id: 'dist', label: `REACH ${dist}M`, target: dist },
-    { id: 'chain', label: `CHAIN ×${chain}`, target: chain },
-    { id: 'reads', label: `${reads} CLEAN READS`, target: reads },
+    { id: 'dist', label: `${dist}M`, target: dist },
+    { id: 'chain', label: `×${chain}`, target: chain },
+    { id: 'reads', label: `${reads} READS`, target: reads },
   ];
 }
 

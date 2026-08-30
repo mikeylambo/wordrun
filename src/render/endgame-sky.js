@@ -297,7 +297,8 @@ export class EndgameSky {
     if (!sim) return;
 
     const title = document.getElementById('titleHint');
-    if (title && title.textContent !== 'HOW FAR CAN YOU GO?') title.textContent = 'HOW FAR CAN YOU GO?';
+    const want = globalThis.__CHALLENGE ? 'CHALLENGE' : "TODAY'S DRAFT";
+    if (title && title.textContent !== want) title.textContent = want;
 
     if (!sim.escaped) {
       if (distance < 100) {

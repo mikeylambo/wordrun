@@ -245,16 +245,15 @@ function syncAllTimeTitle() {
   // decoration belongs to TODAY'S DRAFT, not to someone's dare.
   const ch = globalThis.__CHALLENGE;
   if (ch) {
-    line.textContent =
-      `CHALLENGE · ${seed}${ch.goal > 0 ? ` · TARGET ${ch.goal}M` : ''}`;
+    line.textContent = ch.goal > 0 ? `BEAT ${ch.goal}M` : seed;
     return;
   }
+  // Phase 19: the name of the day lives above this line now, and the
+  // streak lives with the goals, so this carries the seed and the record
+  // and nothing else. 'BEST EVER' stays: it is the all-time number, and
+  // the HUD's 'BEST TODAY' is a different one.
   const best = Storage.bestAllTime();
-  const streak = globalThis.__META?.daily?.streak?.() || 0;
-  const day = streak > 0 ? ` · DAY ${streak}` : '';
-  line.textContent = best > 0
-    ? `TODAY'S DRAFT · ${seed} · BEST EVER ${best}M${day}`
-    : `TODAY'S DRAFT · ${seed}${day}`;
+  line.textContent = best > 0 ? `${seed} · BEST EVER ${best}M` : seed;
 }
 
 function installAllTimeBest() {
@@ -386,7 +385,7 @@ function installUiConsolidation() {
   // Eliminate the remaining player-facing contradictions from older RC source
   // layers without adding another screen or changing the mystery contract.
   const title = document.getElementById('titleHint');
-  if (title) title.textContent = 'HOW FAR CAN YOU GO?';
+  if (title) title.textContent = globalThis.__CHALLENGE ? 'CHALLENGE' : "TODAY'S DRAFT";
   document.querySelector('#rc7Onboarding .lead')?.remove();
   syncAllTimeTitle();
 }

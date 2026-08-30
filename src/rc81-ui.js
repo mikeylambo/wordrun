@@ -40,7 +40,7 @@ function addUiStyle() {
   style.textContent = `
     .meter-zone::before{
       content:'GO METER';align-self:center;margin-bottom:-3px;
-      font:900 8px/1 ui-monospace,monospace;letter-spacing:.2em;
+      font:700 8px/1 var(--face);letter-spacing:.2em;
       color:rgba(226,244,250,.72);text-shadow:0 1px 8px rgba(8,15,20,.35)
     }
     #rc5Threat{margin-left:-17px!important;margin-top:-34px!important}

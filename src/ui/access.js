@@ -77,12 +77,12 @@ export function initAccess() {
 export function buildAccessPanel() {
   const style = document.createElement('style');
   style.textContent = `
-    #accessBtn{position:absolute;top:calc(var(--safe-t) + 118px);right:14px;z-index:41;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(14,22,28,.6);color:#dff2fc;font:900 12px/1 ui-monospace,monospace;pointer-events:auto;cursor:pointer}
+    #accessBtn{position:absolute;top:calc(var(--safe-t) + 118px);right:14px;z-index:41;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(14,22,28,.6);color:#dff2fc;font:700 12px/1 var(--face);pointer-events:auto;cursor:pointer}
     #accessPanel{position:absolute;inset:0;z-index:70;display:none;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:rgba(4,7,10,.82);pointer-events:auto}
     #accessPanel.on{display:flex}
-    #accessPanel h3{margin:0;font:900 12px/1 ui-monospace,monospace;letter-spacing:.3em;color:rgba(244,250,253,.8)}
+    #accessPanel h3{margin:0;font:700 12px/1 var(--face);letter-spacing:.3em;color:rgba(244,250,253,.8)}
     .accessRow{display:flex;flex-direction:column;gap:6px;align-items:center}
-    .accessLabel{font:800 8px/1 ui-monospace,monospace;letter-spacing:.24em;color:rgba(235,247,252,.5)}
+    .accessLabel{font:600 8px/1 var(--face);letter-spacing:.24em;color:rgba(235,247,252,.5)}
     .accessChips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
     #accessDone{margin-top:6px}
   `;

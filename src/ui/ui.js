@@ -10,6 +10,9 @@ import { bandForDistance } from '../render/art-direction.js';
 
 const $ = (id) => document.getElementById(id);
 
+/** One labelled recap row: a short key, then the words it describes. */
+const row = (k, v) => `<div class="recapRow"><span class="k">${k}</span><span class="v">${v}</span></div>`;
+
 export class UI {
   constructor() {
     this.hud = $('hud');
@@ -60,16 +63,21 @@ export class UI {
 
     this.touch = (navigator.maxTouchPoints || 0) > 0 ||
       'ontouchstart' in window || window.matchMedia('(pointer: coarse)').matches;
-    this.titleHint.textContent = 'HOW FAR CAN YOU GO?';
+    // Phase 19: the tagline is gone. A title screen that has to ask the
+    // player a rhetorical question is a title screen that does not trust
+    // its own wordmark. This line now carries the day's identity instead.
+    this.titleHint.textContent = "TODAY'S DRAFT";
   }
 
   setSeed(seedString, best, runs) {
     this._firstRun = runs === 0;
     // A challenge link re-titles the line: the track is someone's dare,
     // not today's shared draft (functional label, not a sixth name).
+    // Two tiny lines, not one long one: WHAT this run is, then the numbers.
+    this.titleHint.textContent = this._challenge ? 'CHALLENGE' : "TODAY'S DRAFT";
     this.seedLine.textContent = this._challenge
-      ? `CHALLENGE · ${seedString}${this._challenge.goal > 0 ? ` · TARGET ${this._challenge.goal}M` : ''}`
-      : `TODAY'S DRAFT · ${seedString}`;
+      ? (this._challenge.goal > 0 ? `BEAT ${this._challenge.goal}M` : seedString)
+      : seedString;
     this.deathSeed.textContent = '';
     this.bestVal.textContent = best > 0 ? `${Math.floor(best)}M` : '—';
   }
@@ -81,7 +89,7 @@ export class UI {
   setDaily(card) {
     if (!this.titleGoalRow || !card) return;
     this.titleStreak.textContent = card.streak > 0
-      ? `DAY ${card.streak}${card.playedToday ? '' : ' · RUN TODAY TO KEEP IT'}`
+      ? `DAY ${card.streak}${card.playedToday ? '' : ' · KEEP IT'}`
       : '';
     this.titleGoalRow.innerHTML = card.goals.map((g) =>
       `<span class="goalChip${g.done ? ' done' : ''}">${g.label}</span>`).join('');
@@ -309,25 +317,34 @@ export class UI {
   _renderRecap(recap, daily, lifetime) {
     if (!this.deathRecap) return;
     const parts = [];
-
-    // Phase 14 result lines: the challenge verdict leads; a continued run
-    // says plainly why the board didn't move.
     const extras = this._deathExtras || {};
-    if (extras.challengeResult?.goal > 0) {
-      parts.push(`<div class="metaLine">TARGET ${extras.challengeResult.goal}M · ${extras.challengeResult.beaten ? 'BEATEN' : 'NOT YET'}</div>`);
-    }
-    if (extras.continued) {
-      parts.push('<div class="metaLine">CONTINUED · BEST + BEST RUN UNCHANGED</div>');
-    }
 
+    if (extras.challengeResult?.goal > 0) {
+      parts.push(row('TARGET', `${extras.challengeResult.goal}M · ${extras.challengeResult.beaten ? 'BEATEN' : 'NOT YET'}`));
+    }
+    if (extras.continued) parts.push(row('CONTINUED', 'BEST UNCHANGED'));
+
+    // Phase 19: this used to be one full sentence per wrong read — four
+    // lines of the same slipped-by sentence stacked under a seven-word
+    // heading. The teaching is unchanged (a slipped word is named; a
+    // tapped fake still shows the true spelling beside the misspelling
+    // that lost it) but the words carrying it moved into two labels.
     if (recap?.length) {
-      const rows = recap.slice(0, 4).map((m) => m.reason === 'picked_fake'
-        ? `<div class="miss"><s>${m.shown}</s> → <b>${m.answer}</b><small>NOT A WORD</small></div>`
-        : `<div class="miss"><b>${m.shown}</b><small>WAS REAL — IT SLIPPED BY</small></div>`);
-      const more = recap.length > 4 ? `<div class="metaLine">+${recap.length - 4} MORE</div>` : '';
-      parts.push(`<div class="missHead">THE READS THAT WENT WRONG</div>${rows.join('')}${more}`);
+      const slipped = recap.filter((m) => m.reason !== 'picked_fake');
+      const tapped = recap.filter((m) => m.reason === 'picked_fake');
+      if (slipped.length) {
+        const shown = slipped.slice(0, 4).map((m) => m.shown).join('  ');
+        const more = slipped.length > 4 ? ` <em>+${slipped.length - 4}</em>` : '';
+        parts.push(row('SLIPPED BY', shown + more));
+      }
+      if (tapped.length) {
+        const shown = tapped.slice(0, 3)
+          .map((m) => `<s>${m.shown}</s><b>${m.answer}</b>`).join('  ');
+        const more = tapped.length > 3 ? ` <em>+${tapped.length - 3}</em>` : '';
+        parts.push(row('NOT A WORD', shown + more));
+      }
     } else if (recap) {
-      parts.push('<div class="missHead">EVERY READ WAS TRUE</div>');
+      parts.push('<div class="clean">EVERY READ TRUE</div>');
     }
 
     if (daily?.goals) {
@@ -335,14 +352,17 @@ export class UI {
         `<span class="goalChip${g.done ? ' done' : ''}">${g.label}</span>`).join('')}</div>`);
     }
 
+    // The lifetime numbers as a broadcast stat bar: figure over label.
     if (lifetime) {
       const read = (lifetime.correct || 0) + (lifetime.wrong || 0);
       const acc = read > 0 ? Math.round((lifetime.correct || 0) / read * 100) : 0;
       const km = ((lifetime.metres || 0) / 1000).toFixed(1);
-      const streak = daily?.streak > 0 ? `DAY ${daily.streak} · ` : '';
       const runs = lifetime.runs || 0;
-      const bank = lifetime.currency > 0 ? ` · ◆ ${lifetime.currency}` : '';
-      parts.push(`<div class="metaLine">${streak}${runs} ${runs === 1 ? 'RUN' : 'RUNS'} · ${km} KM · ${acc}% TRUE READS${bank}</div>`);
+      parts.push(`<div class="statBar">${[
+        [runs, runs === 1 ? 'RUN' : 'RUNS'],
+        [km, 'KM'],
+        [`${acc}%`, 'TRUE'],
+      ].map(([v, k]) => `<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>`);
     }
 
     this.deathRecap.innerHTML = parts.join('');

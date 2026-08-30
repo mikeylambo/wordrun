@@ -101,7 +101,7 @@ function installShareUi() {
   style.textContent = `
     #shotBtns{display:flex;align-items:center;gap:6px}
     #shotBtns #shareRun,#shotBtns #saveShot{position:relative;min-width:auto;padding:8px 10px;font-size:8px;opacity:.78}
-    #shotBtns #shareRun{opacity:.94;background:rgba(240,248,252,.90);color:#10171d;border-color:rgba(255,255,255,.5)}
+    #shotBtns #shareRun{opacity:1;background:transparent;border:0;color:rgba(232,244,251,.42)}
   `;
   document.head.appendChild(style);
 }

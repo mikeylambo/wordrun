@@ -310,21 +310,29 @@ head('META — wiring and independence');
     TUNING.META.CURRENCY_PER_BELL >= 1 &&
     main.includes("sim.bellsCollected || 0) * TUNING.META.CURRENCY_PER_BELL") &&
     main.includes("metaStats.increment('currency', banked)"));
-  const uiSrc = fs.readFileSync('src/ui/ui.js', 'utf8');
+  // Phase 19 moved the balance off the results card — it was the fifth
+  // item in a five-item stat line nobody could read at a glance — and onto
+  // the title's ◆ button, where it is the label of the thing that spends it.
+  const shopSrc = fs.readFileSync('src/ui/shop.js', 'utf8');
   check('the balance surfaces as a bare number with an icon, never a name',
-    uiSrc.includes('◆ ${lifetime.currency}'));
+    shopSrc.includes('`◆ ${balance()}`') && !/\bCOINS?\b|\bCREDITS?\b|\bGEMS?\b/.test(shopSrc));
 
   const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
   check('the death card teaches the real spelling on a tapped fake',
     ui.includes('NOT A WORD') && ui.includes('<b>${m.answer}</b>'));
+  // Phase 19 compressed the sentence into the row's label. Same teaching,
+  // same gentle framing, one line instead of one line per wrong read.
   check('an omission is explained without crash language',
-    ui.includes('WAS REAL — IT SLIPPED BY'));
+    ui.includes("row('SLIPPED BY'") && !/\b(FAILED|WRONG|BAD|MISTAKE)\b/.test(ui));
   check('the title shows the goal card and the streak',
     ui.includes('setDaily(') && ui.includes('goalChip') && ui.includes('DAY ${card.streak}'));
 
+  // The streak used to be appended to the seed line by the finalize layer.
+  // It has its own line now, so what matters is that the finalize layer no
+  // longer overwrites the line that carries it.
   const finalize = fs.readFileSync('src/v1-finalize.js', 'utf8');
-  check('the all-time title line carries the streak',
-    finalize.includes('DAY ${streak}'));
+  check('the streak is surfaced on the title and nothing overwrites it',
+    ui.includes('DAY ${card.streak}') && !finalize.includes('titleStreak'));
 }
 
 // ── Phase 14: challenge links ────────────────────────────────────────────
