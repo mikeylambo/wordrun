@@ -58,6 +58,22 @@ export const Storage = {
   difficultyPref() { return safeGet('pref.difficulty') || 'normal'; },
   setDifficultyPref(d) { return safeSet('pref.difficulty', String(d)); },
 
+  // Cosmetic palettes (Phase 14): the owned set and the equipped choice.
+  // 'default' is always owned; storage failure degrades to default-only.
+  cosmeticsOwned() {
+    try {
+      const arr = JSON.parse(safeGet('pref.cosmetics.owned') || '[]');
+      return Array.isArray(arr) ? arr.map(String) : [];
+    } catch { return []; }
+  },
+  addCosmetic(id) {
+    const owned = this.cosmeticsOwned();
+    if (!owned.includes(String(id))) owned.push(String(id));
+    return safeSet('pref.cosmetics.owned', JSON.stringify(owned));
+  },
+  equippedCosmetic() { return safeGet('pref.cosmetics.equipped') || 'default'; },
+  setEquippedCosmetic(id) { return safeSet('pref.cosmetics.equipped', String(id)); },
+
   accessPrefs() {
     try { return JSON.parse(safeGet('pref.access') || '{}') || {}; }
     catch { return {}; }

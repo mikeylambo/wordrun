@@ -175,6 +175,34 @@ and the genre modules with no verb here (garage, waves, inventory,
 dialogue, multiplayer). The shell remains the starting frame for the NEXT
 game; this port lifts its meta design, not its runtime.
 
+### Challenge links (Phase 14)
+
+Because everything flows from the seed, a run compresses to a URL:
+`?draft=<seed>&mode=…&diff=…&salt=…&goal=…` pins the track, the rules,
+the exact word lane and the distance to beat. The death card's CHALLENGE
+LINK button copies the run you just finished; whoever opens it gets a
+CHALLENGE title, locked rule chips, the same gauntlet on every attempt,
+and a TARGET verdict on their card. Pure module (`src/meta/challenge.js`),
+no server, no network call — the link IS the data. Challenge visits keep
+their own seed-scoped bests and ghosts; daily goals and the streak stay
+on the real calendar day.
+
+### The ◆ economy (Phase 14)
+
+Bells feed the balance; two sinks finally spend it:
+
+- **The priced continue** — death first offers a short window to buy the
+  run back (hearts refilled, the Redline pushed out to its starting gap),
+  cost doubling with each continue in the same run. A continued run keeps
+  its distance, bells and goal credit but **never sets BEST TODAY and
+  never saves a ghost** — the boards stay unassisted, which matters once
+  a run can be a challenge someone else must chase.
+- **Runner-light palettes** — the ◆ button on the title opens the shop:
+  five palettes tinting the halo, ground pool, comet tail and track trail
+  (the core stays white so the figure always reads). Cosmetic only — no
+  palette touches the semantic grammar, and none may claim the Redline's
+  red (machine-gated).
+
 ## The word-list module (reusable piece)
 
 `src/words/wordlist.js` is a standalone service — zero runtime dependencies,

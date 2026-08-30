@@ -241,6 +241,14 @@ function syncAllTimeTitle() {
   const seed = globalThis.__SEED?.string;
   const line = document.getElementById('seedLine');
   if (!line || !seed) return;
+  // A challenge visit (Phase 14) keeps its own title line — the all-time
+  // decoration belongs to TODAY'S DRAFT, not to someone's dare.
+  const ch = globalThis.__CHALLENGE;
+  if (ch) {
+    line.textContent =
+      `CHALLENGE · ${seed}${ch.goal > 0 ? ` · TARGET ${ch.goal}M` : ''}`;
+    return;
+  }
   const best = Storage.bestAllTime();
   const streak = globalThis.__META?.daily?.streak?.() || 0;
   const day = streak > 0 ? ` · DAY ${streak}` : '';

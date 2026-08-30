@@ -327,6 +327,96 @@ head('META — wiring and independence');
     finalize.includes('DAY ${streak}'));
 }
 
+// ── Phase 14: challenge links ────────────────────────────────────────────
+head('CHALLENGE — the run as a URL, pure and validated');
+
+{
+  const src = fs.readFileSync('src/meta/challenge.js', 'utf8');
+  check('the challenge module stays standalone (no sim/render/DOM imports)',
+    !/from '\.\.\/(sim|render)\//.test(src) && !src.includes('document.') &&
+    !src.includes('window.'));
+
+  const { parseChallenge, buildChallengeLink } = await import('../src/meta/challenge.js');
+  const link = buildChallengeLink('https://example.test/play', {
+    seedString: '2026-08-30', mode: 'standard', difficulty: 'hard', salt: 3, goal: 2790,
+  });
+  const back = parseChallenge(new URL(link).search);
+  check('a built link parses back to the same run coordinates',
+    back && back.seedString === '2026-08-30' && back.mode === 'standard' &&
+    back.difficulty === 'hard' && back.salt === 3 && back.goal === 2790,
+    JSON.stringify(back));
+
+  const defaults = parseChallenge('?draft=abc');
+  check('a bare draft defaults to endless/normal, salt 1, no goal',
+    defaults && defaults.mode === 'endless' && defaults.difficulty === 'normal' &&
+    defaults.salt === 1 && defaults.goal === 0);
+  check('a mangled link degrades instead of breaking',
+    parseChallenge('?draft=abc&mode=nope&diff=wild&salt=-4&goal=x')?.salt === 1 &&
+    parseChallenge('') === null && parseChallenge('?goal=99') === null &&
+    parseChallenge(`?draft=${'x'.repeat(60)}`) === null);
+  check('default rules round-trip to the shortest link (no noise params)',
+    buildChallengeLink('b', { seedString: 's', mode: 'endless', difficulty: 'normal', salt: 1, goal: 0 })
+      === 'b?draft=s');
+
+  const main = fs.readFileSync('src/main.js', 'utf8');
+  check('main pins seed, rules AND the word salt from the link',
+    main.includes('parseChallenge(location.search)') &&
+    main.includes('hashString(CHALLENGE.seedString)') &&
+    main.includes('CHALLENGE ? CHALLENGE.salt'));
+  check('the meta layer stays on the daily seed during a challenge visit',
+    main.includes('metaDaily.recordRun(DAILY_SEED') &&
+    !main.includes('metaDaily.recordRun(SEED'));
+  check('the death card offers the link and the title shows the way home',
+    main.includes('buildChallengeLink(location.origin + location.pathname') &&
+    main.includes("BACK TO TODAY'S DRAFT"));
+}
+
+// ── Phase 14: the two ◆ sinks ────────────────────────────────────────────
+head('ECONOMY — the balance finally spends');
+
+{
+  const T = (await import('../src/TUNING.js')).default;
+  const C = T.META.CONTINUE;
+  check('the continue is priced and escalates',
+    C && C.BASE_COST > 0 && C.COST_GROWTH > 1 && C.OFFER_SECONDS > 0,
+    `◆${C?.BASE_COST} ×${C?.COST_GROWTH}`);
+  const cos = T.META.COSMETICS;
+  check('cosmetics: several palettes, the default free, the rest priced',
+    Array.isArray(cos) && cos.length >= 4 && cos[0].id === 'default' &&
+    cos[0].cost === 0 && cos.slice(1).every((c) => c.cost > 0),
+    cos.map((c) => `${c.label}:${c.cost}`).join(' '));
+  check('no palette claims the danger red (red stays the Redline\'s)',
+    cos.every((c) => {
+      const r = (c.halo >> 16) & 0xff, g = (c.halo >> 8) & 0xff, b = c.halo & 0xff;
+      return !(r > 200 && g < 90 && b < 90);
+    }));
+
+  const main = fs.readFileSync('src/main.js', 'utf8');
+  check('the continue spends the same ledger the bells feed',
+    main.includes("metaStats.increment('currency', -cost)"));
+  check('a continued run never sets the best and never saves a ghost',
+    main.includes('runContinued ? false : Storage.setBestFor') &&
+    main.includes('if (!runContinued) {'));
+  check('the revive restores hearts and pushes the Redline out, never touches the words',
+    main.includes('sim.hearts = sim.maxHearts') &&
+    main.includes('sim.beast.gap = TUNING.BEAST.START_GAP') &&
+    !/reviveRun[\s\S]{0,900}wordGates\.reset/.test(main));
+  check('the offer is a bounded window, then the card proceeds',
+    main.includes('CONT.OFFER_SECONDS') && main.includes('declineContinue()'));
+
+  const actors = fs.readFileSync('src/render/actors.js', 'utf8');
+  check('the palette tints glow surfaces only — the core stays white',
+    actors.includes('setPalette(') && !/setPalette[\s\S]{0,600}coreMat/.test(actors));
+
+  const storage = fs.readFileSync('src/storage/storage.js', 'utf8');
+  check('owned/equipped cosmetics persist through prefs',
+    storage.includes('cosmeticsOwned') && storage.includes('equippedCosmetic'));
+
+  const shop = fs.readFileSync('src/ui/shop.js', 'utf8');
+  check('the shop refuses what the balance cannot cover',
+    shop.includes('balance() >= c.cost') && shop.includes('b.disabled = !has'));
+}
+
 console.log(out.join('\n'));
 console.log(`\nMeta gates: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

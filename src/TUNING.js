@@ -340,9 +340,36 @@ export const TUNING = {
   // ── Meta economy ────────────────────────────────────────────────────────
   META: {
     // The bare-number spendable balance (◆, deliberately unnamed — the
-    // five-name cap stays at five). Bells are its only source for now;
-    // sinks (cosmetics, a priced continue) are scoped for a later phase.
+    // five-name cap stays at five). Bells are its only source; Phase 14
+    // gave it the two sinks scoped since Phase 8.
     CURRENCY_PER_BELL: 1,
+
+    // Sink 1 (Phase 14): the priced continue. Dying offers a short window
+    // to buy the run back — hearts refilled, the Redline pushed out to its
+    // starting gap — at a cost that doubles with each continue in the same
+    // run, so a deep run gets exactly as expensive as it is precious.
+    // A continued run keeps its distance, bells and goal credit but never
+    // sets BEST TODAY and never saves a ghost: the boards stay unassisted,
+    // which matters once challenge links exist.
+    CONTINUE: {
+      BASE_COST: 30,           // ◆ for the first continue of a run
+      COST_GROWTH: 2,          // ×2 per additional continue, same run
+      OFFER_SECONDS: 5,        // decision window before the card proceeds
+      REVIVE_SPEED_PAD: 6,     // revive at Redline pace + this, clamped to RUN range
+    },
+
+    // Sink 2 (Phase 14): runner light palettes — the halo, ground pool,
+    // comet tail and track trail take the hue; the core stays white so
+    // the figure always reads. Cosmetic only: no palette touches the
+    // semantic grammar (red stays the Redline's, plate cues stay ACCESS's).
+    // Labels are functional color words, not names — the cap stays at five.
+    COSMETICS: [
+      { id: 'default', label: 'CYAN', cost: 0, halo: 0x67d8ff, limb: 0x9fe8ff },
+      { id: 'ember', label: 'EMBER', cost: 120, halo: 0xff9a3c, limb: 0xffd9a8 },
+      { id: 'violet', label: 'VIOLET', cost: 120, halo: 0xb387ff, limb: 0xdcc8ff },
+      { id: 'aurora', label: 'AURORA', cost: 250, halo: 0x7dffc4, limb: 0xd2ffe9 },
+      { id: 'gold', label: 'GOLD', cost: 400, halo: 0xffd75e, limb: 0xfff0bd },
+    ],
   },
 
   // ── Beast ───────────────────────────────────────────────────────────────

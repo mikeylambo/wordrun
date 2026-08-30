@@ -82,10 +82,17 @@ export class UI {
 
   setSeed(seedString, best, runs) {
     this._firstRun = runs === 0;
-    this.seedLine.textContent = `TODAY'S DRAFT · ${seedString}`;
+    // A challenge link re-titles the line: the track is someone's dare,
+    // not today's shared draft (functional label, not a sixth name).
+    this.seedLine.textContent = this._challenge
+      ? `CHALLENGE · ${seedString}${this._challenge.goal > 0 ? ` · TARGET ${this._challenge.goal}M` : ''}`
+      : `TODAY'S DRAFT · ${seedString}`;
     this.deathSeed.textContent = '';
     this.bestVal.textContent = best > 0 ? `${Math.floor(best)}M` : '—';
   }
+
+  /** Challenge context (Phase 14), or null to clear. */
+  setChallenge(challenge) { this._challenge = challenge || null; }
 
   /** Title card: today's three goals and the play streak (meta layer). */
   setDaily(card) {
@@ -300,7 +307,8 @@ export class UI {
     this._chainLostT = 0.9;
   }
 
-  renderDeath({ distance, best, isPb, shotUrl, recap, daily, lifetime }) {
+  renderDeath({ distance, best, isPb, shotUrl, recap, daily, lifetime, continued, challengeResult }) {
+    this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null };
     this.finalDist.textContent = Math.floor(distance);
     this.pbTag.style.visibility = isPb ? 'visible' : 'hidden';
     this.pbTag.textContent = isPb ? 'NEW BEST' : '';
@@ -336,6 +344,16 @@ export class UI {
   _renderRecap(recap, daily, lifetime) {
     if (!this.deathRecap) return;
     const parts = [];
+
+    // Phase 14 result lines: the challenge verdict leads; a continued run
+    // says plainly why the board didn't move.
+    const extras = this._deathExtras || {};
+    if (extras.challengeResult?.goal > 0) {
+      parts.push(`<div class="metaLine">TARGET ${extras.challengeResult.goal}M · ${extras.challengeResult.beaten ? 'BEATEN' : 'NOT YET'}</div>`);
+    }
+    if (extras.continued) {
+      parts.push('<div class="metaLine">CONTINUED · BEST + BEST RUN UNCHANGED</div>');
+    }
 
     if (recap?.length) {
       const rows = recap.slice(0, 4).map((m) => m.reason === 'picked_fake'
@@ -391,6 +409,7 @@ export class UI {
     this.deathStats.style.display = '';
     this.deathSeed.style.display = '';
     if (this.deathRecap) this.deathRecap.innerHTML = '';
+    this._deathExtras = null;
   }
 
   clearDread() {

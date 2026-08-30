@@ -99,6 +99,17 @@
   .btn{pointer-events:auto;border:1px solid rgba(255,255,255,.2);border-radius:2px;padding:10px 17px;cursor:pointer;background:rgba(255,255,255,.07);color:#eef7fb;font-family:inherit;font-size:9px;font-weight:800;letter-spacing:.18em;min-width:92px}
   .btn:active{background:rgba(255,255,255,.16)}.btn.primary{background:rgba(240,248,252,.92);color:#10171d;border-color:rgba(255,255,255,.55)}
   #deathActions{display:flex;gap:9px;margin-top:3px}#shotBtns{position:absolute;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(var(--safe-b) + 14px)}#saveShot{min-width:auto;padding:8px 10px;font-size:8px;opacity:.7}
+  #copyChallenge{font-size:8px;letter-spacing:.14em}
+
+  /* The priced continue (Phase 14): a short offer between death and the
+     card. One primary button carrying its ◆ cost, a decline, a draining
+     timer bar — the run resumes or the card proceeds. */
+  #continueOffer{position:absolute;inset:0;z-index:38;display:none;flex-direction:column;gap:13px;align-items:center;justify-content:center;background:rgba(4,7,10,.55);pointer-events:auto}
+  #continueOffer.on{display:flex}
+  #continueLabel{font-size:10px;font-weight:900;letter-spacing:.32em;color:rgba(244,250,253,.85)}
+  #continueTimer{width:min(48vw,220px);height:3px;background:rgba(255,255,255,.12);overflow:hidden}
+  #continueTimer i{display:block;height:100%;width:100%;background:#8be4ff;transform-origin:left}
+  #continueBalance{font-size:8px;font-weight:800;letter-spacing:.2em;color:rgba(235,247,252,.55)}
 
   #mute{position:absolute;z-index:80;top:calc(var(--safe-t) + 9px);right:9px;width:38px;height:38px;border:0;border-radius:50%;background:rgba(159,216,255,.1);color:#cfe9f7;font-size:14px;cursor:pointer;pointer-events:auto;display:grid;place-items:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
   @media(min-width:760px) and (orientation:landscape){#hud{padding-left:28px;padding-right:28px}#meterWrap{max-width:560px;margin:0 auto}.title-lockup{margin-top:8vh}}
@@ -130,9 +141,17 @@
     <div class="pb" id="pbTag" style="visibility:hidden">NEW BEST</div>
     <div id="deathRecap"></div>
     <div class="stats" id="deathStats"></div>
-    <div id="deathActions"><button class="btn primary" id="deathAgain" data-rc2-ui>AGAIN</button><button class="btn" id="deathMenu" data-rc2-ui>MENU</button></div>
+    <div id="deathActions"><button class="btn primary" id="deathAgain" data-rc2-ui>AGAIN</button><button class="btn" id="deathMenu" data-rc2-ui>MENU</button><button class="btn" id="copyChallenge" data-rc2-ui>CHALLENGE LINK</button></div>
     <div id="shotBtns"><button class="btn" id="saveShot" data-rc2-ui>SAVE</button></div>
     <div class="seed" id="deathSeed"></div>
+  </div>
+
+  <div id="continueOffer">
+    <div id="continueLabel">KEEP THIS RUN?</div>
+    <button class="btn primary" id="continueBuy" data-rc2-ui>CONTINUE ◆30</button>
+    <button class="btn" id="continuePass" data-rc2-ui>LET IT END</button>
+    <div id="continueTimer"><i></i></div>
+    <div id="continueBalance"></div>
   </div>
 </div>
 <script type="module" src="/src/main.js"></script>

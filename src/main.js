@@ -5,7 +5,9 @@
 import TUNING from './TUNING.js';
 import { Sim, PHASE, emptyInput } from './sim/sim.js';
 import { makeGate, wordSeedFor } from './sim/word-gates.js';
-import { dailySeed, dailySeedString } from './sim/rng.js';
+import { dailySeed, dailySeedString, hashString } from './sim/rng.js';
+import { parseChallenge, buildChallengeLink } from './meta/challenge.js';
+import { buildShopPanel } from './ui/shop.js';
 import { Stage } from './render/scene.js';
 import { TerrainMesh } from './render/terrain-mesh.js';
 import { Props } from './render/props.js';
@@ -35,8 +37,13 @@ const ui = new UI();
 const audio = new Audio();
 const input = new Input(canvas);
 
-const SEED = dailySeed();
-const SEED_STRING = dailySeedString();
+// Challenge links (Phase 14): a ?draft= URL drops this player into someone
+// else's exact run — seed, rules and word lane all pinned by the query.
+// The daily seed keeps owning the meta layer (goals, streak) either way.
+const CHALLENGE = parseChallenge(location.search);
+const DAILY_SEED = dailySeed();
+const SEED = CHALLENGE ? hashString(CHALLENGE.seedString) : DAILY_SEED;
+const SEED_STRING = CHALLENGE ? CHALLENGE.seedString : dailySeedString();
 const sim = new Sim(SEED);
 const terrainMesh = new TerrainMesh(stage.scene, sim.terrain);
 const props = new Props(stage.scene, sim.terrain);
@@ -76,6 +83,12 @@ let ghostEnabled = Storage.ghostEnabled();
 let runMode = TUNING.MODES.RULES[Storage.modePref()] ? Storage.modePref() : 'endless';
 let runDifficulty = TUNING.MODES.DIFFICULTY[Storage.difficultyPref()]
   ? Storage.difficultyPref() : 'normal';
+// A challenge pins the rules: same track under different rules is a
+// different run, so the chips are forced and locked for the visit.
+if (CHALLENGE) {
+  runMode = CHALLENGE.mode;
+  runDifficulty = CHALLENGE.difficulty;
+}
 
 function syncVariant() {
   Storage.setVariant(runMode === 'endless' && runDifficulty === 'normal'
@@ -95,10 +108,39 @@ globalThis.__META = { stats: metaStats, daily: metaDaily };
 initAccess();
 buildAccessPanel();
 
+ui.setChallenge(CHALLENGE);
 ui.setSeed(SEED_STRING, Storage.bestFor(SEED), Storage.runsToday(SEED));
-ui.setDaily(metaDaily.status(SEED));
+ui.setDaily(metaDaily.status(DAILY_SEED));
 ui.showTitle(true);
 input.onFirstGesture = () => audio.start();
+
+// Cosmetics (Phase 14): apply the equipped runner-light palette and hang
+// the ◆ shop off the title. Cosmetic only — the semantic grammar is
+// ACCESS's and the Redline's.
+function applyCosmetic() {
+  const id = Storage.equippedCosmetic();
+  const c = TUNING.META.COSMETICS.find((x) => x.id === id) || TUNING.META.COSMETICS[0];
+  playerActor.setPalette(c);
+}
+applyCosmetic();
+const shopUI = buildShopPanel({ stats: metaStats, onEquip: applyCosmetic });
+
+// Challenge visits hide the rule chips (pinned by the link) and offer the
+// way home. TODAY'S DRAFT is the approved name for the daily run.
+if (CHALLENGE) {
+  const rows = document.getElementById('modeRows');
+  if (rows) rows.style.display = 'none';
+  const exit = document.createElement('button');
+  exit.type = 'button';
+  exit.className = 'modeChip';
+  exit.id = 'exitChallenge';
+  exit.textContent = "BACK TO TODAY'S DRAFT";
+  exit.addEventListener('click', (e) => {
+    e.stopPropagation();
+    location.href = location.pathname;
+  });
+  document.getElementById('titleGoals')?.appendChild(exit);
+}
 
 // ── Run-start warm-up (Phase 8) ───────────────────────────────────────────
 // Profiling the DROP IN hitch found three first-use costs landing on one
@@ -136,8 +178,12 @@ function startRun() {
 
   // Words are salted per attempt: run N of the day reads fresh vocabulary
   // on the same authored track. Mode/difficulty come from the title chips.
+  // A challenge pins the salt instead — its gauntlet IS the challenge.
+  currentSalt = CHALLENGE ? CHALLENGE.salt : runs + 1;
+  continuesUsed = 0;
+  runContinued = false;
   sim.start(SEED, ghostData, {
-    wordSalt: runs + 1,
+    wordSalt: currentSalt,
     mode: runMode,
     difficulty: runDifficulty,
   });
@@ -179,7 +225,124 @@ function startRun() {
   Storage.bumpRuns(SEED);
 }
 
-function endRun() {
+// ── The priced continue (Phase 14) ───────────────────────────────────────
+// Death first passes through a short offer: buy the run back for ◆, cost
+// doubling with each continue in the same run. A continued run keeps its
+// distance, bells and goal credit but never sets BEST TODAY and never
+// saves a ghost — the boards stay unassisted, which matters now that a
+// run can be a challenge someone else must chase.
+let currentSalt = 1;
+let continuesUsed = 0;
+let runContinued = false;
+let offerActive = false;
+let offerTimer = null;
+const CONT = TUNING.META.CONTINUE;
+const continueOfferEl = document.getElementById('continueOffer');
+const continueBuy = document.getElementById('continueBuy');
+const continuePass = document.getElementById('continuePass');
+const continueBalance = document.getElementById('continueBalance');
+
+const continueCost = () =>
+  Math.floor(CONT.BASE_COST * Math.pow(CONT.COST_GROWTH, continuesUsed));
+
+function onDead() {
+  if (offerActive) return;
+  running = false;
+  paused = false;
+  input.enabled = false;
+  pauseUI.setPaused(false);
+  pauseUI.setButton(false);
+  const cost = continueCost();
+  if (continueOfferEl && metaStats.get('currency', 0) >= cost) {
+    showContinueOffer(cost);
+    return;
+  }
+  finalizeRun();
+}
+
+function showContinueOffer(cost) {
+  offerActive = true;
+  continueBuy.textContent = `CONTINUE ◆${cost}`;
+  continueBalance.textContent = `BALANCE ◆ ${Math.floor(metaStats.get('currency', 0))}`;
+  continueOfferEl.classList.add('on');
+  const bar = continueOfferEl.querySelector('#continueTimer i');
+  const t0 = performance.now();
+  bar.style.transform = 'scaleX(1)';
+  offerTimer = setInterval(() => {
+    const left = 1 - (performance.now() - t0) / (CONT.OFFER_SECONDS * 1000);
+    if (left <= 0) declineContinue();
+    else bar.style.transform = `scaleX(${left.toFixed(3)})`;
+  }, 50);
+}
+
+function hideContinueOffer() {
+  offerActive = false;
+  if (offerTimer) { clearInterval(offerTimer); offerTimer = null; }
+  continueOfferEl?.classList.remove('on');
+}
+
+function declineContinue() {
+  hideContinueOffer();
+  finalizeRun();
+}
+
+function buyContinue() {
+  const cost = continueCost();
+  if (metaStats.get('currency', 0) < cost) { declineContinue(); return; }
+  hideContinueOffer();
+  metaStats.increment('currency', -cost);
+  continuesUsed++;
+  runContinued = true;
+  shopUI?.sync();
+  reviveRun();
+}
+
+/** Put the run back on its feet: hearts full, the Redline pushed out to
+ *  its starting gap, speed at a survivable pad over its pace. The word
+ *  gauntlet, distance, bells and ledger all carry on untouched. */
+function reviveRun() {
+  const p = sim.player;
+  p.dead = false;
+  p.staggerT = 0;
+  sim.hearts = sim.maxHearts;
+  sim.bellCharge = 0;
+  sim.deathCause = null;
+  sim.beast.killed = false;
+  sim.beast.killT = 0;
+  sim.beast.gap = TUNING.BEAST.START_GAP;
+  sim.beast.lunge = 'idle';
+  sim.beast.lungeT = 0;
+  if (sim.secondBeast.killed) sim.secondBeast.reset();
+  const R = TUNING.RUN;
+  p.speed = Math.max(R.FLOOR, Math.min(R.CEILING, sim.beast.pace + CONT.REVIVE_SPEED_PAD));
+  sim.phase = PHASE.RUNNING;
+  sim.killTimer = 0;
+  sim.killSource = null;
+  beastActor.reset();
+  shotUrl = null;
+  shotTaken = false;
+  running = true;
+  paused = false;
+  input.enabled = true;
+  input.releaseAll();
+  pauseUI.setButton(true);
+  ui.showDeath(false);
+  ui.showHud(true);
+  audio.resume();
+}
+
+continueBuy?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  audio.uiTap();
+  buyContinue();
+});
+continuePass?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  audio.uiTap();
+  declineContinue();
+});
+
+function finalizeRun() {
   running = false;
   paused = false;
   input.enabled = false;
@@ -187,9 +350,13 @@ function endRun() {
   pauseUI.setButton(false);
 
   const distance = sim.distance;
-  const isPb = Storage.setBestFor(SEED, distance);
-  sim.recorder.finish(sim.player);
-  Storage.saveGhostIfBest(SEED, sim.recorder.serialize({ seed: SEED, distance }));
+  // Unassisted runs own the boards: a continued run reports its distance
+  // but cannot set the best or leave a ghost (see CONTINUE tuning note).
+  const isPb = runContinued ? false : Storage.setBestFor(SEED, distance);
+  if (!runContinued) {
+    sim.recorder.finish(sim.player);
+    Storage.saveGhostIfBest(SEED, sim.recorder.serialize({ seed: SEED, distance }));
+  }
 
   // Meta layer: lifetime ledger, daily goals and the streak, then the
   // learning recap — every wrong read shows its true spelling.
@@ -205,10 +372,11 @@ function endRun() {
   // Bells bank the spendable balance (Phase 8): a bare number, no name.
   const banked = (sim.bellsCollected || 0) * TUNING.META.CURRENCY_PER_BELL;
   if (banked > 0) metaStats.increment('currency', banked);
-  const dailyCard = metaDaily.recordRun(SEED, {
+  const dailyCard = metaDaily.recordRun(DAILY_SEED, {
     distance, bestChain: sim.player.bestChain, correct: wg.correctCount,
   });
-  ui.setDaily(metaDaily.status(SEED));
+  ui.setDaily(metaDaily.status(DAILY_SEED));
+  shopUI?.sync();
 
   ui.renderDeath({
     distance,
@@ -218,6 +386,10 @@ function endRun() {
     recap: wg.misses,
     daily: dailyCard,
     lifetime: metaStats.snapshot(),
+    continued: runContinued,
+    challengeResult: CHALLENGE
+      ? { goal: CHALLENGE.goal, beaten: CHALLENGE.goal > 0 && distance > CHALLENGE.goal }
+      : null,
   });
   ui.showHud(false);
   ui.showDeath(true);
@@ -232,7 +404,8 @@ function endRun() {
 function warmPlates() {
   const d = TUNING.MODES.DIFFICULTY[runDifficulty];
   const prof = { TIER_MIN: d.TIER_MIN, TIER_MAX: d.TIER_MAX, TIER_EVERY_M: d.TIER_EVERY_M };
-  const nextWordSeed = wordSeedFor(SEED, Storage.runsToday(SEED) + 1);
+  const nextWordSeed = wordSeedFor(SEED,
+    CHALLENGE ? CHALLENGE.salt : Storage.runsToday(SEED) + 1);
   wordGateActors.current.paint(makeGate(nextWordSeed, 0, prof).shown, 'idle');
   wordGateActors.next.paint(makeGate(nextWordSeed, 1, prof).shown, 'idle');
 }
@@ -300,7 +473,7 @@ const onboarding = new OnboardingUI({
 });
 
 function onAdvance() {
-  if (running || paused || onboarding.visible) return;
+  if (running || paused || onboarding.visible || offerActive) return;
   if (sim.phase === PHASE.KILL) return;
   if (sim.phase === PHASE.DEAD && performance.now() - deathShownAt < 350) return;
   audio.uiTap();
@@ -340,7 +513,7 @@ function syncModeChips() {
 }
 document.getElementById('modeRows')?.addEventListener('click', (e) => {
   const chip = e.target.closest?.('.modeChip');
-  if (!chip || running) return;
+  if (!chip || running || CHALLENGE) return;
   e.stopPropagation();
   if (chip.dataset.mode) {
     runMode = chip.dataset.mode;
@@ -352,7 +525,7 @@ document.getElementById('modeRows')?.addEventListener('click', (e) => {
   syncVariant();
   syncModeChips();
   ui.setSeed(SEED_STRING, Storage.bestFor(SEED), Storage.runsToday(SEED));
-  ui.setDaily(metaDaily.status(SEED));
+  ui.setDaily(metaDaily.status(DAILY_SEED));
   warmPlates();
   audio.uiTap();
 });
@@ -377,6 +550,36 @@ deathMenu?.addEventListener('click', (e) => {
   e.stopPropagation();
   audio.uiTap();
   quitToTitle();
+});
+
+// COPY CHALLENGE LINK (Phase 14): the dead run, encoded. Whoever opens the
+// link stands at the start of the same track, same rules, same words, with
+// this distance as the target. Clipboard first, the share sheet as the
+// mobile fallback — no network either way.
+const copyChallenge = document.getElementById('copyChallenge');
+copyChallenge?.addEventListener('click', async (e) => {
+  e.stopPropagation();
+  audio.uiTap();
+  const link = buildChallengeLink(location.origin + location.pathname, {
+    seedString: SEED_STRING,
+    mode: runMode,
+    difficulty: runDifficulty,
+    salt: currentSalt,
+    goal: Math.floor(sim.distance),
+  });
+  let ok = false;
+  try {
+    await navigator.clipboard.writeText(link);
+    ok = true;
+  } catch { /* clipboard denied — try the share sheet */ }
+  if (!ok && navigator.share) {
+    try {
+      await navigator.share({ url: link, title: 'DICTION DASH' });
+      ok = true;
+    } catch { /* dismissed */ }
+  }
+  copyChallenge.textContent = ok ? 'COPIED' : 'COPY BLOCKED';
+  setTimeout(() => { copyChallenge.textContent = 'CHALLENGE LINK'; }, 1400);
 });
 
 ui.saveShot.addEventListener('click', async (e) => {
@@ -499,9 +702,9 @@ function tick(dt) {
     if (p.speed > topSpeed) topSpeed = p.speed;
 
     if (running && sim.phase !== PHASE.RUNNING) {
-      if (sim.phase === PHASE.DEAD) endRun();
+      if (sim.phase === PHASE.DEAD) onDead();
     } else if (!running && sim.phase === PHASE.DEAD) {
-      endRun();
+      onDead();
     }
     if (running && sim.phase === PHASE.KILL) {
       running = false;
@@ -620,6 +823,7 @@ window.__QUIT = () => { quitToTitle(); return { phase: sim.phase }; };
 window.__GHOST = (on = ghostEnabled) => { setGhostEnabled(on); return { enabled: ghostEnabled }; };
 window.__PAUSE = (on = true) => { on ? pauseGame() : resumeGame(); return { paused }; };
 window.__SEED = { seed: SEED, string: SEED_STRING };
+window.__CHALLENGE = CHALLENGE;
 window.__TICK = (n = 1, dt = 1 / 60) => {
   for (let i = 0; i < n; i++) tick(dt);
   return { phase: sim.phase, running, paused, distance: +sim.distance.toFixed(2) };

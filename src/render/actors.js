@@ -303,6 +303,21 @@ export class PlayerActor {
     this._track(p);
   }
 
+  /**
+   * Cosmetic palette (Phase 14): tint the glow surfaces — halo, ground
+   * pool, comet tail, track trail, limbs — leaving the white core alone so
+   * the figure always reads. Cosmetic only; semantic cues live elsewhere.
+   */
+  setPalette({ halo, limb } = {}) {
+    if (halo != null) {
+      this.halo.material.color.setHex(halo);
+      this.pool.material.color.setHex(halo);
+      this.tail.material.color.setHex(halo);
+      this.tracks.material.color.setHex(halo);
+    }
+    if (limb != null) this.limbMat.color.setHex(limb);
+  }
+
   setVisible(v) { this.root.visible = v; }
 }
 
