@@ -39,12 +39,28 @@ Re-measure this if the track or the transcription is ever replaced.
 
 ## Files
 
-- `into-the-night.beatmap.json` — 748 beats, and every transcribed kick, snare,
-  hat, clap and crash, in master time. Regenerate with
-  `node tools/build-beatmap.mjs <midi-dir>`.
+- `into-the-night.scoremap.json` — the score map itself: 748 beats, every
+  transcribed kick, snare, clap and crash as events, hats and overall energy as
+  per-bar curves, and nine sections. Regenerate with
+  `node tools/build-score-map.mjs <midi-dir> <slug> [arrangement.json]`.
+  Format and rules: `FORMAT.md`.
 - `into-the-night.arrangement.json` — per-second loudness of each separated stem,
   in 5 dB steps below that stem's own 95th percentile. Section-level only. This
   one needs the stem audio to regenerate, which does not live in the repository.
+
+## The loop point is the first thing to author
+
+The generated loop spans the whole track, beats 0 to 748. That includes the
+first 22 seconds, where the drums have not entered — fine on a first listen and
+wrong on every lap after it, because a runner's sessions are unbounded and the
+track will play many times.
+
+Skipping the intro means looping from beat 64 (bar 16, the first bar-aligned
+point after the drums arrive) instead of 0. Whether that splice actually sounds
+right is a listening decision, not one that can be made from a spectrogram, so
+it is left to a person: put it in `into-the-night.overlay.json` as
+`{"grid":{"loop":{"from":64,"to":748}}}` once it has been heard. The loop must
+stay bar-aligned either way — `FORMAT.md` explains what happens otherwise.
 
 The arrangement is what the separation was actually worth. The beat grid was
 already recoverable from the master alone; where each layer enters and leaves

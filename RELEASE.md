@@ -377,3 +377,44 @@ Slice history:
   means something different, the best-run keys and the challenge-link
   parameter moved rather than being reinterpreted: an old link parses to a
   goal of zero instead of quietly setting a metre count as a score to beat.
+- Phase 26 — a music layer that other projects can take with them. The stem
+  separation arrived warped: its "fixed tempo" setting does not leave timing
+  alone, it flattens the music onto one constant tempo, so all four rendered
+  stems sat on a synthetic 164.00 BPM against a master that averages 164.06
+  and moves between 160.00 and 169.01. The error grows with playing time —
+  0.08 s through the first minute, 0.26 s by the end — so no single offset
+  repairs it. The MIDI transcription escaped that: it carries the real tempo
+  map, 692 changes wide, and integrating note ticks through it lands every
+  hit a constant 0.08 s ahead of the master with no drift at all. That
+  constant is measured rather than assumed, by averaging the master's flux
+  around every transcribed hit; the search has to be held under half a beat
+  or each drum reports a different answer. So the timing comes from MIDI and
+  the rendered audio is kept only for section-level loudness.
+  The format stores everything in beats, and beat times are the only place
+  seconds appear, because musical position survives re-timing and wall-clock
+  does not — which is exactly the failure above. Sparse things are events,
+  dense things are per-bar curves: no visual ever fires on an individual
+  hi-hat, so hats ship as a busyness number instead of 784 timestamps. A
+  generated map and a hand-authored overlay stay separate files and the
+  generator never touches the overlay, so regenerating cannot destroy an
+  afternoon of authoring. The whole map is 34 KB, under 10 KB gzipped.
+  The runtime is two files that know nothing about this game, and the mapping
+  that knows nothing about the analysis is a third. The clock takes playback
+  position from the audio source rather than from frames, predicts forward
+  between readings, and counts laps, because a single track loops many times
+  across an unbounded run. It answers "how far to the next kick" rather than
+  "did one just happen", since a visual started on the timestamp has no
+  attack left. And it is honest about its own premise: measured against real
+  playback, this browser reported a fresh position on 1492 of 1497 frames, so
+  the smoothing mostly idled — it stays as insurance for the browsers that
+  throttle, and it carried a dropped frame cleanly.
+  What the game does with all this is deliberately hemmed in. Music modulates
+  and the run decides: the arrangement can swing the visual energy a quarter
+  either way and can never gate it, so a breakdown cannot mute a payoff the
+  player earned. Music drives screen space only — camera, post, sky, palette —
+  because the track is authored from a daily seed and crossed at 16 to 64 m/s,
+  so a light on every eighth bar would land on the beat by accident. And
+  nothing flashes on the beat: 164 BPM is 2.73 a second, inside the range
+  photosensitivity guidance asks you to avoid, so discrete accents key off
+  crashes and measure 0.55 Hz across the whole track. None of it is wired into
+  the renderer yet, because there is no track in the build to sync to.
