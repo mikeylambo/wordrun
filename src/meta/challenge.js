@@ -4,7 +4,7 @@
  *
  * A challenge is nothing but coordinates: the seed string authors the
  * track, the mode/difficulty pick the rules, the word salt pins the
- * exact vocabulary lane, and the goal is the distance to beat. Encode
+ * exact vocabulary lane, and the goal is the score to beat. Encode
  * them in a URL and anyone who opens it is standing at the start of the
  * SAME run — same road, same bells, same gauntlet of words — with a
  * number to chase. No server, no account, no network call: the link IS
@@ -15,7 +15,9 @@
  */
 
 /** Query keys, deliberately short and stable — links get typed out loud. */
-const KEYS = { seed: 'draft', mode: 'mode', difficulty: 'diff', salt: 'salt', goal: 'goal' };
+// `score` replaces the old `goal` (a distance) in Phase 25. A link carrying
+// the retired key is read as having no target rather than a trivial one.
+const KEYS = { seed: 'draft', mode: 'mode', difficulty: 'diff', salt: 'salt', goal: 'score' };
 
 const MODES = ['endless', 'standard'];
 const DIFFICULTIES = ['easy', 'normal', 'hard'];
@@ -37,7 +39,7 @@ export function parseChallenge(search) {
   const difficulty = DIFFICULTIES.includes(params.get(KEYS.difficulty))
     ? params.get(KEYS.difficulty) : 'normal';
   const salt = clampInt(params.get(KEYS.salt), 1, 1, 9999);
-  const goal = clampInt(params.get(KEYS.goal), 0, 0, 999999);
+  const goal = clampInt(params.get(KEYS.goal), 0, 0, 99999999);
   return { seedString, mode, difficulty, salt, goal };
 }
 
@@ -54,7 +56,7 @@ export function buildChallengeLink(base, { seedString, mode, difficulty, salt, g
   }
   const s = clampInt(salt, 1, 1, 9999);
   if (s !== 1) params.set(KEYS.salt, String(s));
-  const g = clampInt(goal, 0, 0, 999999);
+  const g = clampInt(goal, 0, 0, 99999999);
   if (g > 0) params.set(KEYS.goal, String(g));
   return `${base}?${params.toString()}`;
 }

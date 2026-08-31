@@ -60,6 +60,7 @@ export function buildStatsExport({ stats = {}, daily, run, tuning, access, seed,
       missedReals: n(stats.missedReals),
       bestChain: n(stats.bestChain),
       bestDistance: n(stats.bestDistance),
+      bestScore: n(stats.bestScore),
       currency: n(stats.currency),
     },
 
@@ -67,6 +68,7 @@ export function buildStatsExport({ stats = {}, daily, run, tuning, access, seed,
 
     // The run this export was taken from — the calibration sample.
     run: run ? {
+      score: n(run.score),
       distance: n(run.distance),
       seconds: n(run.seconds, 1),
       mode: run.mode ?? null,

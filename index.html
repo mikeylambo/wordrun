@@ -48,7 +48,7 @@
   #hud{position:absolute;inset:0;z-index:20;pointer-events:none;padding:calc(var(--safe-t) + 16px) 18px calc(var(--safe-b) + 18px);display:flex;flex-direction:column;justify-content:space-between;opacity:0;transition:opacity .25s ease}
   #hud.on{opacity:1}.row{display:flex;align-items:flex-start;justify-content:space-between}
   #dist{font-size:clamp(38px,11vw,66px);font-weight:800;line-height:.86;letter-spacing:-.045em;color:#f4fbff;text-shadow:0 0 18px rgba(103,216,255,.3),0 1px 2px rgba(2,6,10,.85)}
-  #dist small{font-size:.26em;font-weight:600;opacity:.38;margin-left:.35em;letter-spacing:.14em}
+  #distSub{margin-top:3px;font-size:10px;font-weight:700;letter-spacing:.2em;color:var(--dim)}
   #best{text-align:right;margin-right:42px;font-size:8px;line-height:1.5;letter-spacing:var(--tag);text-transform:uppercase;color:var(--dim)}
   #best b{display:block;margin-top:2px;font-size:15px;font-weight:700;letter-spacing:-.02em;color:#e8f7ff}
   #chain{display:none!important}
@@ -214,7 +214,7 @@
   <div id="bandName"></div><div id="coach"></div><div id="powerHint"></div>
 
   <div id="hud">
-    <div><div class="row"><div id="dist">0<small>M</small></div><div id="best"><span>BEST TODAY</span><b id="bestVal">—</b></div></div><div id="chain"></div></div>
+    <div><div class="row"><div><div id="dist">0</div><div id="distSub">0 M</div></div><div id="best"><span>BEST TODAY</span><b id="bestVal">—</b></div></div><div id="chain"></div></div>
     <div class="meter-zone"><div id="meterLabel">DASH<i></i></div><div id="meterWrap"><div id="meter"></div></div></div>
   </div>
 
@@ -241,7 +241,7 @@
   <div class="screen" id="deathScreen">
     <img id="shot" alt="The moment you were redacted">
     <div id="deathTag">RUN OVER</div>
-    <div class="big"><span id="finalDist">0</span><small>M</small></div>
+    <div class="big"><span id="finalDist">0</span></div>
     <div class="pb" id="pbTag" style="visibility:hidden">NEW BEST</div>
     <div id="deathRecap"></div>
     <div class="stats" id="deathStats"></div>

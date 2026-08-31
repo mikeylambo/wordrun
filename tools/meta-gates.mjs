@@ -259,8 +259,14 @@ head('MODES — rules, difficulty, and separated boards');
   const storage = fs.readFileSync('src/storage/storage.js', 'utf8');
   const main = fs.readFileSync('src/main.js', 'utf8');
   check('bests, ghosts and run counts are stored per mode/difficulty variant',
-    storage.includes("vkey('best', seed)") && storage.includes("vkey('ghost', seed)") &&
+    storage.includes("vkey('score', seed)") && storage.includes("vkey('ghost', seed)") &&
     storage.includes("vkey('runs', seed)") && main.includes('syncVariant()'));
+  // Phase 25: the best is a score, and it moved off the 'best' key rather
+  // than changing that key's meaning — a stored 2,417 metres reading back as
+  // a 2,417 score would tell a returning player they had got worse.
+  check('the best score does not reuse the retired distance key',
+    !storage.includes("vkey('best', seed)") && !storage.includes("'best.all'") &&
+    storage.includes("'score.all'"));
   check('the legacy default keeps its keys (pre-mode bests survive)',
     storage.includes("`${type}.${seed}${VARIANT ? `.${VARIANT}` : ''}`") &&
     main.includes("? '' : `${runMode}.${runDifficulty}`"));
@@ -821,6 +827,67 @@ head('FINISH — the 30 km end is a title card, not a dialog');
     sky.includes('prefers-reduced-motion:reduce'));
   check('the card is fed from the run that reached it',
     sky.includes('this.ending.show({') && sky.includes('bestChain: sim.player?.bestChain'));
+}
+
+
+// ── Score (Phase 25) ────────────────────────────────────────────────────────
+head('SCORE — how well you ran, not how long');
+{
+  const S = TUNING.SCORE;
+  check('a metre and a read are both worth the chain multiplier',
+    S.PER_METRE > 0 && S.PER_READ > 0);
+
+  // The whole claim: the same distance is worth more when it is run well.
+  // Two sims over identical ground, one holding a chain and one not.
+  const runScore = (answerAll) => {
+    const sim = new Sim(4242);
+    globalThis.__SIM = sim;
+    sim.start(4242);
+    const input = emptyInput();
+    let decided = -1, f = 0;
+    while (sim.phase === PHASE.RUNNING && sim.player.d < 900 && f < 60 * 120) {
+      const g = sim.wordGates.current();
+      input.confirm = false;
+      if (answerAll && g && g.index !== decided &&
+          sim.wordGates.armed(sim.player.d) && !g.confirmed) {
+        decided = g.index;
+        input.confirm = !!g.real;
+      }
+      sim.step(input); f++;
+    }
+    const r = { score: sim.score, d: sim.player.d };
+    globalThis.__SIM = undefined;
+    return r;
+  };
+  const clean = runScore(true);
+  const silent = runScore(false);
+  check('the same ground scores more when it is read well',
+    clean.score / Math.max(1, clean.d) > silent.score / Math.max(1, silent.d) * 1.5,
+    `${(clean.score / clean.d).toFixed(1)} vs ${(silent.score / silent.d).toFixed(1)} per metre`);
+
+  // Determinism: score has to be replayable, or ghosts and challenge links
+  // are comparing different games.
+  check('score is deterministic for a seed', runScore(true).score === clean.score);
+
+  const uiSrc3 = fs.readFileSync('src/ui/ui.js', 'utf8');
+  const htmlSrc = fs.readFileSync('index.html', 'utf8');
+  check('the score is the headline and distance is the sub-line',
+    uiSrc3.includes('this.dist.textContent = sc.toLocaleString') &&
+    uiSrc3.includes("this.distSub.textContent = `${d} M`") &&
+    htmlSrc.includes('id="distSub"'));
+  check('the results card leads with the score, distance in the stat bar',
+    uiSrc3.includes("Math.floor(score ?? 0).toLocaleString") &&
+    uiSrc3.includes("'METRES'"));
+
+  // Distance stays the currency the TASKS speak in — a goal should name a
+  // concrete thing to do, not a number that moves with your multiplier.
+  check('daily goals and objectives still ask for metres',
+    goalsFor(999).some((g) => g.id === 'dist') &&
+    POOL.some((p) => p.id === 'dist'));
+
+  const ch = fs.readFileSync('src/meta/challenge.js', 'utf8');
+  check('a challenge link carries a score target under its own key',
+    ch.includes("goal: 'score'"));
 }
 
 console.log(out.join('\n'));

@@ -191,6 +191,8 @@ export class WordGates {
       if (player.speed > player.peakSpeed) player.peakSpeed = player.speed;
       player.chain++;
       if (player.chain > player.bestChain) player.bestChain = player.chain;
+      // The pop for reading right, worth the multiplier the read just earned.
+      player.score += TUNING.SCORE.PER_READ * player.chainMult();
       player.boostMeter = Math.min(B.METER_MAX,
         player.boostMeter + W.CORRECT_FILL * player.chainMult() * proxMult);
       player.gatesThreaded++; // the frame's "threaded a gate" ledger carries over

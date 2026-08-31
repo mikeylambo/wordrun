@@ -95,21 +95,24 @@ export const Storage = {
     } catch { return false; }
   },
 
+  // Phase 25: the best is a SCORE now, not a distance. It lives under its own
+  // key on purpose — reusing 'best' would read every stored metre count as a
+  // derisory score and tell returning players they had got worse.
   bestFor(seed) {
-    const v = Number(safeGet(vkey('best', seed)));
+    const v = Number(safeGet(vkey('score', seed)));
     return Number.isFinite(v) && v > 0 ? v : 0;
   },
 
-  setBestFor(seed, distance) {
-    const d = Math.floor(distance);
+  setBestFor(seed, score) {
+    const d = Math.floor(score);
     if (d <= this.bestFor(seed)) return false;
-    safeSet(vkey('best', seed), String(d));
-    if (d > this.bestAllTime()) safeSet('best.all', String(d));
+    safeSet(vkey('score', seed), String(d));
+    if (d > this.bestAllTime()) safeSet('score.all', String(d));
     return true;
   },
 
   bestAllTime() {
-    const v = Number(safeGet('best.all'));
+    const v = Number(safeGet('score.all'));
     return Number.isFinite(v) && v > 0 ? v : 0;
   },
 

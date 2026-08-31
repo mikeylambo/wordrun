@@ -103,7 +103,12 @@ export class Sim {
 
 
     const proxMult = this.beast.proximityMult();
+    const dBefore = this.player.d;
     this.player.step(dt, input, proxMult, this.events);
+    // Every metre is worth the multiplier you were holding when you ran it.
+    const S = TUNING.SCORE;
+    this.player.score += Math.max(0, this.player.d - dBefore) * S.PER_METRE
+      * this.player.chainMult();
     // The verb: a correct read adds speed, a wrong read subtracts it (and
     // costs a heart via the obstacle ledger). The Redline feels both only
     // through the speed differential — no pressure is registered anywhere.
@@ -148,6 +153,7 @@ export class Sim {
   }
 
   get distance() { return Math.max(0, this.player.d); }
+  get score() { return Math.floor(this.player.score); }
 
   state() {
     const p = this.player;

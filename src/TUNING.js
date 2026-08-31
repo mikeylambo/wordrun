@@ -367,6 +367,22 @@ export const TUNING = {
     },
   },
 
+  // ── Score (Phase 25) ────────────────────────────────────────────────────
+  // Distance was the headline number, and distance only says how LONG you
+  // ran. Score says how WELL: every metre and every correct read is worth
+  // the chain multiplier you were holding when you earned it, so 2 km read
+  // cleanly beats 3 km read sloppily. It uses the multiplier the chain
+  // already computes (1.0 at a broken chain, 3.8 at the cap) rather than
+  // inventing a second mastery curve to keep in sync with the first.
+  //
+  // Distance does not disappear — it is still the spine of the run and still
+  // what the daily goals and objectives ask for. It just stops being the
+  // thing you brag about.
+  SCORE: {
+    PER_METRE: 10,             // base, before the chain multiplier
+    PER_READ: 250,             // the pop a correct read pays, also multiplied
+  },
+
   // ── Meta economy ────────────────────────────────────────────────────────
   META: {
     // The bare-number spendable balance (◆, deliberately unnamed — the

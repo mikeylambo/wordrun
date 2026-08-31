@@ -19,6 +19,7 @@ export class UI {
     this.hud = $('hud');
     this.dist = $('dist');
     this.bestVal = $('bestVal');
+    this.distSub = $('distSub');
     this.meterWrap = $('meterWrap');
     this.meterZone = this.meterWrap?.closest('.meter-zone');
     this.meter = $('meter');
@@ -81,7 +82,7 @@ export class UI {
       ? (this._challenge.goal > 0 ? `BEAT ${this._challenge.goal}M` : seedString)
       : seedString;
     this.deathSeed.textContent = '';
-    this.bestVal.textContent = best > 0 ? `${Math.floor(best)}M` : '—';
+    this.bestVal.textContent = best > 0 ? Math.floor(best).toLocaleString('en-US') : '—';
   }
 
   /** Challenge context (Phase 14), or null to clear. */
@@ -130,10 +131,20 @@ export class UI {
 
   update(dt, sim, running) {
     const p = sim.player;
+    // Phase 25: the headline is the SCORE. Distance only ever said how long
+    // you ran; score says how well, because every metre and every read is
+    // worth the chain multiplier you were holding. Distance stays on screen
+    // as the sub-line — it is still the spine of the run and still what the
+    // goals and objectives ask for, it just stops being the brag.
+    const sc = sim.score;
+    if (sc !== this._lastScore) {
+      this._lastScore = sc;
+      this.dist.textContent = sc.toLocaleString('en-US');
+    }
     const d = Math.floor(sim.distance);
     if (d !== this._lastDist) {
       this._lastDist = d;
-      this.dist.innerHTML = `${d}<small>M</small>`;
+      if (this.distSub) this.distSub.textContent = `${d} M`;
     }
 
     const pct = (p.boostMeter / TUNING.BOOST.METER_MAX) * 100;
@@ -283,13 +294,14 @@ export class UI {
     this._chainLostT = 0.9;
   }
 
-  renderDeath({ distance, best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult }) {
+  renderDeath({ distance, score, best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult }) {
     this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null };
-    this.finalDist.textContent = Math.floor(distance);
+    this.finalDist.textContent = Math.floor(score ?? 0).toLocaleString('en-US');
+    this._deathDistance = Math.floor(distance);
     this.pbTag.style.visibility = isPb ? 'visible' : 'hidden';
     this.pbTag.textContent = isPb ? 'NEW BEST' : '';
     this.deathTag.textContent = 'RUN OVER';
-    this.bestVal.textContent = best > 0 ? `${Math.floor(best)}M` : '—';
+    this.bestVal.textContent = best > 0 ? Math.floor(best).toLocaleString('en-US') : '—';
     this.deathStats.innerHTML = '';
     this.deathStats.style.display = 'none';
     this.deathSeed.style.display = 'none';
@@ -323,7 +335,7 @@ export class UI {
     const extras = this._deathExtras || {};
 
     if (extras.challengeResult?.goal > 0) {
-      parts.push(row('TARGET', `${extras.challengeResult.goal}M · ${extras.challengeResult.beaten ? 'BEATEN' : 'NOT YET'}`));
+      parts.push(row('TARGET', `${extras.challengeResult.goal.toLocaleString('en-US')} · ${extras.challengeResult.beaten ? 'BEATEN' : 'NOT YET'}`));
     }
     if (extras.continued) parts.push(row('CONTINUED', 'BEST UNCHANGED'));
 
@@ -405,9 +417,9 @@ export class UI {
       const km = ((lifetime.metres || 0) / 1000).toFixed(1);
       const runs = lifetime.runs || 0;
       parts.push(`<div class="statBar">${[
-        [runs, runs === 1 ? 'RUN' : 'RUNS'],
-        [km, 'KM'],
+        [`${this._deathDistance ?? 0}`, 'METRES'],
         [`${acc}%`, 'TRUE READS'],
+        [km, 'KM TOTAL'],
       ].map(([v, k]) => `<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>`);
     }
 

@@ -359,3 +359,21 @@ Slice history:
   screen and it was competing with the score for it. The card keeps one
   line; the panel keeps every missed word with its definition, uncapped.
 
+- Phase 25 — distance became a score. The run headline had been a metre
+  count, which is a clock: it measures how long you survived and says
+  nothing about how you ran, so a cautious 2,000 m and a blazing 2,000 m
+  printed the same number. Score now accrues in the fixed-step sim — ten a
+  metre, plus 250 for every true read — and both are multiplied by the same
+  chain that already drives the meter, so it rises to 3.8x as the reading
+  stays clean and collapses the moment it does not. The result rewards the
+  quality of the run and not merely its length: across held accuracies the
+  same ground is worth 13.2 points a metre when read badly and 51.5 when
+  read well, and the spread runs 4,513 for an idler to 750,315 for a clean
+  reader. Metres did not disappear; they moved to a sub-line under the score
+  in the HUD and to the first cell of the results stat bar, because how far
+  you got is still the thing you tell someone. Daily goals and objectives
+  stay in metres on purpose — they are tasks, not scores, and a task should
+  not move because you happened to read well. Because the stored number now
+  means something different, the best-run keys and the challenge-link
+  parameter moved rather than being reinterpreted: an old link parses to a
+  goal of zero instead of quietly setting a metre count as a score to beat.

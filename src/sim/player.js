@@ -60,6 +60,9 @@ export class Player {
     // reached, so a pasted stats export can answer whether the ceiling is
     // ever approached rather than only whether it is set.
     this.peakSpeed = R.START_SPEED;
+    // Phase 25: score accrues in the fixed-step sim so it is deterministic,
+    // ghost-comparable and identical for everyone on the same seed.
+    this.score = 0;
     this.lastCourage = 1;
     this.dead = false;
     this._hitCooldown = 0;

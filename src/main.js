@@ -387,7 +387,7 @@ function finalizeRun() {
   const distance = sim.distance;
   // Unassisted runs own the boards: a continued run reports its distance
   // but cannot set the best or leave a ghost (see CONTINUE tuning note).
-  const isPb = runContinued ? false : Storage.setBestFor(SEED, distance);
+  const isPb = runContinued ? false : Storage.setBestFor(SEED, sim.score);
   if (!runContinued) {
     sim.recorder.finish(sim.player);
     Storage.saveGhostIfBest(SEED, sim.recorder.serialize({ seed: SEED, distance }));
@@ -404,6 +404,7 @@ function finalizeRun() {
   metaStats.increment('missedReals', wg.missedReals);
   metaStats.max('bestChain', sim.player.bestChain);
   metaStats.max('bestDistance', Math.floor(distance));
+  metaStats.max('bestScore', sim.score);
   // Bells bank the spendable balance (Phase 8): a bare number, no name.
   const banked = (sim.bellsCollected || 0) * TUNING.META.CURRENCY_PER_BELL;
   if (banked > 0) metaStats.increment('currency', banked);
@@ -432,6 +433,7 @@ function finalizeRun() {
 
   ui.renderDeath({
     distance,
+    score: sim.score,
     best: Storage.bestFor(SEED),
     isPb,
     shotUrl,
@@ -446,7 +448,7 @@ function finalizeRun() {
     lifetime: metaStats.snapshot(),
     continued: runContinued,
     challengeResult: CHALLENGE
-      ? { goal: CHALLENGE.goal, beaten: CHALLENGE.goal > 0 && distance > CHALLENGE.goal }
+      ? { goal: CHALLENGE.goal, beaten: CHALLENGE.goal > 0 && sim.score > CHALLENGE.goal }
       : null,
   });
   ui.showHud(false);
@@ -623,7 +625,7 @@ copyChallenge?.addEventListener('click', async (e) => {
     mode: runMode,
     difficulty: runDifficulty,
     salt: currentSalt,
-    goal: Math.floor(sim.distance),
+    goal: sim.score,
   });
   let ok = false;
   try {
@@ -656,7 +658,7 @@ copyStats?.addEventListener('click', async (e) => {
     stats: metaStats.snapshot(),
     daily: metaDaily.status(DAILY_SEED),
     run: {
-      distance: sim.distance, seconds: sim.time,
+      score: sim.score, distance: sim.distance, seconds: sim.time,
       mode: runMode, difficulty: runDifficulty, continued: runContinued,
       correct: wg.correctCount, wrong: wg.wrongCount,
       falseTaps: wg.falseTaps, missedReals: wg.missedReals,
