@@ -454,6 +454,14 @@ export class Audio {
     this._burst(0.42, 0.14, 2500, 'bandpass', 0, this.bus.ambience);
   }
 
+  /** The dash reaching full charge — the one moment the meter earns a sound. */
+  dashReady() {
+    if (!this.ready || this.muted) return;
+    this._tone({ type: 'triangle', f0: 740, f1: 1480, dur: 0.16, vol: 0.075, bus: this.bus.ui });
+    this._tone({ type: 'sine', f0: 1480, f1: 1490, dur: 0.30, vol: 0.045, bus: this.bus.ui, delay: 0.05 });
+    this._burst(0.16, 0.055, 5200, 'highpass', 0, this.bus.ui);
+  }
+
   overdriveOff() { this._tone({ type: 'triangle', f0: 520, f1: 140, dur: 0.28, vol: 0.065, bus: this.bus.ambience }); }
 
   // One pursuer, so one death sound. The second-pursuer branch that used to

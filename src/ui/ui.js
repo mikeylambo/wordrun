@@ -150,6 +150,21 @@ export class UI {
     const pct = (p.boostMeter / TUNING.BOOST.METER_MAX) * 100;
     this.meter.style.width = `${pct.toFixed(1)}%`;
     const armed = p.boostMeter >= TUNING.BOOST.MIN_ACTIVATE;
+    // Playtest: filling the meter is the run's best moment and it happened in
+    // silence. Announce the rising edge once — a sound and a single flash of
+    // the cells — and never again until it empties and refills.
+    if (armed && !this._wasArmed && running) {
+      // REDUCED FLASH keeps the sound and drops the pulse, the same bargain
+      // the dash hint makes.
+      if (!ACCESS.reducedFlash) {
+        this.meterZone?.classList.remove('justArmed');
+        void this.meterZone?.offsetWidth;      // restart the animation
+        this.meterZone?.classList.add('justArmed');
+      }
+      document.dispatchEvent(new CustomEvent('dictiondash:dash-ready'));
+    }
+    if (!armed) this.meterZone?.classList.remove('justArmed');
+    this._wasArmed = armed;
     // The whole zone carries the state so the label lights with the cells.
     this.meterZone?.classList.toggle('armed', armed);
     this.meterZone?.classList.toggle('spending', p.overdrive);
@@ -294,12 +309,20 @@ export class UI {
     this._chainLostT = 0.9;
   }
 
-  renderDeath({ distance, score, best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult }) {
+  renderDeath({ distance, score, scoreLost = 0, continuesUsed = 0, best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult }) {
     this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null };
     this.finalDist.textContent = Math.floor(score ?? 0).toLocaleString('en-US');
     this._deathDistance = Math.floor(distance);
-    this.pbTag.style.visibility = isPb ? 'visible' : 'hidden';
-    this.pbTag.textContent = isPb ? 'NEW BEST' : '';
+    // A continued run banks less than it earned. Say so on the card, where the
+    // number is, rather than only refusing the record quietly.
+    if (scoreLost > 0) {
+      this.pbTag.style.visibility = 'visible';
+      this.pbTag.textContent =
+        `−${Math.floor(scoreLost).toLocaleString('en-US')} · ${continuesUsed} CONTINUE${continuesUsed > 1 ? 'S' : ''}`;
+    } else {
+      this.pbTag.style.visibility = isPb ? 'visible' : 'hidden';
+      this.pbTag.textContent = isPb ? 'NEW BEST' : '';
+    }
     this.deathTag.textContent = 'RUN OVER';
     this.bestVal.textContent = best > 0 ? Math.floor(best).toLocaleString('en-US') : '—';
     this.deathStats.innerHTML = '';

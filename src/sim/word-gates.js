@@ -99,11 +99,38 @@ export function gateDistance(index) {
  * stay in a tier). Real/fake and the fake's mutation keep their own
  * per-index rng stream.
  */
+/**
+ * Is gate `index` a real spelling? Pure in (seed, index), so it can look
+ * backwards without any state.
+ *
+ * The raw draw is a coin flip, which means a run can open with a long row of
+ * fakes: measured over 4,000 seeds, 6.4% opened with four or more and the
+ * worst opened with ten. Ten gates is 850 metres and half a minute in which
+ * the player is never once shown a word worth tapping. Passing a fake is the
+ * correct answer and does pay the speed gain, so this is not unfair — but a
+ * player has no way to know that yet, the tap verb goes untaught, and every
+ * uncertain tap in that stretch costs a heart. The opening is now shaped: the
+ * first word is always real, and no more than two fakes run together until the
+ * teaching window is over. After that the coin flip is untouched.
+ */
+export function isRealGate(seed, index, prof = DEFAULT_PROFILE) {
+  const raw = mulberry32(mixSeed(mixSeed(seed, WORD_STREAM), index))() >= W.FAKE_CHANCE;
+  if (index === 0) return true;
+  if (index >= W.OPENING_GATES || raw) return raw;
+  let run = 0;
+  for (let i = index - 1; i >= 0 && run < W.OPENING_MAX_FAKE_RUN; i--) {
+    if (isRealGate(seed, i, prof)) break;
+    run++;
+  }
+  return run >= W.OPENING_MAX_FAKE_RUN;
+}
+
 export function makeGate(seed, index, prof = DEFAULT_PROFILE) {
   const rng = mulberry32(mixSeed(mixSeed(seed, WORD_STREAM), index));
   const d = gateDistance(index);
   const tier = tierAt(d, prof);
-  const real = rng() >= W.FAKE_CHANCE;
+  rng();                                   // keep the draw in step with isRealGate
+  const real = isRealGate(seed, index, prof);
   const laneRng = mulberry32(mixSeed(mixSeed(seed, WORD_STREAM), 0x7f000000 + tier));
   const word = pickWordCycle(tier, index - tierStartIndex(tier, prof), laneRng);
   return {
@@ -136,7 +163,7 @@ export class WordGates {
     this.correctCount = 0;
     this.wrongCount = 0;
     this.falseTaps = 0;     // commissions: fakes tapped (each cost a heart)
-    this.missedReals = 0;   // omissions: real words let slip (speed only)
+    this.missedReals = 0;   // omissions: real words let slip (each costs a heart)
     this.misses = [];       // this run's wrong reads, for the results recap
     this.streak = 0;        // consecutive correct reads
     this.bestStreak = 0;

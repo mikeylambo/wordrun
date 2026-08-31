@@ -463,3 +463,33 @@ Slice history:
   Nothing here touches a word plate, and none of it can: the mapping reaches
   the camera and the post chain and has no path to geometry or to anything a
   word is printed on.
+- Phase 29 — playtest pass. The reported opening problem was real and
+  measurable: the real/fake draw is a coin flip, so 6.4% of runs over 4,000
+  seeds opened with four or more fakes in a row and the worst opened with ten.
+  Ten gates is 850 metres and half a minute in which the player is never once
+  shown a word worth tapping. Passing a fake is the correct answer and does pay
+  the full speed gain, so those runs were not unfair — but a new player has no
+  way to know that, the tap verb goes untaught, and every uncertain tap in that
+  stretch costs a heart. The opening is shaped now: the first word of every run
+  is real, and no more than two fakes run together for the first six gates.
+  After the teaching window the coin flip is exactly as it was, measured at
+  49.7% against a 50% draw, and the shaping is still a pure function of the
+  seed so replays and challenge links hold.
+  Assistance now costs score as well as records. A continued run already could
+  not set a best or leave a ghost; it now banks 70% of what it earned per
+  continue, compounding, and the results card says so where the number is
+  rather than only refusing the record quietly.
+  Filling the dash meter was the best moment in a run and it happened in
+  silence. It gets a rising-edge cue — a short two-tone lift and one flash of
+  the cells — fired once per fill and never again until the meter empties and
+  refills, with REDUCED FLASH keeping the sound and dropping the pulse.
+  The settings panel is reachable from the pause menu, not only from the title,
+  so wanting to change a setting mid-run no longer means ending the run.
+  Returning from it lands back on the pause menu rather than resuming a run
+  nobody asked to resume.
+  Two other reports were checked and found already fixed: the panel does freeze
+  the run (0 metres travelled with it open against 18.9 in the same span after
+  closing), and both wrong reads do cost a heart, confirmed by driving all four
+  cases in the real build rather than the pure engine, which has no hearts.
+  Running THROUGH a misspelled word is the correct play and costs nothing by
+  design — that one is a presentation problem, not a rules problem.

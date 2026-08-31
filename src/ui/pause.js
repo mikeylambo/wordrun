@@ -44,6 +44,7 @@ export class PauseUI {
           <button class="menu" data-act="restart">RESTART</button>
           <button class="menu" data-act="ghost"></button>
           <button class="menu secondary" data-act="how">HOW TO PLAY</button>
+          <button class="menu secondary" data-act="access">SETTINGS</button>
           <button class="menu secondary" data-act="quit">MENU</button>
         </div>
       </div>`;
@@ -64,6 +65,7 @@ export class PauseUI {
       if (act === 'restart') { this.setPaused(false); this.onRestart?.(); }
       if (act === 'quit') { this.setPaused(false); this.onQuit?.(); }
       if (act === 'how') document.dispatchEvent(new CustomEvent('dictiondash:show-how'));
+      if (act === 'access') document.dispatchEvent(new CustomEvent('dictiondash:show-access'));
       if (act === 'ghost') {
         this.setGhost(!this.ghostEnabled);
         this.onGhostChange?.(this.ghostEnabled);

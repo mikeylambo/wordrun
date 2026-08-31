@@ -154,11 +154,13 @@ export function buildAccessPanel(hooks = {}) {
 
   const sync = () => { for (const s of syncs) s(); };
   sync();
-  btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    panel.classList.add('on');
-    sync();
-    hooks.onOpen?.();
-  });
-  return { btn, panel };
+  const open = () => { panel.classList.add('on'); sync(); hooks.onOpen?.(); };
+  btn.addEventListener('click', (e) => { e.stopPropagation(); open(); });
+  // Playtest: the settings were reachable only from the title, so a player who
+  // wanted them mid-run had to end the run. The pause menu raises the same
+  // panel through this event. onOpen's own guard already declines to freeze
+  // when the game is paused, so returning from here lands back on the pause
+  // menu rather than resuming a run the player did not ask to resume.
+  document.addEventListener('dictiondash:show-access', open);
+  return { btn, panel, open };
 }

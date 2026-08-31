@@ -475,6 +475,65 @@ head('WORDS — difficulty profiles');
     `${UNSHIPPABLE.length} terms verified absent`);
 }
 
+// ── The shaped opening (Phase 29) ────────────────────────────────────────
+head('OPENING — the first word is always one worth tapping');
+{
+  const W = TUNING.WORDS;
+  let worstLead = 0, allRealFirst = true;
+  for (let seed = 0; seed < 4000; seed++) {
+    if (!makeGate(seed, 0).real) allRealFirst = false;
+    let n = 0;
+    while (n < 14 && !makeGate(seed, n).real) n++;
+    if (n > worstLead) worstLead = n;
+  }
+  check('every run opens on a real spelling', allRealFirst, '4,000 seeds, no exceptions');
+  check('no run opens on a row of fakes', worstLead === 0,
+    `worst leading run of fakes across 4,000 seeds: ${worstLead}`);
+
+  // Inside the teaching window the fake run is capped; outside it the coin
+  // flip must be untouched, or the shaping has quietly changed the game.
+  let worstRun = 0;
+  for (let seed = 0; seed < 1500; seed++) {
+    let run = 0;
+    for (let i = 0; i < W.OPENING_GATES; i++) {
+      run = makeGate(seed, i).real ? 0 : run + 1;
+      if (run > worstRun) worstRun = run;
+    }
+  }
+  check('the teaching window never runs more than two fakes together',
+    worstRun <= W.OPENING_MAX_FAKE_RUN, `worst run inside the window: ${worstRun}`);
+
+  let fakes = 0, total = 0;
+  for (let seed = 0; seed < 800; seed++) {
+    for (let i = W.OPENING_GATES; i < 60; i++) { total++; if (!makeGate(seed, i).real) fakes++; }
+  }
+  const rate = fakes / total;
+  check('after the window the coin flip is untouched',
+    Math.abs(rate - W.FAKE_CHANCE) < 0.02,
+    `${(rate * 100).toFixed(1)}% fake against a ${(W.FAKE_CHANCE * 100).toFixed(0)}% draw`);
+
+  // The shaping must stay a pure function of the seed, or replays diverge.
+  const a = Array.from({ length: 20 }, (_, i) => makeGate(4242, i).shown);
+  const b = Array.from({ length: 20 }, (_, i) => makeGate(4242, i).shown);
+  check('the shaped opening is still deterministic', a.join() === b.join(),
+    'same seed, same twenty words');
+}
+
+// ── Assistance costs score (Phase 29) ────────────────────────────────────
+head('CONTINUES — a bought run banks less than it earned');
+{
+  const keep = TUNING.SCORE.CONTINUE_KEEP;
+  const banked = (earned, continues) => Math.floor(earned * Math.pow(keep, continues));
+  check('an unassisted run keeps every point', banked(100000, 0) === 100000, '100,000 earned, 100,000 banked');
+  // Exact integers, floating-point included: 0.7 squared is 0.48999..., so a
+  // gate written against tidy decimals fails on arithmetic rather than intent.
+  check('each continue compounds the loss',
+    banked(100000, 1) === 70000 && banked(100000, 2) === 48999 && banked(100000, 3) === 34299,
+    '70,000 / 48,999 / 34,299 after one, two and three');
+  check('the penalty is a reduction, never a wipe', keep > 0 && keep < 1 && banked(100000, 6) > 0,
+    `keeps ${(keep * 100).toFixed(0)}% per continue`);
+}
+
 console.log(out.join('\n'));
 console.log(`\n${PASS} passed, ${FAIL} failed`);
 if (FAIL) process.exit(1);

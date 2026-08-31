@@ -108,6 +108,11 @@ export const TUNING = {
     SPACING_MIN_M: 62,
     // The word must be legible for the whole approach. ARM distance is where
     // the plate becomes readable and the answer window opens.
+    // The teaching window. A run's first word is always real, and no more than
+    // two fakes run together until this many gates have passed — see
+    // isRealGate() for the measurement that motivated it.
+    OPENING_GATES: 6,
+    OPENING_MAX_FAKE_RUN: 2,
     ARM_DISTANCE_M: 55,
     FAKE_CHANCE: 0.5,          // fair coin: spamming confirm buys nothing
     // Tier ramps with distance, sharing the run's own ramp architecture.
@@ -381,6 +386,12 @@ export const TUNING = {
   SCORE: {
     PER_METRE: 10,             // base, before the chain multiplier
     PER_READ: 250,             // the pop a correct read pays, also multiplied
+    // A continue buys the run back, so the score it produces is not the score
+    // an unassisted run would have produced. Each continue keeps this share of
+    // the total, compounding — one continue banks 70%, two 49%, three 34%.
+    // The boards already refuse a continued run's best and ghost; this makes
+    // the number on the card honest too, rather than only the record.
+    CONTINUE_KEEP: 0.70,
   },
 
   // ── Meta economy ────────────────────────────────────────────────────────
