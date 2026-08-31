@@ -68,7 +68,7 @@ export class UI {
     // Phase 19: the tagline is gone. A title screen that has to ask the
     // player a rhetorical question is a title screen that does not trust
     // its own wordmark. This line now carries the day's identity instead.
-    this.titleHint.textContent = "TODAY'S DRAFT";
+    this.titleHint.textContent = 'TODAY';
   }
 
   setSeed(seedString, best, runs) {
@@ -76,7 +76,7 @@ export class UI {
     // A challenge link re-titles the line: the track is someone's dare,
     // not today's shared draft (functional label, not a sixth name).
     // Two tiny lines, not one long one: WHAT this run is, then the numbers.
-    this.titleHint.textContent = this._challenge ? 'CHALLENGE' : "TODAY'S DRAFT";
+    this.titleHint.textContent = this._challenge ? 'CHALLENGE' : 'TODAY';
     this.seedLine.textContent = this._challenge
       ? (this._challenge.goal > 0 ? `BEAT ${this._challenge.goal}M` : seedString)
       : seedString;
@@ -204,8 +204,8 @@ export class UI {
       if (band.id !== this._lastBand) {
         this._lastBand = band.id;
         // Bands are unnamed by design (Phase 6). Only a band that carries
-        // one of the five approved names — in practice, PUBLISHED at the
-        // finish — may ever surface a transition title.
+        // one of the four approved names — in practice, FINISH at 30K —
+        // may ever surface a transition title.
         if (this.bandName && band.name) {
           this.bandName.textContent = band.name;
           this.bandName.classList.add('on');

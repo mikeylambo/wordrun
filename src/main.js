@@ -136,7 +136,7 @@ applyCosmetic();
 const shopUI = buildShopPanel({ stats: metaStats, onEquip: applyCosmetic });
 
 // Challenge visits hide the rule chips (pinned by the link) and offer the
-// way home. TODAY'S DRAFT is the approved name for the daily run.
+// way home. TODAY is the approved name for the daily run.
 if (CHALLENGE) {
   const rows = document.getElementById('modeRows');
   if (rows) rows.style.display = 'none';
@@ -144,7 +144,7 @@ if (CHALLENGE) {
   exit.type = 'button';
   exit.className = 'modeChip';
   exit.id = 'exitChallenge';
-  exit.textContent = "BACK TO TODAY'S DRAFT";
+  exit.textContent = 'BACK TO TODAY';
   exit.addEventListener('click', (e) => {
     e.stopPropagation();
     location.href = location.pathname;

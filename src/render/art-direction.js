@@ -5,10 +5,12 @@
  * DICTION DASH naming (Phase 6): the mood arc is unnamed by design. Bands are
  * plain ids with hues, blend math and start distances — the visual variety
  * stays, the literary label layer is gone. The single exception is the
- * canonical 30K finish band, which carries the game's finish state name,
- * PUBLISHED — one of exactly five approved names in the whole game (with
- * the Redline, CROSSED OUT, PUBLISHED and TODAY'S DRAFT). That set is a
- * ceiling, machine-enforced in tools/corruption-gates.mjs.
+ * canonical 30K band, which carries the game's end-state name, FINISH —
+ * one of exactly four approved names in the whole game (with the Redline,
+ * CROSSED OUT and TODAY). That set is a ceiling, machine-enforced in
+ * tools/corruption-gates.mjs. Phase 21 dropped the last of the literary
+ * names — the end state and the daily seed both carried one — because they
+ * were doing theme where a plain word does the job.
  */
 
 export const MOUNTAIN_BANDS = [
@@ -149,7 +151,7 @@ export const MOUNTAIN_BANDS = [
     fogNear: 44, fogFar: 225,
   },
   {
-    id: 'dawn', name: 'PUBLISHED', start: 30000, announce: false,
+    id: 'dawn', name: 'FINISH', start: 30000, announce: false,
     sky: 0x3d5b78, fog: 0x567088, snow: 0x77909f, crest: 0xe2d9b8, shade: 0x5a7181,
     powder: 0x8aa0ae, ice: 0x8ac2c8,
     pine: 0x2a5560, pineDark: 0x173239, rock: 0x4c6673, rockDark: 0x30454f,

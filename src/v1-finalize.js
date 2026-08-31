@@ -242,7 +242,7 @@ function syncAllTimeTitle() {
   const line = document.getElementById('seedLine');
   if (!line || !seed) return;
   // A challenge visit (Phase 14) keeps its own title line — the all-time
-  // decoration belongs to TODAY'S DRAFT, not to someone's dare.
+  // decoration belongs to TODAY, not to someone's dare.
   const ch = globalThis.__CHALLENGE;
   if (ch) {
     line.textContent = ch.goal > 0 ? `BEAT ${ch.goal}M` : seed;
@@ -385,7 +385,7 @@ function installUiConsolidation() {
   // Eliminate the remaining player-facing contradictions from older RC source
   // layers without adding another screen or changing the mystery contract.
   const title = document.getElementById('titleHint');
-  if (title) title.textContent = globalThis.__CHALLENGE ? 'CHALLENGE' : "TODAY'S DRAFT";
+  if (title) title.textContent = globalThis.__CHALLENGE ? 'CHALLENGE' : 'TODAY';
   document.querySelector('#rc7Onboarding .lead')?.remove();
   syncAllTimeTitle();
 }

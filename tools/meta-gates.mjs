@@ -383,7 +383,7 @@ head('CHALLENGE — the run as a URL, pure and validated');
     !main.includes('metaDaily.recordRun(SEED'));
   check('the death card offers the link and the title shows the way home',
     main.includes('buildChallengeLink(location.origin + location.pathname') &&
-    main.includes("BACK TO TODAY'S DRAFT"));
+    main.includes("BACK TO TODAY"));
 }
 
 // ── Phase 14: the two ◆ sinks ────────────────────────────────────────────
@@ -713,7 +713,7 @@ head('REVIEW — the run as a shape, from data already recorded');
 }
 
 
-// ── Definitions + the PUBLISHED payoff (Phase 21) ───────────────────────────
+// ── Definitions + the FINISH payoff (Phase 21) ───────────────────────────
 head('DEFINITIONS — what the word actually means');
 {
   const bank = TIERS.flat();
@@ -768,7 +768,7 @@ head('DEFINITIONS — what the word actually means');
     uiSrc2.includes('taught.length === 2'));
 }
 
-head('PUBLISHED — the 30 km finish is a title card, not a dialog');
+head('FINISH — the 30 km end is a title card, not a dialog');
 {
   const sky = fs.readFileSync('src/render/endgame-sky.js', 'utf8');
   const endgame = fs.readFileSync('src/design/endgame.js', 'utf8');

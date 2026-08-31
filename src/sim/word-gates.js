@@ -50,7 +50,7 @@ export function tierAt(d, prof = DEFAULT_PROFILE) {
  * Fresh words each attempt (Phase 9): the daily seed still authors the
  * TRACK, the bells and the fake/real coin structure — the shared racing
  * line — but the word rng lane is salted by the attempt number, so a
- * second run of TODAY'S DRAFT reads new vocabulary on the same road.
+ * second run of TODAY reads new vocabulary on the same road.
  * Salt 0 is the identity (tools and ghosts replay exactly).
  */
 export function wordSeedFor(seed, salt = 0) {

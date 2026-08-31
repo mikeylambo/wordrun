@@ -6,7 +6,7 @@
  * director. What this suite still owes the release frame:
  *
  *   - the canonical 30K finish machinery (consumed once, prestige beyond)
- *   - the band arc's late start distances (PUBLISHED lands at 30K)
+ *   - the band arc's late start distances (FINISH lands at 30K)
  *   - bells continuing forever on the new track, with bounded caches
  *   - the flat track staying O(1) through a 120K soak
  *   - the retirement itself: no pursuit director, no authored composition
@@ -35,7 +35,7 @@ const bands = Object.fromEntries(MOUNTAIN_BANDS.map((b) => [b.id, b.start]));
 check(bands['deep-moon'] === 23000 && bands['high-night'] === 25000 && bands['still-night'] === 27000,
   'late palette arc keeps its authored start distances');
 check(bands['false-dawn'] === 28000 && bands['first-light'] === 29200 && bands.dawn === 30000 && bands.morning === 31500,
-  'the finish band (PUBLISHED) lands exactly at 30K, morning after');
+  'the FINISH band lands exactly at 30K, morning after');
 
 // ── 120K soak on the flat track ───────────────────────────────────────────
 const seed = 0x51a7c0de;
@@ -138,7 +138,7 @@ check(!onboarding.includes('READ THE MOUNTAIN. COMMIT TO THE LINE.') && !onboard
 // rhetorical question does not trust its own wordmark; the line carries
 // the day's identity instead, and three later layers that used to
 // re-assert the tagline now write the same thing.
-check(ui.includes('this.titleHint.textContent = "TODAY\'S DRAFT"') &&
+check(ui.includes("this.titleHint.textContent = 'TODAY'") &&
   !/HOW FAR CAN YOU GO/.test(ui),
   'the title line names the day, not a tagline');
 

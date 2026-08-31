@@ -202,7 +202,7 @@ head('NAMING — five approved names, machine-enforced');
   // Phase 20: four, not five. The Caret was removed outright — it had been
   // unreachable since Phase 7 deleted the hunt counter it armed from, so
   // the cap was carrying a name the game could not show.
-  const APPROVED = ['The Redline', 'CROSSED OUT', 'PUBLISHED', "TODAY'S DRAFT"];
+  const APPROVED = ['The Redline', 'CROSSED OUT', 'FINISH', "TODAY"];
   check('the approved-name ceiling holds at exactly four',
     APPROVED.length === 4, APPROVED.join(' · '));
 
@@ -222,6 +222,10 @@ head('NAMING — five approved names, machine-enforced');
     // Redline's active framing and echoes the strikethrough already shown
     // on a tapped fake.
     'REDACTED',
+    // Phase 21: the last two literary names. Both were doing theme where a
+    // plain word does the job, and a game a child reads under time pressure
+    // does not need to know what 'published' means to know it finished.
+    'PUBLISHED', "TODAY'S DRAFT",
     // DESCENT-inherited stage names fall under the same cap:
     'THE STILL', 'FALSE DAWN', 'FIRST LIGHT', 'CLEAN SIGNAL',
     // Phase 12 rename: the old game title is retired everywhere (the
@@ -266,15 +270,15 @@ head('NAMING — five approved names, machine-enforced');
   // unnamed bands; and the functional labels are exactly the approved ones.
   const bands = (await import('../src/render/art-direction.js')).MOUNTAIN_BANDS;
   const namedBands = bands.filter((b) => b.name);
-  check('the mood arc is unnamed: only the finish band carries a label, and it is PUBLISHED',
-    namedBands.length === 1 && namedBands[0].id === 'dawn' && namedBands[0].name === 'PUBLISHED',
+  check('the mood arc is unnamed: only the 30K band carries a label, and it is FINISH',
+    namedBands.length === 1 && namedBands[0].id === 'dawn' && namedBands[0].name === 'FINISH',
     namedBands.map((b) => `${b.id}:${b.name}`).join(', ') || 'no named bands');
 
   const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
   check('the transition announcer refuses a band without an approved name',
     ui.includes('this.bandName && band.name'));
   check('death copy is CROSSED OUT and the day is TODAY\'S DRAFT',
-    ui.includes("'CROSSED OUT'") && ui.includes("TODAY'S DRAFT"));
+    ui.includes("'CROSSED OUT'") && ui.includes("TODAY"));
   const readme = fs.readFileSync('README.md', 'utf8');
   // The removal note may explain what the Caret was; what it may not do is
   // present it as a live name (names are bolded in the README).

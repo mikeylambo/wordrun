@@ -286,4 +286,12 @@ Slice history:
   therefore invisible to every other test. The finish is now actually run
   by a gate rather than only read. Gates: 33 / 53 / 85 / meta 136 /
   family 11; v1 26 / 55 / 14. Build 1.51 MB.
+- Phase 21b — the last two literary names retired. PUBLISHED became FINISH
+  and TODAY'S DRAFT became TODAY: both were doing theme where a plain word
+  does the job, and a player reading under time pressure should not have to
+  decode a publishing metaphor to know they reached the end or which run is
+  today's. The finish card's own FINISH button became END RUN so the title
+  and the action stop competing. Both retired names join the enforced
+  retired list, and the roadmap's standing constraints now state the cap as
+  four and name them.
 

@@ -49,7 +49,12 @@ file only holds what is NOT built yet.
 
 ## Standing constraints
 
-Nothing on this list may touch word-plate legibility, the approved-name cap,
-or the gentle-failure design. General-audience framing is a hard
-platform-eligibility requirement. Zero external network calls at play time
-until the leaderboard lands (and then only behind its own audit).
+Nothing on this list may touch word-plate legibility, the **four-name cap**
+— the Redline, CROSSED OUT, FINISH, TODAY — or the gentle-failure
+design. It was five until Phase 20, when the Caret was removed rather than
+repaired; `tools/corruption-gates.mjs` enforces four and fails the build on a
+fifth name-shaped label or on any retired name reappearing. General-audience
+framing is a hard platform-eligibility requirement, machine-checked against
+the bank and every reachable fake by `npm run gate:family`. Zero external
+network calls at play time until the leaderboard lands (and then only behind
+its own audit).

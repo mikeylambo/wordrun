@@ -134,8 +134,8 @@ if (!Beast.prototype.__rc97EscapePatched) {
 // Hide late-zone labels and keep the title mechanically innocent. The world
 // reveals its late run through light, not UI naming the secret progression.
 // Phase 6: bands are unnamed anyway; the one exception is the finish band's
-// approved name (PUBLISHED), which is allowed through — the finish is a
-// state the player earned, not a secret being spoiled.
+// approved name (FINISH), which is allowed through — it is a state the
+// player earned, not a secret being spoiled.
 if (!UI.prototype.__rc97MysteryPatched) {
   UI.prototype.__rc97MysteryPatched = true;
   const baseSetSeed = UI.prototype.setSeed;
@@ -144,7 +144,7 @@ if (!UI.prototype.__rc97MysteryPatched) {
     if (this.titleHint) {
       // Phase 19: the retired tagline used to be re-asserted here after a
       // finish. The title line carries the day's identity now.
-      this.titleHint.textContent = globalThis.__CHALLENGE ? 'CHALLENGE' : "TODAY'S DRAFT";
+      this.titleHint.textContent = globalThis.__CHALLENGE ? 'CHALLENGE' : 'TODAY';
     }
     return out;
   };

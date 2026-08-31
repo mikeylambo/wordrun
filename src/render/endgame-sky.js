@@ -129,7 +129,7 @@ class EscapeOverlay {
     const style = document.createElement('style');
     style.id = 'rc97-ending-style';
     style.textContent = `
-      /* PUBLISHED (Phase 21). This was two grey buttons under a monospace
+      /* FINISH (Phase 21). This was two grey buttons under a monospace
          caption — the rarest moment in the game, presented as a dialog. It
          is the title card now: the name at wordmark scale with the same
          chromatic echo the logo uses, the distance as the hero number, and
@@ -173,15 +173,15 @@ class EscapeOverlay {
     this.root.innerHTML = `
       <div class="card">
         <div class="mark">
-          <span class="e1">PUBLISHED</span>
-          <span class="e2">PUBLISHED</span>
-          <span class="e3">PUBLISHED</span>
+          <span class="e1">FINISH</span>
+          <span class="e2">FINISH</span>
+          <span class="e3">FINISH</span>
         </div>
         <div class="rule"></div>
         <div class="big" id="rc97Dist">0<i>M</i></div>
         <div class="facts" id="rc97Facts"></div>
         <div class="actions">
-          <button data-act="finish">FINISH</button>
+          <button data-act="finish">END RUN</button>
           <button class="primary" data-act="continue">KEEP GOING</button>
         </div>
       </div>`;
@@ -349,7 +349,7 @@ export class EndgameSky {
     if (!sim) return;
 
     const title = document.getElementById('titleHint');
-    const want = globalThis.__CHALLENGE ? 'CHALLENGE' : "TODAY'S DRAFT";
+    const want = globalThis.__CHALLENGE ? 'CHALLENGE' : 'TODAY';
     if (title && title.textContent !== want) title.textContent = want;
 
     if (!sim.escaped) {
