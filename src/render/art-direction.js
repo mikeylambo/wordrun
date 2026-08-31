@@ -7,7 +7,7 @@
  * stays, the literary label layer is gone. The single exception is the
  * canonical 30K band, which carries the game's end-state name, FINISH —
  * one of exactly four approved names in the whole game (with the Redline,
- * CROSSED OUT and TODAY). That set is a ceiling, machine-enforced in
+ * RUN OVER and DAILY RUN). That set is a ceiling, machine-enforced in
  * tools/corruption-gates.mjs. Phase 21 dropped the last of the literary
  * names — the end state and the daily seed both carried one — because they
  * were doing theme where a plain word does the job.

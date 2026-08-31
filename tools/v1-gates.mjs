@@ -138,7 +138,7 @@ check(!onboarding.includes('READ THE MOUNTAIN. COMMIT TO THE LINE.') && !onboard
 // rhetorical question does not trust its own wordmark; the line carries
 // the day's identity instead, and three later layers that used to
 // re-assert the tagline now write the same thing.
-check(ui.includes("this.titleHint.textContent = 'TODAY'") &&
+check(ui.includes("this.titleHint.textContent = 'DAILY RUN'") &&
   !/HOW FAR CAN YOU GO/.test(ui),
   'the title line names the day, not a tagline');
 

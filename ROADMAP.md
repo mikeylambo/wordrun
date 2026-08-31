@@ -50,7 +50,7 @@ file only holds what is NOT built yet.
 ## Standing constraints
 
 Nothing on this list may touch word-plate legibility, the **four-name cap**
-— the Redline, CROSSED OUT, FINISH, TODAY — or the gentle-failure
+— the Redline, RUN OVER, FINISH, DAILY RUN — or the gentle-failure
 design. It was five until Phase 20, when the Caret was removed rather than
 repaired; `tools/corruption-gates.mjs` enforces four and fails the build on a
 fifth name-shaped label or on any retired name reappearing. General-audience

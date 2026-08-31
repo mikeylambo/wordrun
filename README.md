@@ -18,8 +18,8 @@ when the Redline closes, drawing an ink stroke down the page as it runs.
 ## The four names (a ceiling, not a starting point)
 
 Exactly four invented names exist in the whole game, machine-enforced by
-the gate suite: **the Redline** (the antagonist), **CROSSED OUT** (death),
-**FINISH** (reaching 30 km), and **TODAY** (the daily seed).
+the gate suite: **the Redline** (the antagonist), **RUN OVER** (death),
+**FINISH** (reaching 30 km), and **DAILY RUN** (the daily seed).
 There were five until Phase 20, when the Caret — a second pursuer that had
 been unreachable since Phase 7 deleted the counter it armed from — was
 removed rather than repaired. The mood arc underneath — twenty-one palette
@@ -247,7 +247,7 @@ bilingual; and so is anything in the wrong register — a gate must ask
   (940–2,200 words — longer than any run's stay in a tier). Gated.
 - **Fresh words each attempt**: the daily seed still authors the track,
   the bells and the real/fake coin — the shared racing line — but the
-  word lane is salted by the attempt number, so run two of TODAY
+  word lane is salted by the attempt number, so run two of the DAILY RUN
   reads new vocabulary on the same road. Salt 0 is the identity (gated).
 - `isValidWord()` with **zero false negatives** on the shipped list (gated).
 - `makeFake()` builds one-edit misspellings (swap/double/drop/vowel) that are

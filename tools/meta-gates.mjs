@@ -383,7 +383,7 @@ head('CHALLENGE — the run as a URL, pure and validated');
     !main.includes('metaDaily.recordRun(SEED'));
   check('the death card offers the link and the title shows the way home',
     main.includes('buildChallengeLink(location.origin + location.pathname') &&
-    main.includes("BACK TO TODAY"));
+    main.includes('BACK TO DAILY RUN'));
 }
 
 // ── Phase 14: the two ◆ sinks ────────────────────────────────────────────

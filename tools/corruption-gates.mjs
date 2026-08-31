@@ -202,7 +202,7 @@ head('NAMING — five approved names, machine-enforced');
   // Phase 20: four, not five. The Caret was removed outright — it had been
   // unreachable since Phase 7 deleted the hunt counter it armed from, so
   // the cap was carrying a name the game could not show.
-  const APPROVED = ['The Redline', 'CROSSED OUT', 'FINISH', "TODAY"];
+  const APPROVED = ['The Redline', 'RUN OVER', 'FINISH', 'DAILY RUN'];
   check('the approved-name ceiling holds at exactly four',
     APPROVED.length === 4, APPROVED.join(' · '));
 
@@ -218,14 +218,17 @@ head('NAMING — five approved names, machine-enforced');
     // be exempt from, so it cannot come back by accident.
     'THE CARET',
     // Phase 21: 'REDACTED' read as classified-document language — heavier
-    // than a general-audience death screen needs. CROSSED OUT keeps the
+    // than a general-audience death screen needs. RUN OVER keeps the
     // Redline's active framing and echoes the strikethrough already shown
     // on a tapped fake.
     'REDACTED',
-    // Phase 21: the last two literary names. Both were doing theme where a
+    // Phase 21: the names this phase replaced. Each was doing theme where a
     // plain word does the job, and a game a child reads under time pressure
-    // does not need to know what 'published' means to know it finished.
-    'PUBLISHED', "TODAY'S DRAFT",
+    // should not need to decode a publishing metaphor to know what happened.
+    // The bare word TODAY is deliberately NOT on this list — it is ordinary
+    // English and BEST TODAY is a live HUD label; banning it would fail the
+    // build on copy that has nothing to do with the retired name.
+    'PUBLISHED', "TODAY'S DRAFT", 'CROSSED OUT',
     // DESCENT-inherited stage names fall under the same cap:
     'THE STILL', 'FALSE DAWN', 'FIRST LIGHT', 'CLEAN SIGNAL',
     // Phase 12 rename: the old game title is retired everywhere (the
@@ -277,14 +280,14 @@ head('NAMING — five approved names, machine-enforced');
   const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
   check('the transition announcer refuses a band without an approved name',
     ui.includes('this.bandName && band.name'));
-  check('death copy is CROSSED OUT and the day is TODAY\'S DRAFT',
-    ui.includes("'CROSSED OUT'") && ui.includes("TODAY"));
+  check('death copy is RUN OVER and the day is DAILY RUN',
+    ui.includes("'RUN OVER'") && ui.includes("'DAILY RUN'"));
   const readme = fs.readFileSync('README.md', 'utf8');
   // The removal note may explain what the Caret was; what it may not do is
   // present it as a live name (names are bolded in the README).
   check('the Redline is the named antagonist, alone',
     readme.includes('**the Redline**') && !readme.includes('**the Caret**') &&
-    readme.includes('## The four names') && readme.includes('**CROSSED OUT**'));
+    readme.includes('## The four names') && readme.includes('**RUN OVER**'));
 
   // No OTHER "The Xxx" proper-noun label may appear in player-facing display
   // strings — the pattern a sixth name would most likely take.

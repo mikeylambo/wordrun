@@ -144,7 +144,7 @@ if (!UI.prototype.__rc97MysteryPatched) {
     if (this.titleHint) {
       // Phase 19: the retired tagline used to be re-asserted here after a
       // finish. The title line carries the day's identity now.
-      this.titleHint.textContent = globalThis.__CHALLENGE ? 'CHALLENGE' : 'TODAY';
+      this.titleHint.textContent = globalThis.__CHALLENGE ? 'CHALLENGE' : 'DAILY RUN';
     }
     return out;
   };

@@ -68,7 +68,7 @@ export class UI {
     // Phase 19: the tagline is gone. A title screen that has to ask the
     // player a rhetorical question is a title screen that does not trust
     // its own wordmark. This line now carries the day's identity instead.
-    this.titleHint.textContent = 'TODAY';
+    this.titleHint.textContent = 'DAILY RUN';
   }
 
   setSeed(seedString, best, runs) {
@@ -76,7 +76,7 @@ export class UI {
     // A challenge link re-titles the line: the track is someone's dare,
     // not today's shared draft (functional label, not a sixth name).
     // Two tiny lines, not one long one: WHAT this run is, then the numbers.
-    this.titleHint.textContent = this._challenge ? 'CHALLENGE' : 'TODAY';
+    this.titleHint.textContent = this._challenge ? 'CHALLENGE' : 'DAILY RUN';
     this.seedLine.textContent = this._challenge
       ? (this._challenge.goal > 0 ? `BEAT ${this._challenge.goal}M` : seedString)
       : seedString;
@@ -288,7 +288,7 @@ export class UI {
     this.finalDist.textContent = Math.floor(distance);
     this.pbTag.style.visibility = isPb ? 'visible' : 'hidden';
     this.pbTag.textContent = isPb ? 'NEW BEST' : '';
-    this.deathTag.textContent = 'CROSSED OUT';
+    this.deathTag.textContent = 'RUN OVER';
     this.bestVal.textContent = best > 0 ? `${Math.floor(best)}M` : '—';
     this.deathStats.innerHTML = '';
     this.deathStats.style.display = 'none';

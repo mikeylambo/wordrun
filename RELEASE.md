@@ -286,12 +286,15 @@ Slice history:
   therefore invisible to every other test. The finish is now actually run
   by a gate rather than only read. Gates: 33 / 53 / 85 / meta 136 /
   family 11; v1 26 / 55 / 14. Build 1.51 MB.
-- Phase 21b — the last two literary names retired. PUBLISHED became FINISH
-  and TODAY'S DRAFT became TODAY: both were doing theme where a plain word
-  does the job, and a player reading under time pressure should not have to
-  decode a publishing metaphor to know they reached the end or which run is
-  today's. The finish card's own FINISH button became END RUN so the title
-  and the action stop competing. Both retired names join the enforced
-  retired list, and the roadmap's standing constraints now state the cap as
-  four and name them.
+- Phase 21b — the literary names retired. The four are now **the Redline,
+  RUN OVER, FINISH, DAILY RUN**. PUBLISHED, TODAY'S DRAFT and CROSSED OUT
+  were each doing theme where a plain word does the job: a player reading
+  under time pressure should not have to decode a publishing metaphor to
+  know they reached the end, lost, or which run is today's. RUN OVER carries
+  the game's own verb — the run is over — instead of a proofreading gesture.
+  The finish card's own FINISH button became END RUN so the title and the
+  action stop competing. All three retired names join the enforced retired
+  list; the bare word TODAY deliberately does not, because it is ordinary
+  English and BEST TODAY is a live HUD label. The roadmap's standing
+  constraints now state the cap as four and name them.
 

@@ -349,7 +349,7 @@ export class EndgameSky {
     if (!sim) return;
 
     const title = document.getElementById('titleHint');
-    const want = globalThis.__CHALLENGE ? 'CHALLENGE' : 'TODAY';
+    const want = globalThis.__CHALLENGE ? 'CHALLENGE' : 'DAILY RUN';
     if (title && title.textContent !== want) title.textContent = want;
 
     if (!sim.escaped) {
