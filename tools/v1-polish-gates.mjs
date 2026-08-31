@@ -164,5 +164,51 @@ check(!mobile.includes('requestAnimationFrame'), 'mobile control presentation ad
 check(!sw.includes('requestAnimationFrame'), 'PWA layer adds no animation loop');
 check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer is loaded by the release runtime');
 
+
+// ── Speed feel (Phase 22) ───────────────────────────────────────────────────
+// The camera now sells the top end far harder. Everything here guards the one
+// thing that outranks spectacle: the player has to be able to read the word.
+{
+  const T = (await import('../src/TUNING.js')).default;
+  const rig = fs.readFileSync('src/render/camera-rig.js', 'utf8');
+  const C = T.CAMERA, B = T.BOOST, R = T.RUN, W = T.WORDS;
+
+  check(C.BACK_SPEED_GAIN < 0,
+    'the rig closes in as you accelerate rather than easing out');
+  check(C.HEIGHT_SPEED_DROP > 2.5 && C.FOV_SPEED_GAIN > 0.9 && C.LOOK_SPEED_AHEAD > 7,
+    'the speed-keyed rig terms are the aggressive ones');
+
+  // The clamp has to be load-bearing, not decorative: prove the stacked
+  // terms would exceed it, and that the code actually applies it.
+  const stacked = C.FOV + C.FOV_SPEED_GAIN * 20 + C.FOV_BOOST + 2 + B.DASH.KICK_FOV;
+  check(stacked > C.FOV_MAX,
+    `the stacked lens really would fisheye without the cap (${stacked.toFixed(0)} deg vs cap ${C.FOV_MAX})`);
+  check(rig.includes('Math.min(C.FOV_MAX'),
+    'and the rig clamps it rather than trusting the numbers to behave');
+  check(C.FOV_MAX <= 100, `the cap is inside sane portrait framing (${C.FOV_MAX} deg)`);
+
+  // Motion is an accessibility surface. REDUCED FLASH must damp the rig.
+  check(rig.includes('ACCESS.reducedFlash ? C.ACCESS_MOTION_SCALE : 1') &&
+    rig.includes('* motion'),
+    'REDUCED FLASH damps every speed-keyed camera term');
+  check(C.ACCESS_MOTION_SCALE > 0 && C.ACCESS_MOTION_SCALE < 1,
+    'and damps rather than disables — the shot is the same, just calmer');
+
+  // The DASH is an event: a full charge, spent whole.
+  check(B.MIN_ACTIVATE === B.METER_MAX,
+    `the dash fires only on a full charge (${B.MIN_ACTIVATE}/${B.METER_MAX})`);
+
+  // The reading window is ARM_DISTANCE_M / speed, and ARM_DISTANCE_M cannot
+  // grow to buy a bigger dash multiplier back: it sits under the minimum gate
+  // spacing precisely so only one word is ever in play. That invariant is why
+  // the dash got longer and rarer instead of stronger.
+  check(W.ARM_DISTANCE_M < W.SPACING_MIN_M,
+    `only one word is ever in play (arm ${W.ARM_DISTANCE_M}m < spacing floor ${W.SPACING_MIN_M}m)`);
+  const windowAtCeiling = W.ARM_DISTANCE_M / (R.CEILING * B.SPEED_MULT);
+  check(B.SPEED_MULT <= 1.4,
+    `the dash multiplier stayed put — raising it shrinks the read window`
+    + ` (x${B.SPEED_MULT} already gives ${windowAtCeiling.toFixed(2)}s at the ceiling)`);
+}
+
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

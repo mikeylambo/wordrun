@@ -307,7 +307,19 @@ export const TUNING = {
     CHAIN_CAP: 8,              // links counted
     CHAIN_GATE_CREDIT: true,   // threading a gate also extends the chain
 
-    MIN_ACTIVATE: 8,           // meter needed to kick the DASH on
+    // Phase 22 — the DASH becomes an event. At 8 of 100 the meter armed
+    // after two reads and never disarmed: measured, a 95%-accuracy run was
+    // dashing 53% of the time, which is a default state with a light on,
+    // not a special move. A full charge only, so it is something you bank
+    // over about ten reads and then spend whole.
+    //
+    // The multiplier deliberately did NOT go up with it. The reading window
+    // is ARM_DISTANCE_M / speed, and ARM_DISTANCE_M cannot grow to
+    // compensate — it sits below SPACING_MIN_M precisely so only one word is
+    // ever in play. At the ceiling the shipped x1.4 already puts the window
+    // at 0.63s, under the 0.75s floor below; x1.6 would make it 0.55s. The
+    // event is longer, rarer and louder, not faster.
+    MIN_ACTIVATE: 100,         // = METER_MAX: a full charge, spent whole
     DRAIN_RATE: 34,            // meter units per second while active
     SPEED_MULT: 1.40,          // +40% (brief)
     CARVE_SCALE: 0.55,         // turn radius widens while active
@@ -322,9 +334,9 @@ export const TUNING = {
     // speed lines, and its own sound instead of a borrowed one. A mechanic
     // nobody notices is a mechanic nobody uses.
     DASH: {
-      KICK_FOV: 7,             // extra FOV on the instant of firing...
-      KICK_DECAY: 3.4,         // ...decaying at this rate (e-folds/second)
-      STREAK_BURST: 0.85,      // speed-line spike added on fire
+      KICK_FOV: 13,            // extra FOV on the instant of firing...
+      KICK_DECAY: 3.0,         // ...decaying at this rate (e-folds/second)
+      STREAK_BURST: 1.25,      // speed-line spike added on fire
       STREAK_DECAY: 2.2,       // and how fast that spike falls away
       // The teaching beat holds until the player has actually dashed once
       // — ever, not per run. A lesson that times out teaches nobody.
@@ -522,7 +534,7 @@ export const TUNING = {
   CAMERA: {
     FOV: 68,
     BACK: 10.5,                // metres behind the runner
-    BACK_SPEED_GAIN: 0.10,     // pulls back as you accelerate
+    BACK_SPEED_GAIN: -0.16,    // CLOSES IN as you accelerate (Phase 22)
     // Phase 7 flat-track retune: the downhill grade used to pitch the view
     // for free. On a flat world the camera rides higher and aims lower —
     // ~21 degrees down — so the winding ribbon lays out ahead instead of
@@ -536,8 +548,13 @@ export const TUNING = {
     // boom BACK as you sped up — which reads as slower. Sonic grammar is
     // the opposite: stay close, drop low, aim further down the track, and
     // stretch the FOV, all keyed 0..1 across the RUN floor→ceiling range.
-    HEIGHT_SPEED_DROP: 1.7,    // rig sinks this much at the ceiling
-    LOOK_SPEED_AHEAD: 5,       // aim drifts this much further down-track
+    // Phase 22: the speed-keyed terms roughly double, and BACK_SPEED_GAIN
+    // goes NEGATIVE — the rig closes in as you accelerate instead of easing
+    // out. Measured against the constraint that outranks all of this: at
+    // 62 m/s cruising the word plate is 270x68 px at the read moment, up
+    // from 244x61, because a closer camera more than pays back a wider lens.
+    HEIGHT_SPEED_DROP: 3.2,    // rig sinks this much at the ceiling
+    LOOK_SPEED_AHEAD: 9,       // aim drifts this much further down-track
     SPEED_SHAKE: 0.05,         // barely-in-control tremor near the ceiling
     AIR_HEIGHT_GAIN: 0.55,     // rig rises with you on big airs
     AIR_LOOK_GAIN: 0.62,       // and the aim rises too, or you exit frame
@@ -553,8 +570,20 @@ export const TUNING = {
     KILL_BACK: 8.5,
     KILL_HEIGHT: 5.4,
     KILL_LOOK_PAST: 5.5,       // aim this far upslope of you at the end
-    FOV_SPEED_GAIN: 0.68,      // FOV stretch across the full speed range
-    FOV_BOOST: 9,              // extra FOV held for the length of a DASH
+    FOV_SPEED_GAIN: 1.05,      // FOV stretch across the full speed range
+    FOV_BOOST: 16,             // extra FOV held for the length of a DASH
+    // The stretch, the dash boost and the dash punch all stack, and unclamped
+    // they reach 106 degrees — a fisheye that shrank the plate to 93x23 px at
+    // the far read, worse than anything shipped. The cap costs nothing while
+    // cruising (88 degrees, under it) and only bites in the one case that
+    // needed catching. Legibility outranks spectacle; this is where that is
+    // enforced rather than asserted.
+    FOV_MAX: 96,
+    // REDUCED FLASH is a motion setting as much as a flash one: an aggressive
+    // speed-keyed rig is a nausea vector. This scales every speed-keyed camera
+    // term — the close-in, the drop, the lens stretch, the tremor — without
+    // touching composition, so the picture is the same, just calmer.
+    ACCESS_MOTION_SCALE: 0.45,
   },
 
   // ── Fog / draw distance ─────────────────────────────────────────────────

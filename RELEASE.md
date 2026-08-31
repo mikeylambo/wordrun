@@ -297,4 +297,26 @@ Slice history:
   list; the bare word TODAY deliberately does not, because it is ordinary
   English and BEST TODAY is a live HUD label. The roadmap's standing
   constraints now state the cap as four and name them.
+- Phase 22 — the speed camera, and the DASH as an event. The rig now CLOSES
+  IN as you accelerate instead of easing out (BACK_SPEED_GAIN goes negative),
+  drops nearly twice as far, aims further down-track, and stretches the lens
+  half again as hard; the dash punch and speed-line spike go up with it.
+  Measured against the constraint that outranks all of it: at 62 m/s
+  cruising the word plate is 270x68 px at the read moment, up from 244x61,
+  because a closer camera more than repays a wider lens. The one case that
+  needed catching was the dash, where the stretch, the boost and the punch
+  stack to 106 degrees and shrank the plate below anything shipped — so the
+  total FOV is now clamped at 96, and the gate proves the clamp is
+  load-bearing rather than decorative. REDUCED FLASH damps every speed-keyed
+  camera term: a speed-keyed rig is a motion-sickness surface, not only a
+  flash one, and the composition is unchanged, just calmer. The DASH armed
+  at 8 of 100 — after two reads, and never disarmed, so a good run was
+  dashing 53% of the time with a light permanently on. It now fires only on
+  a full charge: banked over about ten reads, spent whole, and sustainable
+  by reading well under speed. At 70% accuracy that is a rare rescue (3
+  firings a run); at 95% it is eight long deliberate ones. The multiplier
+  deliberately did not rise with it — the reading window is
+  ARM_DISTANCE_M / speed and ARM_DISTANCE_M cannot grow to compensate,
+  because it sits under the minimum gate spacing so only one word is ever
+  in play.
 

@@ -8,6 +8,7 @@
 
 import * as THREE from 'three';
 import TUNING from '../TUNING.js';
+import { ACCESS } from '../ui/access.js';
 
 const C = TUNING.CAMERA;
 const B = TUNING.BEAST;
@@ -39,7 +40,11 @@ export class CameraRig {
     // values, so the climb from 40 to the new ceiling showed nothing and
     // the boom drifted away). Sonic grammar: closer, lower, wider, ahead.
     const R = TUNING.RUN;
-    const speedN = Math.max(0, Math.min(1, (p.speed - R.FLOOR) / (R.CEILING - R.FLOOR)));
+    // REDUCED FLASH damps how hard speed moves the rig. Composition is
+    // untouched — the same shot, just less of the lurch — because a
+    // speed-keyed camera is a motion-sickness surface, not only a flash one.
+    const motion = ACCESS.reducedFlash ? C.ACCESS_MOTION_SCALE : 1;
+    const speedN = Math.max(0, Math.min(1, (p.speed - R.FLOOR) / (R.CEILING - R.FLOOR))) * motion;
     let back = C.BACK + speedN * C.BACK_SPEED_GAIN * 20;
     let height = C.HEIGHT - speedN * C.HEIGHT_SPEED_DROP;
 
@@ -165,7 +170,12 @@ export class CameraRig {
     this.fov += (wantFov - this.fov) * (1 - Math.exp(-6 * dt));
     // The kick is added AFTER the smoothing on purpose: everything else
     // about this camera eases, and an eased punch is not a punch.
-    const fov = this.fov + this._dashKick * TUNING.BOOST.DASH.KICK_FOV;
+    // Clamped, not trusted: the stretch, the dash boost and the punch all
+    // stack, and unclamped they reach 106 degrees — a fisheye that shrinks
+    // the word plate below anything that has ever shipped. Legibility
+    // outranks spectacle, and this is the line where that is enforced.
+    const fov = Math.min(C.FOV_MAX,
+      this.fov + this._dashKick * TUNING.BOOST.DASH.KICK_FOV * motion);
     if (Math.abs(this.camera.fov - fov) > 0.01) {
       this.camera.fov = fov;
       this.camera.updateProjectionMatrix();
