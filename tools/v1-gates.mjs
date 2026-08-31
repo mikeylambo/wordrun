@@ -111,7 +111,7 @@ check(!escapeSource.includes('SecondBeast') && !escapeSource.includes('secondBea
   const input = { carve: 0, flip: 0, jump: false, confirm: false, boostHeld: false, dragging: false };
   let threw = null;
   try {
-    for (let i = 0; i < 400 && !sim.escaped; i++) sim.step(1 / 60, input);
+    for (let i = 0; i < 400 && !sim.escaped; i++) sim.step(input);
   } catch (e) { threw = e; }
   globalThis.__SIM = undefined;
   check(!threw && sim.escaped === true &&

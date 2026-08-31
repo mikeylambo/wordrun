@@ -23,7 +23,8 @@
     "calibrate:speed": "node tools/speed-calibration.mjs",
     "audit:size": "node tools/build-report.mjs",
     "audit:network": "node tools/network-audit.mjs",
-    "build:definitions": "node tools/build-definitions.mjs"
+    "build:definitions": "node tools/build-definitions.mjs",
+    "feel": "node tools/feel-measure.mjs"
   },
   "dependencies": {
     "three": "^0.169.0"
