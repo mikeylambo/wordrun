@@ -95,6 +95,40 @@ export const PRESETS = {
       'BOOST.DASH': { KICK_FOV: 13, KICK_DECAY: 3.0, STREAK_BURST: 1.25 },
     },
   },
+
+  // "What if the Redline just went away and hearts were the fail state?"
+  // The Redline's pace is set to zero, so it can never close the gap. This
+  // one is deliberately shipped WITHOUT any other change, because the point
+  // is to feel what it exposes: word-gates.js says in its own comment that
+  // an omission "hands the consequence to the Redline's differential", so
+  // with the Redline gone, letting every word slip costs nothing at all.
+  // Only tapping a fake takes a heart. Do nothing and you cannot die.
+  norush: {
+    label: 'NO REDLINE',
+    note: 'hearts as the only fail state — and nothing punishes doing nothing',
+    set: {
+      'MODES.DIFFICULTY.easy': { REDLINE_PACE: 0 },
+      'MODES.DIFFICULTY.normal': { REDLINE_PACE: 0 },
+      'MODES.DIFFICULTY.hard': { REDLINE_PACE: 0 },
+    },
+  },
+
+  // The version that actually works: no Redline, and BOTH kinds of wrong
+  // read cost a heart. Now "three mistakes and you are out" is the whole
+  // rule, speed is a reward rather than a survival tax, and idling dies on
+  // the third word instead of running forever. `omissionCostsHeart` is read
+  // by dev/feel-lab.js, which patches the gate resolution — the sim has no
+  // such rule today, which is exactly the change this preset is proposing.
+  hearts: {
+    label: 'HEARTS ONLY',
+    note: 'no Redline + every wrong read costs a heart',
+    omissionCostsHeart: true,
+    set: {
+      'MODES.DIFFICULTY.easy': { REDLINE_PACE: 0 },
+      'MODES.DIFFICULTY.normal': { REDLINE_PACE: 0 },
+      'MODES.DIFFICULTY.hard': { REDLINE_PACE: 0 },
+    },
+  },
 };
 
 export default PRESETS;
