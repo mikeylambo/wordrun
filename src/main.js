@@ -109,7 +109,27 @@ globalThis.__META = { stats: metaStats, daily: metaDaily, objectives: metaObject
 // Accessibility (Phase 11): load persisted options before the warm-start
 // pre-paints plates, so the readable-type/palette choice is baked in.
 initAccess();
-buildAccessPanel();
+// The settings panel freezes the run while it is open (playtest: the game
+// carried on behind it, so checking a setting cost you hearts). This is a
+// quiet freeze, not pauseGame — that would raise the pause menu on top of
+// the panel. Input is released so a held DASH does not survive the panel.
+let accessFroze = false;
+buildAccessPanel({
+  onOpen: () => {
+    if (!running || sim.phase !== PHASE.RUNNING || paused) return;
+    accessFroze = true;
+    paused = true;
+    input.enabled = false;
+    input.releaseAll();
+  },
+  onClose: () => {
+    if (!accessFroze) return;
+    accessFroze = false;
+    paused = false;
+    input.enabled = true;
+    input.releaseAll();
+  },
+});
 
 // The DASH teaching beat (Phase 16) runs until the player has used the
 // mechanic once — ever, not per run. __DASH_LEARNED lets the mobile

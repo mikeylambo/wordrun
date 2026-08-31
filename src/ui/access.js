@@ -74,7 +74,7 @@ export function initAccess() {
 }
 
 /** The settings panel: an overlay of chip rows, opened from the title. */
-export function buildAccessPanel() {
+export function buildAccessPanel(hooks = {}) {
   const style = document.createElement('style');
   style.textContent = `
     #accessBtn{position:absolute;top:calc(var(--safe-t) + 118px);right:14px;z-index:41;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(14,22,28,.6);color:#dff2fc;font:700 12px/1 var(--face);pointer-events:auto;cursor:pointer}
@@ -140,7 +140,15 @@ export function buildAccessPanel() {
   done.className = 'modeChip';
   done.id = 'accessDone';
   done.textContent = 'DONE';
-  done.addEventListener('click', (e) => { e.stopPropagation(); panel.classList.remove('on'); });
+  // Playtest: the run kept going behind this panel, so reading the settings
+  // cost you a life. Freeze the sim while it is open, WITHOUT routing through
+  // pauseGame — that also raises the pause menu, and two stacked overlays is
+  // not a fix. onOpen/onClose are supplied by main.js, which owns the flags.
+  done.addEventListener('click', (e) => {
+    e.stopPropagation();
+    panel.classList.remove('on');
+    hooks.onClose?.();
+  });
   panel.appendChild(done);
   document.getElementById('app').appendChild(panel);
 
@@ -150,6 +158,7 @@ export function buildAccessPanel() {
     e.stopPropagation();
     panel.classList.add('on');
     sync();
+    hooks.onOpen?.();
   });
   return { btn, panel };
 }

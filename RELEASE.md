@@ -323,7 +323,7 @@ Slice history:
   the real build. Doing nothing was a legal strategy: half of every gate is
   a fake, passing a fake is the correct answer, and an omission cost speed
   only — never a heart — so a silent run banked 50% accuracy for free and
-  could only ever be caught by the Redline. The bell drip paid ~24 bells and
+  could only ever be run down by the Redline. The bell drip paid ~24 bells and
   ~4.7 hearts per kilometre with no player input at all, so a 70%-accuracy
   run lost 23 hearts and got all 23 back: the mode could not be lost by
   misreading. And a run had no arc because nothing was ever at stake.

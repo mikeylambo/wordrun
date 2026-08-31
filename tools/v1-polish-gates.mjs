@@ -29,9 +29,19 @@ check(contact.includes('baseReset') && contact.includes('__v1AllPhysicalLocks?.c
   'contact locks and recovery grace reset cleanly between runs');
 
 check(polish.includes("id = 'v1BellCharge'") || polish.includes("root.id = 'v1BellCharge'"),
-  'HUD exposes persistent five-step bell charge');
-check(polish.includes('Bell charge ${charge} of 5') && polish.includes('.v1-bell-pip.on'),
-  'bell charge has accessible 0/5-to-4/5 state and visual fill');
+  'HUD exposes a persistent charge widget beside the hearts');
+// Phase 23: these pips counted bells toward the automatic heart repair that
+// no longer exists. They now show the CLEAN READING STREAK — the thing that
+// actually stands between a player and their next heart, and the one the
+// playtest said a run gave no indication of at all.
+check(polish.includes('sim.wordGates?.streak') &&
+  polish.includes('STREAK_REPAIR_BY_HEARTS') && !polish.includes('sim.bellCharge'),
+  'the charge widget reads the clean streak, not the retired bell charge');
+check(polish.includes('Clean streak ${charge} of ${need} to the next heart') &&
+  polish.includes('.v1-bell-pip.on'),
+  'it names the streak and the target it is counting to, for a screen reader');
+check(polish.includes("root.style.opacity = full ? '0.25' : '1'"),
+  'and stands down when hearts are already full');
 check(polish.includes('bellShipPolish') && polish.includes('vol: 0.038'),
   'bell gets an additional bright upper-partial presence lift');
 

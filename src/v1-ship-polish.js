@@ -2,6 +2,7 @@ import TUNING from './TUNING.js';
 import { FEATURE } from './sim/terrain.js';
 import { Input } from './input/input.js';
 import { Audio } from './audio/audio.js';
+import { HEARTS } from './design/bells.js';
 
 const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
 const PAD_DEADZONE = 0.18;
@@ -209,9 +210,9 @@ function ensureBellChargeHud() {
     const style = document.createElement('style');
     style.id = 'v1-bell-charge-style';
     style.textContent = `
-      #v1BellCharge{display:flex;align-items:center;gap:4px;margin-left:4px;height:30px;transform:translateY(1px)}
-      .v1-bell-pip{width:7px;height:7px;box-sizing:border-box;border:1px solid rgba(232,190,82,.72);background:rgba(216,170,66,.10);transform:rotate(45deg);transition:background .12s ease,box-shadow .12s ease,transform .12s ease}
-      .v1-bell-pip.on{background:#e6b949;box-shadow:0 0 7px rgba(238,196,91,.58);transform:rotate(45deg) scale(1.08)}
+      #v1BellCharge{display:flex;align-items:center;gap:4px;margin-left:7px;height:30px;transform:translateY(1px)}
+      .v1-bell-pip{width:7px;height:7px;box-sizing:border-box;border:1px solid rgba(139,228,255,.55);background:rgba(103,216,255,.10);transform:rotate(45deg);transition:background .12s ease,box-shadow .12s ease,transform .12s ease}
+      .v1-bell-pip.on{background:#8be4ff;box-shadow:0 0 7px rgba(139,228,255,.6);transform:rotate(45deg) scale(1.08)}
       #v1BellCharge.complete{animation:v1BellComplete .36s ease}
       @keyframes v1BellComplete{0%{filter:brightness(1)}35%{filter:brightness(1.85)}100%{filter:brightness(1)}}
       #v1BellCharge:focus{outline:none}
@@ -230,12 +231,26 @@ function ensureBellChargeHud() {
     root.__lastBells = sim.bellsCollected || 0;
   }
 
-  const charge = clamp(sim.bellCharge || 0, 0, 4);
-  const bells = sim.bellsCollected || 0;
-  [...root.children].forEach((p, i) => p.classList.toggle('on', i < charge));
-  root.setAttribute('aria-label', `Bell charge ${charge} of 5`);
+  // Phase 23: these pips counted bells toward the old automatic heart repair.
+  // Hearts now come back for a CLEAN READING STREAK, so the same widget shows
+  // that instead — the playtest note was that a run gave no indication of the
+  // streak at all, and it is now the thing standing between you and a heart.
+  // The ladder shortens under pressure, so the pip count follows it.
+  const need = HEARTS.STREAK_REPAIR_BY_HEARTS[sim.hearts] ?? HEARTS.STREAK_REPAIR_DEFAULT;
+  const streak = sim.wordGates?.streak || 0;
+  const full = sim.hearts >= (sim.maxHearts ?? HEARTS.MAX);
+  const charge = full ? 0 : clamp(streak % need, 0, need);
+  const bells = streak;
+  [...root.children].forEach((p, i) => {
+    p.classList.toggle('on', !full && i < charge);
+    p.style.display = i < need ? '' : 'none';
+  });
+  root.style.opacity = full ? '0.25' : '1';
+  root.setAttribute('aria-label', full
+    ? 'Hearts full'
+    : `Clean streak ${charge} of ${need} to the next heart`);
 
-  if (root.__lastCharge >= 0 && charge === 0 && bells > root.__lastBells && root.__lastCharge >= 4) {
+  if (root.__lastCharge >= 0 && charge === 0 && bells > root.__lastBells && root.__lastCharge >= need - 1) {
     root.classList.remove('complete');
     void root.offsetWidth;
     root.classList.add('complete');
