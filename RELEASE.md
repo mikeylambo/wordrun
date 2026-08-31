@@ -555,3 +555,18 @@ Slice history:
   Of thirty-four sound methods the two games still share by name, the rest are
   the audio engine itself — buses, tone and noise helpers, the update loop —
   which is shared framework rather than shared sound.
+- Phase 32 — a tuning panel, because the console is not reachable where the
+  playtesting happens. Every live value was already exposed on `window.__TUNING`
+  and read per frame, which is useless on a phone. The panel is the same object
+  behind buttons and sliders: the look treatments, the lookahead count as a live
+  0–6 row, and seven numbers including the three plate fades. It writes straight
+  through to the tuning object, so a change made in either place is visible in
+  the other — the panel is a convenience, never a second source of truth.
+  It loads only under `?dev=1`, through a dynamic import, so it lands in its own
+  4.6 KB chunk beside the 6.4 KB treatment lab and a normal load fetches
+  neither. The lookahead row can now be resized while a run is in progress,
+  pooling retired plates rather than rebuilding textures, which is what makes an
+  A/B of the count a single tap rather than a reload.
+  The treatments themselves were built during the earlier mockup pass and had
+  never been reachable from the build at all — they were dev-only files nothing
+  imported, which is why looking for them found nothing.

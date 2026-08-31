@@ -209,6 +209,26 @@ export class WordGateActors {
     this.lingerState = 'right';
   }
 
+  /**
+   * Grow or shrink the lookahead row at runtime, so the count can be A/B'd
+   * without a reload. Retired plates are pooled rather than dropped — their
+   * meshes are already in the scene and rebuilding them would raster again.
+   */
+  setLookahead(n) {
+    const max = TUNING.WORDS.LOOKAHEAD_OPACITY.length;
+    const want = Math.max(0, Math.min(max, Math.floor(n)));
+    this._pool = this._pool || [];
+    while (this.ahead.length > want) {
+      const p = this.ahead.pop();
+      p.hide();
+      this._pool.push(p);
+    }
+    while (this.ahead.length < want) {
+      this.ahead.push(this._pool.pop() || new Plate(this.scene));
+    }
+    return this.ahead.length;
+  }
+
   /** A future gate, built once and cached. Pure in (seed, index) — reading it
    *  cannot advance or mutate the sim's own gate state. */
   _peekGate(seed, index, profile) {

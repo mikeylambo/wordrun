@@ -972,6 +972,12 @@ window.__RENDER = {
   stage, terrainMesh, props, landmarks, rig, playerActor, beastActor, ghostActor, spray, materialPass,
   wordGateActors, dataworld, streakBurst,
 };
+// The tuning panel, for playtesting where there is no console. A dynamic
+// import so it lands in its own chunk: a normal load never fetches it.
+if (new URLSearchParams(location.search).get('dev') === '1') {
+  import('./dev-panel.js').then((m) => m.mountDevPanel()).catch(() => {});
+}
+
 window.__INPUT = input;
 window.__START = () => { startRun(); return sim.state(); };
 window.__QUIT = () => { quitToTitle(); return { phase: sim.phase }; };

@@ -596,6 +596,20 @@ head('LOOKAHEAD — more gates are shown, no more gates are answerable');
     mainSrc.includes('wordGateActors.ahead.forEach'),
     'texture init and first paint both cover the lookahead plates');
 
+  // The tuning panel exists for devices with no console. It must cost a normal
+  // load nothing, and it must not become a second source of truth.
+  const panelSrc = fs.readFileSync('src/dev-panel.js', 'utf8');
+  check('the tuning panel is only fetched behind its flag',
+    /get\('dev'\) === '1'/.test(mainSrc) && /import\('\.\/dev-panel\.js'\)/.test(mainSrc),
+    'dynamic import, so a normal load never downloads or parses it');
+  check('the panel writes through TUNING rather than shadowing it',
+    panelSrc.includes("import TUNING from './TUNING.js'") &&
+    !/const\s+\w+\s*=\s*\{[^}]*CEILING/.test(panelSrc),
+    'the console and the panel see the same values, either way round');
+  check('the lookahead row can be resized live and stays clamped',
+    /setLookahead\(n\)/.test(src) && /Math\.min\(max/.test(src) && /_pool/.test(src),
+    'retired plates are pooled rather than rebuilt');
+
   // The pre-Phase-A build drew exactly one preview plate at 0.55.
   check('LOOKAHEAD_GATES = 1 reproduces the build before this phase',
     fade[0] === 0.55, 'first step is the 0.55 the old preview plate used');
