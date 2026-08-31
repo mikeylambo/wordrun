@@ -205,14 +205,20 @@ export class WordGates {
       this.wrongCount++;
       this.streak = 0;
 
-      // Both wrong reads cost speed and the chain. Only COMMISSION — tapping
-      // a fake — is the DESCENT obstacle hit with its heart, stagger and
-      // meter bite. Omission (a real word slipping past) is hesitation: the
-      // speed loss alone hands the consequence to the Redline's differential.
+      // Phase 23: BOTH wrong reads now cost a heart. Handing the omission's
+      // consequence to the Redline's differential alone made doing nothing a
+      // legal strategy — half of every gate is a fake, passing a fake is the
+      // correct answer, and a run that never taps can never lose a heart. So
+      // idling banked 50% accuracy for free and could only ever be killed by
+      // falling behind.
+      //
+      // Commission is still strictly the worse mistake, which is the fairness
+      // this asymmetry was built for: tapping a fake costs the heart AND the
+      // stagger AND the meter. Letting a word slip costs the heart alone.
       const commission = !g.real; // g.confirmed on a fake
+      player.obstaclesHit++;
       if (commission) {
         this.falseTaps++;
-        player.obstaclesHit++;
         player.staggerT = TUNING.PLAYER.STAGGER_TIME;
         player.boostMeter *= 1 - W.WRONG_METER_LOSS;
       } else {

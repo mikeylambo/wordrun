@@ -234,9 +234,27 @@ head('MODES — rules, difficulty, and separated boards');
     Math.abs(closed - expect) < 0.05, `closed ${closed.toFixed(2)}m/s vs ${expect}`);
 
   const rc5 = fs.readFileSync('src/rc5.js', 'utf8');
-  check('heart repair is gated on the rules in the bell collector',
-    rc5.includes("this.rules?.HEART_REPAIR !== false") &&
-    rc5.includes('if (heartRepair) this.bellCharge++'));
+  const bells = fs.readFileSync('src/design/bells.js', 'utf8');
+  check('heart repair is still ENDLESS\'s rule alone',
+    rc5.includes("this.rules?.HEART_REPAIR !== false"));
+  // Phase 23: what repairs a heart moved off the bells and onto the verb.
+  // The bell drip paid ~4.7 hearts per kilometre with no player input, so a
+  // 70% run lost 23 hearts and got all 23 back — ENDLESS could not be lost
+  // by misreading, which is exactly why it had no stakes.
+  check('bells no longer repair hearts — they pay meter and currency only',
+    !rc5.includes('bellCharge++') && !/BELLS_PER_HEART/.test(rc5 + bells) &&
+    rc5.includes('boostMeter + HEARTS.POWER_PER_BELL'));
+  check('a clean reading streak is what brings a heart back',
+    rc5.includes('this.wordGates.streak') && rc5.includes('STREAK_REPAIR_BY_HEARTS') &&
+    rc5.includes("t: 'heart_restore'"));
+  // The ladder shortens under pressure: a flat threshold put a 14x cliff
+  // between a 70% reader and an 85% one, because the repair rate crosses the
+  // loss rate at about 80% accuracy and nothing either side is close.
+  const { HEARTS } = await import('../src/design/bells.js');
+  check('and the way back is shorter the closer you are to the end',
+    HEARTS.STREAK_REPAIR_BY_HEARTS[1] < HEARTS.STREAK_REPAIR_BY_HEARTS[2],
+    `${HEARTS.STREAK_REPAIR_BY_HEARTS[1]} clean reads on the last heart, `
+    + `${HEARTS.STREAK_REPAIR_BY_HEARTS[2]} otherwise`);
 
   const storage = fs.readFileSync('src/storage/storage.js', 'utf8');
   const main = fs.readFileSync('src/main.js', 'utf8');

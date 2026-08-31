@@ -64,7 +64,8 @@ export class OnboardingUI {
           <div class="rule"><b>PASS</b><span>IF IT IS NOT</span></div>
           <div class="rule"><b>SPEED</b><span>RIGHT READS RUN FASTER</span></div>
           <div class="rule dash"><b>${dash}</b><span>THE DASH. CLEAN READS CHARGE IT</span></div>
-          <div class="rule"><b>♥ ♥ ♥</b><span>ONLY A TAPPED FAKE COSTS ONE</span></div>
+          <div class="rule"><b>♥ ♥ ♥</b><span>EVERY WRONG READ COSTS ONE</span></div>
+          <div class="rule"><b>STREAK</b><span>CLEAN READS WIN THEM BACK</span></div>
         </div>
         <div class="ghost"><span>BEST RUN</span><button class="toggle" data-act="ghost"></button></div>
         <button class="start" data-act="start">BEGIN RUN</button>

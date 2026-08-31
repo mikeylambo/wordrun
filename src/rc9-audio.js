@@ -97,7 +97,7 @@ function boot() {
     if (sim.bellsCollected > lastBells) {
       const count = sim.bellsCollected - lastBells;
       for (let i = 0; i < count; i++) {
-        const step = (lastBells + i) % rc.hearts.BELLS_PER_HEART;
+        const step = (lastBells + i) % rc.hearts.BELL_TONE_CYCLE;
         audio.bell?.(step);
       }
       lastBells = sim.bellsCollected;

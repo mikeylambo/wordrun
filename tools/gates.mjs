@@ -164,10 +164,15 @@ head('SPEED — deterministic consequence, floored and ceilinged');
 }
 
 {
-  // Omission: let a real word slip in silence. It must cost speed and the
-  // chain — and NOTHING else. No heart, no stagger: the Redline's
-  // differential is the punisher for slow reading, hearts are for acting
-  // wrongly. (This is the 'sped through Shore -> game over' fairness fix.)
+  // Omission: let a real word slip in silence. Phase 23 made this cost a
+  // heart too. Handing its whole consequence to the Redline's differential
+  // made DOING NOTHING a legal strategy — half of every gate is a fake,
+  // passing a fake is the correct answer, so a run that never taps banked
+  // 50% accuracy for free and could not lose a heart at all.
+  //
+  // The fairness the asymmetry was built for (the 'sped through Shore ->
+  // game over' fix) is kept by degree, not by exemption: commission costs
+  // the heart AND the stagger AND the meter; omission costs the heart alone.
   const seed = SEEDS.find((s2) => new Sim(s2).wordGates.current().real) ?? SEEDS[0];
   const sim = new Sim(seed);
   sim.start(seed);
@@ -181,10 +186,13 @@ head('SPEED — deterministic consequence, floored and ceilinged');
   check('missing a real word (omission) subtracts exactly SPEED_LOSS',
     Math.abs(sim.player.speed - Math.max(R.FLOOR, speedBefore - R.SPEED_LOSS)) < 1e-9,
     `${f2(speedBefore)} -> ${f2(sim.player.speed)}`);
-  check('but costs NO heart and NO stagger — hesitation is not a crash',
-    sim.player.obstaclesHit === hitsBefore && sim.player.staggerT === 0 &&
+  check('and costs a heart, so doing nothing is not a strategy',
+    sim.player.obstaclesHit === hitsBefore + 1 &&
     sim.wordGates.missedReals === 1 && sim.wordGates.falseTaps === 0,
-    `hearts ledger ${hitsBefore} -> ${sim.player.obstaclesHit}, stagger ${sim.player.staggerT}`);
+    `hearts ledger ${hitsBefore} -> ${sim.player.obstaclesHit}`);
+  check('but NOT the stagger — hesitation is still not a crash',
+    sim.player.staggerT === 0,
+    `commission stays strictly worse: heart + stagger + meter vs heart alone`);
 }
 
 {

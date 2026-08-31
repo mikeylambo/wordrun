@@ -172,10 +172,12 @@ function runReader(seed, metres, answerFn) {
   check('never answering is punished by every real word',
     s.wordsWrong > 0 && s.wordsCorrect > 0,
     `${s.wordsWrong} missed reals, ${s.wordsCorrect} correctly ignored fakes`);
-  // The rulebook asymmetry: omissions slow you (the Redline's business) but
-  // never touch the hearts ledger. A silent run can be caught, not wiped out.
-  check('a silent run loses no hearts — omission is never the obstacle hit',
-    sim.player.obstaclesHit === 0 &&
+  // Phase 23: a silent run wipes out. Every real word that slips costs a
+  // heart, so the run that never touches the screen ends on the third one —
+  // it does not coast on the free 50% that passing every fake used to bank.
+  // Nothing is ever tapped, so nothing is ever a false tap.
+  check('a silent run wipes out — every missed real is on the hearts ledger',
+    sim.player.obstaclesHit === sim.wordGates.missedReals &&
     sim.wordGates.missedReals === s.wordsWrong && sim.wordGates.falseTaps === 0,
     `${sim.wordGates.missedReals} omissions, ${sim.player.obstaclesHit} on the hit ledger`);
 }

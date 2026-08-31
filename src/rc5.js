@@ -210,6 +210,7 @@ function patchSim(sim, field) {
     sim.maxHearts = HEARTS.MAX;
     sim.hearts = HEARTS.MAX;
     sim.bellCharge = 0;
+    sim._lastCleanStreak = 0;
     sim.bellsCollected = 0;
     sim.deathCause = null;
     field.reset(sim.seed, sim.terrain);
@@ -251,30 +252,37 @@ function patchSim(sim, field) {
       }
     }
 
-    // Phase 10: heart repair is ENDLESS's rule. In STANDARD, three hits
-    // are the whole allowance — bells still pay meter and currency, the
-    // charge just never counts toward a heart.
+    // Phase 10: heart repair is ENDLESS's rule. In STANDARD, three misreads
+    // are the whole allowance. Phase 23 moved WHAT repairs a heart off the
+    // bells and onto a clean reading streak — the bells were an automatic
+    // drip nobody could influence, and they refilled the fail state faster
+    // than it could be spent. Bells still pay meter and currency.
     const heartRepair = this.rules?.HEART_REPAIR !== false;
     const picked = field.collectNear(this.player);
     for (const bell of picked) {
       this.bellsCollected++;
-      if (heartRepair) this.bellCharge++;
       this.player.boostMeter = Math.min(
         TUNING.BOOST.METER_MAX,
         this.player.boostMeter + HEARTS.POWER_PER_BELL
       );
       this.events.push({
         t: 'bell', id: bell.id, x: bell.x, d: bell.d,
-        charge: this.bellCharge, power: HEARTS.POWER_PER_BELL,
+        charge: this.bellsCollected, power: HEARTS.POWER_PER_BELL,
       });
-      if (heartRepair && this.bellCharge >= HEARTS.BELLS_PER_HEART) {
-        this.bellCharge = 0;
-        if (this.hearts < this.maxHearts) {
-          this.hearts++;
-          this.events.push({ t: 'heart_restore', hearts: this.hearts });
-        }
-      }
     }
+
+    // A heart back for a clean reading streak (Phase 23). Earned off the verb
+    // the game is about, and it is what finally gives a run an arc: down to
+    // one heart, and the way out is a run of correct reads you have to
+    // actually produce. STANDARD keeps its no-repair rule.
+    const streak = this.wordGates.streak;
+    const need = HEARTS.STREAK_REPAIR_BY_HEARTS[this.hearts] ?? HEARTS.STREAK_REPAIR_DEFAULT;
+    if (heartRepair && streak > 0 && streak !== this._lastCleanStreak &&
+        streak % need === 0 && this.hearts < this.maxHearts) {
+      this.hearts++;
+      this.events.push({ t: 'heart_restore', hearts: this.hearts, streak });
+    }
+    this._lastCleanStreak = streak;
   };
 
   const state = sim.state.bind(sim);
@@ -374,7 +382,7 @@ function boot() {
       if (sim.bellsCollected > lastBells) {
         const count = sim.bellsCollected - lastBells;
         for (let i = 0; i < count; i++) {
-          const step = (lastBells + i) % HEARTS.BELLS_PER_HEART;
+          const step = (lastBells + i) % HEARTS.BELL_TONE_CYCLE;
           sound.bell(step);
         }
         lastBells = sim.bellsCollected;

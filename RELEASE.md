@@ -319,4 +319,24 @@ Slice history:
   ARM_DISTANCE_M / speed and ARM_DISTANCE_M cannot grow to compensate,
   because it sits under the minimum gate spacing so only one word is ever
   in play.
+- Phase 23 — ENDLESS gets stakes. Three findings drove it, all measured on
+  the real build. Doing nothing was a legal strategy: half of every gate is
+  a fake, passing a fake is the correct answer, and an omission cost speed
+  only — never a heart — so a silent run banked 50% accuracy for free and
+  could only ever be caught by the Redline. The bell drip paid ~24 bells and
+  ~4.7 hearts per kilometre with no player input at all, so a 70%-accuracy
+  run lost 23 hearts and got all 23 back: the mode could not be lost by
+  misreading. And a run had no arc because nothing was ever at stake.
+  Now: BOTH wrong reads cost a heart (commission stays strictly worse —
+  heart AND stagger AND meter, against the heart alone), and a heart comes
+  back for a CLEAN READING STREAK instead of a drip nobody influences. The
+  ladder shortens under pressure — three clean reads on your last heart,
+  five otherwise — because a flat threshold put a 14x cliff between a 70%
+  reader and an 85% one. The bells keep the meter drip and the banked
+  currency; only the heart repair left them. Endless now reads as a skill
+  ladder: idle 351 m, 55% 640 m, 70% 1,173 m, 85% 3,455 m, 95% 13,612 m,
+  and STANDARD keeps its three-misreads-ever rule. A mid-skill run spends
+  31% of itself one mistake from the end and claws back off the last heart
+  about once — the arc the run never had. Speed itself is still flat at high
+  skill (1.14x swing); the arc lives in the hearts now, not the speed.
 

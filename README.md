@@ -76,7 +76,8 @@ Two rule sets × three reading difficulties, chosen on the title and stored
 per combination (an EASY best can never claim the STANDARD board; the
 default combo keeps every pre-mode best and ghost):
 
-- **ENDLESS** — the game as it grew up: five bells repair a heart.
+- **ENDLESS** — a clean reading streak repairs a heart (shorter the closer
+  you are to the end: three clean reads on your last one, five otherwise).
 - **STANDARD · 3 HITS** — the repair is off. Three tapped fakes, ever.
 - **EASY / NORMAL / HARD** — reading difficulty (which tiers feed the
   gates and how fast they ramp) plus the Redline's pace (24 / 27 / 30).
@@ -149,7 +150,7 @@ default combo keeps every pre-mode best and ghost):
   coordinates — functionally uncollectible against the ±15.5 m winding
   line. They now ride the travel line with a bounded weave (every bell
   gated inside the pickup window), and each one drips boost meter, counts
-  the five-bell heart repair, and banks ◆ — the bare-number spendable
+  and banks ◆ — the bare-number spendable
   balance (deliberately unnamed; sinks come later).
 
 ## The meta layer (SLU shell port)
