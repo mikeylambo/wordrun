@@ -26,10 +26,6 @@ import { Terrain, FEATURE } from './sim/terrain.js';
 const SURFACE_TRIM_NORMAL = 0.57;
 const SURFACE_TRIM_HUNT = 0.50;
 const SURFACE_TRIM_PICKUP = 0.38;
-const WIND_TRIM_NORMAL = 0.78;
-const WIND_TRIM_AIR = 0.66;
-const WIND_TRIM_HUNT = 0.70;
-const WIND_TRIM_PICKUP = 0.48;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 // The 2334m Bridge launch is the approved reference. These are deliberately
@@ -478,16 +474,6 @@ if (!Audio.prototype.__rc9SkiTrimInstalled) {
       }
       this.__rc9SkiTrim = surfaceTrim;
 
-      const windTrim = this.ctx.createGain();
-      windTrim.gain.value = WIND_TRIM_NORMAL;
-      windTrim.connect(this.bus.ambience);
-      for (const voice of [this.wind, this.air]) {
-        if (!voice) continue;
-        const output = voice.pan || voice.gain;
-        try { output.disconnect(this.bus.ambience); } catch { try { output.disconnect(); } catch {} }
-        output.connect(windTrim);
-      }
-      this.__rc9WindTrim = windTrim;
       this.__rc9PickupDuckUntil = 0;
     }
     return out;
@@ -510,12 +496,6 @@ if (!Audio.prototype.__rc9SkiTrimInstalled) {
     if (pickup) surfaceTarget = Math.min(surfaceTarget, SURFACE_TRIM_PICKUP);
     this.__rc9SkiTrim.gain.setTargetAtTime(surfaceTarget, now, 0.045);
 
-    if (this.__rc9WindTrim) {
-      let windTarget = p?.airborne ? WIND_TRIM_AIR : WIND_TRIM_NORMAL;
-      if (hunting) windTarget = Math.min(windTarget, WIND_TRIM_HUNT);
-      if (pickup) windTarget = Math.min(windTarget, WIND_TRIM_PICKUP);
-      this.__rc9WindTrim.gain.setTargetAtTime(windTarget, now, 0.055);
-    }
     return out;
   };
 
@@ -589,8 +569,6 @@ globalThis.__RC9_FEEDBACK = {
   surfaceTrim: SURFACE_TRIM_NORMAL,
   huntSkiTrim: SURFACE_TRIM_HUNT,
   pickupDuck: SURFACE_TRIM_PICKUP,
-  windTrim: WIND_TRIM_NORMAL,
-  airWindTrim: WIND_TRIM_AIR,
   heartbeatPriority: true,
   manualJumpLight: true,
   footfallImpactBody: true,

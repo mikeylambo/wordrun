@@ -15,7 +15,6 @@ const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 
 const RC9 = {
-  AIR_WIND: 0.34,
   GLIDE: 0.12,
   POWDER: 0.24,
   ICE: 0.20,
@@ -106,8 +105,11 @@ export class Audio {
     this.noise = noiseBuffer(ctx, 2, 0.72);
     this.white = noiseBuffer(ctx, 1, 0.18);
 
-    this.wind = this._noiseVoice(720, 'bandpass', 0.8, this.bus.ambience);
-    this.air = this._noiseVoice(2350, 'highpass', 0.55, this.bus.ambience);
+    // Phase 24: the wind and airborne-whoosh voices are gone. The wind was a
+    // bandpass noise bed sweeping 460-1500 Hz with speed — an alpine curve,
+    // inherited from a snowboarding game, and this runner does not want one.
+    // The air voice keyed off `airborne`, which no build of DICTION DASH can
+    // reach: the jump verb was removed in Phase 7 and nothing sets it.
     // The runner's contact with the track. Called 'snow' until Phase 18 —
     // the last piece of ski vocabulary left in the engine, kept that long
     // only because it is scaled by an approved mix baseline and renaming
@@ -246,10 +248,6 @@ export class Audio {
     const onGround = !airborne && !onIce && !inPowder;
     this.surfaceMode = onIce ? 'ice' : inPowder ? 'powder' : airborne ? 'air' : 'ground';
 
-    this._set(this.wind.gain.gain, A.WIND_MAX * speedN * speedN * (airborne ? 1.18 : 0.82));
-    this._set(this.wind.filter.frequency, 460 + speedN * 1040 + (airborne ? 260 : 0));
-    this._set(this.air.gain.gain, airborne ? RC9.AIR_WIND * (0.32 + speedN * 0.68) : 0, 0.05);
-    this._set(this.air.filter.frequency, 1600 + speedN * 3200, 0.05);
 
     const glide = RC9.GLIDE * (0.32 + speedN * 0.68);
     this._set(this.glide.gain.gain, onGround ? glide * (0.48 + edge * 1.35) : 0, 0.045);

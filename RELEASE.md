@@ -339,4 +339,23 @@ Slice history:
   31% of itself one mistake from the end and claws back off the last heart
   about once — the arc the run never had. Speed itself is still flat at high
   skill (1.14x swing); the arc lives in the hearts now, not the speed.
+- Phase 24 — playtest pass. The settings panel froze nothing, so reading it
+  cost you hearts; it now freezes the run (0 m travelled with it open,
+  against 24 m in the second after closing) without routing through the
+  pause menu and stacking two overlays. The five pips beside the hearts had
+  counted bells toward a repair that no longer happens, so they sat
+  permanently empty; they now count the clean reading streak, follow the
+  ladder as it shortens under pressure, stand down at full hearts, and read
+  "Clean streak 2 of 5 to the next heart" aloud. KEEP THIS RUN? became KEEP
+  GOING?. The wind bed is gone entirely — voice, trim bus, tuning constant
+  and mixer fader — along with the airborne whoosh keyed to a state no build
+  of this game can reach; it was an alpine noise curve inherited from a
+  snowboarding game and this runner does not want one. HOW TO PLAY stopped
+  being a controls list and became teaching: five sentences with the control
+  set as a highlighted key inside them, naming the on-screen DASH button on
+  touch and the F key only on a keyboard, and teaching the heart economy now
+  that a wrong read costs one. The missed-word teaching moved off the
+  results card into its own review panel — it was the best thing on that
+  screen and it was competing with the score for it. The card keeps one
+  line; the panel keeps every missed word with its definition, uncapped.
 

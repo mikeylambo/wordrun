@@ -1,3 +1,5 @@
+import { HEARTS } from '../design/bells.js';
+
 // RC7 first-run clarity: one screen, then get out of the player's way.
 // V1: the threat is discovered in play, never explained on title/help screens.
 export class OnboardingUI {
@@ -15,10 +17,18 @@ export class OnboardingUI {
       #rc7Onboarding.on{display:flex}
       #rc7Onboarding .card{width:min(90vw,390px);text-align:center}
       #rc7Onboarding h2{font:800 clamp(28px,8vw,46px)/.95 var(--face);letter-spacing:.08em;margin:0 0 20px;margin-right:-.08em}
-      #rc7Onboarding .rules{display:grid;gap:9px;text-align:left;margin:0 0 18px}
-      #rc7Onboarding .rule{display:grid;grid-template-columns:78px 1fr;gap:12px;align-items:start;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08)}
-      #rc7Onboarding .rule b{font:700 10px/1.4 var(--face);letter-spacing:.15em;color:#fff}
-      #rc7Onboarding .rule span{font:700 10px/1.45 var(--face);letter-spacing:.04em;opacity:.72}
+      /* Playtest: this read as a controls list, not as teaching. It is now
+         sentences, with the control set as a highlighted key inside the
+         sentence — you learn what the game wants and see which button does
+         it in the same glance. */
+      #rc7Onboarding .rules{display:grid;gap:0;text-align:left;margin:0 0 18px}
+      #rc7Onboarding .rule{padding:11px 0;border-bottom:1px solid rgba(255,255,255,.08);
+        font:500 13px/1.5 var(--face);letter-spacing:.005em;color:rgba(244,251,254,.8)}
+      #rc7Onboarding .rule:last-child{border-bottom:0}
+      #rc7Onboarding .rule b{display:inline-block;font:800 11px/1 var(--face);letter-spacing:.14em;
+        color:#0b1218;background:#8be4ff;padding:5px 8px;border-radius:2px;margin:0 3px;
+        transform:translateY(-1px)}
+      #rc7Onboarding .rule i{font-style:normal;color:#8be4ff;font-weight:700}
       #rc7Onboarding .ghost{display:flex;align-items:center;justify-content:space-between;margin:15px 0 18px;padding:11px 12px;border:1px solid rgba(255,255,255,.14)}
       #rc7Onboarding .ghost span{font:700 10px/1 var(--face);letter-spacing:.15em}
       #rc7Onboarding button{appearance:none;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#f7fbfd;cursor:pointer;font:700 11px/1 var(--face);letter-spacing:.2em}
@@ -55,17 +65,23 @@ export class OnboardingUI {
     this.root.dataset.rc7Ui = '1';
     const touch = (navigator.maxTouchPoints || 0) > 0 || matchMedia('(pointer:coarse)').matches;
     const confirm = touch ? 'TAP' : 'SPACE';
-    const dash = touch ? 'HOLD DASH' : 'HOLD F';
+    // The mobile build has a literal DASH button, so name the button there
+    // and the key only on a keyboard. Same for the confirm verb.
+    const dash = touch ? 'DASH' : 'F';
+    const HEART_STREAK = HEARTS.STREAK_REPAIR_DEFAULT;
     this.root.innerHTML = `
       <div class="card">
-        <h2>READ FAST</h2>
+        <h2>HOW TO PLAY</h2>
         <div class="rules">
-          <div class="rule"><b>${confirm}</b><span>IF THE SPELLING IS REAL</span></div>
-          <div class="rule"><b>PASS</b><span>IF IT IS NOT</span></div>
-          <div class="rule"><b>SPEED</b><span>RIGHT READS RUN FASTER</span></div>
-          <div class="rule dash"><b>${dash}</b><span>THE DASH. CLEAN READS CHARGE IT</span></div>
-          <div class="rule"><b>♥ ♥ ♥</b><span>EVERY WRONG READ COSTS ONE</span></div>
-          <div class="rule"><b>STREAK</b><span>CLEAN READS WIN THEM BACK</span></div>
+          <div class="rule">${touch ? '' : 'Press '}<b>${confirm}</b> if the word is spelled correctly.
+            Let it go past if the spelling is wrong.</div>
+          <div class="rule">Every word you read right makes you <i>faster</i>.
+            Every one you get wrong slows you down.</div>
+          <div class="rule">You have <i>three hearts</i>, and any wrong read costs one.
+            Read <i>${HEART_STREAK} in a row</i> to win one back.</div>
+          <div class="rule">Hold <b>${dash}</b> to spend a full charge and tear down the track.</div>
+          <div class="rule">Fakes look almost right — one letter out of place.
+            Take your time early; you will not have it later.</div>
         </div>
         <div class="ghost"><span>BEST RUN</span><button class="toggle" data-act="ghost"></button></div>
         <button class="start" data-act="start">BEGIN RUN</button>

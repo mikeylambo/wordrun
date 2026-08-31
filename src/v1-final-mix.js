@@ -8,7 +8,6 @@ const SURFACE_GLIDE = 0.075;
 // voice, not the wind, was doing most of the masking. Restore some atmospheric
 // air while pulling the glide bed down more decisively. These are presentation-
 // only values; the hidden ?mix=1 calibration panel can trim them live in dB.
-TUNING.AUDIO.WIND_MAX = 0.285;
 TUNING.AUDIO.ROAR_MAX = 0.35;
 
 function requestBedDuck(audio, depth = 0.08, hold = 0.22) {

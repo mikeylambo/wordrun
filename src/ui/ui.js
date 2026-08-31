@@ -333,40 +333,15 @@ export class UI {
     // tapped fake still shows the true spelling beside the misspelling
     // that lost it) but the words carrying it moved into two labels.
     if (recap?.length) {
+      // Playtest: this cluttered the results card. The teaching is the best
+      // thing on the screen and it was competing with the score for it, so it
+      // moved behind one line you choose to open. Nothing is lost — the panel
+      // holds more than the card ever could, definitions included.
       const slipped = recap.filter((m) => m.reason !== 'picked_fake');
       const tapped = recap.filter((m) => m.reason === 'picked_fake');
-      // Phase 21: the section that teaches gets a real heading rather than a
-      // caption. UNCAUGHT pairs with NOT A WORD and drops the awkward
-      // "slipped by a list of words" construction the old label produced.
-      parts.push('<div class="recapHead">MISSED WORDS</div>');
-      if (slipped.length) {
-        const shown = slipped.slice(0, 4).map((m) => m.shown).join('  ');
-        const more = slipped.length > 4 ? ` <em>+${slipped.length - 4}</em>` : '';
-        parts.push(row('UNCAUGHT', shown + more));
-      }
-      if (tapped.length) {
-        const shown = tapped.slice(0, 3)
-          .map((m) => `<s>${m.shown}</s><b>${m.answer}</b>`).join('  ');
-        const more = tapped.length > 3 ? ` <em>+${tapped.length - 3}</em>` : '';
-        parts.push(row('NOT A WORD', shown + more));
-      }
-      // The literacy loop closes here (Phase 21). Every word game will tell
-      // you which spelling was right; none of them tell you what the word
-      // means, which is the only part a player carries away from the run.
-      // Two at most — the card is read in about two seconds and a wall of
-      // definitions is a wall. For a tapped fake the lesson is the TRUE
-      // word, not the misspelling that caught them out.
-      const taught = [];
-      for (const m of recap) {
-        const word = m.reason === 'picked_fake' ? m.answer : m.shown;
-        if (!word || taught.some((t) => t.word === word)) continue;
-        const meaning = defineWord(word);
-        if (meaning) taught.push({ word, meaning });
-        if (taught.length === 2) break;
-      }
-      for (const t of taught) {
-        parts.push(`<div class="defRow"><b>${t.word}</b> ${t.meaning}</div>`);
-      }
+      this._missed = { slipped, tapped, recap };
+      parts.push(`<button class="missedOpen" id="missedOpen" data-rc2-ui>`
+        + `${recap.length} MISSED · REVIEW</button>`);
     } else if (recap) {
       parts.push('<div class="clean">PERFECT RUN</div>');
     }
@@ -439,7 +414,34 @@ export class UI {
     this.deathRecap.innerHTML = parts.join('');
   }
 
+  /** The review panel: every missed word, with what it meant. */
+  renderMissedPanel() {
+    const m = this._missed;
+    const body = document.getElementById('missedBody');
+    if (!body || !m) return;
+    const parts = [];
+    if (m.tapped.length) {
+      parts.push('<div class="mHead">NOT A WORD</div>');
+      for (const x of m.tapped) parts.push(this._missedRow(x.answer, x.shown));
+    }
+    if (m.slipped.length) {
+      parts.push('<div class="mHead">UNCAUGHT</div>');
+      for (const x of m.slipped) parts.push(this._missedRow(x.shown, null));
+    }
+    body.innerHTML = parts.join('');
+  }
+
+  _missedRow(word, wrongSpelling) {
+    const meaning = defineWord(word);
+    return `<div class="mRow"><div class="mWord">`
+      + (wrongSpelling ? `<s>${wrongSpelling}</s>` : '')
+      + `<b>${word}</b></div>`
+      + (meaning ? `<div class="mDef">${meaning}</div>` : '')
+      + '</div>';
+  }
+
   clearRun() {
+    document.getElementById('missedPanel')?.classList.remove('on');
     this.chain.classList.remove('on', 'lost', 'pop');
     if (this.bandName) this.bandName.classList.remove('on');
     if (this.powerHint) this.powerHint.classList.remove('on', 'spending', 'teaching');

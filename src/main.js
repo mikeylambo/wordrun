@@ -679,6 +679,23 @@ copyStats?.addEventListener('click', async (e) => {
   setTimeout(() => { copyStats.textContent = 'STATS'; }, 1400);
 });
 
+// The missed-word review (Phase 24): opened from the results card, closed
+// back to it. The card keeps the score; the panel keeps the teaching.
+const missedPanel = document.getElementById('missedPanel');
+document.getElementById('deathRecap')?.addEventListener('click', (e) => {
+  if (!e.target.closest('#missedOpen')) return;
+  e.stopPropagation();
+  audio.uiTap();
+  ui.renderMissedPanel();
+  missedPanel?.classList.add('on');
+});
+document.getElementById('missedClose')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  audio.uiTap();
+  missedPanel?.classList.remove('on');
+});
+missedPanel?.addEventListener('click', (e) => e.stopPropagation());
+
 ui.saveShot.addEventListener('click', async (e) => {
   e.stopPropagation();
   if (!shotUrl) return;

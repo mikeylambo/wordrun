@@ -616,8 +616,13 @@ head('DASH — the second verb, finally legible');
     files.speed.includes('STREAK_DECAY'));
 
   // 4. The lesson is a real teaching beat, and it ends when it should.
+  // Phase 24: the card became teaching sentences rather than a controls
+  // list, so the dash's line is prose with its control highlighted inside
+  // it. What must hold is that the mechanic is still taught by name on the
+  // one screen that explains anything.
   check('the dash gets its own onboarding rule line, by name',
-    files.onboard.includes('class="rule dash"') && files.onboard.includes('THE DASH.'));
+    files.onboard.includes('Hold <b>${dash}</b>') &&
+    files.onboard.includes('spend a full charge'));
   check('the coach explains where the charge comes from',
     files.ui.includes('CLEAN READS CHARGE THE DASH'));
   check('the teaching beat holds until the player dashes, then retires for good',
@@ -713,11 +718,16 @@ head('BROADCAST — few words, one type system, numbers first');
 
   // Phase 21 relabels: the teaching section earns a heading with weight, and
   // each label says what it is without a sentence around it.
-  check('the recap section is headed MISSED WORDS, at heading weight',
-    uiSrc.includes("'<div class=\"recapHead\">MISSED WORDS</div>'") &&
-    /\.recapHead\{[^}]*font-weight:800/.test(html));
-  check('the missed-read labels are UNCAUGHT and NOT A WORD',
-    uiSrc.includes("row('UNCAUGHT'") && uiSrc.includes("row('NOT A WORD'"));
+  // Phase 24: the teaching moved off the results card into its own panel —
+  // it was the best thing on the screen and it was competing with the score
+  // for it. The card keeps one line; the panel keeps the lesson, and has
+  // room for the definitions the card never could.
+  check('the results card offers the review rather than inlining it',
+    uiSrc.includes("id=\"missedOpen\"") && uiSrc.includes('MISSED · REVIEW') &&
+    html.includes('id="missedPanel"'));
+  check('the panel is headed MISSED WORDS and labels both mistake kinds',
+    html.includes('MISSED WORDS') && uiSrc.includes("'<div class=\"mHead\">NOT A WORD</div>'") &&
+    uiSrc.includes("'<div class=\"mHead\">UNCAUGHT</div>'"));
   check('a clean run reads PERFECT RUN', uiSrc.includes('>PERFECT RUN<'));
   check('the stat bar names the number it shows',
     uiSrc.includes("'TRUE READS'"));
@@ -728,11 +738,12 @@ head('BROADCAST — few words, one type system, numbers first');
   //    rows rather than one sentence per wrong read.
   check('the score is the largest thing on the results card',
     /\.big\{[^}]*font-size:clamp\(72px/.test(html));
-  check('the recap is labelled rows, not sentences',
-    uiSrc.includes("row('UNCAUGHT'") && uiSrc.includes("row('NOT A WORD'") &&
-    uiSrc.includes('class="statBar"'));
-  check('the results card still teaches the true spelling of a tapped fake',
-    uiSrc.includes('<s>${m.shown}</s><b>${m.answer}</b>'));
+  check('the results card is figures and rows, not sentences',
+    uiSrc.includes('class="statBar"') && uiSrc.includes('class="objRow"') &&
+    uiSrc.includes("row('TARGET'"));
+  check('the review still teaches the true spelling of a tapped fake',
+    uiSrc.includes('_missedRow(x.answer, x.shown)') &&
+    uiSrc.includes('<s>${wrongSpelling}</s>') && uiSrc.includes('<b>${word}</b>'));
 }
 
 console.log(out.join('\n'));

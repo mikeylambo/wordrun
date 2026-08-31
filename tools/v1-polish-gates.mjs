@@ -119,11 +119,19 @@ check(mobile.includes("content:'REAL'") &&
   'touch ring teaches the confirm verb; retired carve/spin/flip labels are gone');
 check(mobile.includes('Audio.prototype.__v1MobileTouchUi'),
   'mobile presentation updates through the existing audio/presentation chain');
-check(onboarding.includes("touch ? 'TAP' : 'SPACE'") && onboarding.includes('IF THE SPELLING IS REAL'),
-  'touch onboarding teaches the confirm verb rather than requiring discovery');
-check(onboarding.includes("touch ? 'HOLD DASH' : 'HOLD F'") &&
-  onboarding.includes('class="rule dash"'),
-  'onboarding teaches the DASH by name, with its own rule line and its input spelled out');
+// Phase 24 rewrote this card from a controls list into teaching: sentences
+// with the control set as a highlighted key inside them. The contract that
+// matters is unchanged — the confirm verb and the DASH are both taught by
+// name, and the touch build names the on-screen button rather than a key
+// nobody on a phone has.
+check(onboarding.includes("touch ? 'TAP' : 'SPACE'") &&
+  onboarding.includes('if the word is spelled correctly'),
+  'onboarding teaches the confirm verb rather than requiring discovery');
+check(onboarding.includes("touch ? 'DASH' : 'F'") &&
+  onboarding.includes('Hold <b>${dash}</b>'),
+  'the DASH is taught by name, and by the button a phone actually has');
+check(onboarding.includes('three hearts') && onboarding.includes('in a row</i> to win one back'),
+  'and the heart economy is taught, since a wrong read now costs one');
 check(index.includes('/src/v1-mobile-ui.js'), 'mobile control presentation is loaded by the release page');
 
 check(viewport.includes('height:100dvh!important') && viewport.includes('#rc2Pause,#rc7Onboarding'),
@@ -133,11 +141,21 @@ check(viewport.includes('safe-area-inset-bottom') && viewport.includes('position
 check(!viewport.includes('requestAnimationFrame'),
   'viewport shell fix adds no runtime loop');
 
-check(finalMix.includes('TUNING.AUDIO.WIND_MAX = 0.285') && finalMix.includes('const SURFACE_GLIDE = 0.075'),
-  'final mix establishes the post-isolation wind and surface-glide reference');
-check(approvedMix.includes('wind: -2') && approvedMix.includes('surface: -5.5') &&
-  approvedMix.includes('bells: 4') && approvedMix.includes('heartbeat: 6') && approvedMix.includes('beast: 1'),
-  'user-approved live mix is baked as the canonical V1 dB baseline');
+// Phase 24 removed the wind bed, so its reference level went with it. The
+// surface-glide reference and the rest of the approved baseline are
+// untouched — this asserts the removal is complete rather than partial,
+// which is the failure mode that leaves a voice audible with no fader.
+check(finalMix.includes('const SURFACE_GLIDE = 0.075') && !finalMix.includes('WIND_MAX'),
+  'final mix keeps its surface-glide reference and no longer sets a wind one');
+check(approvedMix.includes('surface: -5.5') && approvedMix.includes('bells: 4') &&
+  approvedMix.includes('heartbeat: 6') && approvedMix.includes('beast: 1') &&
+  !approvedMix.includes('wind:'),
+  'user-approved live mix is baked as the canonical V1 dB baseline, wind excepted');
+const rc9FeedbackSrc = read('src/rc9-feedback.js');
+const mixerSrc = read('src/v1-mixer.js');
+check(!/this\.wind|this\.air\b|WIND_MAX|AIR_WIND/.test(audioSrc) &&
+  !/windTrim|WIND_TRIM/.test(rc9FeedbackSrc) && !/WIND_MAX/.test(mixerSrc),
+  'the wind bed is gone everywhere — voice, trim bus, tuning and fader');
 check(approvedMix.includes('mixerZeroIsApprovedBaseline: true') && approvedMix.includes('__DASH_MIX?.reset?.()'),
   'hidden mixer resets to zero around the approved release baseline');
 check(finalMix.includes('TUNING.AUDIO.ROAR_MAX = 0.35') && finalMix.includes('roar * 0.055'),

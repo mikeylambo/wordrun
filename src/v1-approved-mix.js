@@ -7,7 +7,6 @@ import { ApprovedAudioAssets } from './audio/approved-assets.js';
 // available as a relative trim layer around this baseline.
 const APPROVED_DB = Object.freeze({
   master: 0,
-  wind: -2,
   surface: -5.5,
   bells: 4,
   heartbeat: 6,
@@ -93,11 +92,6 @@ if (!Audio.prototype.__v1ApprovedMix) {
     const edge = player.airborne ? 0 : clamp01(Math.abs(player.heading) / TUNING.PLAYER.MAX_CARVE);
     const onGround = live && !player.airborne && !player.onIce && !player.inPowder;
 
-    if (this.wind?.gain?.gain) {
-      const target = TUNING.AUDIO.WIND_MAX * speedN * speedN *
-        (player.airborne ? 1.18 : 0.82) * APPROVED.wind * relativeGain('wind');
-      this._set(this.wind.gain.gain, target, 0.06);
-    }
 
     if (this.glide?.gain?.gain) {
       const glideBase = globalThis.__DASH_V1_FINAL_MIX?.surfaceGlide ?? 0.075;
@@ -143,7 +137,6 @@ globalThis.__DASH_V1_APPROVED_MIX = {
   db: { ...APPROVED_DB },
   effective: {
     master: TUNING.AUDIO.MASTER,
-    windMax: TUNING.AUDIO.WIND_MAX * APPROVED.wind,
     surfaceGlide: (globalThis.__DASH_V1_FINAL_MIX?.surfaceGlide ?? 0.075) * APPROVED.surface,
     roarMax: TUNING.AUDIO.ROAR_MAX * APPROVED.beast,
   },

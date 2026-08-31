@@ -604,7 +604,6 @@ export const TUNING = {
     // Music-stem bus ceiling (Phase 12): kept low while placeholders stand
     // in; raise when the produced score lands in public/audio/stems/.
     MUSIC_MAX: 0.16,
-    WIND_MAX: 0.30,
     CARVE_MAX: 0.22,
     ROAR_MAX: 0.30,
     FOOTFALL_MAX: 0.55,

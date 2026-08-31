@@ -343,12 +343,13 @@ head('META — wiring and independence');
     shopSrc.includes('`◆ ${balance()}`') && !/\bCOINS?\b|\bCREDITS?\b|\bGEMS?\b/.test(shopSrc));
 
   const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
-  check('the death card teaches the real spelling on a tapped fake',
-    ui.includes('NOT A WORD') && ui.includes('<b>${m.answer}</b>'));
+  check('the review panel teaches the real spelling on a tapped fake',
+    ui.includes('_missedRow(x.answer, x.shown)') && ui.includes('<s>${wrongSpelling}</s>'));
   // Phase 19 compressed the sentence into the row's label. Same teaching,
   // same gentle framing, one line instead of one line per wrong read.
   check('an omission is explained without crash language',
-    ui.includes("row('UNCAUGHT'") && !/\b(FAILED|WRONG|BAD|MISTAKE)\b/.test(ui));
+    ui.includes("<div class=\"mHead\">UNCAUGHT</div>") &&
+    !/\b(FAILED|WRONG|BAD|MISTAKE)\b/.test(ui));
   check('the title shows the goal card and the streak',
     ui.includes('setDaily(') && ui.includes('goalChip') && ui.includes('DAY ${card.streak}'));
 
@@ -779,11 +780,15 @@ head('DEFINITIONS — what the word actually means');
   // The teaching moment: a tapped fake teaches the TRUE word, not the
   // misspelling that caught the player out.
   const uiSrc2 = fs.readFileSync('src/ui/ui.js', 'utf8');
-  check('the recap teaches the true word, not the fake',
-    uiSrc2.includes("m.reason === 'picked_fake' ? m.answer : m.shown") &&
+  // Phase 24: the definitions moved with the missed words, into the review
+  // panel. A tapped fake is still taught by its TRUE spelling — the panel
+  // is passed `x.answer` as the word and `x.shown` as the strikethrough —
+  // and the panel has room for all of them rather than the card's two.
+  check('the review teaches the true word, not the fake',
+    uiSrc2.includes('_missedRow(x.answer, x.shown)') &&
     uiSrc2.includes('defineWord(word)'));
-  check('the card shows at most two definitions',
-    uiSrc2.includes('taught.length === 2'));
+  check('and is not capped at two, now that it has a screen of its own',
+    uiSrc2.includes('for (const x of m.tapped)') && uiSrc2.includes('for (const x of m.slipped)'));
 }
 
 head('FINISH — the 30 km end is a title card, not a dialog');

@@ -6,7 +6,7 @@ const STORAGE_KEY = 'dictiondash:live-mix';
 const ENABLED = typeof location !== 'undefined' && new URLSearchParams(location.search).get('mix') === '1';
 const DEFAULT_DB = Object.freeze({
   master: 0,
-  wind: 0,
+  bed: 0,
   surface: 0,
   bells: 0,
   heartbeat: 0,
@@ -14,7 +14,6 @@ const DEFAULT_DB = Object.freeze({
 });
 const BASE = Object.freeze({
   master: TUNING.AUDIO.MASTER,
-  windMax: TUNING.AUDIO.WIND_MAX,
   surfaceGlide: globalThis.__DASH_V1_FINAL_MIX?.surfaceGlide ?? 0.075,
   roarMax: TUNING.AUDIO.ROAR_MAX,
 });
@@ -51,8 +50,7 @@ function snapshot() {
     db: { ...db },
     base: {
       master: BASE.master,
-      windMax: TUNING.AUDIO.WIND_MAX,
-      surfaceGlide: globalThis.__DASH_V1_FINAL_MIX?.surfaceGlide ?? BASE.surfaceGlide,
+          surfaceGlide: globalThis.__DASH_V1_FINAL_MIX?.surfaceGlide ?? BASE.surfaceGlide,
       roarMax: TUNING.AUDIO.ROAR_MAX,
     },
   };
@@ -118,10 +116,6 @@ if (!Audio.prototype.__v1LiveMixCategories) {
     const edge = player.airborne ? 0 : Math.max(0, Math.min(1, Math.abs(player.heading) / TUNING.PLAYER.MAX_CARVE));
     const onGround = live && !player.airborne && !player.onIce && !player.inPowder;
 
-    if (this.wind?.gain?.gain) {
-      const target = TUNING.AUDIO.WIND_MAX * speedN * speedN * (player.airborne ? 1.18 : 0.82) * gain('wind');
-      this._set(this.wind.gain.gain, target, 0.06);
-    }
 
     if (this.glide?.gain?.gain) {
       const glideBase = globalThis.__DASH_V1_FINAL_MIX?.surfaceGlide ?? BASE.surfaceGlide;
@@ -148,7 +142,7 @@ if (!ApprovedAudioAssets.prototype.__v1LiveMix) {
   const baseLoop = ApprovedAudioAssets.prototype.setLoop;
   ApprovedAudioAssets.prototype.setLoop = function setLoopV1Mix(id, target, options = {}) {
     let scale = 1;
-    if (id === 'page_grain_bed') scale = 1.12 * gain('wind');
+    if (id === 'page_grain_bed') scale = 1.12 * gain('bed');
     return baseLoop.call(this, id, target * scale, options);
   };
 
@@ -192,7 +186,7 @@ function createMixerUi() {
 
   const rows = [
     ['master', 'MASTER', -18, 6],
-    ['wind', 'WIND', -18, 9],
+    ['bed', 'BED', -18, 9],
     ['surface', 'SURFACE', -24, 9],
     ['bells', 'BELLS', -18, 9],
     ['heartbeat', 'HEARTBEAT', -18, 9],

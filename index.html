@@ -149,7 +149,19 @@
   #deathRecap .clean{font-size:13px;font-weight:800;letter-spacing:.24em;color:#8be4ff;text-align:center;margin:2px 0}
   /* Broadcast stat bar: number over label, three columns, one hairline. */
   .recapHead{font-size:11px;font-weight:800;letter-spacing:.26em;color:#dcecf7;margin:2px 0 -2px}
-    .defRow{font-size:11px;font-weight:500;line-height:1.42;letter-spacing:.005em;color:rgba(232,244,251,.5);text-align:left;margin-top:2px}
+    .missedOpen{pointer-events:auto;cursor:pointer;border:1px solid rgba(139,228,255,.3);border-radius:2px;background:rgba(18,42,54,.35);color:#8be4ff;font-family:inherit;font-size:9px;font-weight:700;letter-spacing:.22em;padding:10px 14px;margin:2px auto 0}
+  .missedOpen:active{background:rgba(28,62,78,.6)}
+  #missedPanel{position:absolute;inset:0;z-index:44;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(4,7,11,.9);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);pointer-events:auto}
+  #missedPanel.on{display:flex}
+  #missedPanel .mCard{width:min(90vw,380px);max-height:78vh;overflow-y:auto;text-align:left}
+  #missedPanel .mTitle{font-size:11px;font-weight:800;letter-spacing:.26em;color:#dcecf7;text-align:center;margin-bottom:16px}
+  #missedPanel .mHead{font-size:8px;font-weight:600;letter-spacing:.24em;color:var(--dimmer);margin:14px 0 6px}
+  #missedPanel .mRow{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+  #missedPanel .mWord{font-size:16px;font-weight:700;letter-spacing:-.01em;color:#eaf6fc}
+  #missedPanel .mWord s{color:rgba(255,150,142,.72);text-decoration-thickness:1.5px;margin-right:8px;font-weight:600}
+  #missedPanel .mDef{margin-top:3px;font-size:11px;font-weight:500;line-height:1.42;color:rgba(232,244,251,.5)}
+  #missedPanel .btn{display:block;width:100%;margin-top:20px}
+  .defRow{font-size:11px;font-weight:500;line-height:1.42;letter-spacing:.005em;color:rgba(232,244,251,.5);text-align:left;margin-top:2px}
   .defRow b{font-weight:800;letter-spacing:.12em;color:#8be4ff;text-transform:uppercase;margin-right:7px}
   .runPlot{display:block;width:100%;height:38px;overflow:visible}
   .runPlot .rf{fill:rgba(103,216,255,.13)}
@@ -236,6 +248,17 @@
     <div id="deathActions"><button class="btn primary" id="deathAgain" data-rc2-ui>AGAIN</button><button class="btn" id="deathMenu" data-rc2-ui>MENU</button></div>
     <div id="shotBtns"><button class="btn" id="copyChallenge" data-rc2-ui>LINK</button><button class="btn" id="saveShot" data-rc2-ui>SAVE</button><button class="btn" id="copyStats" data-rc2-ui>STATS</button></div>
     <div class="seed" id="deathSeed"></div>
+  </div>
+
+  <!-- Playtest: the missed-word teaching cluttered the results card, so it
+       lives here now — one line to open it, and room for the definitions the
+       card could never fit. -->
+  <div id="missedPanel">
+    <div class="mCard">
+      <div class="mTitle">MISSED WORDS</div>
+      <div id="missedBody"></div>
+      <button class="btn" id="missedClose" data-rc2-ui>DONE</button>
+    </div>
   </div>
 
   <div id="continueOffer">
