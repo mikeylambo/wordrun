@@ -175,7 +175,9 @@ export class CameraRig {
     // the word plate below anything that has ever shipped. Legibility
     // outranks spectacle, and this is the line where that is enforced.
     const fov = Math.min(C.FOV_MAX,
-      this.fov + this._dashKick * TUNING.BOOST.DASH.KICK_FOV * motion);
+      this.fov + this._dashKick * TUNING.BOOST.DASH.KICK_FOV * motion
+      + (this.music?.pulse || 0) * C.MUSIC_PULSE_FOV * motion
+      + (this.music?.accent || 0) * C.MUSIC_ACCENT_FOV * motion);
     if (Math.abs(this.camera.fov - fov) > 0.01) {
       this.camera.fov = fov;
       this.camera.updateProjectionMatrix();

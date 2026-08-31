@@ -600,6 +600,10 @@ export const TUNING = {
     // term — the close-in, the drop, the lens stretch, the tremor — without
     // touching composition, so the picture is the same, just calmer.
     ACCESS_MOTION_SCALE: 0.45,
+    // Degrees of FOV per unit of music response. The beat bob is deliberately
+    // near the threshold of notice; crashes are rare enough to be felt.
+    MUSIC_PULSE_FOV: 22,
+    MUSIC_ACCENT_FOV: 2.5,
   },
 
   // ── Fog / draw distance ─────────────────────────────────────────────────

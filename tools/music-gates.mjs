@@ -154,6 +154,20 @@ console.log('\nSECTIONS — they tile the track');
   ok(score.sectionAt(score.map.sections[1].from + 1) === s[1], 'a beat resolves to its section');
 }
 
+console.log('\nSHIPPING — the map the game loads is the map in source');
+{
+  const shipped = 'public/audio/music/into-the-night.scoremap.json';
+  ok(fs.existsSync(shipped), 'the score map ships with the build');
+  ok(fs.existsSync('public/audio/music/into-the-night.mp3'), 'the track ships with the build');
+  if (fs.existsSync(shipped)) {
+    ok(fs.readFileSync(shipped, 'utf8') === fs.readFileSync('music/into-the-night.scoremap.json', 'utf8'),
+      'the shipped copy has not drifted from the generated one');
+  }
+  const player = fs.readFileSync('src/music-track.js', 'utf8');
+  ok(!/https?:\/\//.test(player), 'the player fetches nothing off-origin');
+  ok(player.includes('el.loop = true'), 'the whole song loops naturally, with no splice point to author');
+}
+
 console.log('\nMAPPING — music modulates, the run decides');
 {
   const clock = new MusicClock(score);

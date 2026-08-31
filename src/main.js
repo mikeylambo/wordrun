@@ -23,6 +23,8 @@ import { flowFactor, flowGlow, flowLevel } from './render/flow-curve.js';
 import { ACCESS, initAccess, buildAccessPanel } from './ui/access.js';
 import { applyMaterialPass } from './render/material-pass.js';
 import { Audio } from './audio/audio.js';
+import { MusicTrack } from './music-track.js';
+import { musicResponse } from './render/music-response.js';
 import { Input } from './input/input.js';
 import { Storage } from './storage/storage.js';
 import { StatsManager, localStorageAdapter } from './meta/stats.js';
@@ -38,6 +40,9 @@ const canvas = document.getElementById('gl');
 const stage = new Stage(canvas);
 const ui = new UI();
 const audio = new Audio();
+const music = new MusicTrack();
+music.load();
+let musicState = { pulse: 0, accent: 0, shimmer: 0, drive: 0, calm: false, section: null };
 const input = new Input(canvas);
 
 // Challenge links (Phase 14): a ?draft= URL drops this player into someone
@@ -209,6 +214,11 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
 
 function startRun() {
   audio.start();
+  music.attach(audio);
+  music.play();
+  // The placeholder stem synth is the fallback score; a real track replaces
+  // it rather than playing underneath it.
+  audio.musicTrackLive = true;
   const ghostData = ghostEnabled ? Storage.loadGhost(SEED) : null;
   const runs = Storage.runsToday(SEED);
 
@@ -891,6 +901,16 @@ function tick(dt) {
   dataworld.setFlow(flowF);
   trackPylons.setFlow(flowF);
   playerActor.flow = flowF;
+  // The score's reading of the run. Music modulates, the run decides: the
+  // intensity term is the game's, and the mapping may only tint it.
+  const clock = music.update(performance.now());
+  musicState = musicResponse(clock, {
+    intensity: Math.max(0, Math.min(1,
+      0.45 * ((p.speed - TUNING.RUN.FLOOR) / (TUNING.RUN.CEILING - TUNING.RUN.FLOOR))
+      + 0.40 * Math.min(1, (p.chain ?? 0) / 8)
+      + (p.overdrive ? 0.15 : 0))),
+  }, { reducedFlash: ACCESS.reducedFlash, motionScale: ACCESS.reducedFlash ? TUNING.CAMERA.ACCESS_MOTION_SCALE : 1 });
+  rig.music = musicState;
   rig.update(dt, p, sim.beast.gap, dreadLive ? bands.shake : 0, killT, sim.terrain,
     sim.beast.x, sim.beast.side);
   stage.followLight(p.x, p.y, -p.d);
@@ -933,6 +953,9 @@ requestAnimationFrame(frame);
 window.__STATE = () => sim.state();
 window.__DEBUG = () => sim.debug();
 window.__SIM = sim;
+window.__MUSIC = () => ({
+  el: music.el, clock: music.clock, state: musicState, fov: rig.camera.fov,
+});
 window.__TUNING = TUNING;
 window.__RENDER = {
   stage, terrainMesh, props, landmarks, rig, playerActor, beastActor, ghostActor, spray, materialPass,

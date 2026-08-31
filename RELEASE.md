@@ -441,3 +441,25 @@ Slice history:
   gates that had frozen the old voice in place now assert its absence, and a
   new one fails if any sustained noise bed keyed to the runner's speed ever
   comes back.
+- Phase 28 — the score is in the build. The whole song loops naturally, so
+  there is no splice point to author and no overlay to write: the intro plays
+  once on lap one and again on every lap after, which is what a track written
+  to be listened to actually wants. It ships uncompressed at 6.73 MB because it
+  fits — initial load goes from 1.51 MB to 8.28 MB, leaving 21.72 MB of
+  headroom under the ceiling, and an encode would have cost quality to buy room
+  nothing needs. It streams from a media element rather than a decoded buffer
+  so a run can start before the whole file has arrived, and routes through the
+  existing ambience bus, which means mute, the drain's lowpass and every duck
+  in the mix already apply to it for free.
+  The placeholder stem synth stands down the moment a real track is playing —
+  it was always the fallback score, and two scores at once is not a mix.
+  The camera reads the clock: a small bob on the kick and a larger, rarer kick
+  on a crash, both scaled by the run's own intensity so a careless run is not
+  handed the same swagger as a clean fast one. Measured in a real browser at
+  the 100-second mark: the section resolves to the track's first bass drop-out,
+  the drive term sits at 0.59 for a hot run, accents reach full strength, the
+  beat never runs backwards, and the field of view moves on every frame instead
+  of stepping. Reduced flash still removes every accent and scales the bob.
+  Nothing here touches a word plate, and none of it can: the mapping reaches
+  the camera and the post chain and has no path to geometry or to anything a
+  word is printed on.

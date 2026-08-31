@@ -231,7 +231,7 @@ export class Audio {
     // speed (effective, so Overdrive lifts the score) and the chain.
     this.stems.update(
       { speed: p.effSpeed ?? p.speed, streak: p.chain ?? 0 },
-      !!running && !kill
+      !!running && !kill && !this.musicTrackLive
     );
 
     const beastPan = this._panFor(sim?.beast?.x ?? p.x);
