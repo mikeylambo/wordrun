@@ -768,19 +768,6 @@ function drainSimEvents() {
   if (!events) return;
   for (const e of events) {
     switch (e.t) {
-      case 'takeoff': audio.takeoff(); break;
-      case 'land_clean':
-        audio.landClean();
-        spray.emit(e.x, e.y, -e.d, 16, 4.2, 3.0, 0);
-        if (e.chain > 0) audio.chainLink(e.chain);
-        if (e.proxMult > 1.05) audio.courageBank(e.proxMult);
-        break;
-      case 'land_flub':
-        audio.landFlub();
-        spray.emit(e.x, e.y, -e.d, 20, 6.5, 2.0, 0);
-        ui.hitFlash();
-        break;
-      case 'land_bump': audio.landBump(); break;
       case 'hit':
         audio.hit();
         spray.emit(e.x, e.y, -e.d, 18, 7, 3.2, 0);
@@ -807,11 +794,6 @@ function drainSimEvents() {
         }
         break;
       case 'overdrive_off': audio.overdriveOff(); break;
-      case 'stunt_escape':
-        audio.shove();
-        audio.courageBank(2);
-        spray.emit(e.x, e.y, -e.d, 28, 8, 4.2, 0);
-        break;
       case 'kill': audio.kill(); break;
       case 'word_confirm': audio.uiTap(); break;
       case 'word_correct':

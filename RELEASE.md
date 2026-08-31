@@ -534,3 +534,24 @@ Slice history:
   `?lookahead=0|1|2|3|4|6` overrides the count for an A/B in one session. The
   build before this phase drew one preview plate at 0.55, so 1 reproduces it
   and 0 draws none at all.
+- Phase 31 — the last sound shared with the source game. Comparing the two
+  repositories asset by asset found exactly one file in common, and it was the
+  one being reported: `go_rush-v01.mp3`, identical byte for byte, md5 and all.
+  Its own generation brief describes it as "compressed air opening into a
+  bright aerodynamic whoosh" — an air sound, playing on the verb the player
+  presses most, because it was layered onto the dash. Phase 27 removed the
+  synthesised rush and left the recorded one behind, which is exactly why the
+  wind kept being audible after the wind was reported gone. Removing a voice by
+  name twice while the sample survived is the lesson: the file and the manifest
+  entry are gone, and a gate now asserts every shipped asset was generated for
+  this game rather than inherited.
+  The same comparison found five voices this game cannot reach: takeoff, the
+  three landings, and the stunt shove — the jump-and-land vocabulary of a
+  snowboarding game, whose events no source in this build emits since the jump
+  verb left in Phase 7. Two patch-layer wrappers had gone stale around them and
+  were worse than dead: one wrapped a player method that no longer exists, so
+  it would have thrown had anything ever called it. All of it is out, and the
+  surface bus keeps its real transients.
+  Of thirty-four sound methods the two games still share by name, the rest are
+  the audio engine itself — buses, tone and noise helpers, the update loop —
+  which is shared framework rather than shared sound.

@@ -42,7 +42,6 @@ function boot() {
     const events = baseDrain();
     if (events) {
       for (const e of events) {
-        if (e.t === 'takeoff') audio.__rc9TakeoffKind = e.kind || 'terrain';
       }
     }
     return events;
@@ -93,7 +92,12 @@ function boot() {
   // The takeoff/landing/tree/rock layers are gone with their assets: they
   // wrapped events this game cannot produce. The procedural voices they
   // wrapped are untouched — `layer` only ever added a sample on top.
-  layer('overdriveOn', () => 'go_rush', () => ({ bus: 'ambience', gain: 0.34 }));
+  // Phase 31: the dash no longer plays go_rush. That file was DESCENT's,
+  // byte for byte, and its own brief describes it as "compressed air opening
+  // into a bright aerodynamic whoosh" — an air sound, on the one verb the
+  // player presses most. Phase 27 removed the synthesised rush and left this
+  // recorded one behind, which is why the wind kept being audible after the
+  // wind was reported gone. The dash keeps its procedural sweep and burst.
 
   layer('huntStart', (side, kind) => kind === 'leap' ? 'beast_main_leap' : 'beast_main_distant',
     (side) => ({ bus: 'threat', gain: 0.42, pan: clamp(side * 0.72, -1, 1) }));
@@ -124,7 +128,6 @@ function boot() {
     proceduralFallback: true,
     manifest: '/audio/approved/manifest.json',
     slots: [
-      'go_rush',
       'beast_main_distant', 'beast_main_step', 'beast_main_leap',
     ],
     get status() { return assets?.status?.() || { ready: false, loaded: 0, expected: 0, ids: [] }; },

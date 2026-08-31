@@ -1,10 +1,6 @@
 {
   "version": 1,
   "files": {
-    "go_rush": {
-      "url": "/audio/approved/go_rush-v01.mp3",
-      "gain": 0.44
-    },
     "beast_main_step": {
       "url": "/audio/approved/corruption_step-v01.wav",
       "gain": 0.3

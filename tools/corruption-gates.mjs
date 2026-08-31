@@ -545,8 +545,28 @@ head('RESIDUE — the frame this was cloned from must not show through');
     !/SURFACE_TRIM/.test(feedbackSrc) && !/__rc9SkiTrim\b/.test(feedbackSrc),
     'no orphan gain node left connected to the surface bus');
   check('the surface bus still carries its transients',
-    /_burst\(0\.11, 0\.14, 660/.test(audioSrc) && /this\.bus\.surface/.test(audioSrc),
-    'impacts, carves and wipeouts route to the bus directly and always did');
+    /_burst\(0\.30, 0\.43, 470, 'lowpass', 0, this\.bus\.surface\)/.test(audioSrc) &&
+    /hit\(\) \{/.test(audioSrc),
+    'the hit routes to the surface bus directly, as it always did');
+
+  // Phase 31: the last shared asset and the last snowboarding voices.
+  const assetsSrc = fs.readFileSync('src/rc9-assets.js', 'utf8');
+  check('the dash no longer plays an inherited air-rush sample',
+    !fs.existsSync('public/audio/approved/go_rush-v01.mp3') &&
+    // Strip comments first: the note explaining the removal names the file.
+    !('go_rush' in manifest.files) &&
+    !/go_rush/.test(assetsSrc.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')),
+    'file, manifest entry and the overdriveOn layer are all gone');
+  check('every shipped audio asset is this game\'s own',
+    Object.values(manifest.files).every((f) => /corruption_/.test(f.url)),
+    `${Object.keys(manifest.files).length} assets, all generated for this game`);
+  check('the jump-and-land vocabulary is gone from the engine',
+    !/\n  (takeoff|landClean|landBump|landFlub|shove)\(/.test(audioSrc),
+    'takeoff, three landings and the stunt shove — no source emits their events');
+  check('nothing patches the methods that vocabulary left behind',
+    !/Audio\.prototype\.takeoff\s*=/.test(feedbackSrc) &&
+    !/Player\.prototype\._takeoff\s*=/.test(feedbackSrc),
+    'the rc9 wrappers went with them rather than wrapping undefined');
   check('the approved mix baseline itself is untouched',
     mixSrcs.includes('surface: -5.5'),
     'the approved -5.5 dB surface trim stands');

@@ -344,21 +344,11 @@ export class Audio {
     if (accent) this._burst(0.12, 0.055, 2400, 'highpass', 0, this.bus.score, 0.7);
   }
 
-  takeoff() {
-    this._burst(0.20, 0.18, 2700, 'bandpass', 0, this.bus.surface);
-    this._burst(0.34, 0.10, 4200, 'highpass', 0, this.bus.ambience);
-  }
 
-  landClean() {
-    this._burst(0.24, 0.36, 760, 'lowpass', 0, this.bus.surface);
-    this._tone({ type: 'triangle', f0: 430, f1: 650, dur: 0.13, vol: 0.06, bus: this.bus.surface });
-  }
-
-  landBump() { this._burst(0.11, 0.14, 660, 'lowpass', 0, this.bus.surface); }
-  landFlub() {
-    this._burst(0.38, 0.42, 330, 'lowpass', 0, this.bus.surface);
-    this._tone({ type: 'sawtooth', f0: 170, f1: 48, dur: 0.34, vol: 0.12, bus: this.bus.surface });
-  }
+  // Phase 31: takeoff, the three landings and the stunt shove are gone. They
+  // are DESCENT's jump-and-land vocabulary, and no source in this game emits
+  // takeoff, land_clean, land_bump, land_flub or stunt_escape — the jump verb
+  // left in Phase 7. Proven dead by exhaustion, not by reading.
 
   hit() {
     this._burst(0.30, 0.43, 470, 'lowpass', 0, this.bus.surface);
@@ -497,8 +487,4 @@ export class Audio {
 
   chainLost() { this._tone({ type: 'triangle', f0: 500, f1: 125, dur: 0.40, vol: 0.10, bus: this.bus.ui }); }
 
-  shove() {
-    this._burst(0.50, 0.19, 2400, 'bandpass', 0, this.bus.ambience);
-    this._tone({ type: 'sawtooth', f0: 230, f1: 980, dur: 0.40, vol: 0.09, bus: this.bus.ambience, filter: { type: 'lowpass', freq: 1900, q: 2 } });
-  }
 }

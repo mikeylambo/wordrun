@@ -398,27 +398,10 @@ if (!Input.prototype.__rc9AirDirectionFixed) {
   Input.prototype.__rc9AirDirectionFixed = true;
 }
 
-// Tag takeoffs at the sim-event edge without changing the control or physics
-// result. Presentation can now distinguish a deliberate hop from terrain air.
-if (!Player.prototype.__rc95TakeoffKind) {
-  const basePlayerStep = Player.prototype.step;
-  Player.prototype.step = function stepWithTakeoffKind(dt, input, proxMult, events) {
-    this.__rc95ManualTakeoff = !this.airborne && !!input?.jump;
-    const out = basePlayerStep.call(this, dt, input, proxMult, events);
-    this.__rc95ManualTakeoff = false;
-    return out;
-  };
-
-  const baseTakeoff = Player.prototype._takeoff;
-  Player.prototype._takeoff = function takeoffWithKind(groundY, events) {
-    const manual = !!this.__rc95ManualTakeoff;
-    const out = baseTakeoff.call(this, groundY, events);
-    const e = events?.[events.length - 1];
-    if (e?.t === 'takeoff') e.kind = manual ? 'manual' : 'terrain';
-    return out;
-  };
-  Player.prototype.__rc95TakeoffKind = true;
-}
+// Phase 31: the takeoff-kind tagging is gone. It wrapped Player._takeoff,
+// which this game's player has not had since the jump verb left in Phase 7,
+// so `baseTakeoff` was undefined and the wrapper would have thrown had
+// anything ever reached it.
 
 let rc99PresentationInstalled = false;
 function ensureRC99Presentation() {
@@ -486,19 +469,6 @@ if (!Audio.prototype.__rc9MixOverridesInstalled) {
   const baseHeartRestore = Audio.prototype.heartRestore;
   Audio.prototype.heartRestore = function heartRestoreWithMixPocket(...args) {
     return baseHeartRestore.apply(this, args);
-  };
-
-  // Manual hops were reading like hero jumps. Keep them quick and airy; terrain
-  // launches retain the fuller procedural takeoff underneath approved Big Air.
-  const baseTakeoffAudio = Audio.prototype.takeoff;
-  Audio.prototype.takeoff = function takeoffWithScale(...args) {
-    const kind = this.__rc9TakeoffKind || 'terrain';
-    if (kind === 'manual' && this.ready && !this.muted) {
-      this._burst(0.13, 0.095, 2500, 'bandpass', 0, this.bus.surface);
-      this._burst(0.18, 0.050, 3900, 'highpass', 0, this.bus.ambience);
-      return;
-    }
-    return baseTakeoffAudio.apply(this, args);
   };
 
   // More impact without simply turning footsteps up. A short low-mid body and
