@@ -392,6 +392,11 @@ export const TUNING = {
     // The boards already refuse a continued run's best and ghost; this makes
     // the number on the card honest too, rather than only the record.
     CONTINUE_KEEP: 0.70,
+    // STANDARD is a route with an end, so failing to reach it is a real
+    // failure and the score says so. ENDLESS is exempt: every endless run
+    // ends in death, so a death penalty there is just a global multiplier
+    // that changes nothing about how anyone plays.
+    STANDARD_FAIL_KEEP: 0.60,
   },
 
   // ── Meta economy ────────────────────────────────────────────────────────

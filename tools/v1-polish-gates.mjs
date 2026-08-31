@@ -144,6 +144,19 @@ check(viewport.includes('safe-area-inset-bottom') && viewport.includes('position
 check(!viewport.includes('requestAnimationFrame'),
   'viewport shell fix adds no runtime loop');
 
+// Phase 30: the hearts sat at a fixed offset below a headline whose height is
+// clamp(38px..66px), so on a wide viewport the score grew straight through
+// them. Position them in the HUD column's flow and the collision cannot
+// return at any width — measured clear at 390, 430, 768, 1280 and 1670.
+const rc5Src = read('src/rc5.js');
+const html = read('index.html');
+check(html.includes('id="vitalsSlot"') && rc5Src.includes("getElementById('vitalsSlot')"),
+  'the hearts live in the HUD column, not at a guessed offset');
+check(!/#rc5Vitals\{position:absolute[^}]*top:calc\(var\(--safe-t\) \+ 60px\)/.test(rc5Src),
+  'no fixed top offset races the fluid score headline');
+check(/#vitalsSlot\{[^}]*margin-top/.test(html),
+  'the slot spaces itself from the line above rather than overlapping it');
+
 // Phase 24 removed the wind bed and Phase 27 the glide bed behind it, so both
 // reference levels are gone. This asserts each removal is complete rather than
 // partial — the failure mode is a voice left audible with no fader, which is

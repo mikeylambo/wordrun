@@ -309,7 +309,7 @@ export class UI {
     this._chainLostT = 0.9;
   }
 
-  renderDeath({ distance, score, scoreLost = 0, continuesUsed = 0, best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult }) {
+  renderDeath({ distance, score, scoreLost = 0, continuesUsed = 0, failedRoute = false, best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult }) {
     this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null };
     this.finalDist.textContent = Math.floor(score ?? 0).toLocaleString('en-US');
     this._deathDistance = Math.floor(distance);
@@ -317,8 +317,10 @@ export class UI {
     // number is, rather than only refusing the record quietly.
     if (scoreLost > 0) {
       this.pbTag.style.visibility = 'visible';
-      this.pbTag.textContent =
-        `−${Math.floor(scoreLost).toLocaleString('en-US')} · ${continuesUsed} CONTINUE${continuesUsed > 1 ? 'S' : ''}`;
+      const why = continuesUsed > 0
+        ? `${continuesUsed} CONTINUE${continuesUsed > 1 ? 'S' : ''}`
+        : 'ROUTE UNFINISHED';
+      this.pbTag.textContent = `−${Math.floor(scoreLost).toLocaleString('en-US')} · ${why}`;
     } else {
       this.pbTag.style.visibility = isPb ? 'visible' : 'hidden';
       this.pbTag.textContent = isPb ? 'NEW BEST' : '';

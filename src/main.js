@@ -405,7 +405,12 @@ function finalizeRun() {
   // What the run actually banks. Assistance costs score, compounding per
   // continue; an unassisted run keeps every point it earned.
   const earned = sim.score;
-  const finalScore = Math.floor(earned * Math.pow(TUNING.SCORE.CONTINUE_KEEP, continuesUsed));
+  // STANDARD only: dying short of the finish keeps a reduced share. A run that
+  // reached the finish is not a failure and keeps everything.
+  const failedRoute = runMode === 'standard' && !sim.escaped;
+  const failKeep = failedRoute ? TUNING.SCORE.STANDARD_FAIL_KEEP : 1;
+  const finalScore = Math.floor(
+    earned * failKeep * Math.pow(TUNING.SCORE.CONTINUE_KEEP, continuesUsed));
   lastRunScore = finalScore;
   lastRunScoreLost = earned - finalScore;
   // Unassisted runs own the boards: a continued run reports its distance
@@ -459,6 +464,7 @@ function finalizeRun() {
     score: finalScore,
     scoreLost: lastRunScoreLost,
     continuesUsed,
+    failedRoute,
     best: Storage.bestFor(SEED),
     isPb,
     shotUrl,
@@ -685,7 +691,8 @@ copyStats?.addEventListener('click', async (e) => {
     run: {
       score: finalScore,
     scoreLost: lastRunScoreLost,
-    continuesUsed, distance: sim.distance, seconds: sim.time,
+    continuesUsed,
+    failedRoute, distance: sim.distance, seconds: sim.time,
       mode: runMode, difficulty: runDifficulty, continued: runContinued,
       correct: wg.correctCount, wrong: wg.wrongCount,
       falseTaps: wg.falseTaps, missedReals: wg.missedReals,

@@ -493,3 +493,17 @@ Slice history:
   cases in the real build rather than the pure engine, which has no hearts.
   Running THROUGH a misspelled word is the correct play and costs nothing by
   design — that one is a presentation problem, not a rules problem.
+- Phase 30 — HUD stack and the STANDARD failure. The hearts sat at a fixed
+  offset below a score headline whose height is clamp(38px..66px), so the
+  collision depended entirely on viewport width: on a phone there was a gap,
+  and on a wide screen the number grew straight through them, taking the metre
+  line with it. They live in the HUD column's flow now, so the spacing follows
+  the headline instead of guessing at it — measured clear at 390, 430, 768,
+  1280 and 1670 wide, where before the hearts began 13px inside the score's own
+  box. The charge pips ride along with them, as they always did.
+  Failing a STANDARD route now costs score, keeping 60% of what the run earned.
+  ENDLESS is deliberately exempt: every endless run ends in death, so a death
+  penalty there is a global multiplier that changes nothing about how anyone
+  plays, while STANDARD is a route with an end and falling short of it is a
+  real failure. The card names which reduction applied rather than printing a
+  bare smaller number.

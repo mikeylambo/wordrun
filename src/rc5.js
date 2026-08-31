@@ -129,7 +129,7 @@ class RC6Hud {
     style.id = 'rc6-ui-style';
     style.textContent = `
       #chain,#titleScreen .eyebrow{display:none!important}
-      #rc5Vitals{position:absolute;z-index:25;left:18px;top:calc(var(--safe-t) + 60px);display:flex;gap:9px;pointer-events:none;transition:opacity .18s ease}
+      #rc5Vitals{display:flex;align-items:center;gap:9px;pointer-events:none;transition:opacity .18s ease}
       .rc5-heart{font:600 30px/1 var(--face);color:#d62d24;text-shadow:0 1px 0 rgba(255,255,255,.42),0 2px 8px rgba(60,0,0,.18);opacity:.97;transition:opacity .18s ease,transform .18s ease}
       .rc5-heart.empty{opacity:.14;transform:scale(.82)}
       #rc5Vitals.pulse .rc5-heart:not(.empty){animation:rc5Heart .38s ease}
@@ -158,7 +158,9 @@ class RC6Hud {
       this.vitals.appendChild(h);
       this.hearts.push(h);
     }
-    app.appendChild(this.vitals);
+    // The slot is part of the HUD column, so the hearts stack under the score
+    // instead of racing its clamped height. A gate asserts the slot exists.
+    (document.getElementById('vitalsSlot') || app).appendChild(this.vitals);
 
     this.weather = document.createElement('div');
     this.weather.id = 'rc5HuntWeather';
