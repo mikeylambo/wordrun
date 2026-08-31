@@ -507,3 +507,30 @@ Slice history:
   plays, while STANDARD is a route with an end and falling short of it is a
   real failure. The card names which reduction applied rather than printing a
   bare smaller number.
+- Phase A — render-ahead, as a prototype with a stop at the end of it. The
+  three unarmed gates beyond the armed one are drawn at their true positions on
+  the winding centreline, stepping down 0.55 / 0.32 / 0.18 while the armed
+  plate keeps its exact treatment. Nothing about the engine changed: the
+  renderer builds future gates through the pure seed function and its own
+  cache, so reading ahead cannot advance the gate the player is answering, and
+  no unarmed plate arms, resolves or emits an event. ARM_DISTANCE_M is
+  untouched at 55, still under the 62 metre spacing floor, and the suite proves
+  by exhaustion — sixty seeds across thirty kilometres — that exactly one gate
+  is ever answerable however many are drawn. Seeing further is not answering
+  earlier, and that distinction is the load-bearing one.
+  Proving the armed plate unchanged took two attempts. Comparing frame-indexed
+  render traces across lookahead values failed, and the failure was the test's:
+  the run advances on real time, so a trace keyed to frame numbers differs run
+  to run for reasons that have nothing to do with lookahead. Keyed to the gate
+  instead — every value in the call being a pure function of it — the armed
+  plate's parameters are identical at 0, 1, 3 and 6.
+  That widened comparison also turned up a real regression. The run-start warm
+  from Phase 8.1 paints the first plates before BEGIN RUN so the opening frame
+  is a cache hit; it named the old preview plate directly, so it threw once per
+  run and, worse, would have left the new plates cold to raster and upload on
+  the start frame — the exact hitch Phase 8.1 existed to remove. The warm now
+  covers every plate the first frame draws, and the gate asserts the row rather
+  than a fixed second plate.
+  `?lookahead=0|1|2|3|4|6` overrides the count for an A/B in one session. The
+  build before this phase drew one preview plate at 0.55, so 1 reproduces it
+  and 0 draws none at all.

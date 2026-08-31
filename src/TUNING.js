@@ -113,6 +113,14 @@ export const TUNING = {
     // isRealGate() for the measurement that motivated it.
     OPENING_GATES: 6,
     OPENING_MAX_FAKE_RUN: 2,
+    // Phase A (render-ahead prototype). How many UNARMED gates are drawn
+    // beyond the armed one. This is presentation only: it changes what the eye
+    // can see, never what the hand can answer. ARM_DISTANCE_M is untouched and
+    // must stay under SPACING_MIN_M so exactly one word is ever answerable.
+    // The build before this phase drew exactly one preview plate at 0.55, so
+    // LOOKAHEAD_GATES = 1 reproduces it; 0 draws none at all.
+    LOOKAHEAD_GATES: 3,
+    LOOKAHEAD_OPACITY: [0.55, 0.32, 0.18, 0.11, 0.07, 0.05],
     ARM_DISTANCE_M: 55,
     FAKE_CHANCE: 0.5,          // fair coin: spamming confirm buys nothing
     // Tier ramps with distance, sharing the run's own ramp architecture.

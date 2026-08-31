@@ -66,10 +66,15 @@ const audioSrc = read('src/audio/audio.js');
 check(mainSrc.includes('function warmStart()') && mainSrc.includes('initTexture') &&
   mainSrc.includes('compileAsync'),
   'title idle pre-compiles shaders and pre-uploads canvas textures');
+// Phase A turned the single preview plate into a lookahead row, so the warm
+// has to cover the whole row rather than a fixed second plate — a cold
+// lookahead plate rasters and uploads on the start frame exactly like the
+// armed one did before Phase 8.1 fixed it.
 check(mainSrc.includes('wordGateActors.current.paint(makeGate(nextWordSeed, 0, prof).shown') &&
-  mainSrc.includes('wordGateActors.next.paint(makeGate(nextWordSeed, 1, prof).shown') &&
+  mainSrc.includes('wordGateActors.ahead.forEach') &&
+  mainSrc.includes('...wordGateActors.ahead, wordGateActors.fx') &&
   mainSrc.includes('function warmStart()') && mainSrc.includes('warmPlates();'),
-  "the run's first two plates are painted before BEGIN RUN (cache-hit at start)");
+  "every plate the first frame draws is painted before BEGIN RUN (cache-hit at start)");
 check(audioSrc.includes('prewarm()') && audioSrc.includes('this.prewarm();') &&
   !audioSrc.includes('if (!Ctx) return;\n    const ctx = new Ctx();\n\n    this.ready'),
   'audio graph builds suspended at load; the gesture only resumes it');

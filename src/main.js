@@ -193,7 +193,7 @@ function warmStart() {
   // cache hit — no canvas raster, no texture upload on the start frame.
   warmPlates();
   wordGateActors.fx.paint('ready', 'right');
-  for (const plate of [wordGateActors.current, wordGateActors.next, wordGateActors.fx]) {
+  for (const plate of [wordGateActors.current, ...wordGateActors.ahead, wordGateActors.fx]) {
     stage.renderer.initTexture(plate.tex);
   }
   if (beastActor.tearTex && beastActor.fieldTex) {
@@ -497,8 +497,13 @@ function warmPlates() {
   const prof = { TIER_MIN: d.TIER_MIN, TIER_MAX: d.TIER_MAX, TIER_EVERY_M: d.TIER_EVERY_M };
   const nextWordSeed = wordSeedFor(SEED,
     CHALLENGE ? CHALLENGE.salt : Storage.runsToday(SEED) + 1);
+  // Every plate the first frame will draw, warmed here: the lookahead plates
+  // raster and upload exactly like the armed one, so leaving them cold would
+  // put the Phase 8.1 start-frame hitch straight back.
   wordGateActors.current.paint(makeGate(nextWordSeed, 0, prof).shown, 'idle');
-  wordGateActors.next.paint(makeGate(nextWordSeed, 1, prof).shown, 'idle');
+  wordGateActors.ahead.forEach((plate, i) => {
+    plate.paint(makeGate(nextWordSeed, i + 1, prof).shown, 'idle');
+  });
 }
 
 function pauseGame() {

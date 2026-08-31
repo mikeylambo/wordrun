@@ -182,22 +182,51 @@ class Plate {
   }
 }
 
+// Phase A: how many unarmed plates to draw. `?lookahead=N` overrides the
+// tuning so the count can be A/B'd on a phone inside one session.
+function lookaheadCount() {
+  const max = TUNING.WORDS.LOOKAHEAD_OPACITY.length;
+  let n = TUNING.WORDS.LOOKAHEAD_GATES;
+  if (typeof location !== 'undefined') {
+    const q = new URLSearchParams(location.search).get('lookahead');
+    if (q != null && q !== '' && Number.isFinite(+q)) n = +q;
+  }
+  return Math.max(0, Math.min(max, Math.floor(n)));
+}
+
 export class WordGateActors {
   constructor(scene, sim) {
     this.sim = sim;
+    this.scene = scene;
     this.current = new Plate(scene);
-    this.next = new Plate(scene);
     this.fx = new Plate(scene);   // resolved-gate feedback, its own plate
+    // One plate per lookahead slot, built once. The armed plate is a separate
+    // object and no code path below can touch it.
+    this.ahead = Array.from({ length: lookaheadCount() }, () => new Plate(scene));
+    this._peek = new Map();       // index -> gate, so makeGate is not re-run per frame
     this.lingerT = 0;
     this.lingerGate = null;
     this.lingerState = 'right';
+  }
+
+  /** A future gate, built once and cached. Pure in (seed, index) — reading it
+   *  cannot advance or mutate the sim's own gate state. */
+  _peekGate(seed, index, profile) {
+    const key = `${seed}:${index}`;
+    let g = this._peek.get(key);
+    if (!g) {
+      g = makeGate(seed, index, profile);
+      if (this._peek.size > 32) this._peek.clear();
+      this._peek.set(key, g);
+    }
+    return g;
   }
 
   reset() {
     this.lingerT = 0;
     this.lingerGate = null;
     this.current.hide();
-    this.next.hide();
+    for (const p of this.ahead) p.hide();
     this.fx.hide();
   }
 
@@ -227,18 +256,24 @@ export class WordGateActors {
       this.current.paint(g.shown, state);
       this.current.place(g.shown, g.d, terrain.heightAt(0, g.d), camera,
         1, terrain.corridorX(g.d));
-      // Preview the one after, faint in the fog, so rhythm reads at speed.
-      const n = makeGate(wg.seed, g.index + 1, wg.profile);
-      if (n.d - playerD < SHOW_AHEAD) {
-        this.next.paint(n.shown, 'idle');
-        this.next.place(n.shown, n.d, terrain.heightAt(0, n.d), camera, 0.55,
-          terrain.corridorX(n.d));
-      } else {
-        this.next.hide();
+      // The unarmed gates ahead, stepping down in opacity so they read as
+      // information rather than competing with the armed plate. They are drawn
+      // at their true world positions, so a bend occludes them exactly as it
+      // occludes anything else — that occlusion is the interesting part.
+      const fade = TUNING.WORDS.LOOKAHEAD_OPACITY;
+      for (let i = 0; i < this.ahead.length; i++) {
+        const n = this._peekGate(wg.seed, g.index + 1 + i, wg.profile);
+        if (n.d - playerD < SHOW_AHEAD) {
+          this.ahead[i].paint(n.shown, 'idle');
+          this.ahead[i].place(n.shown, n.d, terrain.heightAt(0, n.d), camera,
+            fade[i], terrain.corridorX(n.d));
+        } else {
+          this.ahead[i].hide();
+        }
       }
     } else {
       this.current.hide();
-      this.next.hide();
+      for (const p of this.ahead) p.hide();
     }
 
     // Feedback linger on the plate just crossed.

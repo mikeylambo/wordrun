@@ -534,6 +534,73 @@ head('CONTINUES — a bought run banks less than it earned');
     `keeps ${(keep * 100).toFixed(0)}% per continue`);
 }
 
+// ── Phase A: render-ahead is presentation only ───────────────────────────
+head('LOOKAHEAD — more gates are shown, no more gates are answerable');
+{
+  const W = TUNING.WORDS;
+  const src = fs.readFileSync('src/render/word-gates.js', 'utf8');
+
+  // The load-bearing invariant of the whole brief: seeing further must not
+  // mean answering earlier. ARM_DISTANCE_M stays under SPACING_MIN_M so
+  // exactly one gate is ever armed, however many are drawn.
+  check('the arm distance did not grow to meet the lookahead',
+    W.ARM_DISTANCE_M === 55 && W.ARM_DISTANCE_M < W.SPACING_MIN_M,
+    `arm ${W.ARM_DISTANCE_M}m under spacing floor ${W.SPACING_MIN_M}m`);
+
+  // Exactly one gate can be armed at any distance, at every spacing the run
+  // ever reaches — the property that makes an unarmed plate unanswerable.
+  let worstArmed = 0;
+  for (let seed = 0; seed < 60; seed++) {
+    for (let d = 0; d < 30000; d += 37) {
+      let armed = 0;
+      for (let i = 0; i < 400; i++) {
+        const g = makeGate(seed, i);
+        if (g.d - d <= W.ARM_DISTANCE_M && g.d - d > 0) armed++;
+        if (g.d - d > W.ARM_DISTANCE_M) break;
+      }
+      if (armed > worstArmed) worstArmed = armed;
+    }
+  }
+  check('never more than one gate is armed, at any distance',
+    worstArmed <= 1, `worst simultaneous armed gates: ${worstArmed}`);
+
+  // The renderer may only READ future gates. It must not call anything that
+  // advances the sim's own gate, and unarmed plates must emit no events.
+  check('the renderer reads future gates without touching sim state',
+    src.includes('_peekGate') && !/this\.ahead\[[^\]]*\]\.(confirm|resolve)/.test(src) &&
+    !src.includes('wg.step(') && !src.includes('events.push'),
+    'lookahead plates are built from pure makeGate and push no events');
+
+  // The armed plate's own call is untouched by any lookahead value.
+  check('the armed plate is drawn at full opacity, independent of lookahead',
+    /this\.current\.place\(g\.shown, g\.d, terrain\.heightAt\(0, g\.d\), camera,\s*1,/.test(src),
+    'armed plate still places at opacity 1 with its own parameters');
+
+  // The count is bounded by the fade ladder, so ?lookahead=99 cannot draw 99.
+  check('the lookahead count is clamped to the fade ladder',
+    src.includes('Math.min(max') && W.LOOKAHEAD_OPACITY.length >= W.LOOKAHEAD_GATES,
+    `${W.LOOKAHEAD_OPACITY.length} fade steps for a default of ${W.LOOKAHEAD_GATES}`);
+
+  // Unarmed plates must stay visibly subordinate: strictly descending, and
+  // every one of them well under the armed plate's 1.0.
+  const fade = W.LOOKAHEAD_OPACITY;
+  check('unarmed plates never compete with the armed one',
+    fade.every((v, i) => v < 1 && (i === 0 || v < fade[i - 1])) && fade[0] <= 0.55,
+    `ladder ${fade.join(' / ')} against an armed plate at 1.0`);
+
+  // Phase 8.1 warms every plate before the run so the first frame is a cache
+  // hit. Adding plates without warming them puts that start hitch back.
+  const mainSrc = fs.readFileSync('src/main.js', 'utf8');
+  check('every lookahead plate is pre-warmed with the armed one',
+    mainSrc.includes('...wordGateActors.ahead, wordGateActors.fx') &&
+    mainSrc.includes('wordGateActors.ahead.forEach'),
+    'texture init and first paint both cover the lookahead plates');
+
+  // The pre-Phase-A build drew exactly one preview plate at 0.55.
+  check('LOOKAHEAD_GATES = 1 reproduces the build before this phase',
+    fade[0] === 0.55, 'first step is the 0.55 the old preview plate used');
+}
+
 console.log(out.join('\n'));
 console.log(`\n${PASS} passed, ${FAIL} failed`);
 if (FAIL) process.exit(1);
