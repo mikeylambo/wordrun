@@ -2,12 +2,11 @@ import TUNING from './TUNING.js';
 import { Audio } from './audio/audio.js';
 
 const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
-const SURFACE_GLIDE = 0.075;
 
-// Final V1 mix: the isolated playtest showed the continuous surface-glide
-// voice, not the wind, was doing most of the masking. Restore some atmospheric
-// air while pulling the glide bed down more decisively. These are presentation-
-// only values; the hidden ?mix=1 calibration panel can trim them live in dB.
+// Final V1 mix. This pass once spent its effort deciding how far to pull the
+// continuous surface bed down; Phase 27 removed that bed outright, so what is
+// left here is the threat level and the ducking. These are presentation-only
+// values; the hidden ?mix=1 calibration panel can trim them live in dB.
 TUNING.AUDIO.ROAR_MAX = 0.35;
 
 function requestBedDuck(audio, depth = 0.08, hold = 0.22) {
@@ -31,13 +30,6 @@ if (!Audio.prototype.__v1FinalPriorityMix) {
     const edge = player.airborne ? 0 : clamp(Math.abs(player.heading) / TUNING.PLAYER.MAX_CARVE);
     const onGround = live && !player.airborne && !player.onIce && !player.inPowder;
 
-    // The continuous glide bed was the masking layer on phone speakers. Keep all of
-    // its speed/carve expression, but lower the actual continuous ceiling by
-    // ~29% from the previous V1 mix (and ~38% from the original RC9 glide).
-    if (this.glide?.gain?.gain) {
-      const glide = SURFACE_GLIDE * (0.32 + speedN * 0.68);
-      this._set(this.glide.gain.gain, onGround ? glide * (0.48 + edge * 1.35) : 0, 0.045);
-    }
 
     // Short priority ducking lets bells / heartbeat / roars read without making
     // the entire mix louder. It recovers inside the existing Audio.update path.
@@ -107,10 +99,6 @@ if (!Audio.prototype.__v1FinalPriorityMix) {
 
 globalThis.__DASH_V1_FINAL_MIX = {
   version: '1.1',
-  windMax: 0.285,
-  surfaceGlide: SURFACE_GLIDE,
-  windRebalancedUp: true,
-  glideReducedFurther: true,
   bellLift: true,
   heartbeatLift: true,
   roarLift: true,

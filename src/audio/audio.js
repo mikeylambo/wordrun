@@ -15,10 +15,6 @@ const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 
 const RC9 = {
-  GLIDE: 0.12,
-  POWDER: 0.24,
-  ICE: 0.20,
-  GO_RUSH: 0.24,
   HUNT_DRONE: 0.18,
   HUNT_BPM: [104, 126],
   // Far-range corruption bed: audible the moment the gap starts closing,
@@ -44,7 +40,6 @@ export class Audio {
     this.ready = false;
     this.ctx = null;
     this.muted = false;
-    this.surfaceMode = 'ground';
     this._footT = 0;
     this._huntBeatT = 0;
     this._huntBeat = 0;
@@ -105,19 +100,18 @@ export class Audio {
     this.noise = noiseBuffer(ctx, 2, 0.72);
     this.white = noiseBuffer(ctx, 1, 0.18);
 
-    // Phase 24: the wind and airborne-whoosh voices are gone. The wind was a
-    // bandpass noise bed sweeping 460-1500 Hz with speed — an alpine curve,
-    // inherited from a snowboarding game, and this runner does not want one.
-    // The air voice keyed off `airborne`, which no build of DICTION DASH can
-    // reach: the jump verb was removed in Phase 7 and nothing sets it.
-    // The runner's contact with the track. Called 'snow' until Phase 18 —
-    // the last piece of ski vocabulary left in the engine, kept that long
-    // only because it is scaled by an approved mix baseline and renaming
-    // it meant re-verifying the whole mix. Its numbers are untouched.
-    this.glide = this._noiseVoice(1800, 'bandpass', 2.7, this.bus.surface);
-    this.powder = this._noiseVoice(620, 'lowpass', 0.7, this.bus.surface);
-    this.ice = this._noiseVoice(3900, 'bandpass', 5.2, this.bus.surface);
-    this.goRush = this._noiseVoice(2800, 'bandpass', 1.1, this.bus.ambience);
+    // Phase 27: every sustained noise bed is gone. Phase 24 removed the two
+    // voices NAMED wind, which was not the same thing as removing the sound —
+    // the glide voice was still a bandpass bed sweeping 1540-2850 Hz with
+    // speed, running whenever the runner was on the ground, and that is a wind
+    // by any ear. It was DESCENT's board-on-snow contact, renamed in Phase 18
+    // rather than removed; this runner has no surface-contact fantasy to sell.
+    // Powder and ice went with it as proven-dead: both keyed off player flags
+    // that are set false at reset and never written again, so they measured 0
+    // gain at every speed. The dash rush went too — it was the same bandpass
+    // noise, and the dash still announces itself with the sweep and burst in
+    // overdriveOn(). Impacts, bells, word cues and the music stems remain, so
+    // the surface bus is still carrying its transients.
     // "roar" keeps its name and its band curve; its body is now interference —
     // white noise through a wandering bandpass instead of a low growl.
     this.roar = this._noiseVoice(1650, 'bandpass', 0.9, this.bus.threat, 0, this.white);
@@ -240,27 +234,6 @@ export class Audio {
       !!running && !kill
     );
 
-    const speedN = clamp((p.speed - 10) / (TUNING.RUN.CEILING - 10)); // full range (P8.5)
-    const edge = p.airborne ? 0 : clamp(Math.abs(p.heading) / TUNING.PLAYER.MAX_CARVE);
-    const airborne = !!p.airborne;
-    const onIce = !airborne && !!p.onIce;
-    const inPowder = !airborne && !!p.inPowder;
-    const onGround = !airborne && !onIce && !inPowder;
-    this.surfaceMode = onIce ? 'ice' : inPowder ? 'powder' : airborne ? 'air' : 'ground';
-
-
-    const glide = RC9.GLIDE * (0.32 + speedN * 0.68);
-    this._set(this.glide.gain.gain, onGround ? glide * (0.48 + edge * 1.35) : 0, 0.045);
-    this._set(this.glide.filter.frequency, 1180 + speedN * 1050 + edge * 1900, 0.04);
-    this._set(this.powder.gain.gain, inPowder ? RC9.POWDER * (0.48 + speedN * 0.52) * (0.72 + edge * 0.28) : 0, 0.06);
-    this._set(this.powder.filter.frequency, 430 + speedN * 560, 0.05);
-    this._set(this.ice.gain.gain, onIce ? RC9.ICE * (0.42 + speedN * 0.38 + edge * 0.74) : 0, 0.035);
-    this._set(this.ice.filter.frequency, 2700 + speedN * 1700 + edge * 1250, 0.035);
-
-    const go = p.overdrive ? 1 : 0;
-    this._set(this.goRush.gain.gain, go * RC9.GO_RUSH * (0.55 + speedN * 0.45), 0.06);
-    this._set(this.goRush.filter.frequency, 1800 + speedN * 2500, 0.05);
-
     const beastPan = this._panFor(sim?.beast?.x ?? p.x);
     if (this.roar.pan) this._set(this.roar.pan.pan, beastPan, 0.05);
     this._set(this.roar.gain.gain, A.ROAR_MAX * (bands?.roar || 0));
@@ -377,9 +350,8 @@ export class Audio {
   }
 
   landClean() {
-    const ice = this.surfaceMode === 'ice';
-    this._burst(0.24, ice ? 0.22 : 0.36, ice ? 2100 : 760, ice ? 'bandpass' : 'lowpass', 0, this.bus.surface);
-    this._tone({ type: 'triangle', f0: ice ? 690 : 430, f1: ice ? 940 : 650, dur: 0.13, vol: 0.06, bus: this.bus.surface });
+    this._burst(0.24, 0.36, 760, 'lowpass', 0, this.bus.surface);
+    this._tone({ type: 'triangle', f0: 430, f1: 650, dur: 0.13, vol: 0.06, bus: this.bus.surface });
   }
 
   landBump() { this._burst(0.11, 0.14, 660, 'lowpass', 0, this.bus.surface); }

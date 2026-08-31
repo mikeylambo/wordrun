@@ -85,8 +85,11 @@ check(rigSrc.includes('(p.speed - R.FLOOR) / (R.CEILING - R.FLOOR)') &&
 check(actorsSrc.includes('(p.speed - R.FLOOR) / (R.CEILING - R.FLOOR)') &&
   actorsSrc.includes('this.tail.material.opacity'),
   'runner cadence spans the range and the comet tail rides the top of it');
-check(audioMix.includes('TUNING.RUN.CEILING - 10'),
-  'wind and glide keep escalating all the way to the ceiling');
+// Phase 27: no audio voice rides speed any more — every noise bed that did
+// was a wind by another name. The music stems still take speed and chain, so
+// going faster is still audible; it is scored rather than blown.
+check(audioMix.includes('speed: p.effSpeed ?? p.speed') && audioMix.includes('streak: p.chain'),
+  'speed reaches the ear through the music stems, not a noise bed');
 check(mainSrc.includes('new WindStreaks(stage.camera)') &&
   mainSrc.includes('new TrackPylons(stage.scene') &&
   speedFx.includes('AdditiveBlending'),
@@ -141,12 +144,13 @@ check(viewport.includes('safe-area-inset-bottom') && viewport.includes('position
 check(!viewport.includes('requestAnimationFrame'),
   'viewport shell fix adds no runtime loop');
 
-// Phase 24 removed the wind bed, so its reference level went with it. The
-// surface-glide reference and the rest of the approved baseline are
-// untouched — this asserts the removal is complete rather than partial,
-// which is the failure mode that leaves a voice audible with no fader.
-check(finalMix.includes('const SURFACE_GLIDE = 0.075') && !finalMix.includes('WIND_MAX'),
-  'final mix keeps its surface-glide reference and no longer sets a wind one');
+// Phase 24 removed the wind bed and Phase 27 the glide bed behind it, so both
+// reference levels are gone. This asserts each removal is complete rather than
+// partial — the failure mode is a voice left audible with no fader, which is
+// precisely how the glide bed survived Phase 24 while its name did not.
+check(!finalMix.includes('WIND_MAX') && !finalMix.includes('SURFACE_GLIDE') &&
+  !finalMix.includes('windMax') && !finalMix.includes('surfaceGlide'),
+  'no orphaned reference level for a voice that no longer exists');
 check(approvedMix.includes('surface: -5.5') && approvedMix.includes('bells: 4') &&
   approvedMix.includes('heartbeat: 6') && approvedMix.includes('beast: 1') &&
   !approvedMix.includes('wind:'),

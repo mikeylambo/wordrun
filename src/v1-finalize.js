@@ -201,7 +201,7 @@ function installAudioFinish() {
   Audio.prototype.__v1FinishAudio = true;
 
   // The bell already has a good musical identity; this is a small +presence
-  // layer so it reads above the wind and glide beds without becoming an alarm.
+  // layer so it reads clearly over the impacts without becoming an alarm.
   const baseBell = Audio.prototype.bell;
   Audio.prototype.bell = function bellV1(step = 0, ...args) {
     const out = baseBell.call(this, step, ...args);

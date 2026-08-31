@@ -14,7 +14,6 @@ const DEFAULT_DB = Object.freeze({
 });
 const BASE = Object.freeze({
   master: TUNING.AUDIO.MASTER,
-  surfaceGlide: globalThis.__DASH_V1_FINAL_MIX?.surfaceGlide ?? 0.075,
   roarMax: TUNING.AUDIO.ROAR_MAX,
 });
 
@@ -50,7 +49,6 @@ function snapshot() {
     db: { ...db },
     base: {
       master: BASE.master,
-          surfaceGlide: globalThis.__DASH_V1_FINAL_MIX?.surfaceGlide ?? BASE.surfaceGlide,
       roarMax: TUNING.AUDIO.ROAR_MAX,
     },
   };
@@ -117,11 +115,6 @@ if (!Audio.prototype.__v1LiveMixCategories) {
     const onGround = live && !player.airborne && !player.onIce && !player.inPowder;
 
 
-    if (this.glide?.gain?.gain) {
-      const glideBase = globalThis.__DASH_V1_FINAL_MIX?.surfaceGlide ?? BASE.surfaceGlide;
-      const glide = glideBase * (0.32 + speedN * 0.68) * gain('surface');
-      this._set(this.glide.gain.gain, onGround ? glide * (0.48 + edge * 1.35) : 0, 0.045);
-    }
 
     if (this.roar?.gain?.gain) {
       this._set(this.roar.gain.gain, TUNING.AUDIO.ROAR_MAX * Math.max(0, Math.min(1, bands?.roar || 0)) * gain('beast'), 0.045);

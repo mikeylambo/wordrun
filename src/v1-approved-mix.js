@@ -93,11 +93,6 @@ if (!Audio.prototype.__v1ApprovedMix) {
     const onGround = live && !player.airborne && !player.onIce && !player.inPowder;
 
 
-    if (this.glide?.gain?.gain) {
-      const glideBase = globalThis.__DASH_V1_FINAL_MIX?.surfaceGlide ?? 0.075;
-      const glide = glideBase * (0.32 + speedN * 0.68) * APPROVED.surface * relativeGain('surface');
-      this._set(this.glide.gain.gain, onGround ? glide * (0.48 + edge * 1.35) : 0, 0.045);
-    }
 
     if (this.roar?.gain?.gain) {
       const target = TUNING.AUDIO.ROAR_MAX * clamp01(bands?.roar || 0) *
@@ -137,7 +132,6 @@ globalThis.__DASH_V1_APPROVED_MIX = {
   db: { ...APPROVED_DB },
   effective: {
     master: TUNING.AUDIO.MASTER,
-    surfaceGlide: (globalThis.__DASH_V1_FINAL_MIX?.surfaceGlide ?? 0.075) * APPROVED.surface,
     roarMax: TUNING.AUDIO.ROAR_MAX * APPROVED.beast,
   },
   mixerZeroIsApprovedBaseline: true,

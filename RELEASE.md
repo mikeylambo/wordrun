@@ -418,3 +418,26 @@ Slice history:
   photosensitivity guidance asks you to avoid, so discrete accents key off
   crashes and measure 0.55 Hz across the whole track. None of it is wired into
   the renderer yet, because there is no track in the build to sync to.
+- Phase 27 — the wind was still there. Phase 24 removed the two voices NAMED
+  wind and reported the sound gone, which was not the same claim and was not
+  true. What a player actually heard was the glide voice: a bandpass noise bed
+  sweeping 1542 to 2850 Hz with speed, running the whole time the runner was on
+  the ground, measured at 0.011 to 0.037 gain across the speed range. That is a
+  wind by any ear. It was DESCENT's board-on-snow contact, renamed in Phase 18
+  to strip the last ski word from the engine — and renaming it was exactly why
+  it survived, because the check that froze it in place asked what it was
+  called rather than what it sounded like.
+  It is gone, and two more went with it. Powder and ice were proven dead: both
+  key off player flags that are set false at reset and never written again, so
+  they measured zero gain at every speed. The dash rush was the same bandpass
+  noise under a different name, and the dash still announces itself with the
+  sweep and burst it always had. The trim node that existed to duck those three
+  beds went too — with them gone it was an orphan connected to a bus with no
+  input, and every transient on that bus routes to it directly and always did,
+  so impacts, carves and wipeouts are untouched.
+  Measured after: no voice in the audio path varies with speed at all. Going
+  faster still reaches the ear, through the music stems, which take speed and
+  chain exactly as they did — the run is scored rather than blown. The two
+  gates that had frozen the old voice in place now assert its absence, and a
+  new one fails if any sustained noise bed keyed to the runner's speed ever
+  comes back.

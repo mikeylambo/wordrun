@@ -23,9 +23,6 @@ import { Terrain, FEATURE } from './sim/terrain.js';
 // - Beast One tears through generated trees, rocks and gate poles with debris/snow FX;
 // - chase timing and Beast One behaviour are deliberately untouched.
 
-const SURFACE_TRIM_NORMAL = 0.57;
-const SURFACE_TRIM_HUNT = 0.50;
-const SURFACE_TRIM_PICKUP = 0.38;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 // The 2334m Bridge launch is the approved reference. These are deliberately
@@ -458,53 +455,25 @@ function ensureRC99Presentation() {
   };
 }
 
-if (!Audio.prototype.__rc9SkiTrimInstalled) {
-  const baseAudioStart = Audio.prototype.start;
-  Audio.prototype.start = function startWithMixTrims(...args) {
-    const out = baseAudioStart.apply(this, args);
-    if (this.ready && !this.__rc9SkiTrim && this.ctx && this.bus?.surface) {
-      const surfaceTrim = this.ctx.createGain();
-      surfaceTrim.gain.value = SURFACE_TRIM_NORMAL;
-      surfaceTrim.connect(this.bus.surface);
-      for (const voice of [this.snow, this.powder, this.ice]) {
-        if (!voice) continue;
-        const output = voice.pan || voice.gain;
-        try { output.disconnect(this.bus.surface); } catch { try { output.disconnect(); } catch {} }
-        output.connect(surfaceTrim);
-      }
-      this.__rc9SkiTrim = surfaceTrim;
-
-      this.__rc9PickupDuckUntil = 0;
-    }
-    return out;
-  };
+if (!Audio.prototype.__rc9MixOverridesInstalled) {
+  // Phase 27: the surface trim is gone with the beds it existed to duck. It
+  // only ever captured the three continuous voices; every transient on this
+  // bus — impacts, carves, wipeouts — connects straight to it and always did,
+  // so removing the trim changes nothing audible.
 
   // Drive hierarchy from the existing audio update path. No second frame loop.
   const baseAudioUpdate = Audio.prototype.update;
   Audio.prototype.update = function updateWithMixHierarchy(dt, p, ...rest) {
     ensureRC99Presentation();
     updateBeastDestruction(dt, p);
-    const out = baseAudioUpdate.call(this, dt, p, ...rest);
-    if (!this.__rc9SkiTrim || !this.ctx) return out;
-
-    const now = this.ctx.currentTime;
-    const sim = globalThis.__SIM;
-    const hunting = sim?.phase === 'running' && sim?.beast?.mode === 'hunt';
-    const pickup = now < (this.__rc9PickupDuckUntil || 0);
-
-    let surfaceTarget = hunting ? SURFACE_TRIM_HUNT : SURFACE_TRIM_NORMAL;
-    if (pickup) surfaceTarget = Math.min(surfaceTarget, SURFACE_TRIM_PICKUP);
-    this.__rc9SkiTrim.gain.setTargetAtTime(surfaceTarget, now, 0.045);
-
-    return out;
+    return baseAudioUpdate.call(this, dt, p, ...rest);
   };
 
   const baseBell = Audio.prototype.bell;
   Audio.prototype.bell = function bellWithMixPocket(step = 0, ...args) {
-    if (this.ctx) this.__rc9PickupDuckUntil = Math.max(this.__rc9PickupDuckUntil || 0, this.ctx.currentTime + 0.19);
     const out = baseBell.call(this, step, ...args);
     // Add presence, not a giant volume spike: reinforce the struck note and a
-    // short upper partial so the bell reads through phone speakers and wind.
+    // short upper partial so the bell reads clearly through phone speakers.
     if (this.ready && !this.muted) {
       const intervals = [0, 4, 7, 11, 14];
       const f = 622.25 * Math.pow(2, intervals[step % intervals.length] / 12);
@@ -516,7 +485,6 @@ if (!Audio.prototype.__rc9SkiTrimInstalled) {
 
   const baseHeartRestore = Audio.prototype.heartRestore;
   Audio.prototype.heartRestore = function heartRestoreWithMixPocket(...args) {
-    if (this.ctx) this.__rc9PickupDuckUntil = Math.max(this.__rc9PickupDuckUntil || 0, this.ctx.currentTime + 0.28);
     return baseHeartRestore.apply(this, args);
   };
 
@@ -550,7 +518,7 @@ if (!Audio.prototype.__rc9SkiTrimInstalled) {
   // Give the entrance a short, spatial high-frequency ice split rather than
   // simply making the whole cue louder or telegraphing it earlier.
 
-  Audio.prototype.__rc9SkiTrimInstalled = true;
+  Audio.prototype.__rc9MixOverridesInstalled = true;
 }
 
 globalThis.__RC910_FINISH = {
@@ -566,9 +534,6 @@ globalThis.__RC910_FINISH = {
 globalThis.__RC9_FEEDBACK = {
   version: '9.10',
   airSpinNatural: true,
-  surfaceTrim: SURFACE_TRIM_NORMAL,
-  huntSkiTrim: SURFACE_TRIM_HUNT,
-  pickupDuck: SURFACE_TRIM_PICKUP,
   heartbeatPriority: true,
   manualJumpLight: true,
   footfallImpactBody: true,

@@ -518,23 +518,38 @@ head('RESIDUE — the frame this was cloned from must not show through');
     bed.includes('export function bedLevels') && rc9.includes('pageBed?.update(') &&
     !fs.existsSync('public/audio/approved/wind_alpine_bed-v02.mp3'),
     bed ? 'page grain + turns + ink blooms, no file' : 'page-bed.js missing');
-  // Phase 18: the last ski word in the engine was the surface-glide synth
-  // voice itself, kept that long only because an approved mix baseline
-  // scales it. The rename was verified by intercepting Audio._set and
-  // comparing every parameter TARGET (value, tau and call order) across 56
-  // speed x surface x dash states: 1,792 targets, zero differences. The
-  // smoothed AudioParam readings are NOT a valid check — setTargetAtTime
-  // never lands exactly and drifts with wall-clock.
+  // Phase 18 renamed the surface-glide voice to strip the last ski word;
+  // Phase 27 removed it outright, because renaming it never addressed what
+  // it SOUNDED like. It was a bandpass noise bed sweeping 1540-2850 Hz with
+  // speed and running whenever the runner was on the ground — a wind by any
+  // ear, in a game that wants none. Powder and ice went as proven-dead (their
+  // player flags are set false at reset and never written), and the dash rush
+  // was the same noise under another name. Measured after removal: no voice
+  // in the graph varies with speed at all.
   const audioSrc = fs.readFileSync('src/audio/audio.js', 'utf8');
   const mixSrcs = ['src/v1-final-mix.js', 'src/v1-mixer.js', 'src/v1-approved-mix.js']
     .map((f) => fs.readFileSync(f, 'utf8')).join('\n');
-  check('the surface-glide voice carries no ski vocabulary',
-    audioSrc.includes('this.glide = this._noiseVoice') && !/this\.snow\b/.test(audioSrc) &&
-    !/packedSnow/i.test(audioSrc + mixSrcs) && !/onSnow/.test(audioSrc + mixSrcs),
-    'voice, constant and mix keys all renamed');
+  const feedbackSrc = fs.readFileSync('src/rc9-feedback.js', 'utf8');
+  const allAudio = audioSrc + mixSrcs + feedbackSrc;
+  check('no sustained noise bed rides the runner\'s speed',
+    !/this\.(glide|snow|wind|air|goRush)\s*=\s*this\._noiseVoice/.test(audioSrc),
+    'wind, air, glide and the dash rush are all gone');
+  check('the dead alpine surface voices are gone with it',
+    !/this\.(powder|ice)\s*=\s*this\._noiseVoice/.test(audioSrc) &&
+    !/surfaceMode/.test(audioSrc),
+    'powder, ice and the surface-mode switch they drove');
+  check('no ski vocabulary survives anywhere in the audio path',
+    !/packedSnow/i.test(allAudio) && !/onSnow/.test(allAudio) && !/this\.snow\b/.test(allAudio),
+    'voice names, constants and mix keys all clear');
+  check('the trim that ducked those beds went with them',
+    !/SURFACE_TRIM/.test(feedbackSrc) && !/__rc9SkiTrim\b/.test(feedbackSrc),
+    'no orphan gain node left connected to the surface bus');
+  check('the surface bus still carries its transients',
+    /_burst\(0\.11, 0\.14, 660/.test(audioSrc) && /this\.bus\.surface/.test(audioSrc),
+    'impacts, carves and wipeouts route to the bus directly and always did');
   check('the approved mix baseline itself is untouched',
-    mixSrcs.includes('const SURFACE_GLIDE = 0.075') && mixSrcs.includes('surface: -5.5'),
-    'glide reference 0.075 and the approved -5.5 dB trim stand');
+    mixSrcs.includes('surface: -5.5'),
+    'the approved -5.5 dB surface trim stands');
 
   check('the bed keeps playing even if the approved manifest never loads',
     rc9.includes('pageBed?.update(') && !/if \(!assets\) return;/.test(rc9),
