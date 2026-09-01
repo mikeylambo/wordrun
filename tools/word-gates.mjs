@@ -647,8 +647,12 @@ head('LATENCY — the early read is worth more, and costs the window nothing');
       .every((v, i, a) => i === 0 || v > a[i - 1]),
     'no flat spot or reversal a player could sit in');
 
+  // The midpoint is derived from the dials, not written down: Phase H moved
+  // EARLY_MULT and a literal here would have pinned the old rate for ever.
+  const mid = W.ARM_DISTANCE_M / 2;
   check('it is deterministic in the answer distance alone',
-    latencyMultFor(27.5) === latencyMultFor(27.5) && latencyMultFor(27.5) === 2,
+    latencyMultFor(mid) === latencyMultFor(mid) &&
+    latencyMultFor(mid) === (W.LATE_MULT + W.EARLY_MULT) / 2,
     'the same distance always pays the same, so a replay reproduces it');
 
   // Two runs over the same seed, one answering the instant each word arms and
@@ -863,13 +867,12 @@ head('SCORE — reads pay, ground does not');
     }
     return { gates: sim.wordGates.next, score: sim.score, d: Math.round(sim.player.d) };
   };
-  // The brief asked for gate 40 to beat gate 100. Measured, the break-even is
-  // fifty: 40-early scores 136,688 against 100-late's 146,351, and 50-early
-  // takes it at 181,352. The 40 figure sits a few percent the wrong side of a
-  // knife edge that 2.5x the content and a 3x rate put there by construction —
-  // reaching it needs EARLY_MULT near 4.0, which is a feel decision, not a
-  // gate's to make. What the phase actually needs is asserted instead: half
-  // the route read well beats all of it read safely.
+  // The brief asked for gate 40 to beat gate 100. At EARLY_MULT 3.0 it did not
+  // (136,688 against 146,351 — the break-even was fifty). Phase H settled the
+  // rate at 3.5 from the sweep in tools/calibration-gates.mjs, and forty now
+  // clears it (159,265 against 148,544). That verdict is frozen there; what
+  // this gate asserts is the invariant the phase actually rests on: half the
+  // route read well beats all of it read safely, at whatever rate ships.
   const halfHot = runRoute(50, true);
   const longSafe = runRoute(100, false);
   check('half the route read early beats the whole route read late',

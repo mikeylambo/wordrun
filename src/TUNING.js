@@ -133,7 +133,14 @@ export const TUNING = {
     COMPRESSION_THRESHOLD: [0, 0.30, 0.50, 0.68],   // fraction of the arm window
     COMPRESSION_MULT: [1.0, 1.15, 1.35, 1.60],
     LATE_MULT: 1.0,            // answering at the line: today's value
-    EARLY_MULT: 3.0,           // answering the instant it arms
+    // Phase H verdict, from the break-even table (tools/calibration-gates.mjs):
+    // at 3.0, forty gates read at the arm edge scored 0.93x the whole route
+    // read at the line — the knife edge Phase D left. 3.5 puts it over
+    // (1.07x at forty, 1.42x at fifty) without 4.0's overshoot (1.21x at
+    // forty, where the route's back half starts to look optional). The rate
+    // also fills the dash: from empty at chain 0 that is 5 early reads
+    // instead of 6; at the chain cap it is 2 either way.
+    EARLY_MULT: 3.5,           // answering the instant it arms
     OPENING_GATES: 6,
     OPENING_MAX_FAKE_RUN: 2,
     // Phase A (render-ahead prototype). How many UNARMED gates are drawn
@@ -439,8 +446,9 @@ export const TUNING = {
     // Flatter than it first looks like it should be, and measured rather than
     // guessed. The tier a gate lands in climbs with distance, so a steep
     // ladder quietly pays for depth — exactly the thing this phase removes
-    // from the score. At this ladder the break-even is fifty gates: half the
-    // route read at the arm edge outscores the whole route read at the line.
+    // from the score. At this ladder the break-even is forty gates (Phase H,
+    // EARLY_MULT 3.5): under half the route read at the arm edge outscores
+    // the whole route read at the line.
     TIER_MULT: [1.0, 1.15, 1.3, 1.45, 1.6],
     // A continue buys the run back, so the score it produces is not the score
     // an unassisted run would have produced. Each continue keeps this share of

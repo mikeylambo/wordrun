@@ -963,3 +963,139 @@ Slice history:
   chunks are same-origin module loads, so they add nothing off-origin). The
   120 fps / WebGPU showcase pass is deliberately left for after there is a
   public link worth featuring, per the roadmap.
+
+- Phase H — calibration verdicts. Every number the roadmap had parked as
+  "waiting on a human" was run through an instrument, decided, and frozen.
+  The instrument is `tools/calibration-gates.mjs`: five measurements, each
+  printing the table its verdict was read from, and a freeze — the file
+  holds a golden of the 32 calibrated dials AND the tables they produce, so a
+  dial cannot move without `npm run calibrate` regenerating its table, and a
+  table cannot drift without a dial having moved. (The same script refreshes
+  the Phase 0 behaviour snapshot, whose trajectories carry the score.) The
+  readers are deterministic: a seeded coin decides each gate, and the answer
+  lands at a fixed fraction of the 55 m window, so the dial under test is the
+  only thing that varies. Runs in a third of a second.
+  **Speed ceiling — keep 64.** The gated standard is two-tier (comfort at
+  cruise, hard at the ceiling, and hard for a DASH at cruise): at 64 that is
+  1.17 s / 0.86 s / 0.83 s against floors of 1.15 / 0.75 / 0.75. The one
+  sub-floor figure in the table, 0.61 s, is a DASH at the asymptotic ceiling
+  — a speed the diminishing-returns curve approaches and never reaches (twenty
+  clean reads sit at 58.8 m/s). 72 breaks the hard floor plain (0.76 s);
+  nothing moves, so the plate size at the read moment is untouched.
+      ceiling | cruise8  win   OD   | deep20  win   OD   | ceil  win   OD   | standard
+           48 |  41.75  1.32  0.94 |  46.99  1.17  0.84 |  1.15  0.82       | holds
+           56 |  44.84  1.23  0.88 |  53.33  1.03  0.74 |  0.98  0.70       | holds
+           64 |  47.17  1.17  0.83 |  58.83  0.93  0.67 |  0.86  0.61       | holds  <- shipped
+           72 |  48.98  1.12  0.80 |  63.57  0.87  0.62 |  0.76  0.55       | BREAKS
+  **Drain bite and HARD's pace-30 fairness — and a finding the brief did not
+  expect.** Held-accuracy readers at 55 / 70 / 85 / 95 / 100 % on every
+  difficulty, answering the instant a word arms, on the daily route and in
+  ENDLESS:
+      diff    acc   | DAILY route (100 gates)              | ENDLESS
+      easy     55% | fails     4 gates redlined          0 |     289 m redlined
+      easy     70% | fails    20 gates wipeout      20,302 |   1,749 m wipeout
+      easy     85% | fails    56 gates wipeout     124,129 |   9,196 m wipeout
+      easy     95% | fails    99 gates wipeout     326,047 |  35,185 m alive@cap
+      easy    100% | CLEARS  100 gates finish      395,456 |  37,683 m alive@cap
+      normal   55% | fails     3 gates redlined          0 |     205 m redlined
+      normal   70% | fails    20 gates wipeout      22,029 |   1,749 m wipeout
+      normal   85% | fails    56 gates wipeout     141,378 |   9,196 m wipeout
+      normal   95% | fails    99 gates wipeout     388,382 |  35,185 m alive@cap
+      normal  100% | CLEARS  100 gates finish      471,624 |  37,683 m alive@cap
+      hard     55% | fails     3 gates redlined          0 |     205 m redlined
+      hard     70% | fails    20 gates wipeout      26,098 |   1,749 m wipeout
+      hard     85% | fails    56 gates wipeout     159,295 |   9,196 m wipeout
+      hard     95% | fails    99 gates wipeout     409,290 |  35,185 m alive@cap
+      hard    100% | CLEARS  100 gates finish      494,716 |  37,683 m alive@cap
+  Pace 30 is fair: a clean reader finishes the route on HARD exactly as on
+  EASY. But the brief asked to confirm that HARD at 85 % clears the route
+  and HARD at 70 % does not, and the table says 85 % clears it on NO
+  difficulty. The reason is a rule, not a dial: STANDARD repairs no hearts,
+  so the route allows exactly two wrong reads on FAKES in a hundred gates —
+  about 96 % fake recognition. Hearts, not the Redline, end the route for
+  every reader from 70 % up (the wipeout gate is 20 / 56 / 99 on all three
+  difficulties), and the pace only bites once accuracy has collapsed the
+  speed (the 55 % rows are the only "redlined" deaths). The same holds in
+  ENDLESS: distance at a held accuracy is identical across difficulties above
+  55 %, because a fast reader outruns pace 24, 27 and 30 alike. Two readings
+  of that. One: the difficulty knobs — pace and tier — do not differentiate a
+  competent held-accuracy reader at all; HARD's teeth are the word tier,
+  which lowers a HUMAN's accuracy, and a held-accuracy sim cannot see that,
+  so real HARD is harder than this table shows. Two: the daily route is a
+  mastery target by construction (Phase 30's `STANDARD_FAIL_KEEP` exists
+  because most runs are expected to fail it and keep 60 %), and that is
+  consistent with the score model — a failed route read early still
+  outscores a full route read late. So the rule was not tuned away to make
+  the brief's sentence true. The gate freezes what is actually true: a clean
+  reader clears on every difficulty; hearts, not pace, end the route from
+  70 % up; 70 % never clears; and 85 % clears nowhere. Whether a two-
+  commission budget is the intended bar for the DAILY RUN is a design
+  question for a human, raised in this hand-off rather than decided in a
+  gate. (Phase 23's earlier ladder read 843 m and 12 km for 70 % and 85 %
+  readers with a different error mix; same ordering, same order of
+  magnitude.)
+  **`EARLY_MULT` — 3.5.** The sweep, forty and fifty gates read at the arm
+  edge against the whole route read at the line, plus the meter coupling the
+  rate carries (reads from empty to a full dash, at chain 0 and at the cap):
+      EARLY_MULT | 100 late  | 40 early (ratio)   | 50 early (ratio)   | 100 early | charge chain0 / cap
+             3.0 |   146,351 |   136,688 (0.93  ) |   181,352 (1.24 ✓) |   404,815 | 6 / 2
+             3.5 |   148,544 |   159,265 (1.07 ✓) |   211,296 (1.42 ✓) |   471,624 | 5 / 2  <- shipped
+             4.0 |   150,736 |   181,842 (1.21 ✓) |   241,239 (1.60 ✓) |   538,433 | 5 / 2
+  At 3.0, forty gates read early scored 0.93× the whole route read late —
+  the knife edge the Phase D note left, a few percent the wrong side of the
+  brief's original ask. 3.5 puts forty over the line at 1.07× without 4.0's
+  overshoot, where under half the route read early is worth 1.21× all of it
+  read safely and the back half starts to look optional. The meter cost is
+  one read: a dash charges from empty in five early reads at chain 0 instead
+  of six, and in two at the chain cap either way. Score only; speed, the
+  window and `ARM_DISTANCE_M` are untouched, and the daily route is the same
+  hundred words in the same order — every player's score moves by the same
+  rule.
+  **Compression — keep.** A fast 95 % reader answering at 0.95 of the window
+  and a mid 85 % reader answering at 0.55 (clear of the level-1 and level-2
+  bars, inside level 3's), across every level:
+      reader     acc  answers at | L0        L1        L2        L3        | L3/L0   peak
+      fast 95%    95%  0.95      |   374,080   430,192   505,008   598,528 |   1.60   63.9
+      mid 85%     85%  0.55      |    95,167   109,442   128,475    41,076 |   0.43   60.0
+  Level 3 is reachable at the ceiling (63.9 m/s) and worth 1.6× for the
+  reader who clears it, monotone across the ladder; for the reader who set a
+  bar they cannot clear it pays 0.43× — an answer inside the bar loses both
+  the early rate and the bonus, which is the whole point of the bet.
+  **Surge — keep, one number for a human eye.** The FOV stack at peak flow
+  (base 68°, clamp 96°, surge +5.5°, REDUCED FLASH ×0.45):
+      where    dash   reduced | speed   base   +surge   fov    clamped  surge visible
+      cruise   no     no      | 47.17   81.64   5.50    87.14  no       5.5°
+      cruise   no     yes     | 47.17   81.64   2.48    84.11  no       2.5°
+      cruise   yes    no      | 47.17   99.64   5.50    96.00  yes      0°
+      ceiling  no     no      | 64.00   89.00   5.50    94.50  no       5.5°
+      ceiling  yes    no      | 64.00  107.00   5.50    96.00  yes      0°
+  The surge is a real term at cruise — +5.5°, damped to +2.5° under REDUCED
+  FLASH like every other motion term — and never breaches the clamp. It is
+  also invisible under any DASH: the speed and DASH terms alone reach 99.6°
+  at cruise and 107° at the ceiling, so the clamp is already doing the work
+  and the surge has nothing to add. That is what "peak-flow intensity"
+  measures to; how it FEELS on a phone is the on-device check the brief
+  asks a human for.
+  **`LOOKAHEAD_GATES` — provisional at 3, waiting on a human.** The question
+  is text-soup, not correctness, and it has to be played. The build honours
+  `?lookahead=N` on any URL, so the A/B is three links on the live preview:
+  https://wordrun-git-claude-game-brief-clean-073628-mikeylambos-projects.vercel.app/?lookahead=2
+  https://wordrun-git-claude-game-brief-clean-073628-mikeylambos-projects.vercel.app/?lookahead=3
+  https://wordrun-git-claude-game-brief-clean-073628-mikeylambos-projects.vercel.app/?lookahead=4
+  What to look for, on a 390-wide phone, once a run has settled into cruise
+  (eight or so clean reads, around 47 m/s): ignore the words and watch the
+  plates. The armed word — the one you can answer — must be the plate your
+  eye lands on without hunting, every time, with the fainter plates behind it
+  reading as depth rather than as competing text. Pick the highest count at
+  which that is still true. If at 4 you ever find yourself reading a plate
+  you cannot yet answer, or the row reads as a paragraph, that count is too
+  high; if 2 feels like the road ends too soon, that one is too low. The
+  frozen value follows the pick with a one-line change and `npm run
+  calibrate`.
+  Also in this phase: `gate:v1` had been red since Phase 0.2 — a v1 polish
+  check still asserted the props.js verge-post placement that phase deleted
+  (the finishing brief's Phase J orders the same deletion). It now asserts
+  the truth: props.js places no posts, and the one set of stanchions in
+  `speed-fantasy.js` stands on the ribbon edge. The stale Phase D comment
+  that quoted the 3.0 break-even was rewritten to the 3.5 numbers, and the
+  roadmap was replaced with the finishing brief's backlog.

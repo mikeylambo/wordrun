@@ -8,12 +8,15 @@
  * that logic touches — hearts after every step, bells collected, the death
  * cause, the final score, and the count of each life event.
  *
- * The golden fixture (refactor-snapshot.golden.json) was captured against the
- * pre-refactor build, with rc5's step algorithm replicated verbatim (see
- * `git show` of that commit, or run with `--emit --replica`). This gate replays
- * the identical scripts through the NATIVE sim and asserts byte-identical
- * output. A green run here is the acceptance criterion for 0.1–0.3: the
- * archaeology moved code, it did not move behaviour.
+ * The golden fixture (refactor-snapshot.golden.json) was first captured
+ * against the pre-refactor build with rc5's step algorithm replicated verbatim
+ * (`--emit --replica`, commit b7c049c) — the acceptance proof that Phase 0
+ * moved code, not behaviour. Its role since Phase H: a standing BEHAVIOUR
+ * snapshot. The trajectories depend on the calibrated dials (EARLY_MULT sets
+ * the score, for one), so a deliberate tuning change regenerates it with
+ * `npm run calibrate` (native `--emit`, never `--replica` — the sim is native
+ * now and the replica would apply the heart logic twice). An unexplained
+ * failure here means behaviour drifted without a tuning decision behind it.
  */
 
 import fs from 'node:fs';

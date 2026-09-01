@@ -321,11 +321,16 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
 
   // 3. "The poles aren't attached to anything." They took the generator's x and
   //    the terrain height there — a point off the side of the only visible
-  //    ground in the scene.
+  //    ground in the scene. Phase 0.2 then found the fix had landed in code
+  //    that draws nothing (props.js sees an empty collider list) and removed
+  //    that placement path outright; the stanchions in speed-fantasy.js are
+  //    the only posts, and THEY stand on the ribbon edge.
   const propCode = codeOf('src/render/props.js');
-  const gateBranch = propCode.slice(propCode.indexOf('FEATURE.GATE'));
-  check(/corridorX\(c\.d\)/.test(gateBranch) && /R\.TRACK_HALF_W/.test(gateBranch),
-    'verge posts stand on the ribbon edge, the same line the rail and the grid end on');
+  const pylonCode = codeOf('src/render/speed-fantasy.js');
+  check(!/this\.pole\b/.test(propCode) && !/c\.type === FEATURE\.GATE/.test(propCode),
+    'props.js places no verge posts — the dead path is gone, not duplicated');
+  check(/corridorX\(/.test(pylonCode) && /R\.TRACK_HALF_W/.test(pylonCode),
+    'the one set of posts stands on the ribbon edge, the same line the rail and the grid end on');
 
   // 4. "Score doesn't cut in-game after choosing a continue, only on the end
   //    screen." The multiplier was applied once, at the recap, so the HUD kept
