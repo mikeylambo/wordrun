@@ -18,6 +18,7 @@
 
 import fs from 'node:fs';
 import { StatsManager, memoryAdapter } from '../src/meta/stats.js';
+import { CurveLog } from '../src/meta/curve.js';
 import { DailyManager, goalsFor } from '../src/meta/daily.js';
 import { buildStatsExport, formatStatsExport, EXPORT_VERSION } from '../src/meta/export.js';
 import { ObjectiveQueue, queueFor, POOL, LIVE_SLOTS, rewardFor } from '../src/meta/objectives.js';
@@ -902,6 +903,73 @@ head('SCORE — how well you ran, not how long');
   const ch = fs.readFileSync('src/meta/challenge.js', 'utf8');
   check('a challenge link carries a score target under its own key',
     ch.includes("goal: 'score'"));
+}
+
+// ── Phase 1: the curve screen and the nemesis words earn their presentation ──
+head('CURVE — the trend is a series, oldest→newest, gaps never fabricated');
+{
+  const empty = new CurveLog(memoryAdapter()).series(14);
+  check('series returns exactly `days` entries with no history, no tiers invented',
+    empty.days === 14 && empty.readMs.length === 14 &&
+    empty.readMs.every((v) => v === null) && empty.tiers.length === 0);
+
+  const c = new CurveLog(memoryAdapter());
+  c.addRun({ perTier: { 3: { a: 4, c: 3 } }, avgReadMs: 900, reads: 4 });
+  const s = c.series(14);
+  check('each per-tier accuracy array is exactly `days` long, oldest→newest',
+    s.tiers.includes(3) && s.accuracy[3].length === 14 && s.readMs.length === 14);
+  check('only today is filled; every earlier day is null, not interpolated',
+    s.accuracy[3].slice(0, 13).every((v) => v === null) && s.accuracy[3][13] === 75 &&
+    s.readMs[13] === 900 && s.readMs.slice(0, 13).every((v) => v === null),
+    `today ${s.accuracy[3][13]}% / ${s.readMs[13]}ms`);
+  check('a shorter window is honoured', new CurveLog(memoryAdapter()).series(7).readMs.length === 7);
+}
+
+head('NEMESIS — the beaten-word gallery is bounded and survives storage');
+{
+  const { NemesisLedger, NEMESIS } = await import('../src/meta/nemesis.js');
+  const adapter = memoryAdapter();
+  const led = new NemesisLedger(adapter);
+  const beat = (id) => {
+    led.record(id, false, 0);
+    for (let i = 0; i < NEMESIS.RETIRE_CLEAN; i++) led.record(id, true, 0);
+  };
+  beat('able');
+  const first = led.beatenWords();
+  check('a beaten word enters the gallery with its miss count and a date',
+    first.length === 1 && first[0].id === 'able' && first[0].m >= 1 &&
+    typeof first[0].at === 'number');
+
+  for (let i = 0; i < NEMESIS.BEATEN_CAP + 10; i++) beat(`w${i}`);
+  const full = led.beatenWords();
+  check('the gallery is bounded to BEATEN_CAP, newest first',
+    full.length === NEMESIS.BEATEN_CAP && full[0].id === `w${NEMESIS.BEATEN_CAP + 10 - 1}`,
+    `${full.length} kept, newest ${full[0].id}`);
+  check('the lifetime retired tally counts every beating, not just the kept ones',
+    led.retiredCount === NEMESIS.BEATEN_CAP + 11, `retired ${led.retiredCount}`);
+
+  const reload = new NemesisLedger(adapter);
+  check('the gallery survives a storage round-trip, identical and still bounded',
+    reload.beatenWords().length === NEMESIS.BEATEN_CAP &&
+    JSON.stringify(reload.beatenWords()) === JSON.stringify(full));
+  check('beatenWords() hands back a copy, not the ledger\'s own array',
+    (() => { const g = led.beatenWords(); g.push({ id: 'x' }); return led.beatenWords().length === NEMESIS.BEATEN_CAP; })());
+}
+
+head('RETIREMENT — the flourish introduces no colour the grammar does not own');
+{
+  const burst = fs.readFileSync('src/render/streak-burst.js', 'utf8');
+  const from = burst.indexOf('fireRetire(');
+  const to = burst.indexOf('update(dt, camera)', from);
+  const retireBody = burst.slice(from, to);
+  check('the retirement burst reuses the reserved escalation palette — no new hex',
+    from > 0 && to > from && !/0x[0-9a-f]{6}/i.test(retireBody) && /TIER_COLORS/.test(retireBody),
+    'reuses TIER_COLORS (cyan resting tone + reserved violet/gold)');
+  // Its own sound, not a gate() variant.
+  const audioSrc = fs.readFileSync('src/audio/audio.js', 'utf8');
+  check('the retirement cue is its own one-shot in the audio engine',
+    /wordRetired\s*\(\)\s*\{/.test(audioSrc) &&
+    fs.readFileSync('src/main.js', 'utf8').includes('audio.wordRetired()'));
 }
 
 console.log(out.join('\n'));

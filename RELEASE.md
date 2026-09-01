@@ -916,3 +916,29 @@ Slice history:
   DASH arming-threshold note left stale on the roadmap (it recommended raising
   `MIN_ACTIVATE`, which shipped at `= METER_MAX` in Phase 22) was retired, and
   the leaderboard's policy ruling recorded as settled.
+
+- Phase 1 — the curve screen and the nemesis words made worth building. The
+  data already earned this; it just had no presentation to match. `CurveLog`
+  kept 28 days of per-day, per-tier buckets and `summary()` collapsed all of it
+  into one week-vs-week delta. A new `series(days = 14)` returns the daily
+  per-tier accuracy and average read time as arrays, oldest → newest, with a
+  day never played left `null` rather than interpolated — and the curve screen
+  now draws each tier as a thin SVG sparkline instead of a single bar, so a
+  player can SEE themselves climbing over two weeks, gaps and all, not just be
+  told a number moved. A retired word used to be visible only on the death card
+  of the run that beat it and then thrown away; `NemesisLedger` now keeps a
+  bounded gallery (last 40, newest first) of beaten words with what each cost —
+  misses and attempts and when — and the curve screen shows it as the game's
+  proof of work. The retirement itself, the single most personal moment in the
+  game, gets its own beat AT the read now, not a text line two screens later:
+  its own one-shot cue in `audio.js` (a full major arpeggio that opens into a
+  held fifth and a shimmer — deliberately not a louder correct-read chime), and
+  an escalated burst that reuses the reserved escalation palette so it adds no
+  new hue the colour grammar does not already own. The death-card mention stays,
+  now a recap of something already felt. And the title's YOUR READING entry
+  wears a single dot when there is something new since it was last opened —
+  measured by the lifetime retired count, so it survives sessions and clears on
+  open — an indicator, not a notification-bait number. New gates: `series()`
+  is exactly `days` long, oldest-first, gaps `null`, never fabricated; the
+  gallery is bounded and survives a storage round-trip; and the retirement
+  flourish introduces no hex the reserved-hue separation does not permit.

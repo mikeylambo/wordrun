@@ -119,7 +119,7 @@ const metaStats = new StatsManager(metaAdapter);
 // The per-word ledger rides the same adapter seam as the stats.
 const nemesis = new NemesisLedger(metaAdapter);
 const curve = new CurveLog(metaAdapter);
-buildCurveScreen(() => curve.summary());
+buildCurveScreen(() => ({ series: curve.series(14), beaten: nemesis.beatenWords() }));
 const metaDaily = new DailyManager(metaAdapter);
 
 // Which controls this player has ever used. The in-run coach teaches a control
@@ -221,9 +221,25 @@ if (CHALLENGE) {
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     audio.uiTap();
+    // Opening the screen is acknowledging what is new: mark the current
+    // retired count as seen so the dot clears, then refresh it.
+    metaStats.set('curveSeenRetired', nemesis.retiredCount);
+    updateCurveBadge();
     document.dispatchEvent(new CustomEvent('dictiondash:show-curve'));
   });
   document.getElementById('titleGoals')?.appendChild(btn);
+  updateCurveBadge();
+}
+
+// The badge (Phase 1.4): a single dot on YOUR READING when there is something
+// new since it was last opened. Measured by the lifetime retired count, so it
+// survives sessions and needs no in-session flag; opening the screen marks the
+// current count seen and clears it. It is an indicator, not a number — no
+// notification-bait count on the title.
+function updateCurveBadge() {
+  const el = document.getElementById('openCurve');
+  if (!el) return;
+  el.classList.toggle('hasNews', nemesis.retiredCount > metaStats.get('curveSeenRetired', 0));
 }
 
 // ── Run-start warm-up (Phase 8) ───────────────────────────────────────────
@@ -633,6 +649,7 @@ function quitToTitle() {
   ui.clearDread();
   ui.clearRun();
   ui.showTitle(true);
+  updateCurveBadge(); // a word beaten this session may be new since last open
   audio.suspend();
 }
 
@@ -929,6 +946,15 @@ function drainSimEvents() {
           const before = nemesis.history(e.answer);
           if (nemesis.record(e.answer, true, e.index) === 'retired' && before?.m > 0) {
             retiredThisRun.push({ word: e.answer, misses: before.m, attempts: before.a });
+            // The retirement beat, AT the read (Phase 1) — not a text line two
+            // screens later. Its own sound, an escalated burst reusing the
+            // reserved escalation palette, a fuller spray and a camera tick.
+            // The death-card mention stays, but now it recaps something the
+            // player already felt.
+            audio.wordRetired();
+            streakBurst.fireRetire(e);
+            spray.emit(e.x, e.y, -e.d, 34, 5.5, 4.2, 0);
+            rig.dashKick(0.5);
           }
         }
         // Phase B: how early the answer landed, 0 at the line and 1 at the

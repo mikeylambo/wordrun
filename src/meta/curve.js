@@ -49,6 +49,37 @@ export class CurveLog {
   }
 
   /**
+   * The trend, as arrays rather than a single delta (Phase 1). Per tier, the
+   * daily accuracy over the last `days` days, oldest → newest; and the daily
+   * average read time over the same window. A day with no runs is `null`, never
+   * fabricated or interpolated — a gap in the line is the truth that nothing was
+   * played, and the sparkline draws it as a break. Exactly `days` entries in
+   * every array, so the caller can map day-to-x without bounds games.
+   */
+  series(days = 14, now = Date.now()) {
+    const today = dayOf(now);
+    const first = today - days + 1;
+    const tierSet = new Set();
+    for (let d = first; d <= today; d++) {
+      const day = this.days[String(d)];
+      if (day) for (const t of Object.keys(day.t)) tierSet.add(Number(t));
+    }
+    const tiers = [...tierSet].sort((a, b) => a - b);
+    const accuracy = {};
+    for (const t of tiers) accuracy[t] = [];
+    const readMs = [];
+    for (let d = first; d <= today; d++) {          // oldest → newest
+      const day = this.days[String(d)];
+      for (const t of tiers) {
+        const slot = day?.t?.[String(t)];
+        accuracy[t].push(slot && slot.a > 0 ? Math.round((100 * slot.c) / slot.a) : null);
+      }
+      readMs.push(day && day.reads > 0 ? Math.round(day.ms / day.reads) : null);
+    }
+    return { days, tiers, accuracy, readMs };
+  }
+
+  /**
    * The week against the week before it. Returns null where there is not
    * enough history to say anything honest — a trend drawn from one run is a
    * lie with a chart around it.

@@ -20,6 +20,7 @@
  */
 
 const CAP = 400;            // words held, LRU by last-seen
+const BEATEN_CAP = 40;      // retired words kept for the gallery, newest first
 const LANE_EVERY = 12;      // roughly one gate in twelve
 const RETIRE_CLEAN = 3;     // clean reads in a row before a word is retired
 
@@ -39,6 +40,11 @@ export class NemesisLedger {
     const raw = adapter?.get?.(key);
     this.words = raw && typeof raw === 'object' && raw.words ? raw.words : {};
     this.retired = raw?.retired || 0;
+    // The gallery (Phase 1): the last BEATEN_CAP words retired, newest first,
+    // each with what it cost to beat. The `retired` count above is kept as the
+    // lifetime tally; this is the list the curve screen shows. Bounded on load
+    // AND on write so a long-lived ledger cannot grow it without limit.
+    this.beaten = Array.isArray(raw?.beaten) ? raw.beaten.slice(0, BEATEN_CAP) : [];
   }
 
   _persist() {
@@ -51,7 +57,10 @@ export class NemesisLedger {
       for (const id of ids.slice(0, CAP)) keep[id] = this.words[id];
       this.words = keep;
     }
-    this.adapter?.set?.(this.key, { words: this.words, retired: this.retired });
+    if (this.beaten.length > BEATEN_CAP) this.beaten.length = BEATEN_CAP;
+    this.adapter?.set?.(this.key, {
+      words: this.words, retired: this.retired, beaten: this.beaten,
+    });
   }
 
   /** Record how a word went. `id` is the TRUE spelling, never the fake. */
@@ -63,6 +72,11 @@ export class NemesisLedger {
     if (correct) {
       w.run++;
       if (w.m > 0 && w.run >= RETIRE_CLEAN) {
+        // A word beaten for good. Record what it cost — misses and total
+        // attempts — before dropping it from the active ledger, so the gallery
+        // can say "missed 4 times, now retired" long after the run that did it.
+        this.beaten.unshift({ id, m: w.m, a: w.a, at: now() });
+        if (this.beaten.length > BEATEN_CAP) this.beaten.length = BEATEN_CAP;
         delete this.words[id];
         this.retired++;
         this._persist();
@@ -120,6 +134,10 @@ export class NemesisLedger {
   get size() { return Object.keys(this.words).length; }
   get retiredCount() { return this.retired; }
 
+  /** The beaten-word gallery, newest first: [{ id, m, a, at }]. A copy, so a
+   *  caller cannot mutate the ledger's own list. */
+  beatenWords() { return this.beaten.slice(); }
+
   /**
    * The lane. Pure in (gateIndex) apart from the ledger itself, and it never
    * touches the walk — the caller has already built its gate and this only
@@ -131,5 +149,5 @@ export class NemesisLedger {
   }
 }
 
-export const NEMESIS = { CAP, LANE_EVERY, RETIRE_CLEAN, SCHEDULE_GATES, SCHEDULE_DAYS };
+export const NEMESIS = { CAP, BEATEN_CAP, LANE_EVERY, RETIRE_CLEAN, SCHEDULE_GATES, SCHEDULE_DAYS };
 export default NemesisLedger;

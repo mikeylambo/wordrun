@@ -69,6 +69,33 @@ export class StreakBurst {
     }
   }
 
+  /**
+   * A word retired (Phase 1) — the escalated beat for the single most personal
+   * moment in the game, felt at the read rather than read off a card two
+   * screens later. It is the top-tier burst pushed further: the full ring pool,
+   * every escalation colour, longer life and more reach. It introduces NO new
+   * hue — it reuses TIER_COLORS (cyan, the resting tone, plus the reserved
+   * violet and gold escalation hues), so the RESERVED_HUES separation the gate
+   * enforces holds by construction.
+   */
+  fireRetire(e) {
+    const colors = TIER_COLORS[2];
+    let idx = 0;
+    for (const r of this.rings) {
+      if (r.life > 0) continue;
+      r.life = 0.95;
+      r.maxLife = r.life;
+      r.delay = idx * 0.06;
+      r.span = (2.0 + idx * 1.0) * 1.9;
+      r.grow = 16;
+      r.mesh.material.color.setHex(colors[idx % colors.length]);
+      r.mesh.position.set(e.x, e.y + 1.4, -e.d);
+      r.mesh.scale.setScalar(0.01);
+      r.mesh.visible = false;
+      idx++;
+    }
+  }
+
   update(dt, camera) {
     for (const r of this.rings) {
       if (r.life <= 0) continue;

@@ -575,4 +575,29 @@ export class Audio {
 
   chainLost() { this._tone({ type: 'triangle', f0: 500, f1: 125, dur: 0.40, vol: 0.10, bus: this.bus.ui }); }
 
+  /**
+   * A word retired — the one sound in the game that means "you got better,
+   * specifically, at something you were bad at" (Phase 1). It is deliberately
+   * NOT a louder gate() chime: a full major arpeggio that rings up and OPENS at
+   * the top into a sustained fifth and a bright shimmer, so it reads as arrival
+   * rather than as one more correct read. Distinct from heartRestore's three
+   * rising blips (different intervals, a held chord, and the shimmer tail).
+   */
+  wordRetired() {
+    if (!this.ready || this.muted) return;
+    const root = 523.25; // C5
+    // I – III – V – VIII, climbing, each landing a beat after the last.
+    const arp = [[1, 0], [1.26, 0.05], [1.5, 0.10], [2, 0.16]];
+    for (const [mult, delay] of arp) {
+      this._tone({ type: 'triangle', f0: root * mult, f1: root * mult * 1.005,
+        dur: 0.26, vol: 0.075, bus: this.bus.ui, delay });
+    }
+    // The top opens: a held octave+fifth and a shimmer that outlasts the arp.
+    this._tone({ type: 'sine', f0: root * 2, f1: root * 2.01, dur: 0.7, vol: 0.06,
+      bus: this.bus.ui, delay: 0.16 });
+    this._tone({ type: 'sine', f0: root * 3, f1: root * 3.02, dur: 0.6, vol: 0.03,
+      bus: this.bus.ui, delay: 0.2 });
+    this._burst(0.5, 0.05, 6400, 'highpass', 0, this.bus.ui, 0.7);
+  }
+
 }
