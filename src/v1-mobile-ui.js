@@ -59,7 +59,14 @@ function ensureMobileUi() {
     @keyframes dashButtonReady{0%,100%{box-shadow:0 0 22px rgba(103,216,255,.32),0 4px 20px rgba(4,9,13,.18);transform:scale(1)}50%{box-shadow:0 0 44px rgba(103,216,255,.78),0 4px 20px rgba(4,9,13,.22);transform:scale(1.045)}}
     #v1MobileDash.held{opacity:1;transform:scale(.95);animation:none;box-shadow:0 0 40px rgba(103,216,255,.72),0 4px 20px rgba(4,9,13,.22)}
 
-    #v1MobileJump{right:max(106px,calc(env(safe-area-inset-right,0px) + 100px));bottom:max(26px,calc(env(safe-area-inset-bottom,0px) + 22px));width:64px;height:64px;background:rgba(238,248,252,.16);box-shadow:0 4px 18px rgba(4,9,13,.14);opacity:.74}
+    /* Playtest: REAL sat beside DASH and the pair crowded one thumb. They
+       stack now — DASH lowest, where the thumb rests, REAL directly above.
+       FAKE mirrors the left zone on the left edge, so the button layout and
+       the screen halves teach the same mapping instead of contradicting it. */
+    #v1MobileJump{right:max(18px,calc(env(safe-area-inset-right,0px) + 12px));bottom:max(104px,calc(env(safe-area-inset-bottom,0px) + 100px));width:64px;height:64px;background:rgba(238,248,252,.16);box-shadow:0 4px 18px rgba(4,9,13,.14);opacity:.74}
+    #v1MobileFake{left:max(18px,calc(env(safe-area-inset-left,0px) + 12px));bottom:max(20px,calc(env(safe-area-inset-bottom,0px) + 16px));width:64px;height:64px;background:rgba(238,248,252,.12);box-shadow:0 4px 18px rgba(4,9,13,.14);opacity:.62}
+    #v1MobileFake::before{background:rgba(17,26,33,.58)}
+    #v1MobileFake.held{opacity:1;transform:scale(.93);box-shadow:0 0 24px rgba(255,255,255,.16),0 4px 18px rgba(4,9,13,.18)}
     #v1MobileJump::before{background:rgba(17,26,33,.58)}
     #v1MobileJump.held{opacity:1;transform:scale(.93);box-shadow:0 0 24px rgba(255,255,255,.18),0 4px 18px rgba(4,9,13,.18)}
     #v1MobileJump.air{opacity:.30}
@@ -70,7 +77,8 @@ function ensureMobileUi() {
     @media (orientation:landscape) and (max-height:500px){
       #v1MobileDash{width:66px;height:66px;right:max(15px,calc(env(safe-area-inset-right,0px) + 10px));bottom:max(14px,calc(env(safe-area-inset-bottom,0px) + 10px))}
       #v1MobileDash span{font-size:10px;letter-spacing:.06em}
-      #v1MobileJump{width:56px;height:56px;right:max(90px,calc(env(safe-area-inset-right,0px) + 84px));bottom:max(19px,calc(env(safe-area-inset-bottom,0px) + 15px))}
+      #v1MobileJump{width:56px;height:56px;right:max(15px,calc(env(safe-area-inset-right,0px) + 10px));bottom:max(88px,calc(env(safe-area-inset-bottom,0px) + 84px))}
+      #v1MobileFake{width:56px;height:56px;left:max(15px,calc(env(safe-area-inset-left,0px) + 10px));bottom:max(14px,calc(env(safe-area-inset-bottom,0px) + 10px))}
       #v1MobileJump span{font-size:10px}
       #v1TouchFrame{width:76px;height:76px}
     }
@@ -101,6 +109,40 @@ function ensureMobileUi() {
   go.setAttribute('aria-label', 'Hold DASH for a burst of speed');
   go.innerHTML = '<span>DASH</span>';
   app.appendChild(go);
+
+  // Phase C: the fake answer needs a control on the device where a screen
+  // half is the only other way to reach it. A visible REAL with no visible
+  // FAKE hides half the verb.
+  const fake = document.createElement('button');
+  fake.id = 'v1MobileFake';
+  fake.className = 'v1MobileAction';
+  fake.type = 'button';
+  fake.setAttribute('aria-label', 'Call the word misspelled');
+  fake.innerHTML = '<span>FAKE</span>';
+  app.appendChild(fake);
+
+  let fakePointer = null;
+  const fakeDown = (e) => {
+    if (fakePointer !== null) return;
+    fakePointer = e.pointerId;
+    fake.setPointerCapture?.(e.pointerId);
+    fake.classList.add('held');
+    const input = globalThis.__INPUT;
+    if (input) {
+      input.reject = true;
+      if (!input._firedFirst) { input._firedFirst = true; input.onFirstGesture?.(); }
+    }
+    e.preventDefault();
+  };
+  const fakeUp = (e) => {
+    if (fakePointer !== e.pointerId) return;
+    fakePointer = null;
+    fake.classList.remove('held');
+    e.preventDefault();
+  };
+  fake.addEventListener('pointerdown', fakeDown);
+  fake.addEventListener('pointerup', fakeUp);
+  fake.addEventListener('pointercancel', fakeUp);
 
   let jumpPointer = null;
   const jumpDown = (e) => {
@@ -172,6 +214,7 @@ function ensureMobileUi() {
     guide,
     frame: guide.querySelector('#v1TouchFrame'),
     jump,
+    fake,
     go,
   };
   return ui;
@@ -203,6 +246,7 @@ export function updateMobileTouchUi(player) {
 
   refs.jump.classList.toggle('running', running);
   refs.jump.classList.toggle('air', !!player?.airborne);
+  refs.fake.classList.toggle('running', running);
 
   if (!running && input) input.__v1DashButtonHeld = false;
 

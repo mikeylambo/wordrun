@@ -112,8 +112,15 @@ check(input.includes('_lastGrounded') && input.includes('_reanchorTouch') && inp
 check(input.includes('__v1DashButtonHeld') &&
   input.includes('this.dashEdge || this.keyBoost || this.__v1DashButtonHeld'),
   'the on-screen button, the key and the two-zone edge share one dash flag');
-check(!input.includes('GO_HOLD_MS') && input.includes('TAP_MS') && input.includes('BOTH_ZONE_MS'),
-  'a tap is a reading; only both zones together are a dash');
+check(!input.includes('GO_HOLD_MS') && input.includes('TAP_MS') && !input.includes('BOTH_ZONE_MS'),
+  'a tap is a reading and nothing else — the dash is a button or a key');
+// Playtest: REAL sat beside DASH and crowded one thumb; FAKE did not exist at
+// all, so half the verb was invisible on the device it is played on.
+check(mobile.includes("id = 'v1MobileFake'") && mobile.includes("<span>FAKE</span>") &&
+  mobile.includes('input.reject = true'),
+  'the fake answer has a control on the device that has no keyboard');
+check(/#v1MobileJump\{right:max\(18px/.test(mobile) && /#v1MobileFake\{left:max\(18px/.test(mobile),
+  'REAL stacks above DASH on the right; FAKE mirrors the left zone');
 check(mobile.includes("guide.id = 'v1TouchGuide'"),
   'mobile exposes a touch ring while the thumb is down');
 check(mobile.includes("go.id = 'v1MobileDash'"),
@@ -142,7 +149,7 @@ check(onboarding.includes("touch ? 'TAP RIGHT' : '\u2192'") &&
   onboarding.includes("touch ? 'TAP LEFT' : '\u2190'") &&
   onboarding.includes('if the word is spelled correctly'),
   'onboarding teaches both zones rather than requiring discovery');
-check(onboarding.includes("touch ? 'BOTH SIDES' : 'SPACE'") &&
+check(onboarding.includes("touch ? 'DASH' : 'SPACE'") &&
   onboarding.includes('spends a full DASH charge'),
   'the DASH is taught by name, and by the gesture a phone actually has');
 check(onboarding.includes('three hearts') && onboarding.includes('in a row</i> to win one back'),

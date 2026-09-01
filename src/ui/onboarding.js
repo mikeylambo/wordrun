@@ -68,7 +68,7 @@ export class OnboardingUI {
     const no = touch ? 'TAP LEFT' : '←';
     // The mobile build has a literal DASH button, so name the button there
     // and the key only on a keyboard. Same for the confirm verb.
-    const dash = touch ? 'BOTH SIDES' : 'SPACE';
+    const dash = touch ? 'DASH' : 'SPACE';
     const HEART_STREAK = HEARTS.STREAK_REPAIR_DEFAULT;
     this.root.innerHTML = `
       <div class="card">

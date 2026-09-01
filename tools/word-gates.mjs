@@ -790,19 +790,18 @@ head('ZONES — the reject is optional, and never worse than silence');
 
   // Both zones at once is the dash, and it must not also read as an answer.
   const inputSrc = fs.readFileSync('src/input/input.js', 'utf8');
-  // The dash is decided on the PRESS. Deciding it on the release cannot work:
-  // a reading fires when a thumb lifts, so the first half of a two-thumb dash
-  // had already been spent as an answer before the second half arrived —
-  // measured, two edges instead of one. Waiting to see whether a second thumb
-  // lands would instead tax every single answer, which Phase B made costly.
-  check('the dash is detected on the press, not on the release',
-    /_zonePress\(id, clientX\)/.test(inputSrc) &&
-    /if \(this\.enabled\) this\._zonePress\(e\.pointerId, e\.clientX\)/.test(inputSrc) &&
-    /meta\.spent = true/.test(inputSrc),
-    'both pointers are marked spent, so neither lift becomes a reading');
-  check('a spent pointer can never also answer',
-    /_zoneTap\(id, clientX\) \{\s*\n\s*if \(this\.pointerMeta\.get\(id\)\?\.spent\) return;/.test(inputSrc),
-    'the tap path checks the flag the press path set');
+  // The both-halves dash lasted one playtest. On a phone it had to compete
+  // with the buttons that occupy both halves, and the DASH button already did
+  // the job — a gesture that duplicates a control and loses to it is not a
+  // shortcut. A half is a reading and nothing else now.
+  check('a screen half only ever means a reading',
+    !/dashEdge = true;[\s\S]{0,80}_zoneOf/.test(inputSrc) &&
+    !/_zonePress/.test(inputSrc) && !/BOTH_ZONE_MS/.test(inputSrc),
+    'no gesture competes with the buttons that sit in the same halves');
+  check('the dash still has three ways in and no gesture',
+    /case 'Space': if \(down\) this\.dashEdge = true/.test(inputSrc) &&
+    /this\.dashEdge \|\| this\.keyBoost \|\| this\.__v1DashButtonHeld/.test(inputSrc),
+    'Space, the F key and the on-screen button');
   check('the hold that used to arm the dash is gone',
     !/GO_HOLD_MS/.test(inputSrc) && /dashEdge/.test(inputSrc),
     'the dash is an edge — no quarter-second tax on the most important verb');

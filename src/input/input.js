@@ -36,12 +36,10 @@ const SWIPE_MS = 260;
 // game spent a quarter of a second finding out.
 const TAP_MS = 220;
 const TAP_PX = 12;
-// Two presses are one gesture while both are DOWN together. Detected on the
-// press rather than on the release: a reading fires when a thumb lifts, so
-// waiting to see whether a second thumb arrives would tax every single answer
-// by the width of the window — and Phase B made answer latency worth score.
-// Pressing both halves is unambiguous the moment the second one lands.
-const BOTH_ZONE_MS = 140;
+// Phase C shipped a both-halves-at-once dash and it is gone again after one
+// playtest. On a phone the gesture has to compete with the buttons that live
+// in both halves, and it was solving a problem the DASH button already solves.
+// The dash is Space, the F key, or the button — nothing else.
 
 const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
 
@@ -64,7 +62,6 @@ export class Input {
     this.reject = false;        // said FAKE (the left zone)
     this.boostHeld = false;
     this.dragging = false;
-    this._zoneT = { left: 0, right: 0 };
 
     this.enabled = true;
     this.onFirstGesture = null;
@@ -129,9 +126,7 @@ export class Input {
       this.pointerMeta.set(e.pointerId, {
         x: e.clientX, y: e.clientY, type: e.pointerType || 'mouse',
         downX: e.clientX, downY: e.clientY, downT: performance.now(),
-        spent: false,
       });
-      if (this.enabled) this._zonePress(e.pointerId, e.clientX);
       if (this.primaryId === null) {
         this.primaryId = e.pointerId;
         this.primaryTouch = e.pointerType === 'touch';
@@ -211,35 +206,15 @@ export class Input {
   /**
    * A tap resolved to a zone. The halves are the whole screen, so there is no
    * target to find and no button to look at — the answer is wherever the thumb
-   * already is. Both halves inside BOTH_ZONE_MS is the dash instead.
+   * already is. The dash is a button or a key, never a screen half.
    */
   _zoneOf(clientX) {
     const w = (this.target?.clientWidth || window.innerWidth || 1);
     return clientX >= w / 2 ? 'right' : 'left';
   }
 
-  /**
-   * A press landed. If a pointer is already held in the OTHER half, this is
-   * the dash: fire it now and mark both pointers spent, so neither release
-   * turns into a reading the player never meant to give.
-   */
-  _zonePress(id, clientX) {
-    const zone = this._zoneOf(clientX);
-    for (const [otherId, meta] of this.pointerMeta) {
-      if (otherId === id || meta.spent) continue;
-      if (this._zoneOf(meta.x ?? meta.downX) !== zone) {
-        this.dashEdge = true;
-        meta.spent = true;
-        const self = this.pointerMeta.get(id);
-        if (self) self.spent = true;
-        return;
-      }
-    }
-  }
-
-  /** A press lifted as a tap. One zone, one reading. */
+  /** A press lifted as a tap. One half, one reading. */
   _zoneTap(id, clientX) {
-    if (this.pointerMeta.get(id)?.spent) return;
     if (this._zoneOf(clientX) === 'right') this.jump = true; else this.reject = true;
   }
 
@@ -272,7 +247,6 @@ export class Input {
     this._lastGrounded = null;
     this.carve = 0; this.flip = 0; this.jump = false; this.reject = false;
     this.boostHeld = false; this.dashEdge = false;
-    this._zoneT.left = this._zoneT.right = 0;
   }
 
   /** Fold pointer + keyboard into the axes the sim reads. Call once per frame. */
