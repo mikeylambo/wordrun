@@ -726,3 +726,34 @@ Slice history:
   The level shows as marks beside the meter and is never named: the cap is
   four names and this is not one of them. A wrong read of any kind drops it to
   the floor, which is the sting the risk is priced against.
+- Phase G — the words you keep missing, and the curve that shows you beating
+  them. A local per-word ledger holds attempts, misses and last-seen for up to
+  400 words, trimmed on write rather than on read because a ledger bounded only
+  at load is unbounded in practice. It rides the same adapter seam as the
+  stats, so it round-trips wherever they do.
+  The lane substitutes into roughly one gate in twelve and does not reorder
+  anything. That distinction is the phase: the tier walk's no-repeat guarantee
+  is a coprime stride, and reaching into it would break the property for every
+  word rather than the substituted one. The walk runs first and unconditionally
+  and only then is the printed word allowed to differ — proved by building the
+  same 400 gates with and without a lane that substitutes constantly and
+  finding the walk's own choice identical at every one, with the same zero
+  repeats either way. A substituted gate keeps its position, its tier and its
+  truth; only the vocabulary is personal.
+  It is off on the DAILY RUN, and the sim refuses it there rather than trusting
+  the caller — that route is the same hundred words in the same order for
+  everyone, and a personal substitution would make two scores incomparable
+  while looking identical.
+  Playing it found the flaw a schedule exists to prevent. A word stayed due
+  until it retired, so one word filled gates 12, 24, 36 and 48 of a single run
+  — spaced repetition with no spacing. A word read right now goes further away
+  each time, and among equally-missed words the lane takes the one least
+  recently seen, so a shelf of troublesome words rotates instead of one of them
+  owning every substitution. Three clean reads retire a word for good, and the
+  results card names it: the word, how many times it beat you, and that it is
+  gone.
+  The curve screen is the retention hook and the strongest thing to say about
+  this game to a platform: per-tier accuracy this week against last, the read
+  time trend, and the count of words beaten. It refuses to draw a trend it
+  cannot support — a chart from a single run is a lie with a chart around it —
+  and it is figures only, with no name of its own.

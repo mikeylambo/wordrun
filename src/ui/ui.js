@@ -335,7 +335,7 @@ export class UI {
   }
 
   renderDeath({ distance, score, scoreLost = 0, continuesUsed = 0, failedRoute = false, avgReadMs = 0,
-    seconds = 0, gates = 0, routeGates = 0, best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult }) {
+    seconds = 0, gates = 0, routeGates = 0, retired = [], best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult }) {
     this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null };
     this.finalDist.textContent = Math.floor(score ?? 0).toLocaleString('en-US');
     this._deathDistance = Math.floor(distance);
@@ -359,6 +359,7 @@ export class UI {
     this.deathScreen.classList.add('rc2Poster');
     this._avgReadMs = avgReadMs;
     this._seconds = seconds;
+    this._retired = retired;
     this._gates = gates;
     this._routeGates = routeGates;
     this._renderRecap(recap, daily, objectives, review, lifetime);
@@ -474,6 +475,15 @@ export class UI {
       // the lifetime kilometres, which said the least of the three now that
       // distance is not a board metric.
       const avgRead = this._avgReadMs > 0 ? `${(this._avgReadMs / 1000).toFixed(2)}s` : '—';
+      // A word the player has beaten. This is the one line on the card that
+      // is about them rather than about the run, and it is the payoff for the
+      // whole per-word ledger: a word missed four times, then read clean three
+      // times running, is gone from the lane for good.
+      for (const r of (this._retired || []).slice(0, 2)) {
+        parts.push(`<div class="defRow"><b>BEATEN</b>${r.word} — ` +
+          `missed ${r.misses} time${r.misses === 1 ? '' : 's'}, now retired</div>`);
+      }
+
       // Four facts, and the first one is whichever the mode makes meaningful.
       // Time is here as a record of the run rather than as live pressure: a
       // clock on the HUD tells a player to hurry, and this game's whole

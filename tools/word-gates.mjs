@@ -19,6 +19,9 @@ import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
 import { mulberry32 } from '../src/sim/rng.js';
 import { latencyMultFor } from '../src/sim/word-gates.js';
 import { corruptionIntensity } from '../src/render/corruption-curve.js';
+import { NemesisLedger, NEMESIS } from '../src/meta/nemesis.js';
+import { CurveLog } from '../src/meta/curve.js';
+import { memoryAdapter } from '../src/meta/stats.js';
 import {
   TIERS, ALL_WORDS, isValidWord, pickWord, makeFake, tierCount, tierWords,
 } from '../src/words/wordlist.js';
@@ -1154,6 +1157,114 @@ head('COMPRESSION — risk without a legibility cost');
     /barLevel/.test(fs.readFileSync('src/ui/ui.js', 'utf8')) &&
     /'\u25b0'\.repeat/.test(fs.readFileSync('src/ui/ui.js', 'utf8')),
     'the naming cap is four and this is not one of them');
+}
+
+// ── Phase G: the words you keep missing ──────────────────────────────────
+head('NEMESIS — a substitution, never a reordering');
+{
+  // THE guarantee. The tier walk is a coprime stride over each tier's list and
+  // reaching into it would break no-repeat for every word, not just the
+  // substituted one. Build the same 400 gates with and without a lane that
+  // substitutes constantly, and the walk's own choice must be identical.
+  const noLane = Array.from({ length: 400 }, (_, i) => makeGate(4242, i).walked);
+  const heavy = Array.from({ length: 400 }, (_, i) =>
+    makeGate(4242, i, undefined, () => 'INTRUDER').walked);
+  check('the tier walk is byte-identical with and without the lane',
+    noLane.join('|') === heavy.join('|'),
+    `${noLane.length} gates, the walk chose the same word at every one`);
+
+  // And the no-repeat property itself still holds on the walk.
+  const walkDupes = noLane.length - new Set(noLane).size;
+  const laneDupes = heavy.length - new Set(heavy).size;
+  check('the no-repeat guarantee survives the lane',
+    walkDupes === laneDupes,
+    `${walkDupes} repeats either way across 400 gates`);
+
+  // A substituted gate shows the lane's word and admits it.
+  const swapped = makeGate(4242, 24, undefined, (i) => (i === 24 ? 'receive' : null));
+  const plain = makeGate(4242, 24);
+  check('a lane gate shows the lane word and flags itself',
+    swapped.answer === 'receive' && swapped.fromLane === true &&
+    plain.fromLane === false && swapped.walked === plain.walked,
+    'the printed word changed; the word the walk drew did not');
+  check('a lane gate is still a real gate',
+    swapped.d === plain.d && swapped.tier === plain.tier && swapped.real === plain.real,
+    'same position, same tier, same truth — only the vocabulary is personal');
+
+  // The daily route must be identical for everyone, so it refuses the lane.
+  const daily = new Sim(4242);
+  daily.start(4242, null, { mode: 'standard', wordSalt: 0, nemesisLane: () => 'INTRUDER' });
+  const dailyWords = Array.from({ length: 100 }, (_, i) => {
+    daily.wordGates.next = i; daily.wordGates.gate = null;
+    return daily.wordGates.current().shown;
+  });
+  check('the daily route contains zero substitutions',
+    !dailyWords.includes('INTRUDER') && daily.wordGates.lane === null,
+    'a personal word would make two identical-looking scores incomparable');
+  const endless = new Sim(4242);
+  endless.start(4242, null, { mode: 'endless', nemesisLane: (i) => (i === 12 ? 'INTRUDER' : null) });
+  check('endless accepts it',
+    typeof endless.wordGates.lane === 'function',
+    'endless is where the practice happens, so it is where the lane lives');
+}
+
+head('LEDGER — bounded, spaced, and it survives being put down');
+{
+  const led = new NemesisLedger(memoryAdapter());
+  led.record('receive', false, 0);
+  check('a missed word comes back inside the same run',
+    led.history('receive').due === NEMESIS.SCHEDULE_GATES[0] &&
+    led.substituteFor(NEMESIS.LANE_EVERY) === 'receive',
+    `due at gate ${led.history('receive').due}, and the lane offers it at 12`);
+  check('and only at a lane gate',
+    led.substituteFor(NEMESIS.LANE_EVERY - 1) === null,
+    'roughly one gate in twelve, not every gate the word is due at');
+
+  // Spacing, and rotation among equals. Without both, one word owned every
+  // lane gate — measured, the same word filled 12, 24, 36 and 48 of a run.
+  const rota = new NemesisLedger(memoryAdapter());
+  for (const w of ['hip', 'bureau', 'receive']) rota.record(w, false, 0);
+  const lane = [];
+  for (let g = NEMESIS.LANE_EVERY; g <= 100; g += NEMESIS.LANE_EVERY) {
+    const sub = rota.substituteFor(g);
+    if (sub) { lane.push(sub); rota.record(sub, true, g); }
+  }
+  check('the lane rotates instead of repeating one word',
+    new Set(lane.slice(0, 3)).size === 3,
+    `first three substitutions: ${lane.slice(0, 3).join(', ')}`);
+  check('and a word read right goes further away, not straight back',
+    lane[0] === lane[3],
+    `${lane[0]} returns at the fourth substitution, not the second`);
+
+  for (let i = 0; i < NEMESIS.RETIRE_CLEAN; i++) led.record('receive', true, 40 + i);
+  check('three clean reads retire a word for good',
+    led.retiredCount === 1 && led.history('receive') === null,
+    'the payoff for the whole ledger is a word leaving it');
+
+  const shared = memoryAdapter();
+  const a = new NemesisLedger(shared);
+  a.record('bureau', false, 0);
+  const b = new NemesisLedger(shared);
+  check('the ledger survives a storage round-trip',
+    b.history('bureau')?.m === 1,
+    'written through the same adapter seam as the stats');
+
+  const big = new NemesisLedger(memoryAdapter());
+  for (let i = 0; i < 900; i++) big.record(`w${i}`, false, i);
+  check('the ledger is bounded',
+    big.size === NEMESIS.CAP,
+    `900 words offered, ${big.size} held — trimmed on write, not on read`);
+
+  // The curve refuses to draw a trend it cannot support.
+  const curve = new CurveLog(memoryAdapter());
+  check('the curve says nothing until it has something to say',
+    curve.summary().days === 0 && curve.summary().tiers.length === 0,
+    'a trend drawn from one run is a lie with a chart around it');
+  curve.addRun({ perTier: { 3: { a: 10, c: 6 } }, avgReadMs: 700, reads: 10 });
+  const sum = curve.summary();
+  check('and reports the week once it does',
+    sum.tiers[0].tier === 3 && sum.tiers[0].now === 60 && sum.readMs === 700,
+    `tier 3 at ${sum.tiers[0].now}%, ${sum.readMs}ms average read`);
 }
 
 console.log(out.join('\n'));

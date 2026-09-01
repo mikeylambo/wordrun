@@ -135,14 +135,25 @@ export function latencyMultFor(answerDistance) {
   return W.LATE_MULT + (W.EARLY_MULT - W.LATE_MULT) * t;
 }
 
-export function makeGate(seed, index, prof = DEFAULT_PROFILE) {
+/**
+ * Build a gate. `lane` may supply a word to show INSTEAD of the one the tier
+ * walk chose — a substitution, never a reordering. The walk has already run
+ * and produced its word by the time the swap happens, so its no-repeat
+ * guarantee is untouched: the same stride visits the same list in the same
+ * order whether or not a lane word is printed over the top of it.
+ */
+export function makeGate(seed, index, prof = DEFAULT_PROFILE, lane = null) {
   const rng = mulberry32(mixSeed(mixSeed(seed, WORD_STREAM), index));
   const d = gateDistance(index);
   const tier = tierAt(d, prof);
   rng();                                   // keep the draw in step with isRealGate
   const real = isRealGate(seed, index, prof);
   const laneRng = mulberry32(mixSeed(mixSeed(seed, WORD_STREAM), 0x7f000000 + tier));
-  const word = pickWordCycle(tier, index - tierStartIndex(tier, prof), laneRng);
+  // The walk runs first and unconditionally, so its cursor advances exactly as
+  // it would have. Only then is the printed word allowed to differ.
+  const walked = pickWordCycle(tier, index - tierStartIndex(tier, prof), laneRng);
+  const substitute = lane ? lane(index, tier) : null;
+  const word = substitute || walked;
   return {
     index,
     d,
@@ -154,6 +165,10 @@ export function makeGate(seed, index, prof = DEFAULT_PROFILE) {
     // (Was `real ? word : null` — exactly backwards, so the picked-fake
     // feedback silently showed the misspelling again. Meta-gated now.)
     answer: word,
+    // Which word the walk itself chose, so a gate can prove the lane changed
+    // nothing about the sequence it was drawn from.
+    walked,
+    fromLane: !!substitute,
     confirmed: false,          // answered REAL
     rejected: false,           // answered FAKE
     resolved: false,
@@ -169,6 +184,10 @@ export class WordGates {
   constructor(seed) {
     this.reset(seed);
   }
+
+  /** Attach the nemesis lane. Absent on the DAILY RUN, which must be
+   *  identical for everyone, and absent headlessly unless a test asks. */
+  setLane(lane) { this.lane = lane || null; }
 
   reset(seed, wordSalt = 0, profile = DEFAULT_PROFILE) {
     this.seed = wordSeedFor(seed, wordSalt);
@@ -191,7 +210,7 @@ export class WordGates {
   /** The gate the player is currently approaching (always exists). */
   current() {
     if (!this.gate || this.gate.index !== this.next) {
-      this.gate = makeGate(this.seed, this.next, this.profile);
+      this.gate = makeGate(this.seed, this.next, this.profile, this.lane);
     }
     return this.gate;
   }
@@ -303,7 +322,10 @@ export class WordGates {
 
       events?.push({
         t: 'word_correct', index: g.index, word: g.shown, real: g.real,
-        tier: g.tier, chain: player.chain, chainMult: player.chainMult(),
+        // The TRUE spelling, so the per-word ledger keys on the word rather
+        // than on whatever was printed — a correctly-passed fake is a read of
+        // the word it was bent from.
+        answer: g.answer, fromLane: !!g.fromLane, tier: g.tier, chain: player.chain, chainMult: player.chainMult(),
         latencyMult: g.latencyMult, answerDistance: g.answerDistance,
         answerLatency: g.answerLatency,
         proxMult, x: player.x, y: player.y, d: player.d, gateD: g.d,

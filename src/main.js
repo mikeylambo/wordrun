@@ -28,6 +28,9 @@ import { musicResponse } from './render/music-response.js';
 import { Input } from './input/input.js';
 import { Storage } from './storage/storage.js';
 import { StatsManager, localStorageAdapter } from './meta/stats.js';
+import { NemesisLedger } from './meta/nemesis.js';
+import { CurveLog } from './meta/curve.js';
+import { buildCurveScreen } from './ui/curve-screen.js';
 import { DailyManager } from './meta/daily.js';
 import { buildStatsExport, formatStatsExport } from './meta/export.js';
 import { ObjectiveQueue } from './meta/objectives.js';
@@ -107,6 +110,10 @@ syncVariant();
 // stats, daily goals and the play streak, over one storage adapter.
 const metaAdapter = localStorageAdapter();
 const metaStats = new StatsManager(metaAdapter);
+// The per-word ledger rides the same adapter seam as the stats.
+const nemesis = new NemesisLedger(metaAdapter);
+const curve = new CurveLog(metaAdapter);
+buildCurveScreen(() => curve.summary());
 const metaDaily = new DailyManager(metaAdapter);
 const metaObjectives = new ObjectiveQueue(metaAdapter);
 globalThis.__META = { stats: metaStats, daily: metaDaily, objectives: metaObjectives };
@@ -179,6 +186,22 @@ if (CHALLENGE) {
   document.getElementById('titleGoals')?.appendChild(exit);
 }
 
+// The curve screen's way in. A chip beside the goals rather than a new
+// surface: it is a place to look, not a thing to be named.
+{
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'modeChip';
+  btn.id = 'openCurve';
+  btn.textContent = 'YOUR READING';
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    audio.uiTap();
+    document.dispatchEvent(new CustomEvent('dictiondash:show-curve'));
+  });
+  document.getElementById('titleGoals')?.appendChild(btn);
+}
+
 // ── Run-start warm-up (Phase 8) ───────────────────────────────────────────
 // Profiling the BEGIN RUN hitch found three first-use costs landing on one
 // frame: shader compilation for every material hidden on the title screen
@@ -236,10 +259,15 @@ function startRun() {
     : runs + 1;
   continuesUsed = 0;
   runContinued = false;
+  retiredThisRun = [];
+  tierTally = {};
   sim.start(SEED, ghostData, {
     wordSalt: currentSalt,
     mode: runMode,
     difficulty: runDifficulty,
+    // ENDLESS only — sim.start refuses it on a route, which is where the
+    // rule lives rather than here.
+    nemesisLane: (index) => nemesis.substituteFor(index),
   });
   terrainMesh.terrain = sim.terrain;
   props.terrain = sim.terrain;
@@ -292,6 +320,8 @@ let runContinued = false;
 // the results card, the challenge link and the stats export, which all run
 // outside onDead().
 let lastRunScore = 0;
+let retiredThisRun = [];
+let tierTally = {};
 let lastRunScoreLost = 0;
 let offerActive = false;
 let offerTimer = null;
@@ -448,6 +478,11 @@ function finalizeRun() {
   metaStats.max('bestChain', sim.player.bestChain);
   metaStats.max('bestDistance', Math.floor(distance));
   metaStats.max('bestScore', finalScore);
+  // The personal curve: what this run says about the reading, not the score.
+  curve.addRun({
+    perTier: tierTally, avgReadMs, reads: wg.readCount,
+    retired: retiredThisRun.length,
+  });
   // Bells bank the spendable balance (Phase 8): a bare number, no name.
   const banked = (sim.bellsCollected || 0) * TUNING.META.CURRENCY_PER_BELL;
   if (banked > 0) metaStats.increment('currency', banked);
@@ -482,6 +517,7 @@ function finalizeRun() {
     failedRoute,
     avgReadMs,
     seconds: sim.time,
+    retired: retiredThisRun,
     gates: wg.next,
     routeGates: sim.rules?.GATES | 0,
     best: Storage.bestFor(SEED),
@@ -719,6 +755,7 @@ copyStats?.addEventListener('click', async (e) => {
     failedRoute,
     avgReadMs,
     seconds: sim.time,
+    retired: retiredThisRun,
     gates: wg.next,
     routeGates: sim.rules?.GATES | 0, distance: sim.distance, seconds: sim.time,
       mode: runMode, difficulty: runDifficulty, continued: runContinued,
@@ -836,6 +873,16 @@ function drainSimEvents() {
       case 'kill': audio.kill(); break;
       case 'word_confirm': audio.uiTap(); break;
       case 'word_correct': {
+        {
+          const t = tierTally[e.tier] || (tierTally[e.tier] = { a: 0, c: 0 });
+          t.a++; t.c++;
+        }
+        if (e.answer) {
+          const before = nemesis.history(e.answer);
+          if (nemesis.record(e.answer, true, e.index) === 'retired' && before?.m > 0) {
+            retiredThisRun.push({ word: e.answer, misses: before.m, attempts: before.a });
+          }
+        }
         // Phase B: how early the answer landed, 0 at the line and 1 at the
         // arm edge, drives the sound's attack and the camera's tick. Never a
         // word on screen.
@@ -853,7 +900,11 @@ function drainSimEvents() {
         wordGateActors.onResolve(e);
         break;
       }
-      case 'word_wrong':
+      case 'word_wrong': {
+        const t = tierTally[e.tier] || (tierTally[e.tier] = { a: 0, c: 0 });
+        t.a++;
+        nemesis.record(e.answer, false, e.index);
+      }
         // The rulebook asymmetry, felt: tapping a fake is the crash (hit
         // sound, red flash, the heart the sim already took). Missing a real
         // word is only a slowdown — a deflating cue, no crash language, so

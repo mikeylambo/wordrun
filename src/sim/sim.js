@@ -75,6 +75,10 @@ export class Sim {
     // only touches the word rng lane, so ghosts and determinism hold.
     // The difficulty profile shapes the word-tier curve and the Redline's
     // pace — never the track or the speed curve.
+    // The lane is ENDLESS only. The daily route is the same hundred words in
+    // the same order for everyone, and a personal substitution would make two
+    // scores incomparable while looking identical.
+    this.wordGates.setLane(this.rules.GATES > 0 ? null : (opts.nemesisLane || null));
     this.wordGates.reset(this.seed, opts.wordSalt || 0, {
       TIER_MIN: diff.TIER_MIN, TIER_MAX: diff.TIER_MAX, TIER_EVERY_M: diff.TIER_EVERY_M,
     });
