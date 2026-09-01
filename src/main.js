@@ -114,9 +114,17 @@ if (CHALLENGE) {
   runDifficulty = CHALLENGE.difficulty;
 }
 
+const BOARD = TUNING.META.BOARD_POLICY;
+// Phase J: the DAILY RUN is scored on one difficulty. While the DAILY chip is
+// on, the difficulty is forced to it and the row is locked — shown, never
+// said. The player's ENDLESS difficulty preference is left untouched.
+function effectiveDifficulty() {
+  return runMode === 'standard' ? BOARD.DAILY_DIFFICULTY : runDifficulty;
+}
+
 function syncVariant() {
   Storage.setVariant(runMode === 'endless' && runDifficulty === 'normal'
-    ? '' : `${runMode}.${runDifficulty}`);
+    ? '' : `${runMode}.${effectiveDifficulty()}`);
 }
 syncVariant();
 
@@ -289,9 +297,6 @@ function startRun() {
   audio.start();
   music.attach(audio);
   music.play();
-  // The placeholder stem synth is the fallback score; a real track replaces
-  // it rather than playing underneath it.
-  audio.musicTrackLive = true;
   const ghostData = ghostEnabled ? Storage.loadGhost(SEED) : null;
   const runs = Storage.runsToday(SEED);
 
@@ -313,7 +318,7 @@ function startRun() {
   sim.start(SEED, ghostData, {
     wordSalt: currentSalt,
     mode: runMode,
-    difficulty: runDifficulty,
+    difficulty: effectiveDifficulty(),
     // ENDLESS only — sim.start refuses it on a route, which is where the
     // rule lives rather than here.
     nemesisLane: (index) => nemesis.substituteFor(index),
@@ -515,8 +520,12 @@ function finalizeRun() {
   lastRunScoreLost = (earned - finalScore) + continueScoreLost;
   // Unassisted runs own the boards: a continued run reports its distance
   // but cannot set the best or leave a ghost (see CONTINUE tuning note).
-  const isPb = runContinued ? false : Storage.setBestFor(SEED, finalScore);
-  if (!runContinued) {
+  // Phase J: and the DAILY RUN is recorded on its one board difficulty only
+  // (a challenge link can pin another; that run keeps its score, not a best).
+  const boardEligible = !runContinued &&
+    (runMode !== 'standard' || effectiveDifficulty() === BOARD.DAILY_DIFFICULTY);
+  const isPb = boardEligible ? Storage.setBestFor(SEED, finalScore) : false;
+  if (boardEligible) {
     sim.recorder.finish(sim.player);
     Storage.saveGhostIfBest(SEED, sim.recorder.serialize({ seed: SEED, distance }));
   }
@@ -612,7 +621,7 @@ function finalizeRun() {
 
 /** Pre-paint the next attempt's first two plates (salt + difficulty aware). */
 function warmPlates() {
-  const d = TUNING.MODES.DIFFICULTY[runDifficulty];
+  const d = TUNING.MODES.DIFFICULTY[effectiveDifficulty()];
   const prof = { TIER_MIN: d.TIER_MIN, TIER_MAX: d.TIER_MAX, TIER_EVERY_M: d.TIER_EVERY_M };
   const nextWordSeed = wordSeedFor(SEED,
     CHALLENGE ? CHALLENGE.salt : Storage.runsToday(SEED) + 1);
@@ -765,8 +774,10 @@ function syncModeChips() {
   for (const b of document.querySelectorAll('#modeRow .modeChip')) {
     b.classList.toggle('on', b.dataset.mode === runMode);
   }
+  const locked = runMode === 'standard' && !CHALLENGE;
   for (const b of document.querySelectorAll('#difficultyRow .modeChip')) {
-    b.classList.toggle('on', b.dataset.difficulty === runDifficulty);
+    b.classList.toggle('on', b.dataset.difficulty === effectiveDifficulty());
+    b.classList.toggle('locked', locked);
   }
 }
 document.getElementById('modeRows')?.addEventListener('click', (e) => {
@@ -777,6 +788,7 @@ document.getElementById('modeRows')?.addEventListener('click', (e) => {
     runMode = chip.dataset.mode;
     Storage.setModePref(runMode);
   } else if (chip.dataset.difficulty) {
+    if (runMode === 'standard') return; // locked: the DAILY RUN has one difficulty
     runDifficulty = chip.dataset.difficulty;
     Storage.setDifficultyPref(runDifficulty);
   }
@@ -822,7 +834,7 @@ copyChallenge?.addEventListener('click', async (e) => {
   const link = buildChallengeLink(location.origin + location.pathname, {
     seedString: SEED_STRING,
     mode: runMode,
-    difficulty: runDifficulty,
+    difficulty: effectiveDifficulty(),
     salt: currentSalt,
     goal: lastRunScore,
   });
@@ -866,7 +878,7 @@ copyStats?.addEventListener('click', async (e) => {
     retired: retiredThisRun,
     gates: wg.next,
     routeGates: sim.rules?.GATES | 0, distance: sim.distance, seconds: sim.time,
-      mode: runMode, difficulty: runDifficulty, continued: runContinued,
+      mode: runMode, difficulty: effectiveDifficulty(), continued: runContinued,
       correct: wg.correctCount, wrong: wg.wrongCount,
       falseTaps: wg.falseTaps, missedReals: wg.missedReals,
       bestChain: p.bestChain, peakSpeed: p.peakSpeed, endSpeed: p.speed,

@@ -277,58 +277,50 @@ head('MODES — rules, difficulty, and separated boards');
     storage.includes("'score.all'"));
   check('the legacy default keeps its keys (pre-mode bests survive)',
     storage.includes("`${type}.${seed}${VARIANT ? `.${VARIANT}` : ''}`") &&
-    main.includes("? '' : `${runMode}.${runDifficulty}`"));
+    main.includes("? '' : `${runMode}.${effectiveDifficulty()}`"));
   check('the title exposes both choices and persists them',
     main.includes('setModePref') && main.includes('setDifficultyPref') &&
     fs.readFileSync('index.html', 'utf8').includes('id="difficultyRow"'));
 }
 
-// ── Music stems (Phase 12): the reactive engine, gated before the score ──
-head('MUSIC — stem levels are a pure function of speed and streak');
-
+// ── Music (Phase J): the stem engine is retired; the full track is the score ──
+head('MUSIC — one score: the full track and its beat clock, no stem engine');
 {
-  const { stemLevels, STEM_LAYERS } = await import('../src/audio/stems.js');
-  const TUNING = (await import('../src/TUNING.js')).default;
-  const R = TUNING.RUN;
+  check('the four-stem engine is gone, files and folder',
+    !fs.existsSync('src/audio/stems.js') && !fs.existsSync('public/audio/stems'));
+  const audioSrc = fs.readFileSync('src/audio/audio.js', 'utf8');
+  check('the audio engine no longer builds or drives stems',
+    !/StemMix|this\.stems|stemLevels|musicTrackLive/.test(audioSrc) &&
+    !/musicTrackLive/.test(fs.readFileSync('src/main.js', 'utf8')));
+  check('the full track ships and the beat clock is what the run reacts to',
+    fs.existsSync('public/audio/music/into-the-night.mp3') &&
+    fs.existsSync('src/music-track.js') && fs.existsSync('src/render/music-response.js') &&
+    fs.readFileSync('src/main.js', 'utf8').includes('musicResponse(clock'));
+  check('no dial for a stem bus survives in tuning', !/MUSIC_MAX|STEM/.test(fs.readFileSync('src/TUNING.js', 'utf8')));
+}
 
-  const a = stemLevels({ speed: 33, streak: 4 });
-  const b = stemLevels({ speed: 33, streak: 4 });
-  check('identical state yields identical levels (deterministic)',
-    JSON.stringify(a) === JSON.stringify(b));
-  check('four layers, every level bounded 0..1',
-    STEM_LAYERS.length === 4 && STEM_LAYERS.every((l) => {
-      const v = stemLevels({ speed: 50, streak: 6 })[l];
-      return v >= 0 && v <= 1;
-    }));
-
-  const speeds = [R.FLOOR, 24, 32, 40, 48, 56, R.CEILING];
-  const drumRamp = speeds.map((speed) => stemLevels({ speed, streak: 0 }).drums);
-  check('drums ride the speed curve monotonically floor -> ceiling',
-    drumRamp.every((v, i) => i === 0 || v >= drumRamp[i - 1]) &&
-    drumRamp[speeds.length - 1] > drumRamp[0] + 0.5,
-    drumRamp.map((v) => v.toFixed(2)).join(' -> '));
-  check('bass is the ever-present foundation (audible even at the floor)',
-    stemLevels({ speed: R.FLOOR, streak: 0 }).bass >= 0.5);
-
-  const leadRamp = [0, 2, 4, 6, 8].map((streak) => stemLevels({ speed: 30, streak }).lead);
-  check('lead wakes with the chain and is silent without one',
-    leadRamp[0] === 0 && leadRamp.every((v, i) => i === 0 || v >= leadRamp[i - 1]) &&
-    leadRamp[4] > 0.8, leadRamp.map((v) => v.toFixed(2)).join(' -> '));
-
-  check('fx is the peak layer: needs BOTH high speed and a deep chain',
-    stemLevels({ speed: R.CEILING, streak: 0 }).fx === 0 &&
-    stemLevels({ speed: R.FLOOR, streak: 8 }).fx === 0 &&
-    stemLevels({ speed: R.CEILING, streak: 8 }).fx > 0.8);
-
-  const src = fs.readFileSync('src/audio/stems.js', 'utf8');
-  check('real stems are a file drop, never a code change (loader + fallback)',
-    src.includes("audio/stems/${name}.${ext}") && src.includes('placeholderBuffer') &&
-    fs.existsSync('public/audio/stems/README.md'));
-  check('the stems ride the master chain (mute and the drain duck apply)',
-    fs.readFileSync('src/audio/audio.js', 'utf8').includes('new StemMix(ctx, this.master') &&
-    fs.readFileSync('src/audio/audio.js', 'utf8').includes('this.stems.update'));
-  check('the engine adds no player-facing copy (naming cap untouched)',
-    !/textContent|innerHTML|document\./.test(src));
+// ── Board policy (Phase J): the rules exist before the boards do ─────────
+head('BOARD POLICY — DAILY on NORMAL only, ENDLESS per difficulty, no continues');
+{
+  const P = TUNING.META.BOARD_POLICY;
+  check('the policy is a tuning constant with the four decided rules',
+    P && P.DAILY_DIFFICULTY === 'normal' && P.ENDLESS_PER_DIFFICULTY === true &&
+    P.CONTINUE_ELIGIBLE === false && P.GOALS_ANY_DIFFICULTY === true);
+  const main = fs.readFileSync('src/main.js', 'utf8');
+  check('the DAILY chip forces the board difficulty and locks the row, with no copy',
+    main.includes("runMode === 'standard' ? BOARD.DAILY_DIFFICULTY : runDifficulty") &&
+    main.includes("b.classList.toggle('locked', locked)") &&
+    main.includes("if (runMode === 'standard') return; // locked") &&
+    fs.readFileSync('index.html', 'utf8').includes('.modeChip.locked{'));
+  check('a best is recorded only when the run is board-eligible',
+    main.includes("const boardEligible = !runContinued &&") &&
+    main.includes("const isPb = boardEligible ? Storage.setBestFor(SEED, finalScore) : false;") &&
+    main.includes("if (boardEligible) {"));
+  check('the sim, the plates and the links all run the effective difficulty',
+    main.includes("difficulty: effectiveDifficulty(),") &&
+    main.includes("TUNING.MODES.DIFFICULTY[effectiveDifficulty()]") && !/difficulty: runDifficulty,/.test(main));
+  check('daily goals still record on every difficulty',
+    /metaDaily\.recordRun\(DAILY_SEED/.test(main) && !/boardEligible[\s\S]{0,200}metaDaily\.recordRun/.test(main));
 }
 
 // ── Wiring + module independence ─────────────────────────────────────────
@@ -491,8 +483,9 @@ head('ECONOMY — the balance finally spends');
   check('the continue spends the same ledger the bells feed',
     main.includes("metaStats.increment('currency', -cost)"));
   check('a continued run never sets the best and never saves a ghost',
-    main.includes('runContinued ? false : Storage.setBestFor') &&
-    main.includes('if (!runContinued) {'));
+    main.includes('const boardEligible = !runContinued &&') &&
+    main.includes('const isPb = boardEligible ? Storage.setBestFor(SEED, finalScore) : false;') &&
+    main.includes('if (boardEligible) {'));
   check('the revive restores hearts and pushes the Redline out, never touches the words',
     main.includes('sim.hearts = sim.maxHearts') &&
     main.includes('sim.beast.gap = TUNING.BEAST.START_GAP') &&

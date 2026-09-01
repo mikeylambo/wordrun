@@ -979,10 +979,12 @@ head('LAST STAND — one more word before the run ends');
 
   // A recovered run is a skill save, so it keeps every board right it had.
   const mainSrc = fs.readFileSync('src/main.js', 'utf8');
+  // Phase J moved the eligibility test onto one line: the continue flag and
+  // the board policy, and nothing else — a stand is never in the expression.
   check('a recovered run is still board-eligible',
-    /const isPb = runContinued \? false : Storage\.setBestFor/.test(mainSrc) &&
-    !/lastStand/.test(mainSrc.slice(mainSrc.indexOf('const isPb'), mainSrc.indexOf('metaStats.increment'))),
-    'only a purchased continue forfeits the best and the ghost — a stand does not');
+    /const boardEligible = !runContinued &&/.test(mainSrc) &&
+    !/lastStand/.test(mainSrc.slice(mainSrc.indexOf('const boardEligible'), mainSrc.indexOf('metaStats.increment'))),
+    'only a purchased continue (or the wrong board difficulty) forfeits the best and the ghost — a stand does not');
 
   // The corruption is already gap-driven, so pinning the gap pins the
   // presentation at its maximum with no second system to keep in step.

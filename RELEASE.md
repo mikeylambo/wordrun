@@ -1182,3 +1182,30 @@ Slice history:
   it never survives past the dash (zero on every frame the dash is not
   live); a tapped fake and a slipped real both zero it mid-dash; the daily
   route is byte-identical; every rim hue clears the reserved separation.
+
+- Phase J — the last human items that were not calibration. Three, all
+  closed. **Board eligibility, encoded before a board exists.**
+  `TUNING.META.BOARD_POLICY` holds the four decided rules — DAILY is scored
+  and recorded on NORMAL only; ENDLESS bests store per difficulty (already
+  true); a continued run is never eligible (already true); daily goals clear
+  on any difficulty (unchanged) — so Pass 3 is a transport problem, not a
+  rules problem. On the title it is shown, never said: while the DAILY chip
+  is on, the difficulty row locks to NORMAL (dimmed, the one chip lit); the
+  player's ENDLESS difficulty preference is left exactly where it was and
+  comes back when the chip does. The sim, the warmed plates, the challenge
+  link and the stats export all run the EFFECTIVE difficulty, and a best is
+  recorded only for a board-eligible run — a challenge link that pins DAILY
+  on HARD still plays and still scores, it just cannot set the day's best.
+  Gated: the constant, the lock, the eligibility line, and that goals still
+  record on every difficulty. **The stem engine is retired.** The four-layer
+  reactive mix (Phase 12) only ever played its synthesized placeholders, was
+  muted the instant the Phase 28 track went live, and no real stems were
+  ever produced; the full track plus its beat clock IS the reactive layer
+  (`music-track.js`, `music-response.js`). `src/audio/stems.js`,
+  `public/audio/stems/` and its README are deleted, the engine's bus and
+  its `MUSIC_MAX` dial are gone from the audio graph and from tuning, and
+  the gates that asserted the engine now assert its absence and the track's
+  presence. **Verge posts** — already resolved in Phase 0.2 (the props.js
+  placement path drew nothing and is deleted; the stanchions in
+  `speed-fantasy.js` are the only posts, gated in `gate:v1`); Phase M
+  rebuilds them as ribbon geometry. Confirmed and closed.

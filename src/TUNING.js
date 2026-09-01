@@ -491,6 +491,17 @@ export const TUNING = {
     // five-name cap stays at five). Bells are its only source; Phase 14
     // gave it the two sinks scoped since Phase 8.
     CURRENCY_PER_BELL: 1,
+    // Phase J — board eligibility, encoded before any board exists so Pass 3
+    // is a transport problem and not a rules problem. DAILY is scored and
+    // recorded on NORMAL only (the title forces the chip, no copy); ENDLESS
+    // bests store per difficulty; a continued run is never eligible; daily
+    // goals clear on any difficulty. Gated in tools/meta-gates.mjs.
+    BOARD_POLICY: {
+      DAILY_DIFFICULTY: 'normal',
+      ENDLESS_PER_DIFFICULTY: true,
+      CONTINUE_ELIGIBLE: false,
+      GOALS_ANY_DIFFICULTY: true,
+    },
 
     // Sink 1 (Phase 14): the priced continue. Dying offers a short window
     // to buy the run back — hearts refilled, the Redline pushed out to its
@@ -725,9 +736,6 @@ export const TUNING = {
   // ── Audio ───────────────────────────────────────────────────────────────
   AUDIO: {
     MASTER: 0.55,
-    // Music-stem bus ceiling (Phase 12): kept low while placeholders stand
-    // in; raise when the produced score lands in public/audio/stems/.
-    MUSIC_MAX: 0.16,
     CARVE_MAX: 0.22,
     ROAR_MAX: 0.30,
     FOOTFALL_MAX: 0.55,

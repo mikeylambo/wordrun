@@ -7,7 +7,6 @@
  */
 
 import TUNING from '../TUNING.js';
-import { StemMix } from './stems.js';
 import { corruptionIntensity } from '../render/corruption-curve.js';
 
 const A = TUNING.AUDIO;
@@ -58,7 +57,6 @@ export class Audio {
   start() {
     this.prewarm();
     if (this.ready && this.ctx.state === 'suspended') this.ctx.resume();
-    if (this.ready) this.stems.start();
   }
 
   /** Build the whole graph, suspended. Safe to call at page load. */
@@ -168,9 +166,10 @@ export class Audio {
       o.start();
     }
 
-    // Dynamic music stems (Phase 12): four looping layers on their own
-    // bus into the master chain — mute and the drain duck apply for free.
-    this.stems = new StemMix(ctx, this.master, './');
+    // Phase J: the four-stem engine (Phase 12) is retired. The Phase 28 full
+    // track plus its beat clock is the reactive layer now (music-track.js,
+    // music-response.js); the stems only ever played their synthesized
+    // placeholders under it, and were suppressed the moment the track was live.
 
     this.ready = true;
     globalThis.__AUDIO_RC9 = { version: '9.0', buses: Object.keys(this.bus), shared: true };
@@ -266,18 +265,6 @@ export class Audio {
     this._set(this.bus.ambience.gain, (run ? (kill ? 0.20 : 0.92) : 0) * stand, 0.11);
     this._set(this.bus.surface.gain, (run ? (kill ? 0.03 : 0.95) : 0) * stand, 0.08);
     this._set(this.bus.threat.gain, run ? (kill ? 0.30 : 0.92) : 0, 0.08);
-
-    // Music stems ride the same two values the visual vibrancy rides:
-    // speed (effective, so Overdrive lifts the score) and the chain.
-    // Surge rides into the score as extra chain, which is the one dial the
-    // stem engine already understands — sustained excellence sounds like more
-    // of the music, not like a new sound.
-    const surge = p.surge ? p.surge() : 0;
-    this.stems.update(
-      { speed: p.effSpeed ?? p.speed,
-        streak: (p.chain ?? 0) + surge * TUNING.BOOST.SURGE_READS },
-      !!running && !kill && !this.musicTrackLive
-    );
 
     const beastPan = this._panFor(sim?.beast?.x ?? p.x);
     if (this.roar.pan) this._set(this.roar.pan.pan, beastPan, 0.05);

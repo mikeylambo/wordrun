@@ -12,12 +12,6 @@ this file only holds what is NOT built yet. The plan is the finishing brief
   `tools/calibration-gates.mjs` (`npm run calibrate` to regenerate a table
   deliberately). Done. The design change it surfaced shipped as Phase H2:
   the DAILY RUN now repairs a heart on a clean streak.
-- **Phase J — the last non-calibration human items.** Board eligibility as
-  `TUNING.META.BOARD_POLICY` + gate (DAILY scored on NORMAL only; ENDLESS per
-  difficulty; continues never eligible; goals clear on any difficulty).
-  Decide the four-stem engine (recommendation: retire it, the beat clock is the
-  reactive layer; drop `public/audio/stems/` and its README). The props.js
-  verge-post path is already gone (Phase 0.2) — confirm and close.
 
 ## Pass 2 — make it look like nothing else
 

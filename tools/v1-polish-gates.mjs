@@ -91,11 +91,12 @@ check(actorsSrc.includes('(p.speed - R.FLOOR) / (R.CEILING - R.FLOOR)') &&
   actorsSrc.includes('this.tail.material.opacity'),
   'runner cadence spans the range and the comet tail rides the top of it');
 // Phase 27: no audio voice rides speed any more — every noise bed that did
-// was a wind by another name. The music stems still take speed and chain, so
-// going faster is still audible; it is scored rather than blown.
-check(audioMix.includes('speed: p.effSpeed ?? p.speed') &&
-  /streak: \(p\.chain \?\? 0\)/.test(audioMix),
-  'speed reaches the ear through the music stems, not a noise bed');
+// was a wind by another name. Phase J retired the stem engine too; going
+// faster is still audible because the full track's beat clock is mapped from
+// the run's intensity term, which is keyed to speed. Scored, never blown.
+check(mainSrc.includes('musicResponse(clock') &&
+  /0\.45 \* \(\(p\.speed - TUNING\.RUN\.FLOOR\)/.test(mainSrc) && !/this\.stems/.test(audioMix),
+  'speed reaches the ear through the beat clock of the score, not a noise bed and not a stem bus');
 check(mainSrc.includes('new WindStreaks(stage.camera)') &&
   mainSrc.includes('new TrackPylons(stage.scene') &&
   speedFx.includes('AdditiveBlending'),
