@@ -45,6 +45,13 @@
       1.45,
       1.6
     ],
+    "SCORE.DASH_CHAIN_MULT": [
+      1,
+      1.25,
+      1.5,
+      1.75,
+      2
+    ],
     "DIFFICULTY.easy.REDLINE_PACE": 24,
     "DIFFICULTY.normal.REDLINE_PACE": 27,
     "DIFFICULTY.hard.REDLINE_PACE": 30
@@ -421,6 +428,41 @@
         "fov": 96,
         "clamped": true,
         "surgeVisible": 0
+      }
+    ],
+    "dash": [
+      {
+        "accuracy": 0.85,
+        "dashes": 17,
+        "openDashReads": 1,
+        "max": 3,
+        "median": 2,
+        "p90": 3,
+        "topRung": 2,
+        "score": 292208,
+        "cleared": true
+      },
+      {
+        "accuracy": 0.95,
+        "dashes": 18,
+        "openDashReads": null,
+        "max": 4,
+        "median": 3,
+        "p90": 4,
+        "topRung": 3,
+        "score": 454301,
+        "cleared": true
+      },
+      {
+        "accuracy": 1,
+        "dashes": 19,
+        "openDashReads": null,
+        "max": 4,
+        "median": 3,
+        "p90": 4,
+        "topRung": 3,
+        "score": 555973,
+        "cleared": true
       }
     ]
   }

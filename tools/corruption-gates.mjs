@@ -390,7 +390,7 @@ head('FLOW — brilliance is earned; loss is darkness');
     !/#drain\{[^}]*(255,\s*4?\d,)/.test(indexHtml));
   const audio = fs.readFileSync('src/audio/audio.js', 'utf8');
   check('the mix darkens with the drain and the chime climbs with the chain',
-    audio.includes('duckFilter') && /gate\(chain = 0(, early = 0)?\)/.test(audio) &&
+    audio.includes('duckFilter') && /gate\(chain = 0(, early = 0(, dashChain = 0)?)?\)/.test(audio) &&
     audio.includes('[0, 2, 4, 7, 9]'));
 }
 

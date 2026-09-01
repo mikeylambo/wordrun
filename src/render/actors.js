@@ -289,7 +289,9 @@ export class PlayerActor {
 
     // Comet tail: length and brightness ride the top half of the range.
     const tailN = Math.max(0, norm - 0.25) / 0.75;
-    this.tail.material.opacity = tailN * 0.4 * this.baseOpacity;
+    // Phase I: the tail brightens per dash-chain rung (main sets .dashChain).
+    const rung = Math.max(0, Math.min(4, this.dashChain | 0));
+    this.tail.material.opacity = Math.min(0.85, tailN * 0.4 * this.baseOpacity * (1 + 0.28 * rung));
     this.tail.scale.y = 0.001 + tailN * 9;             // plane local y = world z
     this.tail.position.z = (0.001 + tailN * 9) / 2 + 0.4;
 

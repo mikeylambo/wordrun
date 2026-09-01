@@ -312,11 +312,26 @@ export class WordGates {
       //   base x tier x how early x the chain x compression (1.0 until Phase F)
       const S = TUNING.SCORE;
       const tierMult = S.TIER_MULT[Math.min(g.tier, S.TIER_MULT.length - 1)] ?? 1;
+      // Phase I: the DASH chain rides the score term and nothing else. Index is
+      // the reads already landed during this dash; the dash must be live NOW
+      // (player.step ends it before this runs, so a read resolved on the frame
+      // the meter empties pays no chain).
+      const ladder = S.DASH_CHAIN_MULT;
+      g.dashChain = player.overdrive ? player.dashChain : 0;
+      g.dashMult = player.overdrive ? (ladder[Math.min(player.dashChain, ladder.length - 1)] ?? 1) : 1;
       g.score = S.PER_READ * tierMult * g.latencyMult * player.chainMult()
-        * (g.compressionMult ?? 1);
+        * (g.compressionMult ?? 1) * g.dashMult;
       player.score += g.score;
-      player.boostMeter = Math.min(B.METER_MAX,
-        player.boostMeter + W.CORRECT_FILL * player.chainMult() * proxMult * g.latencyMult);
+      if (player.overdrive) player.dashChain++;
+      // Phase I: a dash is a full charge spent whole (Phase 22's own rule).
+      // Reads used to refill the meter mid-dash, and at the chain cap they
+      // out-filled the drain — measured, a clean reader's first dash never
+      // ended (97 reads in one dash on the daily route). The fill pauses while
+      // the dash is live, so a dash is 2.94 s and the ladder means something.
+      if (!player.overdrive) {
+        player.boostMeter = Math.min(B.METER_MAX,
+          player.boostMeter + W.CORRECT_FILL * player.chainMult() * proxMult * g.latencyMult);
+      }
       // Surge accrues only while the chain is already capped and the answer
       // landed early. Anything less empties it — it measures holding a peak,
       // not reaching one.
@@ -333,7 +348,7 @@ export class WordGates {
         // the word it was bent from.
         answer: g.answer, fromLane: !!g.fromLane, tier: g.tier, chain: player.chain, chainMult: player.chainMult(),
         latencyMult: g.latencyMult, answerDistance: g.answerDistance,
-        answerLatency: g.answerLatency,
+        answerLatency: g.answerLatency, dashChain: g.dashChain, dashMult: g.dashMult,
         proxMult, x: player.x, y: player.y, d: player.d, gateD: g.d,
       });
     } else {
@@ -343,6 +358,7 @@ export class WordGates {
       // to the floor — the player chose the risk and it came due.
       player.compressionLevel = 0;
       player.surgeReads = 0;
+      player.dashChain = 0;      // Phase I: a wrong read of any kind zeroes the dash chain
 
       // Phase 23: BOTH wrong reads now cost a heart. Handing the omission's
       // consequence to the Redline's differential alone made doing nothing a

@@ -1013,7 +1013,7 @@ function drainSimEvents() {
         const W = TUNING.WORDS;
         const early = Math.max(0, Math.min(1,
           ((e.latencyMult ?? W.LATE_MULT) - W.LATE_MULT) / (W.EARLY_MULT - W.LATE_MULT)));
-        audio.gate(e.chain, early);
+        audio.gate(e.chain, early, e.dashChain);
         if (early > 0.4) rig.dashKick(0.28 * early);
         if (e.chain > 0) audio.chainLink(e.chain);
         if (e.proxMult > 1.05) audio.courageBank(e.proxMult);
@@ -1142,6 +1142,7 @@ function tick(dt) {
   dataworld.setFlow(flowF);
   trackPylons.setFlow(flowF);
   playerActor.flow = flowF;
+  playerActor.dashChain = p.overdrive ? p.dashChain : 0; // Phase I: the tail reads the rung
   // The score's reading of the run. Music modulates, the run decides: the
   // intensity term is the game's, and the mapping may only tint it.
   const clock = music.update(performance.now());

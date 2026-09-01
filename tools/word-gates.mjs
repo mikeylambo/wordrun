@@ -721,7 +721,7 @@ head('LATENCY — the early read is worth more, and costs the window nothing');
   const block = mainTxt.slice(mainTxt.indexOf("case 'word_correct'"));
   const body = block.slice(0, block.indexOf("case 'word_wrong'"));
   check('nothing announces the early read in words',
-    !/'[A-Z][A-Z ]{3,}'/.test(body) && /audio\.gate\(e\.chain, early\)/.test(body) &&
+    !/'[A-Z][A-Z ]{3,}'/.test(body) && /audio\.gate\(e\.chain, early/.test(body) &&
     /rig\.dashKick\(/.test(body),
     'the correct-read path carries no display string — sound and camera only');
 }
@@ -1039,6 +1039,88 @@ head('READOUT — metres where they mean something, gates where they do not');
   check('but their scores and their times can',
     a.score !== b.score && Math.abs(a.t - b.t) > 1,
     `${a.score.toLocaleString()} in ${a.t.toFixed(0)}s against ${b.score.toLocaleString()} in ${b.t.toFixed(0)}s`);
+}
+
+// ── Phase I: the DASH chain ──────────────────────────────────────────────
+head('DASH CHAIN — expression on the read, and nothing but the read');
+{
+  const S = TUNING.SCORE, W = TUNING.WORDS, B = TUNING.BOOST;
+  check('the ladder starts at 1.0 and only climbs',
+    S.DASH_CHAIN_MULT[0] === 1 && S.DASH_CHAIN_MULT.every((v, i, a) => i === 0 || v > a[i - 1]),
+    S.DASH_CHAIN_MULT.join(' / '));
+
+  // The Phase B two-run method: identical inputs, one run with the ladder
+  // and one with it flattened to 1.0. Reads, distance, speed and meter must
+  // be identical; only the score may differ.
+  const drive = (flat) => {
+    const saved = S.DASH_CHAIN_MULT.slice();
+    if (flat) S.DASH_CHAIN_MULT.fill(1);
+    const sim = new Sim(4242); sim.start(4242);
+    let guard = 0, dashReads = 0, maxRung = 0, chainAlive = 0;
+    while (sim.phase === PHASE.RUNNING && guard++ < 60000 && sim.player.d < 3200) {
+      const wg = sim.wordGates, g = wg.current();
+      const armed = wg.armed(sim.player.d) && !g.confirmed && !g.rejected;
+      sim.step({ ...emptyInput(), confirm: armed && g.real, reject: armed && !g.real,
+        boostHeld: sim.player.boostMeter >= B.MIN_ACTIVATE });
+      for (const e of sim.events) if (e.t === 'word_correct' && e.dashMult > 1) { dashReads++; maxRung = Math.max(maxRung, e.dashChain); }
+      sim.events.length = 0;
+      if (!sim.player.overdrive && sim.player.dashChain !== 0) chainAlive++;
+    }
+    S.DASH_CHAIN_MULT.splice(0, S.DASH_CHAIN_MULT.length, ...saved);
+    return { score: sim.score, d: +sim.player.d.toFixed(3), speed: +sim.player.speed.toFixed(6),
+      meter: +sim.player.boostMeter.toFixed(6), correct: sim.wordGates.correctCount, dashReads, maxRung, chainAlive };
+  };
+  const ladder = drive(false), flat = drive(true);
+  check('the multiplier reaches the score and only the score',
+    ladder.score > flat.score && ladder.d === flat.d && ladder.speed === flat.speed &&
+    ladder.meter === flat.meter && ladder.correct === flat.correct,
+    `${ladder.score.toLocaleString()} vs ${flat.score.toLocaleString()} on ${ladder.correct} identical reads, same metres, same speed, same meter`);
+  check('it actually fires: reads land inside dashes and climb the ladder',
+    ladder.dashReads > 0 && ladder.maxRung >= 1, `${ladder.dashReads} dash reads, top rung ${ladder.maxRung}`);
+  check('the chain never survives past the dash', ladder.chainAlive === 0,
+    'dashChain is zero on every frame the dash is not live');
+
+  // A wrong read of any kind zeroes it mid-dash.
+  const zeroOn = (kind) => {
+    const sim = new Sim(11); sim.start(11);
+    let guard = 0, armedRung = false;
+    while (sim.phase === PHASE.RUNNING && guard++ < 120000) {
+      const wg = sim.wordGates, g = wg.current();
+      const armed = wg.armed(sim.player.d) && !g.confirmed && !g.rejected;
+      const inDash = sim.player.overdrive && sim.player.dashChain >= 1;
+      const wrong = inDash && armed && ((kind === 'commission' && !g.real) || (kind === 'rejectReal' && g.real));
+      if (inDash) armedRung = true;
+      const before = wg.wrongCount;
+      sim.step({ ...emptyInput(),
+        confirm: (armed && g.real && !wrong) || (wrong && kind === 'commission'),
+        reject: (armed && !g.real && !wrong) || (wrong && kind === 'rejectReal'),
+        boostHeld: sim.player.boostMeter >= B.MIN_ACTIVATE });
+      if (wrong && wg.wrongCount > before) return sim.player.dashChain;
+    }
+    return armedRung ? -1 : -2;
+  };
+  check('a wrong read of any kind zeroes the chain mid-dash',
+    zeroOn('commission') === 0 && zeroOn('rejectReal') === 0,
+    'tapping a fake and slipping a real both drop it to zero');
+
+  // The window is untouched, the daily route is untouched.
+  const srcs = ['src/sim/sim.js', 'src/sim/word-gates.js', 'src/sim/player.js'].map((f) => fs.readFileSync(f, 'utf8')).join('\n');
+  check('nothing in the phase writes the arm distance', !/ARM_DISTANCE_M\s*=/.test(srcs));
+  const route = () => { const sim = new Sim(4242); sim.start(4242, null, { mode: 'standard', wordSalt: 0 });
+    return Array.from({ length: 100 }, (_, i) => makeGate(sim.wordGates.seed, i).shown).join('|'); };
+  check('the daily route is byte-identical with the ladder in place', route() === route());
+
+  // A colour, never a label: every rim hue sits clear of the semantic set.
+  const hueGap = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
+  const RES = TUNING.META.RESERVED_HUES;
+  const bad = B.DASH.CHAIN_HUES.filter((h) => RES.HUES.some((r) => hueGap(h, r.deg) < RES.MIN_SEPARATION_DEG));
+  check('every dash-chain rim hue is >= the reserved separation from the semantic set',
+    bad.length === 0 && B.DASH.CHAIN_HUES.length === S.DASH_CHAIN_MULT.length,
+    bad.length ? `colliding: ${bad.join(', ')}` : `${B.DASH.CHAIN_HUES.join('/')}° clear by >= ${RES.MIN_SEPARATION_DEG}°`);
+  const html = fs.readFileSync('index.html', 'utf8'), ui = fs.readFileSync('src/ui/ui.js', 'utf8');
+  check('the rim reads the rung as a hue and the HUD gains no label',
+    html.includes('hsl(var(--dashHue)') && ui.includes('--dashHue'),
+    'a CSS custom property, no text — the four-name cap is policed by corruption-gates');
 }
 
 // ── Phase F: the player sets their own bar ───────────────────────────────

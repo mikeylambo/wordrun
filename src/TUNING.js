@@ -396,6 +396,10 @@ export const TUNING = {
       // The teaching beat holds until the player has actually dashed once
       // — ever, not per run. A lesson that times out teaches nobody.
       TEACH_HOLD_S: 3.2,
+      // Phase I: the meter rim steps hue per dash-chain rung. Cyan is the
+      // resting tone; each rung walks toward green. Every value sits >= 25'
+      // from the semantic set (reds 350–28, violet 262, gold 45) — gated.
+      CHAIN_HUES: [195, 172, 150, 128, 105],
     },
   },
 
@@ -470,6 +474,15 @@ export const TUNING = {
     // ends in death, so a death penalty there is just a global multiplier
     // that changes nothing about how anyone plays.
     STANDARD_FAIL_KEEP: 0.60,
+    // Phase I — the DASH chain. During an active dash each correct read ramps
+    // a temporary multiplier on the READ'S SCORE TERM ONLY: index = correct
+    // reads already landed during this dash (the first pays [0]), capped at
+    // the last entry. A wrong read of any kind zeroes it; it ends with the
+    // dash. Never speed, never meter, never the window — the dash is
+    // expression, not a rescue. Sized to measured reads-per-dash + 1 (see
+    // tools/calibration-gates.mjs, DASH table), so the top rung is rare by
+    // construction.
+    DASH_CHAIN_MULT: [1.0, 1.25, 1.5, 1.75, 2.0],
   },
 
   // ── Meta economy ────────────────────────────────────────────────────────

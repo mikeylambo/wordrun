@@ -421,9 +421,11 @@ export class Audio {
    * harder and a bright partial opens above it. A late read is byte for byte
    * the confirmation this game has always made.
    */
-  gate(chain = 0, early = 0) {
+  gate(chain = 0, early = 0, dashChain = 0) {
     const steps = [0, 2, 4, 7, 9];
-    const c = Math.max(0, Math.min(14, chain | 0));
+    // Phase I: each dash-chain rung climbs the pentatonic ladder one more
+    // step — the same melody, higher, for exactly as long as the chain holds.
+    const c = Math.max(0, Math.min(14, (chain | 0) + Math.max(0, Math.min(4, dashChain | 0))));
     const e = Math.max(0, Math.min(1, early));
     const semis = steps[c % 5] + 12 * Math.floor(c / 5);
     const f0 = 660 * Math.pow(2, semis / 12);

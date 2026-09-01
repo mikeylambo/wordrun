@@ -1138,3 +1138,47 @@ Slice history:
   is untouched (its rows are identical to Phase H). The Phase 0 behaviour
   snapshot was regenerated: its STANDARD script now repairs a heart where it
   used to wipe out, which is the change, recorded.
+
+- Phase I — the DASH chain. The DASH was a rescue; it is expression now.
+  During an active dash each correct read ramps a temporary multiplier on the
+  read's score term — `TUNING.SCORE.DASH_CHAIN_MULT` [1.0, 1.25, 1.5, 1.75,
+  2.0], indexed by the correct reads already landed in THIS dash, so the
+  first pays 1.0 and the fifth 2.0. A wrong read of any kind zeroes it; it
+  ends with the dash. Score only: never speed, never meter, never the window
+  (`ARM_DISTANCE_M` is unwritten, and the Phase F gate now covers this phase's
+  files too). Proven the Phase B way — identical inputs, one run with the
+  ladder and one with it flattened to 1.0: 184,355 against 163,935 on 41
+  identical reads, same metres, same speed, same meter.
+  **The finding that sized it.** The brief expected a ~2.95 s dash to cross
+  about three gates and asked for the array to be sized to reads-per-dash +
+  1. Driving it found the dash was not finite at all: reads DURING a dash
+  refilled the meter (the fill line never checked the dash), and at the
+  chain cap 79.8 of meter per read out-filled a 34-per-second drain, so a
+  clean reader's first dash never ended — 97 reads in one dash on the daily
+  route, an 85 % reader's median dash carrying 10. A ladder sized to that is
+  meaningless, and Phase 22's own rule says a dash is "a full charge, spent
+  whole". So it is: no meter gain while a dash is live (reads or bells; the
+  read still pays score and speed, the bell still banks currency). A dash is
+  2.94 s now, and the table that sizes the ladder reads, for readers dashing
+  the instant the meter is full on the daily route:
+      reader | dashes | reads/dash median  p90  max | top rung hit | score
+        85%  |     17 |                2    3    3 |            2 | 292,208
+        95%  |     18 |                3    4    4 |            3 | 454,301
+       100%  |     19 |                3    4    4 |            3 | 555,973
+  p90 is four reads, so five rungs is exactly reads-per-dash + 1; the median
+  95 % dash reaches the fourth rung (1.75×) and the fifth (2.0×) sits one
+  read beyond the best dash measured — reachable only at the ceiling on the
+  route's tightest spacing, which is the rarity the brief asked for by
+  construction. The ceiling score on the daily route with the ladder and
+  compression multiplying is 555,973 for a clean reader — six digits, under
+  the results headline's width. All of it frozen in the calibration golden
+  (a new DASH table and the ladder as a dial).
+  **Within the cap.** The ten-cell meter's lit rim steps hue per rung
+  (`BOOST.DASH.CHAIN_HUES` 195 → 172 → 150 → 128 → 105°, cyan walking to
+  green, each ≥ 25° from the semantic set — gated), the correct-read chime
+  climbs its pentatonic ladder one extra rung per step, and the runner's
+  comet tail brightens per rung. A colour, a note and a light; no label.
+  Gates: the multiplier reaches score and only score; it fires and climbs;
+  it never survives past the dash (zero on every frame the dash is not
+  live); a tapped fake and a slipped real both zero it mid-dash; the daily
+  route is byte-identical; every rim hue clears the reserved separation.

@@ -12,6 +12,7 @@
  *                edge against the whole route read at the line
  *   4. BAR       compression: a fast 95 % reader against a mid 85 % one, L0–L3
  *   5. SURGE     the FOV stack at peak flow, with and without REDUCED FLASH
+ *   6. DASH      reads landed per dash (Phase I), sizing DASH_CHAIN_MULT
  *
  * The freeze: `--emit` writes calibration.golden.json holding the dials AND
  * the tables they produce. In gate mode the dials must equal the golden
@@ -69,6 +70,7 @@ function dials() {
     'CAMERA.FOV_SPEED_GAIN': C.FOV_SPEED_GAIN, 'CAMERA.FOV_BOOST': C.FOV_BOOST,
     'CAMERA.ACCESS_MOTION_SCALE': C.ACCESS_MOTION_SCALE,
     'SCORE.PER_READ': S.PER_READ, 'SCORE.TIER_MULT': S.TIER_MULT.slice(),
+    'SCORE.DASH_CHAIN_MULT': S.DASH_CHAIN_MULT.slice(),
     'DIFFICULTY.easy.REDLINE_PACE': M.DIFFICULTY.easy.REDLINE_PACE,
     'DIFFICULTY.normal.REDLINE_PACE': M.DIFFICULTY.normal.REDLINE_PACE,
     'DIFFICULTY.hard.REDLINE_PACE': M.DIFFICULTY.hard.REDLINE_PACE,
@@ -208,8 +210,41 @@ function fovStack() {
   return rows;
 }
 
+// ── 6. DASH ─────────────────────────────────────────────────────────────────
+// Reads landed per dash, for readers who dash the instant the meter is full.
+// Before Phase I, reads during a dash refilled the meter and at the chain cap
+// out-filled the drain — a clean reader's first dash never ended (97 reads).
+// The fill now pauses while a dash is live, so a dash is 2.94 s and this
+// table is what sizes DASH_CHAIN_MULT (p90 reads-per-dash + 1 rungs).
+function dashRun({ accuracy, mode = 'standard', maxSteps = 60 * 900 }) {
+  const sim = new Sim(777); sim.start(777, null, { mode, difficulty: 'normal', wordSalt: 0 });
+  const coin = mulberry32((777 ^ Math.round(accuracy * 1000) * 7919) >>> 0);
+  let decidedIndex = -1, decidedCorrect = true, steps = 0, cur = null;
+  const dashes = []; let topRung = 0;
+  while (sim.phase === PHASE.RUNNING && steps++ < maxSteps && !sim.routeFinished) {
+    const wg = sim.wordGates, g = wg.current();
+    const armed = wg.armed(sim.player.d) && !g.confirmed && !g.rejected;
+    if (armed && g.index !== decidedIndex) { decidedIndex = g.index; decidedCorrect = coin() < accuracy; }
+    const sayReal = decidedCorrect ? !!g.real : !g.real;
+    sim.step({ ...emptyInput(), confirm: armed && sayReal, reject: armed && !sayReal,
+      boostHeld: sim.player.boostMeter >= B.MIN_ACTIVATE });
+    for (const e of sim.events) {
+      if (e.t === 'overdrive_on') cur = { reads: 0 };
+      if (e.t === 'word_correct' && cur && e.dashMult > 0 && sim.player.overdrive) { cur.reads++; topRung = Math.max(topRung, e.dashChain); }
+      if (e.t === 'overdrive_off' && cur) { dashes.push(cur.reads); cur = null; }
+    }
+    sim.events.length = 0;
+  }
+  const open = cur ? cur.reads : null; // a dash still running at the end
+  const done = dashes.slice().sort((a, b) => a - b);
+  const p = (q) => (done.length ? done[Math.min(done.length - 1, Math.floor(q * done.length))] : null);
+  return { accuracy, dashes: done.length, openDashReads: open, max: done.length ? Math.max(...done) : null,
+    median: p(0.5), p90: p(0.9), topRung, score: sim.score, cleared: !!sim.routeFinished };
+}
+function dashTable() { return [0.85, 0.95, 1.0].map((accuracy) => dashRun({ accuracy })); }
+
 // ── Run every instrument ────────────────────────────────────────────────────
-const tables = { speed: speedTable(), ladder: ladderTable(), early: earlyTable(), bar: barTable(), fov: fovStack() };
+const tables = { speed: speedTable(), ladder: ladderTable(), early: earlyTable(), bar: barTable(), fov: fovStack(), dash: dashTable() };
 const current = { dials: dials(), tables };
 
 if (EMIT) {
@@ -297,6 +332,22 @@ check('REDUCED FLASH damps the surge like every other motion term',
   cruiseSurgeR.surgeVisible < cruiseSurge.surgeVisible && cruiseSurgeR.surgeVisible > 0,
   `${cruiseSurge.surgeVisible}° → ${cruiseSurgeR.surgeVisible}°`);
 
+head(`DASH — reads landed per dash on the daily route, dashing the instant the meter is full (ladder ${S.DASH_CHAIN_MULT.join(' / ')})`);
+say('  reader | dashes | reads/dash median  p90  max | open dash | top rung hit | score');
+for (const r of tables.dash) {
+  say(`  ${String(Math.round(r.accuracy * 100)).padStart(4)}%  | ${String(r.dashes).padStart(6)} | ${String(r.median ?? '—').padStart(16)}  ${String(r.p90 ?? '—').padStart(3)}  ${String(r.max ?? '—').padStart(3)} | ${String(r.openDashReads ?? '—').padStart(9)} | ${String(r.topRung).padStart(12)} | ${r.score.toLocaleString()}`);
+}
+const d95 = tables.dash.find((r) => r.accuracy === 0.95), d100 = tables.dash.find((r) => r.accuracy === 1.0);
+check('the ladder is sized to a realistic reader: 95 % p90 reads-per-dash + 1 <= rungs',
+  d95.p90 != null && d95.p90 + 1 <= S.DASH_CHAIN_MULT.length,
+  `p90 ${d95.p90} reads, ${S.DASH_CHAIN_MULT.length} rungs`);
+check('the top rung is reachable but not the norm: the median 95 % dash does not hit it',
+  d95.median != null && d95.median < S.DASH_CHAIN_MULT.length - 1, `median ${d95.median}`);
+check('a dash is spent whole: even a clean reader has finite dashes (no fill while live)',
+  d100.dashes > 0 && (d100.openDashReads ?? 0) <= S.DASH_CHAIN_MULT.length, `${d100.dashes} finite dashes, max ${d100.max} reads`);
+check('the ceiling score on the daily route stays under seven digits (headline width)',
+  tables.dash.every((r) => r.score < 1000000), `max ${Math.max(...tables.dash.map((r) => r.score)).toLocaleString()}`);
+
 // ── The freeze ──────────────────────────────────────────────────────────────
 head('FREEZE — dials and tables match calibration.golden.json');
 if (!fs.existsSync(GOLDEN)) {
@@ -308,7 +359,7 @@ if (!fs.existsSync(GOLDEN)) {
     moved.length ? moved.map((k) => `${k}: ${JSON.stringify(golden.dials?.[k])} → ${JSON.stringify(current.dials[k])}`).join('; ') : `${Object.keys(current.dials).length} dials frozen`);
   const drifted = Object.keys(tables).filter((k) => JSON.stringify(tables[k]) !== JSON.stringify(golden.tables?.[k]));
   check('every decision table reproduces byte-for-byte', drifted.length === 0,
-    drifted.length ? `drifted: ${drifted.join(', ')}` : 'speed, ladder, early, bar, fov');
+    drifted.length ? `drifted: ${drifted.join(', ')}` : 'speed, ladder, early, bar, fov, dash');
 }
 
 console.log(lines.join('\n'));

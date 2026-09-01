@@ -52,6 +52,7 @@ export class Player {
     this.boostSpent = 0;
     this.overdrive = false;
     this.overdriveT = 0;
+    this.dashChain = 0;        // Phase I: correct reads landed during THIS dash
     this.obstaclesHit = 0;
     this.gatesThreaded = 0;
     this.chain = 0;
@@ -101,6 +102,7 @@ export class Player {
     if (want && !this.overdrive && this.boostMeter >= B.MIN_ACTIVATE) {
       this.overdrive = true;
       this.overdriveT = 0;
+      this.dashChain = 0;
       events?.push({ t: 'overdrive_on' });
     }
     if (this.overdrive) {
@@ -114,6 +116,7 @@ export class Player {
       // inputs behave the same and the tap is a real control.
       if (this.boostMeter <= 0) {
         this.overdrive = false;
+        this.dashChain = 0;      // the ladder never survives past the dash
         events?.push({ t: 'overdrive_off' });
       } else {
         const drain = Math.min(this.boostMeter, B.DRAIN_RATE * dt);

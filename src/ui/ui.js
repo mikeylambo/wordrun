@@ -257,6 +257,13 @@ export class UI {
     // The whole zone carries the state so the label lights with the cells.
     this.meterZone?.classList.toggle('armed', armed);
     this.meterZone?.classList.toggle('spending', p.overdrive);
+    // Phase I: while spending, the rim's hue steps with the dash chain. A
+    // colour, never a label — the cap holds at four names.
+    if (p.overdrive) {
+      const hues = TUNING.BOOST.DASH.CHAIN_HUES;
+      const hue = hues[Math.max(0, Math.min(hues.length - 1, p.dashChain | 0))];
+      if (hue !== this._lastDashHue) { this._lastDashHue = hue; this.meterZone?.style.setProperty('--dashHue', String(hue)); }
+    }
 
     // The DASH's charged state (Phase 16). A hint that appears for 1.25s
     // and never returns is a hint most players never see; while the dash

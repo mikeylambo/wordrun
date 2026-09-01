@@ -95,7 +95,8 @@
   .meter-zone.armed #meterWrap{height:10px;background:rgba(28,49,61,.3)}
   #meter{height:100%;width:0%;background:linear-gradient(90deg,#2f6d86,var(--ice) 62%,#bdefff);transition:width .07s linear}
   .meter-zone.armed #meter{background:linear-gradient(90deg,#3f90ad,var(--ice) 55%,#e6fbff);filter:drop-shadow(0 0 7px rgba(103,216,255,.5))}
-  .meter-zone.spending #meter{background:linear-gradient(90deg,#dff8ff,#fff);filter:drop-shadow(0 0 12px rgba(160,236,255,.85))}
+  .meter-zone{--dashHue:195}
+  .meter-zone.spending #meter{background:linear-gradient(90deg,hsl(var(--dashHue) 92% 86%),#fff);filter:drop-shadow(0 0 12px hsl(var(--dashHue) 95% 78% / .85))}
 
   #bandName,#coach,#powerHint{position:absolute;z-index:24;pointer-events:none;left:50%;transform:translateX(-50%);text-align:center;white-space:nowrap}
   #bandName{top:calc(var(--safe-t) + 15%);opacity:0;font-size:clamp(18px,5vw,28px);font-weight:800;letter-spacing:.34em;margin-left:.17em;color:rgba(223,242,252,.85);text-shadow:0 0 18px rgba(103,216,255,.35);transition:opacity .5s ease,transform .65s cubic-bezier(.2,.8,.2,1);transform:translateX(-50%) translateY(7px)}

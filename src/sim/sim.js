@@ -274,10 +274,14 @@ export class Sim {
     const picked = this.bells.collectNear(this.player);
     for (const bell of picked) {
       this.bellsCollected++;
-      this.player.boostMeter = Math.min(
-        TUNING.BOOST.METER_MAX,
-        this.player.boostMeter + HEARTS.POWER_PER_BELL
-      );
+      // Phase I: no meter gain while a dash is live (spent whole); the bell
+      // still counts and still banks currency.
+      if (!this.player.overdrive) {
+        this.player.boostMeter = Math.min(
+          TUNING.BOOST.METER_MAX,
+          this.player.boostMeter + HEARTS.POWER_PER_BELL
+        );
+      }
       this.events.push({
         t: 'bell', id: bell.id, x: bell.x, d: bell.d,
         charge: this.bellsCollected, power: HEARTS.POWER_PER_BELL,
