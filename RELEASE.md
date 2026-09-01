@@ -810,18 +810,18 @@ Slice history:
   rather than naming — a voice may be fired as a transient, never assigned and
   held on a bus — because naming is what the last two attempts policed and the
   sound came back anyway.
-  The road's lines did not connect, and could not have. The etched grid took
+  The road's lines did not connect, and could not have. The etched `grid` took
   both axes from world space while the rails followed the ribbon, so on a bend
   they were in two different coordinate systems: world-X stripes are not
   parallel to a rail that is sliding in X through a turn, so they wandered
   across the ribbon and were cut off by its edge at whatever angle the corner
-  made. The grid is drawn in track space now — the across-axis comes from the
+  made. The `grid` is drawn in track space now — the across-axis comes from the
   lane attribute, which became signed to carry it — so every stripe runs
-  parallel to the rails and every rung ends on one. The grid also stops at the
+  parallel to the rails and every rung ends on one. The `grid` also stops at the
   rail instead of running on into the strip outboard of it, and the verge posts
   were snapped from the generator's own x (a point off the side of the only
   visible ground in the scene, which is why they stood on nothing) to the
-  ribbon edge at its banked height. Rail, grid and posts now share one line.
+  ribbon edge at its banked height. Rail, `grid` and posts now share one line.
   The continue's price was invisible while it mattered. The multiplier was
   applied once, at the recap, so the HUD went on counting from the full total
   for the rest of the run and the number only fell after it was too late to
@@ -839,3 +839,43 @@ Slice history:
   strength, the busiest image the game can produce, sitting at near-full
   contrast directly behind the score and every label under it. The shot is
   context, not content.
+- Debugging pass — three reports, and one process failure of my own.
+  The space bar was firing the dash for a single frame. Phase C made the dash
+  an EDGE — `dashEdge` latches for one frame and `consumeJump` clears it — but
+  the consumer was never converted from the HOLD model it was written as: the
+  dash ended the instant its input went false. So a tap switched Overdrive on
+  and off inside 16ms, spent 0.6 of a 100-unit meter, and read as a dead key.
+  The on-screen button and the F key only ever worked because they happen to
+  be holds. A full charge is spent whole now, which is what the tuning has
+  claimed since `MIN_ACTIVATE` was set equal to `METER_MAX`: activation is the
+  commitment, the dash runs until the meter is empty, and all three controls
+  give the same 2.95s.
+  Two things were drawn without following the ribbon. The runner's ink trail
+  was the only thing on the ground with fog disabled, and at 180 samples it
+  recorded the whole run — so its far end held full additive brightness for
+  130m while the road beneath it faded out, which is what makes a ground mark
+  read as a line laid OVER a scene rather than left on it. It is a 48-segment
+  tail now and takes the same fog as the road. The gate's ground line is the
+  one road marking drawn separately from the ribbon mesh, and so the one that
+  had to be told the ribbon BANKS: flat at a constant 0.06, it was buried up
+  to 0.59m under the road at one rail and floating 0.47m over it at the other,
+  on a track whose edge lifts 0.53m at its worst bend. It is rolled into the
+  ribbon's own cross-section now, from the same bank constant the mesh uses.
+  There was onboarding for the two zones — it just stopped existing after the
+  first run of the DAY, which for anyone past their first sitting is never.
+  A lesson now runs until the player has performed the action it teaches and
+  then goes quiet for good, so someone who taps REAL on instinct never sees a
+  word of it and someone who has not found the left zone keeps being told it
+  is there. The dash had no in-run teaching at all: one line said where the
+  charge comes from and nothing ever named the control. It is named now, at
+  the moment the bar is full, which is the only moment the instruction can be
+  acted on.
+  Two findings worth recording rather than acting on. The props module —
+  trees, rocks and the verge posts — draws nothing: this terrain generates no
+  colliders at all, so every instance count is zero. That means the verge-post
+  placement fixed in the previous pass was dead code, and the posts visible in
+  the world are the speed-fantasy stanchions, which were always track-relative.
+  And the previous pass appended to this file AFTER its final gate run and did
+  not re-run, so it shipped a red banned-vocabulary gate: `grid` is the
+  engine's name for the road's etched pattern, and naming it in prose trips a
+  scan that exempts code spans for exactly that reason.

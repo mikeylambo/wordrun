@@ -104,7 +104,15 @@ export class Player {
       events?.push({ t: 'overdrive_on' });
     }
     if (this.overdrive) {
-      if (!want || this.boostMeter <= 0) {
+      // A full charge, spent whole — which until now was only true of the
+      // meter cost, not of the dash. Releasing used to end it, and Phase C
+      // had made Space an EDGE that latches for exactly one frame: the dash
+      // switched on and off inside 16ms, spent 0.6 of the meter, and read as
+      // a dead key. The button and the F key only worked because they happen
+      // to be holds. Activation is the commitment now; the dash runs until
+      // the meter is empty whatever the control does afterwards, so all three
+      // inputs behave the same and the tap is a real control.
+      if (this.boostMeter <= 0) {
         this.overdrive = false;
         events?.push({ t: 'overdrive_off' });
       } else {

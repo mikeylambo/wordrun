@@ -115,6 +115,23 @@ const nemesis = new NemesisLedger(metaAdapter);
 const curve = new CurveLog(metaAdapter);
 buildCurveScreen(() => curve.summary());
 const metaDaily = new DailyManager(metaAdapter);
+
+// Which controls this player has ever used. The in-run coach teaches a control
+// until it has been used once and then never mentions it again, so these are
+// write-once flags rather than counters — see UI._updateCoach.
+function pushLessons() {
+  ui.setLessons({
+    confirm: metaStats.get('usedConfirm', 0) > 0,
+    reject: metaStats.get('usedReject', 0) > 0,
+    dash: metaStats.get('usedDash', 0) > 0,
+  });
+}
+function learn(which) {
+  const key = `used${which}`;
+  if (metaStats.get(key, 0) > 0) return;
+  metaStats.increment(key);
+  pushLessons();
+}
 const metaObjectives = new ObjectiveQueue(metaAdapter);
 globalThis.__META = { stats: metaStats, daily: metaDaily, objectives: metaObjectives };
 
@@ -154,6 +171,7 @@ ui.setDashLearned(dashLearned);
 
 ui.setChallenge(CHALLENGE);
 ui.setSeed(SEED_STRING, Storage.bestFor(SEED), Storage.runsToday(SEED));
+pushLessons();
 ui.setDaily(metaDaily.status(DAILY_SEED));
 ui.showTitle(true);
 input.onFirstGesture = () => audio.start();
@@ -691,6 +709,7 @@ document.getElementById('modeRows')?.addEventListener('click', (e) => {
   syncVariant();
   syncModeChips();
   ui.setSeed(SEED_STRING, Storage.bestFor(SEED), Storage.runsToday(SEED));
+  pushLessons();
   ui.setDaily(metaDaily.status(DAILY_SEED));
   warmPlates();
   audio.uiTap();
@@ -854,6 +873,7 @@ function drainSimEvents() {
         break;
       case 'chain_lost': audio.chainLost(); break;
       case 'overdrive_on':
+        learn('Dash');
         // The DASH lands as one event across three channels (Phase 16):
         // its own sound, a camera punch that decays, and a burst of speed
         // lines. Firing it used to reuse the generic shove and read as
@@ -955,6 +975,8 @@ function tick(dt) {
     // the ground stays under the word.
     simInput.confirm = input.jump;
     simInput.reject = input.reject;
+    if (simInput.confirm) learn('Confirm');
+    if (simInput.reject) learn('Reject');
     simInput.raiseBar = input.raiseBar;
     simInput.lowerBar = input.lowerBar;
     simInput.jump = false;

@@ -32,6 +32,19 @@ const LINGER = 0.65;          // seconds a resolved plate hangs on for feedback
 // resolves and every cached plate repaints itself once.
 const PLATE_FAMILY = 'Atkinson Hyperlegible Next';
 let fontEpoch = 0;
+// Scratch for the gate ground line's orientation: lay it flat (-90 deg about
+// X), then roll it into the ribbon's banked cross-section about world Z.
+const _axisZ = new THREE.Vector3(0, 0, 1);
+const _flat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+const _q = new THREE.Quaternion();
+
+// The ribbon's cross-slope at a given distance, as a roll angle. Must track
+// BANK in terrain-mesh.js: the mesh lifts its edge by -u * slope * BANK *
+// halfW * 0.5, so across x the gradient is -slope * BANK * 0.5.
+const EDGE_BANK = 0.35;
+const rollAt = (terrain, d) => Math.atan(
+  -(terrain.corridorSlope ? terrain.corridorSlope(d) : 0) * EDGE_BANK * 0.5);
+
 export const plateFontReady = (typeof document !== 'undefined' && document.fonts?.load)
   ? Promise.all([
       document.fonts.load(`700 ${FONT_PX}px '${PLATE_FAMILY}'`),
@@ -73,7 +86,6 @@ class Plate {
       color: 0xffffff, transparent: true, opacity: 0.35, depthWrite: false,
     });
     this.line = new THREE.Mesh(lineGeo, this.lineMat);
-    this.line.rotation.x = -Math.PI / 2;
     this.line.renderOrder = 19;
     this.line.visible = false;
 
@@ -163,7 +175,7 @@ class Plate {
     this.tex.needsUpdate = true;
   }
 
-  place(word, d, groundY, camera, opacity = 1, centerX = 0) {
+  place(word, d, groundY, camera, opacity = 1, centerX = 0, roll = 0) {
     // Constant world glyph height; plate width follows the word.
     const h = LETTER_H * (CANVAS_H / FONT_PX);
     const aspect = this.canvas.width / this.canvas.height;
@@ -173,6 +185,18 @@ class Plate {
     this.mat.opacity = opacity;
     this.mesh.visible = true;
     this.line.position.set(centerX, groundY + 0.06, -d);
+    // Playtest: "some lines are out of place while the rest fit the road".
+    // This one. It is a flat 14m plane laid at a constant 0.06 above the
+    // centreline, but the ribbon BANKS into a turn — its edge lifts by up to
+    // 0.53m over this track. So on any bend the line was buried up to 0.59m
+    // under the road on the outer side and floating 0.47m over it on the
+    // inner, which is a bar hanging in the air across the track. The grid
+    // rungs never had the problem because they are part of the ribbon mesh
+    // and get the bank by construction; this is the one ground marking drawn
+    // separately, so it is the one that had to be told. Rolled into the
+    // ribbon's own plane it sits flush at both rails.
+    _q.setFromAxisAngle(_axisZ, roll);
+    this.line.quaternion.copy(_q).multiply(_flat);
     this.line.visible = true;
   }
 
@@ -277,7 +301,7 @@ export class WordGateActors {
       const state = g.confirmed ? 'confirmed' : 'idle';
       this.current.paint(g.shown, state);
       this.current.place(g.shown, g.d, terrain.heightAt(0, g.d), camera,
-        1, terrain.corridorX(g.d));
+        1, terrain.corridorX(g.d), rollAt(terrain, g.d));
       // The unarmed gates ahead, stepping down in opacity so they read as
       // information rather than competing with the armed plate. They are drawn
       // at their true world positions, so a bend occludes them exactly as it
@@ -288,7 +312,7 @@ export class WordGateActors {
         if (n.d - playerD < SHOW_AHEAD) {
           this.ahead[i].paint(n.shown, 'idle');
           this.ahead[i].place(n.shown, n.d, terrain.heightAt(0, n.d), camera,
-            fade[i], terrain.corridorX(n.d));
+            fade[i], terrain.corridorX(n.d), rollAt(terrain, n.d));
         } else {
           this.ahead[i].hide();
         }

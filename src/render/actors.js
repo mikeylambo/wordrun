@@ -15,7 +15,14 @@
 import * as THREE from 'three';
 import TUNING from '../TUNING.js';
 
-const TRACK_SEGMENTS = 180;
+// Playtest: "some lines are out of place, when the rest of them fit the road."
+// This trail was one of them. At 180 slots sampled once a frame it recorded
+// ~180m of path — the whole run so far — and its material had fog OFF, alone
+// among everything drawn on the ground. So the far end stayed at full additive
+// brightness while the road under it faded into the distance, and a ground
+// mark that does not recede reads as a line laid OVER the scene rather than
+// left on it. Shorter tail, and it takes the same fog as the road.
+const TRACK_SEGMENTS = 48;
 
 const glow = (color, opacity = 1) => new THREE.MeshBasicMaterial({
   color, transparent: true, opacity, depthWrite: false,
@@ -187,8 +194,8 @@ export class PlayerActor {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(this.trackPos, 3));
     this.tracks = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({
-      color: 0x67d8ff, transparent: true, opacity: 0.5, depthWrite: false,
-      blending: THREE.AdditiveBlending, fog: false,
+      color: 0x67d8ff, transparent: true, opacity: 0.42, depthWrite: false,
+      blending: THREE.AdditiveBlending, fog: true,
     }));
     this.tracks.frustumCulled = false;
     scene.add(this.tracks);

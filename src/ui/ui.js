@@ -104,29 +104,50 @@ export class UI {
   showDeath(on) { this.deathScreen.classList.toggle('on', on); }
   showHud(on) { this.hud.classList.toggle('on', on); }
 
+  /** Which controls this player has ever actually used. Persisted, so the
+   *  teaching follows the player rather than the calendar. */
+  setLessons(learned) { this._lessons = learned || {}; }
+
   _updateCoach(sim, running) {
     if (!this.coach) return;
-    if (!running || !this._firstRun) {
+    if (!running) {
       this.coach.classList.remove('on');
       return;
     }
 
     const p = sim.player;
     const d = sim.distance;
+    const L = this._lessons || {};
     let text = '';
+    // Playtest: "L/R works but we have no player onboarding to teach them
+    // that." There was teaching — it just stopped existing after the first
+    // run of the DAY (`runs === 0`), which for anyone past their first sitting
+    // is never, and no line in the game ever named the dash control at all.
+    // A lesson now runs until the player has performed the action it teaches,
+    // and then goes quiet for good. Someone who already taps REAL on instinct
+    // never sees a word of it; someone who has not found the left zone keeps
+    // being told it exists.
+    //
     // Phase C teaches the right zone first, because it is the whole game
     // without the left one. The left zone arrives as an option, not a rule —
     // a player who never uses it plays exactly the game they already knew.
-    if (d < 220) text = this.touch ? 'TAP RIGHT IF THE WORD IS REAL' : 'RIGHT ARROW IF THE WORD IS REAL';
-    else if (d < 390) text = 'A MISSPELLED WORD CAN SIMPLY PASS';
-    else if (d < 560) text = this.touch ? 'OR TAP LEFT TO CALL IT OUT SOONER' : 'OR LEFT ARROW TO CALL IT OUT SOONER';
-    else if (d < 720) text = 'ANSWERING EARLY IS WORTH MORE';
-    else if (p.gatesThreaded > 0 && !this._showedChargeLesson) {
-      // Where the dash comes from. The line that used to sit here ("STYLE
-      // MAKES POWER") named a system this game no longer has and told
-      // nobody what to do about it.
-      text = 'CLEAN READS CHARGE THE DASH';
-      this._showedChargeLesson = true;
+    if (!L.confirm) {
+      text = this.touch ? 'TAP RIGHT IF THE WORD IS REAL' : 'RIGHT ARROW IF THE WORD IS REAL';
+    } else if (!L.reject) {
+      text = d < 300
+        ? 'A MISSPELLED WORD CAN SIMPLY PASS'
+        : (this.touch ? 'OR TAP LEFT TO CALL IT OUT SOONER' : 'OR LEFT ARROW TO CALL IT OUT SOONER');
+    } else if (!L.dash && p.boostMeter >= TUNING.BOOST.MIN_ACTIVATE && !p.overdrive) {
+      // The line the game never had. "CLEAN READS CHARGE THE DASH" said where
+      // the charge comes from and then left the player holding a full meter
+      // with nothing telling them what to press.
+      text = this.touch ? 'TAP DASH — THE BAR IS FULL' : 'SPACE TO DASH — THE BAR IS FULL';
+    } else if (this._firstRun) {
+      if (d < 720) text = 'ANSWERING EARLY IS WORTH MORE';
+      else if (p.gatesThreaded > 0 && !this._showedChargeLesson) {
+        text = 'CLEAN READS CHARGE THE DASH';
+        this._showedChargeLesson = true;
+      }
     }
 
     if (text) {

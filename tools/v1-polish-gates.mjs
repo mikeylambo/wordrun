@@ -343,5 +343,99 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     'and the drop is shown happening, so it does not read as a glitch in the counter');
 }
 
+// ── Debugging pass: three reports, three root causes ─────────────────────
+{
+  const TUNING = (await import('../src/TUNING.js')).default;
+  const { Sim, emptyInput } = await import('../src/sim/sim.js');
+  const { Terrain } = await import('../src/sim/terrain.js');
+  const B = TUNING.BOOST, R = TUNING.RUN;
+
+  const codeOf = (path) => read(path)
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+
+  // 1. "Space bar not working." It fired the dash for exactly one frame.
+  //    Phase C made the dash an EDGE (dashEdge latches for one frame, then
+  //    consumeJump clears it) but _overdrive was never converted from the HOLD
+  //    model: it ended the moment `want` went false. The button and the F key
+  //    only worked because they happen to be holds. A full charge is spent
+  //    whole now, so all three controls behave identically.
+  {
+    const dashRun = (holdFrames) => {
+      const sim = new Sim(4242); sim.start(4242);
+      sim.player.boostMeter = B.METER_MAX;
+      let on = 0;
+      for (let f = 0; f < 600; f++) {
+        sim.advance(1 / 60, { ...emptyInput(), boostHeld: f < holdFrames });
+        if (sim.player.overdrive) on += 1 / 60;
+        else if (on > 0) break;
+      }
+      return on;
+    };
+    const tap = dashRun(1), held = dashRun(99999);
+    check(Math.abs(tap - held) < 1e-6 && tap > 1,
+      `a tapped dash lasts as long as a held one (${tap.toFixed(2)}s both) — the edge is a real control`);
+    check(Math.abs(tap - B.METER_MAX / B.DRAIN_RATE) < 0.05,
+      `and it runs the meter out rather than the key (${tap.toFixed(2)}s vs ${(B.METER_MAX / B.DRAIN_RATE).toFixed(2)}s of charge)`);
+    const playerCode = codeOf('src/sim/player.js');
+    const od = playerCode.slice(playerCode.indexOf('_overdrive('), playerCode.indexOf('step(dt, input'));
+    check(/if \(this\.boostMeter <= 0\)/.test(od) && !/!want \|\|/.test(od),
+      'releasing the control cannot cancel a dash that has already been paid for');
+  }
+
+  // 2. "Some lines out of place, when the rest of them fit the road."
+  //    Two separate offenders, both about NOT following the ribbon.
+  {
+    // (a) The runner's ink trail was the only thing drawn on the ground with
+    //     fog off, and it recorded the whole run, so its far end stayed at
+    //     full additive brightness while the road under it faded away.
+    const actorCode = codeOf('src/render/actors.js');
+    const trail = actorCode.slice(actorCode.indexOf('this.tracks = new THREE.LineSegments'));
+    check(/fog: true/.test(trail.slice(0, 300)),
+      'the runner trail takes the same fog as the road it is drawn on');
+    const segs = Number(/const TRACK_SEGMENTS = (\d+)/.exec(actorCode)?.[1]);
+    check(segs > 0 && segs <= 80,
+      `and it is a tail, not a transcript of the run (${segs} segments)`);
+
+    // (b) The gate ground line is the one road marking drawn separately from
+    //     the ribbon mesh, so it is the one that has to be told about the
+    //     bank. Flat, it was buried at one rail and floating at the other.
+    const meshBank = Number(/const BANK = ([\d.]+)/.exec(read('src/render/terrain-mesh.js'))?.[1]);
+    const gateCode = codeOf('src/render/word-gates.js');
+    const gateBank = Number(/const EDGE_BANK = ([\d.]+)/.exec(gateCode)?.[1]);
+    check(meshBank > 0 && gateBank === meshBank,
+      `the gate ground line uses the ribbon's own bank constant (${gateBank})`);
+    check(/rollAt\(terrain, g\.d\)/.test(gateCode) && /rollAt\(terrain, n\.d\)/.test(gateCode),
+      'and every plate drawn — armed and lookahead — is given that roll');
+    // The error it removes, at this track's worst bend.
+    const t = new Terrain(4242);
+    let worst = 0;
+    for (let d = 0; d < 3000; d += 1) {
+      worst = Math.max(worst, Math.abs(t.corridorSlope(d)) * meshBank * R.TRACK_HALF_W * 0.5);
+    }
+    check(worst > 0.2,
+      `flat, that line missed the road by up to ${worst.toFixed(2)}m at the rail — which is why it had to be rolled`);
+  }
+
+  // 3. "L/R works but we have no player onboarding to teach them that."
+  //    There was teaching; it only ran when runsToday === 0, which for anyone
+  //    past their first sitting is never. And no line in the game named the
+  //    dash control at all.
+  {
+    const uiCode = codeOf('src/ui/ui.js');
+    const coach = uiCode.slice(uiCode.indexOf('_updateCoach('), uiCode.indexOf('update(dt, sim, running)'));
+    check(/setLessons\(/.test(uiCode) && /L\.confirm/.test(coach) && /L\.reject/.test(coach),
+      'the control lessons run until the player has used the control, not until tomorrow');
+    check(!/!this\._firstRun\) \{\s*this\.coach/.test(coach),
+      'and are no longer gated on it being the first run of the day');
+    check(/L\.dash/.test(coach) && /TO DASH|TAP DASH/.test(coach),
+      'the game names the dash control at the moment the bar is full — it never did before');
+    const mainCode = codeOf('src/main.js');
+    check(/learn\('Confirm'\)/.test(mainCode) && /learn\('Reject'\)/.test(mainCode) &&
+      /learn\('Dash'\)/.test(mainCode),
+      'and each lesson is retired where its action is actually performed');
+  }
+}
+
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);
