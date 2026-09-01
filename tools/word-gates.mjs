@@ -18,6 +18,7 @@ import TUNING from '../src/TUNING.js';
 import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
 import { mulberry32 } from '../src/sim/rng.js';
 import { latencyMultFor } from '../src/sim/word-gates.js';
+import { corruptionIntensity } from '../src/render/corruption-curve.js';
 import {
   TIERS, ALL_WORDS, isValidWord, pickWord, makeFake, tierCount, tierWords,
 } from '../src/words/wordlist.js';
@@ -920,6 +921,75 @@ head('THE DAILY ROUTE — the same hundred words for everyone');
   check('a clean daily run reaches the hundredth gate and stops',
     sim.routeFinished && sim.wordGates.next === 100,
     `finished on gate ${sim.wordGates.next} at ${Math.round(sim.player.d)}m`);
+}
+
+// ── Phase E: the last stand ──────────────────────────────────────────────
+head('LAST STAND — one more word before the run ends');
+{
+  const drive = (answer, mode = 'endless', continues = 0) => {
+    const sim = new Sim(4242); sim.start(4242, null, { mode, wordSalt: 0 });
+    let guard = 0, stands = 0, held = 0, lost = 0;
+    while (sim.phase === PHASE.RUNNING && guard++ < 400000) {
+      const wg = sim.wordGates, g = wg.current();
+      const armed = wg.armed(sim.player.d) && !g.confirmed && !g.rejected;
+      const act = !!sim.lastStand && answer && armed;
+      sim.step({ ...emptyInput(), confirm: act && g.real, reject: act && !g.real });
+      for (const e of sim.events) {
+        if (e.t === 'last_stand') stands++;
+        if (e.t === 'last_stand_held') held++;
+        if (e.t === 'last_stand_lost') lost++;
+      }
+      sim.events.length = 0;
+    }
+    return { sim, d: Math.round(sim.player.d), t: sim.time, stands, held, lost };
+  };
+
+  const lost = drive(false);
+  const won = drive(true);
+  check('the Redline opens one more word instead of ending the run',
+    lost.stands === 1 && won.stands === 1,
+    'the arrival is a question before it is a verdict');
+  check('reading it buys the run back',
+    won.held === 1 && won.d > lost.d,
+    `${won.d}m held against ${lost.d}m surrendered — ${(won.t - lost.t).toFixed(1)}s more run`);
+  check('missing it ends the run exactly as before',
+    lost.lost === 1 && lost.sim.phase === 'kill' && lost.sim.killSource === 'main' &&
+    lost.sim.player.dead === true,
+    'same phase, same source, same dead flag — a failed stand is not a new death');
+
+  // Once per RUN, under every combination. Not once per continue, not per
+  // heart: the whole point is that it is a moment, not a resource.
+  const combos = [['endless', 0], ['standard', 0], ['endless', 2], ['standard', 3]];
+  const counts = combos.map(([m, c]) => drive(true, m, c).stands);
+  check('it fires at most once per run in every mode and continue combination',
+    counts.every((n) => n === 1),
+    `${combos.map(([m, c], i) => `${m}/${c}c:${counts[i]}`).join('  ')}`);
+  check('and the flag lives on the run, not on the player',
+    /this\.lastStandUsed = false/.test(fs.readFileSync('src/sim/sim.js', 'utf8')) &&
+    !/player\.lastStandUsed/.test(fs.readFileSync('src/sim/sim.js', 'utf8')),
+    'a restart gets a fresh one; a continue inside a run does not');
+
+  // A recovered run is a skill save, so it keeps every board right it had.
+  const mainSrc = fs.readFileSync('src/main.js', 'utf8');
+  check('a recovered run is still board-eligible',
+    /const isPb = runContinued \? false : Storage\.setBestFor/.test(mainSrc) &&
+    !/lastStand/.test(mainSrc.slice(mainSrc.indexOf('const isPb'), mainSrc.indexOf('metaStats.increment'))),
+    'only a purchased continue forfeits the best and the ghost — a stand does not');
+
+  // The corruption is already gap-driven, so pinning the gap pins the
+  // presentation at its maximum with no second system to keep in step.
+  check('the presentation pins itself at maximum',
+    Math.abs(corruptionIntensity(TUNING.BEAST.KILL_GAP) - 1) < 1e-9,
+    'the gap is the corruption curve\'s input, and the stand holds it at the throat');
+
+  const audioSrc = fs.readFileSync('src/audio/audio.js', 'utf8');
+  check('the mix stands down and one tone is held',
+    /this\.standActive \? 0\.06 : 1/.test(audioSrc) && /lastStand\(\) \{/.test(audioSrc),
+    'silence is the tell — nothing announces the moment in words');
+  const uiSrc2 = fs.readFileSync('src/ui/ui.js', 'utf8');
+  check('no new label was introduced for it',
+    !/LAST STAND|FINAL WORD|ONE MORE/i.test(uiSrc2 + fs.readFileSync('index.html', 'utf8')),
+    'the four-name cap is untouched');
 }
 
 console.log(out.join('\n'));

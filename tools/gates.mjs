@@ -348,7 +348,11 @@ head('PURSUIT — pure speed differential');
   const input = emptyInput();
   sim.beast.gap = 20;
   let steps = 0;
-  while (sim.phase === PHASE.RUNNING && steps < 60 * 60) {
+  // Phase E: the Redline's arrival now opens the last stand instead of ending
+  // the run, so the closure is measured to the arrival — which is the moment
+  // this gate was always about. Running past it would time the stand, not the
+  // differential.
+  while (sim.phase === PHASE.RUNNING && !sim.lastStand && steps < 60 * 60) {
     sim.player.speed = R.FLOOR;
     sim.hearts = 3; // isolate the gap-kill from the heart wipeout
     sim.step(input);
@@ -356,7 +360,8 @@ head('PURSUIT — pure speed differential');
   }
   const expectSteps = Math.ceil(((20 - BE.KILL_GAP) / (R.REDLINE_PACE - R.FLOOR)) / DT);
   check('the Redline catches a runner below pace, at the differential rate',
-    sim.phase !== PHASE.RUNNING && Math.abs(steps - expectSteps) <= 2,
+    // Arrival, not death: catching the runner opens the last stand now.
+    (sim.lastStand || sim.phase !== PHASE.RUNNING) && Math.abs(steps - expectSteps) <= 2,
     `${steps} steps vs ${expectSteps} predicted (${f2((R.REDLINE_PACE - R.FLOOR))} m/s closure)`);
 }
 

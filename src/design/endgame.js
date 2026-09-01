@@ -13,6 +13,12 @@ export const ENDGAME = {
   FALSE_DAWN: 28000,
   FIRST_LIGHT: 29200,
   ESCAPE_DISTANCE: 30000,
+  // The last stand (Phase E). When the Redline arrives, the run does not end
+  // yet: everything freezes and one word is put up. Read it and the gap is
+  // pushed back out; miss it, or let it cross, and the run ends exactly as it
+  // would have. Once per run — not per continue, not per heart — so it is a
+  // moment rather than a mechanic to farm.
+  LAST_STAND_RECOVER_M: 40,
   MORNING: 31500,
   GLORY_DISTANCE: 50000,
   HALO_DISTANCE: 75000,

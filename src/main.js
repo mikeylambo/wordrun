@@ -811,6 +811,22 @@ function drainSimEvents() {
         }
         break;
       case 'overdrive_off': audio.overdriveOff(); break;
+      case 'last_stand':
+        // No label, by design. The world going quiet and the corruption
+        // pinned at its worst is the whole announcement.
+        audio.lastStand();
+        if (music.gain) music.gain.gain.value = 0.10;
+        break;
+      case 'last_stand_held':
+        audio.lastStandEnd(true);
+        if (music.gain) music.gain.gain.value = 0.62;
+        rig.dashKick(0.7);
+        streakBurst.fire({ x: sim.player.x, y: sim.player.y, d: sim.player.d, chain: 8 });
+        break;
+      case 'last_stand_lost':
+        audio.lastStandEnd(false);
+        if (music.gain) music.gain.gain.value = 0.62;
+        break;
       case 'kill': audio.kill(); break;
       case 'word_confirm': audio.uiTap(); break;
       case 'word_correct': {

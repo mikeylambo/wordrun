@@ -223,8 +223,12 @@ export class Audio {
     const kill = phase === 'kill' || phase === 'dead';
     const run = running ? 1 : 0;
 
-    this._set(this.bus.ambience.gain, run ? (kill ? 0.20 : 0.92) : 0, 0.11);
-    this._set(this.bus.surface.gain, run ? (kill ? 0.03 : 0.95) : 0, 0.08);
+    // Phase E: during the last stand the mix stands down to almost nothing.
+    // Silence is the tell — no label announces the moment, so the sudden
+    // absence of everything has to carry it.
+    const stand = this.standActive ? 0.06 : 1;
+    this._set(this.bus.ambience.gain, (run ? (kill ? 0.20 : 0.92) : 0) * stand, 0.11);
+    this._set(this.bus.surface.gain, (run ? (kill ? 0.03 : 0.95) : 0) * stand, 0.08);
     this._set(this.bus.threat.gain, run ? (kill ? 0.30 : 0.92) : 0, 0.08);
 
     // Music stems ride the same two values the visual vibrancy rides:
@@ -377,6 +381,28 @@ export class Audio {
     if (e > 0.35) {
       this._tone({ type: 'sine', f0: f0 * 3, f1: f0 * 3.01, dur: 0.09 + 0.05 * e,
         vol: 0.020 * e, bus: this.bus.ui, delay: 0.006 });
+    }
+  }
+
+  /**
+   * The last stand opens. Everything else falls away and one tone is held —
+   * low, unwavering, and long enough to outlast the word. It is the only
+   * sound in the game that does not decay on its own.
+   */
+  lastStand() {
+    this.standActive = true;
+    if (!this.ready || this.muted) return;
+    this._tone({ type: 'sine', f0: 116, f1: 116, dur: 6.0, vol: 0.085, bus: this.bus.cinematic });
+    this._tone({ type: 'sine', f0: 232.5, f1: 232.5, dur: 6.0, vol: 0.030, bus: this.bus.cinematic, delay: 0.02 });
+  }
+
+  /** The stand resolves. Held, the world comes back up with it. */
+  lastStandEnd(held) {
+    this.standActive = false;
+    if (!this.ready || this.muted) return;
+    if (held) {
+      this._tone({ type: 'triangle', f0: 232, f1: 928, dur: 0.5, vol: 0.11, bus: this.bus.cinematic });
+      this._burst(0.45, 0.16, 2600, 'bandpass', 0, this.bus.ambience);
     }
   }
 

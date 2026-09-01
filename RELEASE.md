@@ -658,3 +658,26 @@ Slice history:
   setting the finish directly: the coast, the stopped pursuit and the card are
   the same as the canonical finish because they are literally the same code.
   ENDLESS is untouched and endless — it is where the practice happens.
+- Phase E — the last stand. Being run down was the flattest ending in the
+  game: the gap closes, and there is nothing to do about it but watch. Once
+  per run, the Redline's arrival now opens one more word instead of ending
+  the run. The gap holds at the throat, the corruption sits at its worst, and
+  the answer decides it — read it and the Redline is pushed back out to forty
+  metres; miss it, or let it cross, and the run ends exactly as it would have.
+  Measured: surrendering the stand ends at 344 m in 15.2 s, holding it reaches
+  466 m and 5.7 seconds more run. It fires once and only once in every mode
+  and continue combination, because the flag lives on the run rather than on
+  the player — a restart gets a fresh one and a purchased continue inside a
+  run does not.
+  Getting the suspension right took a second pass. The first version cleared
+  the Redline's kill once, on entry, and the stand lasted a single frame:
+  the pursuit re-arms its kill every frame at that gap, so it has to be held
+  off every frame too, not once. The tell was the two runs finishing at an
+  identical 328 m.
+  A recovered run keeps every board right it had. This is a skill save and
+  the exact opposite of a continue — a continue is bought and forfeits the
+  best and the ghost; a stand is read, and forfeits nothing.
+  No label announces it, and none was needed. The corruption presentation is
+  already driven by the gap, so pinning the gap pins the picture at exactly
+  1.000 with no second system to keep in step, and the mix drops to six
+  percent under one held tone that does not decay. Silence is the tell.

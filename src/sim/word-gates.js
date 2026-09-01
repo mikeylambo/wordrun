@@ -182,6 +182,7 @@ export class WordGates {
     this.misses = [];       // this run's wrong reads, for the results recap
     this.streak = 0;        // consecutive correct reads
     this.bestStreak = 0;
+    this.lastResolvedCorrect = null;  // how the most recent gate went
     this.readCount = 0;     // resolved gates, for the average read time
     this.latencySum = 0;
     this.bestLatency = null;
@@ -245,6 +246,7 @@ export class WordGates {
     // Said real and it was real, or said fake and it was fake. Saying nothing
     // still says fake, which is why a passed fake is correct.
     g.correct = g.confirmed ? g.real : !g.real;
+    this.lastResolvedCorrect = g.correct;
     // Passing pays the late rate: it is the safe answer, and it is the answer
     // the player gets for doing nothing.
     if (!answered) {

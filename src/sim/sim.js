@@ -6,6 +6,7 @@ import TUNING from '../TUNING.js';
 import { Terrain } from './terrain.js';
 import { Player } from './player.js';
 import { Beast } from './beast.js';
+import { ENDGAME } from '../design/endgame.js';
 import { GhostRecorder, GhostPlayer } from './ghost.js';
 import { WordGates } from './word-gates.js';
 // Phase 7: the RC6 beat/pursuit pass and the landing-feel pass are retired
@@ -64,6 +65,8 @@ export class Sim {
     const M = TUNING.MODES;
     this.mode = M.RULES[opts.mode] ? opts.mode : 'endless';
     this.routeFinished = false;
+    this.lastStandUsed = false;
+    this.lastStand = null;
     this.rules = M.RULES[this.mode];
     this.difficulty = M.DIFFICULTY[opts.difficulty] ? opts.difficulty : 'normal';
     const diff = M.DIFFICULTY[this.difficulty];
@@ -130,6 +133,38 @@ export class Sim {
     this.recorder.step(dt, this.player);
     this.ghost.step(dt);
     this.terrain.prune(Math.floor(this.player.d / TUNING.TERRAIN.CHUNK_LEN));
+
+    // Phase E — the last stand. The flattest death in the game is being run
+    // down with nothing to do about it. Once per run, the Redline's arrival
+    // opens one more word instead of ending the run: the gap holds at the
+    // throat, the corruption sits at its maximum, and the answer decides it.
+    // A skill save, the opposite of a continue, so a run that survives it
+    // keeps every board right it had.
+    if (this.lastStand) {
+      // The pursuit is pinned for the duration. The beast re-arms its kill
+      // every frame at this gap, so it has to be held off every frame too.
+      this.beast.killed = false;
+      this.beast.killT = 0;
+      this.beast.gap = TUNING.BEAST.KILL_GAP;
+      if (this.wordGates.next > this.lastStand.index) {
+        const won = this.wordGates.lastResolvedCorrect === true;
+        this.lastStand = null;
+        if (won) {
+          this.beast.gap = ENDGAME.LAST_STAND_RECOVER_M;
+          this.beast.desired = ENDGAME.LAST_STAND_RECOVER_M;
+          this.events.push({ t: 'last_stand_held', gap: this.beast.gap });
+        } else {
+          this.beast.killed = true;
+          this.events.push({ t: 'last_stand_lost' });
+        }
+      }
+    } else if (this.beast.killed && !this.lastStandUsed && !this.player.dead) {
+      this.lastStandUsed = true;
+      this.lastStand = { index: this.wordGates.next };
+      this.beast.killed = false;
+      this.beast.killT = 0;
+      this.events.push({ t: 'last_stand', index: this.lastStand.index });
+    }
 
     if (this.beast.killed) {
       this.player.dead = true;
