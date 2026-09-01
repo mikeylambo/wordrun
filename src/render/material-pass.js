@@ -83,15 +83,31 @@ function terrainMaterial() {
         '#include <roughnessmap_fragment>\nfloat rc8Ice = smoothstep(0.08, 0.92, vRc8Surface);\nroughnessFactor = mix(roughnessFactor, 0.27, rc8Ice);')
       .replace('#include <metalnessmap_fragment>',
         '#include <metalnessmap_fragment>\nmetalnessFactor = mix(metalnessFactor, 0.045, smoothstep(0.08, 0.92, vRc8Surface));')
-      // The data-stream reads as a track because the ground says so: a world-
-      // space grid etched in light, and two rails burning at the ribbon edges.
+      // The data-stream reads as a track because the ground says so: a grid
+      // etched in light, and two rails burning at the ribbon edges.
+      // The grid is drawn in TRACK space, not world space. It used to take
+      // both axes from vP4World.xz, which works only while the ribbon runs
+      // straight: world-X stripes are not parallel to a rail that is sliding
+      // in X through a turn, so they wandered across the ribbon and were cut
+      // off by its edge at whatever angle the corner happened to make. That
+      // is the "lines don't connect" read — the grid and the rails were in two
+      // different coordinate systems and could never meet. The across-axis now
+      // comes from the signed lane attribute, so every stripe runs parallel to
+      // the rails and every rung ends exactly on one.
       .replace('#include <common>', '#include <common>\nvarying float vP4Lane;')
       .replace('#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
-        vec2 p4Cell = vP4World.xz / 6.0;
+        float p4Across = vP4Lane * uP4HalfW;
+        vec2 p4Cell = vec2(p4Across, vP4World.z) / 6.0;
         vec2 p4F = abs(fract(p4Cell) - 0.5);
         float p4Line = smoothstep(0.44, 0.5, max(p4F.x, p4F.y));
-        float p4Rail = smoothstep(0.8, 0.97, vP4Lane);
+        float p4Rail = smoothstep(0.8, 0.97, abs(vP4Lane));
+        // The rail is the EDGE of the etched surface, so the grid ends where
+        // the rail begins to burn. Letting it run on into the strip outboard
+        // of the rail left every rung crossing its own boundary and hanging
+        // off the side of the road, which reads as unfinished however well
+        // the lines themselves line up.
+        p4Line *= 1.0 - smoothstep(0.74, 0.88, abs(vP4Lane));
         // The etched light drifts through hues down the page — cyan through
         // violet through teal over ~300m — so no stretch of track sits in a
         // single monochrome wash. Red stays the Redline's alone.
@@ -103,10 +119,12 @@ function terrainMaterial() {
         totalEmissiveRadiance += p4GridCol * p4Line * 0.62 * uP9Flow;
         totalEmissiveRadiance += p4RailCol * p4Rail * 1.15 * uP9Flow;`)
       .replace('#include <common>\nvarying float vP4Lane;',
-        '#include <common>\nuniform float uP9Flow;\nvarying float vP4Lane;');
+        '#include <common>\nuniform float uP9Flow;\nuniform float uP4HalfW;\nvarying float vP4Lane;');
+    shader.uniforms.uP4HalfW = terrain.userData.uP4HalfW;
   };
   terrain.userData.uP9Flow = { value: 1 };
-  terrain.customProgramCacheKey = () => 'dictiondash-p12-flow-ribbon-v1';
+  terrain.userData.uP4HalfW = { value: TUNING.RUN.TRACK_HALF_W };
+  terrain.customProgramCacheKey = () => 'dictiondash-p30-track-space-grid-v2';
   return terrain;
 }
 

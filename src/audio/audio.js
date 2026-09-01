@@ -112,18 +112,29 @@ export class Audio {
     // noise, and the dash still announces itself with the sweep and burst in
     // overdriveOn(). Impacts, bells, word cues and the music stems remain, so
     // the surface bus is still carrying its transients.
-    // "roar" keeps its name and its band curve; its body is now interference —
-    // white noise through a wandering bandpass instead of a low growl.
-    this.roar = this._noiseVoice(1650, 'bandpass', 0.9, this.bus.threat, 0, this.white);
-    this.staticFar = this._noiseVoice(5200, 'highpass', 0.5, this.bus.threat, 0, this.white);
+    // Phase 30: the last two sustained noise beds are gone, and they were the
+    // ones that mattered. Phase 27 claimed every noise bed had been removed;
+    // what it actually removed were the SPEED-keyed ones. These two were keyed
+    // to the Redline — a wandering bandpass on white noise, and a highpassed
+    // hiss rising with the square of corruption — so the wind came back for
+    // exactly the stretch where the pursuit closes, which is the worst moment
+    // to sound like weather. Broadband noise held at a level IS wind to an
+    // ear, whatever the filter in front of it is called.
+    // "roar" keeps its name and its band curve; its body is now a detuned pair
+    // through a resonant lowpass, wobbling on the same LFO the bandpass used.
+    // The pursuit reads as an electrical fault closing in rather than as air.
+    this.roar = this._buzzVoice([57, 57.9, 115.4], 'lowpass', 5.5, this.bus.threat);
 
     this.roarLfo = ctx.createOscillator();
     this.roarLfoGain = ctx.createGain();
     this.roarLfo.frequency.value = 0.9;
-    this.roarLfoGain.gain.value = 620;
+    this.roarLfoGain.gain.value = 210;
     this.roarLfo.connect(this.roarLfoGain);
     this.roarLfoGain.connect(this.roar.filter.frequency);
     this.roarLfo.start();
+    // The far static is now crackle rather than a bed: short bursts fired at a
+    // rate the corruption curve sets. Same curve, same identity, no sustain.
+    this._crackleT = 0;
 
     this.screamGain = ctx.createGain();
     this.screamGain.gain.value = 0;
@@ -177,6 +188,31 @@ export class Audio {
     const p = this.ctx.createStereoPanner();
     p.pan.value = clamp(pan, -1, 1);
     return p;
+  }
+
+  /** A sustained TONAL voice: detuned oscillators through a resonant filter.
+   *  Same shape as _noiseVoice so the callers and the LFO wiring are
+   *  unchanged, but nothing broadband ever reaches the bus. */
+  _buzzVoice(freqs, type, q, bus, pan = 0) {
+    const gain = this.ctx.createGain();
+    gain.gain.value = 0;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = type;
+    filter.frequency.value = 320;
+    filter.Q.value = q;
+    const panner = this.ctx.createStereoPanner ? this.ctx.createStereoPanner() : null;
+    const oscs = freqs.map((f, i) => {
+      const o = this.ctx.createOscillator();
+      o.type = i === freqs.length - 1 ? 'square' : 'sawtooth';
+      o.frequency.value = f;
+      o.connect(filter);
+      o.start();
+      return o;
+    });
+    filter.connect(gain);
+    if (panner) { gain.connect(panner); panner.connect(bus); panner.pan.value = pan; }
+    else gain.connect(bus);
+    return { oscs, filter, gain, pan: panner };
   }
 
   _noiseVoice(freq, type, q, bus, pan = 0, buffer = this.noise) {
@@ -248,11 +284,21 @@ export class Audio {
     this._set(this.roar.gain.gain, A.ROAR_MAX * (bands?.roar || 0));
     this._set(this.screamGain.gain, A.SCREAM_MAX * Math.pow(bands?.scream || 0, 2));
 
-    // Far corruption bed, same intensity curve as the veil and the field.
+    // Far corruption, same intensity curve as the veil and the field — but
+    // fired as crackle rather than held as a bed. A sustained hiss is wind; the
+    // same noise in 25 ms bursts is interference, and it also gives the
+    // approach a rhythm the sustained version never had.
     const gap = sim?.beast?.gap;
     const corr = run && !kill && gap != null ? corruptionIntensity(gap) : 0;
-    this._set(this.staticFar.gain.gain, RC9.STATIC_FAR * corr * corr, 0.12);
-    if (this.staticFar.pan) this._set(this.staticFar.pan.pan, beastPan * 0.5, 0.1);
+    if (corr > 0.02) {
+      this._crackleT -= dt;
+      if (this._crackleT <= 0) {
+        // 0.5 s apart at the edge of perception down to ~55 ms at full pressure.
+        this._crackleT = lerp(0.5, 0.055, corr * corr) * (0.6 + Math.random() * 0.8);
+        this._burst(0.025 + Math.random() * 0.03, RC9.STATIC_FAR * corr * corr,
+          4200 + Math.random() * 2600, 'highpass', beastPan * 0.5, this.bus.threat, 0.7);
+      }
+    } else this._crackleT = 0;
 
     if ((bands?.footfall || 0) > 0.01 && !kill) {
       const hz = lerp(A.FOOTFALL_HZ_FAR, A.FOOTFALL_HZ_NEAR, bands.footfall);

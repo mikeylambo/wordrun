@@ -14,6 +14,10 @@ import { SURFACES, applySurface } from './surface-textures.js';
 
 const T = TUNING.TERRAIN;
 const F = TUNING.FEATURES;
+const R = TUNING.RUN;
+// Must match BANK in terrain-mesh.js — the ribbon's edge lift into a turn, so
+// a post planted on that edge sits on it rather than through it.
+const EDGE_BANK = 0.35;
 const CHUNKS = T.CHUNKS_AHEAD + T.CHUNKS_BEHIND + 1;
 
 const CAP_TREE = CHUNKS * (F.TREE_COUNT[1] + 2) * 2;
@@ -195,6 +199,20 @@ export class Props {
           }
           nRock++;
         } else if (c.type === FEATURE.GATE && nPole < CAP_POLE) {
+          // Playtest: "the poles aren't attached to anything". They weren't —
+          // they took the generator's own x and the terrain height there,
+          // which for a verge post is a point somewhere off the side of a
+          // ribbon that is the only visible ground in the scene, so each one
+          // stood on nothing. Snap them to the ribbon's own edge, on the side
+          // they were generated, at the banked height that edge actually sits
+          // at. They now rise off the rail — which is also where the etched
+          // grid stops — so the road has one continuous boundary instead of
+          // three things that nearly agree.
+          const cx = this.terrain.corridorX(c.d);
+          const side = c.x >= cx ? 1 : -1;
+          const slope = this.terrain.corridorSlope ? this.terrain.corridorSlope(c.d) : 0;
+          vPos.set(cx + side * R.TRACK_HALF_W,
+            -side * slope * EDGE_BANK * R.TRACK_HALF_W * 0.5, -c.d);
           q.identity();
           vScale.set(1, 1, 1);
           m4.compose(vPos, q, vScale);

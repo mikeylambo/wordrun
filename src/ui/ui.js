@@ -335,6 +335,25 @@ export class UI {
     this._chainLostT = 0.9;
   }
 
+  /** The continue's price, shown where the number actually is. The score
+   *  drops mid-run now rather than at the recap, so the drop needs to be
+   *  seen happening — otherwise it reads as a glitch in the counter. */
+  flashScoreCut(amount) {
+    if (!this.dist || !(amount > 0)) return;
+    this.dist.classList.remove('cut');
+    void this.dist.offsetWidth; // restart the animation on a second continue
+    this.dist.classList.add('cut');
+    const tag = document.createElement('div');
+    tag.className = 'scoreCut';
+    tag.textContent = `−${Math.floor(amount).toLocaleString('en-US')}`;
+    // Beside the score, not under it: under it is where the distance line
+    // already lives, and two numbers in one place is the overlap this card
+    // has been reported for before.
+    tag.style.left = `${this.dist.offsetWidth + 14}px`;
+    this.dist.parentElement?.appendChild(tag);
+    setTimeout(() => { tag.remove(); this.dist.classList.remove('cut'); }, 1500);
+  }
+
   renderDeath({ distance, score, scoreLost = 0, continuesUsed = 0, failedRoute = false, avgReadMs = 0,
     seconds = 0, gates = 0, routeGates = 0, retired = [], best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult }) {
     this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null };
@@ -368,8 +387,14 @@ export class UI {
     if (shotUrl) {
       this.shot.src = shotUrl;
       this.shot.classList.remove('on');
+      // Playtest: this gradient started at 8% opacity, so the run's last frame
+      // — which at a death is the corruption at full strength, the busiest
+      // image the game can produce — sat at nearly full contrast directly
+      // behind the score and every label under it. The shot is context, not
+      // content: it stays legible as a backdrop and stops competing with the
+      // figures. The card is the thing being read.
       this.deathScreen.style.backgroundImage =
-        `linear-gradient(180deg,rgba(6,10,13,.08) 25%,rgba(6,10,13,.28) 55%,rgba(6,10,13,.9) 100%),url("${shotUrl}")`;
+        `linear-gradient(180deg,rgba(6,10,13,.80) 0%,rgba(6,10,13,.90) 26%,rgba(6,10,13,.95) 55%,rgba(6,10,13,.985) 100%),url("${shotUrl}")`;
       this.deathScreen.style.backgroundSize = 'cover';
       this.deathScreen.style.backgroundPosition = 'center';
       this.saveShot.style.display = '';
@@ -415,10 +440,16 @@ export class UI {
       parts.push('<div class="clean">PERFECT RUN</div>');
     }
 
-    if (daily?.goals) {
-      parts.push(`<div class="goalRow">${daily.goals.map((g) =>
-        `<span class="goalChip${g.done ? ' done' : ''}">${g.label}</span>`).join('')}</div>`);
-    }
+    // Playtest: the card was carrying TWO parallel goal systems in two places
+    // — today's chips floating loose under the score, and the rotating queue
+    // under its own heading much further down. Read together they looked like
+    // six unrelated targets. They are built here and printed once, inside the
+    // one OBJECTIVES block below, which is where a reader is already looking
+    // for "what am I chasing".
+    const dailyChips = daily?.goals?.length
+      ? `<div class="goalRow">${daily.goals.map((g) =>
+        `<span class="goalChip${g.done ? ' done' : ''}">${g.label}</span>`).join('')}</div>`
+      : '';
 
     // The run itself, as a shape (Phase 21). The speed curve recovered from
     // the ghost track, with every wrong read hung at the distance it
@@ -440,8 +471,9 @@ export class UI {
         + `<polyline class="rl" points="${pts}"/>${marks}</svg>`
       );
       if (review.worst) {
-        parts.push(`<div class="runNote">${review.worst.from}–${review.worst.to} M`
-          + ` · ${review.worst.count} MISSED</div>`);
+        // The count is already on the REVIEW button directly above; this line
+        // exists to say WHERE, which is the thing the button cannot say.
+        parts.push(`<div class="runNote">WORST STRETCH ${review.worst.from}–${review.worst.to} M</div>`);
       }
     }
 
@@ -450,21 +482,22 @@ export class UI {
     // against them. A freshly drawn objective reports zero by construction:
     // showing it part-filled would draw the retroactive credit the queue
     // exists to refuse.
-    if (objectives?.live?.length) {
+    if (objectives?.live?.length || dailyChips) {
       const bits = [];
-      for (const c of objectives.cleared || []) {
+      for (const c of objectives?.cleared || []) {
         bits.push(`<div class="objRow done"><span class="ol">${c.label}</span>`
           + '<span class="ob"><i style="width:100%"></i></span>'
           + `<span class="ov">◆${c.reward}</span></div>`);
       }
-      for (const o of objectives.live) {
+      for (const o of objectives.live || []) {
         const pct = Math.round(Math.max(0, Math.min(1, o.progress || 0)) * 100);
         bits.push(`<div class="objRow"><span class="ol">${o.label}</span>`
           + `<span class="ob"><i style="width:${pct}%"></i></span>`
           + `<span class="ov">◆${o.reward}</span></div>`);
       }
       parts.push('<div class="recapHead">OBJECTIVES</div>');
-      parts.push(`<div class="objList">${bits.join('')}</div>`);
+      if (bits.length) parts.push(`<div class="objList">${bits.join('')}</div>`);
+      parts.push(dailyChips);
     }
 
     // The lifetime numbers as a broadcast stat bar: figure over label.

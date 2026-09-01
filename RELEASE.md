@@ -795,3 +795,47 @@ Slice history:
   as a measurement.
   Charge-banking was rejected rather than deferred, and the per-band hue
   palette is filed with the visual pass.
+- Playtest pass 2 — four reports, four root causes, eleven new gates.
+  The wind came back with the Redline, and it had. Phase 27's note claimed
+  every sustained noise bed was gone; what it actually removed were the
+  SPEED-keyed ones. Two PURSUIT-keyed beds were left running — a wandering
+  bandpass on white noise, and a highpassed hiss rising with the square of
+  corruption — so the sound returned for exactly the stretch where the pursuit
+  closes, which is the worst moment in the run to sound like weather. Held
+  broadband noise is wind to an ear whatever the filter in front of it is
+  called. Both are gone: the pursuit voice is now a detuned pair through a
+  resonant lowpass on the same LFO, which reads as an electrical fault, and
+  the far corruption layer fires as short crackle at a rate the same curve
+  sets rather than being held open. The gate that guards this is about SUSTAIN
+  rather than naming — a voice may be fired as a transient, never assigned and
+  held on a bus — because naming is what the last two attempts policed and the
+  sound came back anyway.
+  The road's lines did not connect, and could not have. The etched grid took
+  both axes from world space while the rails followed the ribbon, so on a bend
+  they were in two different coordinate systems: world-X stripes are not
+  parallel to a rail that is sliding in X through a turn, so they wandered
+  across the ribbon and were cut off by its edge at whatever angle the corner
+  made. The grid is drawn in track space now — the across-axis comes from the
+  lane attribute, which became signed to carry it — so every stripe runs
+  parallel to the rails and every rung ends on one. The grid also stops at the
+  rail instead of running on into the strip outboard of it, and the verge posts
+  were snapped from the generator's own x (a point off the side of the only
+  visible ground in the scene, which is why they stood on nothing) to the
+  ribbon edge at its banked height. Rail, grid and posts now share one line.
+  The continue's price was invisible while it mattered. The multiplier was
+  applied once, at the recap, so the HUD went on counting from the full total
+  for the rest of the run and the number only fell after it was too late to
+  read as a cost. It is taken off the live score the instant the continue is
+  bought — measured at 133,495 to 93,446, exactly the 0.70 the tuning says —
+  with the drop shown happening beside the score, and the recap no longer
+  charges for it a second time. The death card still reports the full amount.
+  The results card was carrying two parallel goal systems in two places:
+  today's chips floating loose under the score, and the rotating queue under
+  its own heading much further down, which read together as six unrelated
+  targets. They print once now, in one block. The chart caption stopped
+  repeating the miss count the button above it already gives, and said where
+  instead. The scrim behind the card was the larger problem — it started at 8%
+  opacity over the run's last frame, which at a death is the corruption at full
+  strength, the busiest image the game can produce, sitting at near-full
+  contrast directly behind the score and every label under it. The shot is
+  context, not content.

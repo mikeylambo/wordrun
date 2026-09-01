@@ -275,5 +275,73 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     + ` (x${B.SPEED_MULT} already gives ${windowAtCeiling.toFixed(2)}s at the ceiling)`);
 }
 
+// ── Playtest pass: four things a player reported and what stops them ──────
+{
+  // Every check in this block reads CODE, not prose. The recurring failure in
+  // this repo is a guard that trips on the comment explaining it, so strip the
+  // comments first and search what actually runs.
+  const codeOf = (path) => read(path)
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+
+  // 1. "The wind sound came back as the Redline approached."
+  //    It had. Phase 27's note said every sustained noise bed was gone; what it
+  //    removed were the SPEED-keyed ones, and the two PURSUIT-keyed beds — a
+  //    wandering bandpass on white noise and a highpassed hiss on corruption —
+  //    were left running. Held broadband noise is wind to an ear whatever the
+  //    filter is called, so the rule is about SUSTAIN, not about naming: a
+  //    voice may be fired as a transient, never assigned and held open.
+  const audioCode = codeOf('src/audio/audio.js');
+  const heldNoise = [...audioCode.matchAll(/this\.(\w+)\s*=\s*this\._noiseVoice\(/g)]
+    .map((m) => m[1]);
+  check(heldNoise.length === 0,
+    `no sustained broadband voice is held open on any bus${heldNoise.length ? ` — found ${heldNoise.join(', ')}` : ''}`);
+  check(/this\.roar\s*=\s*this\._buzzVoice\(/.test(audioCode) &&
+    /_buzzVoice\([\s\S]{0,600}createOscillator\(\)/.test(audioCode),
+    'the pursuit voice is tonal — oscillators through a filter, not noise through one');
+  check(/corruptionIntensity\(/.test(audioCode) && /_crackleT/.test(audioCode) &&
+    /_burst\([\s\S]{0,200}this\.bus\.threat/.test(audioCode),
+    'the corruption still drives the far layer, fired as crackle rather than held as a bed');
+
+  // 2. "Lines aren't fully connected on our road."
+  //    The grid took both axes from world space while the rails followed the
+  //    ribbon, so on a bend they were in two coordinate systems and could not
+  //    meet. The across-axis is the lane attribute now.
+  const gridCode = codeOf('src/render/material-pass.js');
+  const cell = gridCode.slice(gridCode.indexOf('p4Cell'), gridCode.indexOf('p4Rail'));
+  check(/vec2\(\s*p4Across\s*,\s*vP4World\.z\s*\)/.test(cell) && !/vP4World\.xz/.test(cell),
+    'the road grid is drawn in track space, so every stripe runs parallel to the rails');
+  check(/p4Line \*= 1\.0 - smoothstep\([\d.]+, [\d.]+, abs\(vP4Lane\)\)/.test(gridCode),
+    'and stops at the rail rather than running on past the edge of the road');
+  check(/lane\[i\] = u;/.test(codeOf('src/render/terrain-mesh.js')) &&
+    /abs\(vP4Lane\)/.test(gridCode),
+    'the lane attribute is signed so the stripes know which side they are on');
+
+  // 3. "The poles aren't attached to anything." They took the generator's x and
+  //    the terrain height there — a point off the side of the only visible
+  //    ground in the scene.
+  const propCode = codeOf('src/render/props.js');
+  const gateBranch = propCode.slice(propCode.indexOf('FEATURE.GATE'));
+  check(/corridorX\(c\.d\)/.test(gateBranch) && /R\.TRACK_HALF_W/.test(gateBranch),
+    'verge posts stand on the ribbon edge, the same line the rail and the grid end on');
+
+  // 4. "Score doesn't cut in-game after choosing a continue, only on the end
+  //    screen." The multiplier was applied once, at the recap, so the HUD kept
+  //    counting from the full total and the price was invisible until it was
+  //    too late to feel like one.
+  const mainCode = codeOf('src/main.js');
+  const buy = mainCode.slice(mainCode.indexOf('function buyContinue'),
+    mainCode.indexOf('function reviveRun'));
+  check(/sim\.player\.score = Math\.floor\(sim\.player\.score \* TUNING\.SCORE\.CONTINUE_KEEP\)/.test(buy),
+    'the continue takes its cut off the live score, the moment it is bought');
+  check(!/Math\.pow\(TUNING\.SCORE\.CONTINUE_KEEP/.test(mainCode),
+    'and the recap does not charge for it a second time');
+  check(/continueScoreLost \+= /.test(buy) &&
+    /lastRunScoreLost = \(earned - finalScore\) \+ continueScoreLost/.test(mainCode),
+    'the death card still reports the full amount the continues cost');
+  check(/flashScoreCut\(/.test(codeOf('src/ui/ui.js')),
+    'and the drop is shown happening, so it does not read as a glitch in the counter');
+}
+
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

@@ -6,7 +6,9 @@
  * the rc8 grid shader), but each chunk is now a ribbon strip laid along the
  * track's authored centerline: rows every few metres, vertices spread
  * across TUNING.RUN.TRACK_HALF_W, banked slightly into the turn. A `lane`
- * attribute (0 centre → 1 edge) feeds the shader's edge rails, and a
+ * attribute (-1 left edge → 0 centre → 1 right edge) feeds the shader's edge
+ * rails AND its lane stripes — the grid is drawn in track space, so it stays
+ * square to the ribbon through every turn. A
  * `surface` attribute stays for compatibility with the shipped shader.
  *
  * Vertex colours flow from the band table exactly as before, so the mood
@@ -115,7 +117,10 @@ export class TerrainMesh {
         const edge = Math.abs(u);
         const tint = edge > 0.85 ? rowCrest : edge > 0.5 ? rowShade : rowSnow;
         col[i * 3] = tint.r; col[i * 3 + 1] = tint.g; col[i * 3 + 2] = tint.b;
-        lane[i] = edge;
+        // SIGNED, -1..1. The shader takes abs() for the edge rails and uses
+        // the sign for the lane stripes, which have to know which side of the
+        // centreline they are on to run parallel to the rails.
+        lane[i] = u;
       }
     }
 

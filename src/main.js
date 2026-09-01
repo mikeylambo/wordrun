@@ -258,6 +258,7 @@ function startRun() {
     : runMode === 'standard' ? 0
     : runs + 1;
   continuesUsed = 0;
+  continueScoreLost = 0;
   runContinued = false;
   retiredThisRun = [];
   tierTally = {};
@@ -323,6 +324,9 @@ let lastRunScore = 0;
 let retiredThisRun = [];
 let tierTally = {};
 let lastRunScoreLost = 0;
+// What the continues took off the live score this run, kept so the death card
+// can still say "−N · 2 CONTINUES" now that the cut happens during the run.
+let continueScoreLost = 0;
 let offerActive = false;
 let offerTimer = null;
 const CONT = TUNING.META.CONTINUE;
@@ -382,6 +386,15 @@ function buyContinue() {
   metaStats.increment('currency', -cost);
   continuesUsed++;
   runContinued = true;
+  // Playtest: the cut used to be applied once, at the recap, so the HUD went
+  // on counting from the full total for the whole rest of the run and the
+  // number only fell after it was too late to feel like a price. Take it here,
+  // off the live score, the instant the continue is bought — the player watches
+  // it go, and everything earned afterwards accrues on the reduced base.
+  const beforeCut = sim.player.score;
+  sim.player.score = Math.floor(sim.player.score * TUNING.SCORE.CONTINUE_KEEP);
+  continueScoreLost += beforeCut - sim.player.score;
+  ui.flashScoreCut(beforeCut - sim.player.score);
   shopUI?.sync();
   reviveRun();
 }
@@ -445,10 +458,12 @@ function finalizeRun() {
   // reached the finish is not a failure and keeps everything.
   const failedRoute = runMode === 'standard' && !sim.escaped;
   const failKeep = failedRoute ? TUNING.SCORE.STANDARD_FAIL_KEEP : 1;
-  const finalScore = Math.floor(
-    earned * failKeep * Math.pow(TUNING.SCORE.CONTINUE_KEEP, continuesUsed));
+  // CONTINUE_KEEP is NOT applied here: buyContinue() already took it off the
+  // live score, once per continue, so compounding it again at the recap would
+  // charge for every continue twice.
+  const finalScore = Math.floor(earned * failKeep);
   lastRunScore = finalScore;
-  lastRunScoreLost = earned - finalScore;
+  lastRunScoreLost = (earned - finalScore) + continueScoreLost;
   // Unassisted runs own the boards: a continued run reports its distance
   // but cannot set the best or leave a ghost (see CONTINUE tuning note).
   const isPb = runContinued ? false : Storage.setBestFor(SEED, finalScore);
