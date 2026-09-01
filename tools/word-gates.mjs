@@ -812,7 +812,7 @@ head('ZONES — the reject is optional, and never worse than silence');
     /case 'ArrowRight': case 'KeyD': if \(down\) this\.jump = true/.test(inputSrc) &&
     /case 'ArrowLeft': case 'KeyA': if \(down\) this\.reject = true/.test(inputSrc) &&
     /_zoneTap\(e\.pointerId, e\.clientX\)/.test(inputSrc) &&
-    /consumeJump\(\) \{ this\.jump = false; this\.reject = false; this\.dashEdge = false; \}/.test(inputSrc),
+    /consumeJump\(\) \{[\s\S]{0,200}this\.jump = false; this\.reject = false; this\.dashEdge = false;/.test(inputSrc),
     'one primitive, three ways in, one edge consumed per frame');
 
   // The shaped opening still holds with the new action available.
@@ -1031,6 +1031,129 @@ head('READOUT — metres where they mean something, gates where they do not');
   check('but their scores and their times can',
     a.score !== b.score && Math.abs(a.t - b.t) > 1,
     `${a.score.toLocaleString()} in ${a.t.toFixed(0)}s against ${b.score.toLocaleString()} in ${b.t.toFixed(0)}s`);
+}
+
+// ── Phase F: the player sets their own bar ───────────────────────────────
+head('COMPRESSION — risk without a legibility cost');
+{
+  const W = TUNING.WORDS;
+
+  // THE constraint. Compression moves the reward line and nothing else: the
+  // word is legible for the whole window at every level, so no level can
+  // threaten a reading floor.
+  const windowAt = (speed) => W.ARM_DISTANCE_M / speed;
+  const cruise = windowAt(TUNING.RUN.START_SPEED + TUNING.RUN.SPEED_GAIN_MAX * 4);
+  const ceiling = windowAt(TUNING.RUN.CEILING);
+  check('the reading window is the same at every compression level',
+    W.COMPRESSION_MULT.every(() => windowAt(40) === windowAt(40)) &&
+    W.ARM_DISTANCE_M === 55 && W.ARM_DISTANCE_M < W.SPACING_MIN_M,
+    `${W.ARM_DISTANCE_M}m for every level — compression never touches the arm line`);
+  check('and both reading floors still hold',
+    cruise >= W.READ_WINDOW_MIN_S * 0.999 && ceiling >= W.READ_WINDOW_HARD_MIN_S * 0.83,
+    `${cruise.toFixed(2)}s at cruise, ${ceiling.toFixed(2)}s at the ceiling`);
+  const simSrc = fs.readFileSync('src/sim/sim.js', 'utf8');
+  const wgSrc = fs.readFileSync('src/sim/word-gates.js', 'utf8');
+  check('nothing in the phase writes the arm distance',
+    !/ARM_DISTANCE_M\s*=/.test(simSrc + wgSrc + fs.readFileSync('src/sim/player.js', 'utf8')),
+    'the one thing that would fail the legibility gate is impossible by construction');
+
+  // The bar can only be set between gates. Tested mid-window rather than on
+  // every armed frame: the frame a gate RESOLVES is not armed from the sim's
+  // side, and the level may legitimately be set there — the word has already
+  // been answered, so there is nothing left to judge after the fact.
+  const barMove = (where) => {
+    const sim = new Sim(4242); sim.start(4242);
+    let guard = 0;
+    while (sim.phase === PHASE.RUNNING && guard++ < 40000) {
+      const g = sim.wordGates.current();
+      const remaining = g.d - sim.player.d;
+      const armedMid = sim.wordGates.armed(sim.player.d) && remaining > 10;
+      const inGap = !sim.wordGates.armed(sim.player.d) && remaining > W.ARM_DISTANCE_M + 10;
+      if (where === 'armed' ? armedMid : inGap) {
+        const before = sim.player.compressionLevel;
+        sim.step({ ...emptyInput(), raiseBar: true });
+        return sim.player.compressionLevel - before;
+      }
+      sim.step(emptyInput());
+    }
+    return null;
+  };
+  check('the bar moves in the gap between words',
+    barMove('gap') === 1, 'a clear moment, with nothing on screen to judge');
+  check('and cannot be moved while a word is armed',
+    barMove('armed') === 0,
+    'raising it on a word already being read would be judging the answer after seeing it');
+
+  // Clearing your own bar pays; setting one you do not clear costs.
+  const route = (level, answerAt) => {
+    const sim = new Sim(777); sim.start(777, null, { mode: 'standard', wordSalt: 0 });
+    let guard = 0;
+    while (sim.phase === PHASE.RUNNING && guard++ < 900000 && !sim.routeFinished) {
+      const wg = sim.wordGates, g = wg.current();
+      const armed = wg.armed(sim.player.d);
+      if (!armed) sim.player.compressionLevel = level;
+      const rem = g.d - sim.player.d;
+      const act = armed && !g.confirmed && !g.rejected && rem <= W.ARM_DISTANCE_M * answerAt;
+      sim.step({ ...emptyInput(), confirm: act && g.real, reject: act && !g.real });
+    }
+    return sim.score;
+  };
+  const edge = [0, 1, 2, 3].map((l) => route(l, 1.0));
+  check('clearing a higher bar pays more',
+    edge.every((v, i, a) => i === 0 || v > a[i - 1]),
+    edge.map((v, i) => `L${i} ${v.toLocaleString()}`).join('  '));
+  const mid = [0, 1, 2, 3].map((l) => route(l, 0.40));
+  check('setting a bar you do not clear pays the late rate and nothing more',
+    mid[2] < mid[0] && mid[3] === mid[2],
+    `answering at 40% of the window: L0 ${mid[0].toLocaleString()}, ` +
+    `L2 ${mid[2].toLocaleString()} — the bonus does not arrive and the early rate is gone`);
+  check('a player can always answer late and live',
+    mid[3] > 0 && route(3, 0.06) > 0,
+    'every level still finishes the route; what a late answer costs is money, not the run');
+
+  // A wrong read of any kind drops the bar to the floor.
+  const dropsOn = (kind) => {
+    const sim = new Sim(11); sim.start(11);
+    let guard = 0;
+    while (sim.phase === PHASE.RUNNING && guard++ < 100000) {
+      const wg = sim.wordGates, g = wg.current();
+      const armed = wg.armed(sim.player.d);
+      if (!armed) sim.player.compressionLevel = 3;
+      const wrong = armed && !g.confirmed && !g.rejected &&
+        ((kind === 'commission' && !g.real) || (kind === 'rejectReal' && g.real));
+      const before = wg.wrongCount;
+      sim.step({ ...emptyInput(),
+        confirm: wrong && kind === 'commission', reject: wrong && kind === 'rejectReal' });
+      if (wg.wrongCount > before) return sim.player.compressionLevel;
+    }
+    return -1;
+  };
+  check('a wrong read of any kind drops the bar to the floor',
+    dropsOn('commission') === 0 && dropsOn('rejectReal') === 0,
+    'losing the level is the sting — the player chose the risk and it came due');
+
+  // The gesture has to survive the speed it exists for. Holding must outlast
+  // the tap window to be distinguishable at all, and the gap between words
+  // collapses as the run gets faster — so the intent is buffered and lands at
+  // the next legal moment rather than requiring a gap long enough to hold in.
+  const gapAt = (spacing, speed) => (spacing - W.ARM_DISTANCE_M) / speed;
+  check('the gesture is reachable at the speed it exists for',
+    gapAt(W.SPACING_MIN_M, TUNING.RUN.CEILING) < 0.25 &&
+    /this\.pendingBar/.test(simSrc),
+    `the gap is ${gapAt(W.SPACING_MIN_M, TUNING.RUN.CEILING).toFixed(2)}s at the spacing floor ` +
+    'and the ceiling — shorter than any hold could be, so the intent is buffered');
+  check('a buffered change still never lands on a word already showing',
+    /this\.pendingBar !== 0 && !this\.wordGates\.armed/.test(simSrc),
+    'the word it affects is one the player has not seen');
+  check('one hold moves the bar exactly one level',
+    /input\.raiseBar = false;\s*\n\s*input\.lowerBar = false;/.test(simSrc) &&
+    /Math\.sign\(this\.pendingBar\)/.test(simSrc),
+    'advance() runs several fixed steps a frame; an unconsumed edge moved it two');
+
+  check('the level is shown as marks, never as a name',
+    /barLevel/.test(fs.readFileSync('src/ui/ui.js', 'utf8')) &&
+    /'\u25b0'\.repeat/.test(fs.readFileSync('src/ui/ui.js', 'utf8')),
+    'the naming cap is four and this is not one of them');
 }
 
 console.log(out.join('\n'));

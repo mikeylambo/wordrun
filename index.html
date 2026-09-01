@@ -66,6 +66,10 @@
   .meter-zone{display:flex;flex-direction:column;gap:7px;--cells:10;--gap:3px}
   #meterLabel{display:flex;align-items:baseline;gap:8px;font-size:8px;font-weight:700;letter-spacing:var(--tag);text-transform:uppercase;color:var(--dimmer);transition:color .16s ease}
   #meterLabel i{flex:1;height:1px;background:currentColor;opacity:.3;font-style:normal}
+  /* The bar the player set for themselves. Marks, never a word — the naming
+     cap is four and this is not one of them. */
+  #barLevel{font-weight:700;letter-spacing:.22em;color:rgba(190,238,255,.55);font-size:9px}
+  #barLevel.set{color:#8be4ff}
   .meter-zone.armed #meterLabel{color:rgba(190,238,255,.85)}
   .meter-zone.spending #meterLabel{color:#fff}
   /* The one-shot flourish when the dash reaches full charge. */
@@ -231,7 +235,7 @@
 
   <div id="hud">
     <div><div class="row"><div><div id="dist">0</div><div id="distSub">0 M</div><div id="vitalsSlot"></div></div><div id="best"><span>BEST TODAY</span><b id="bestVal">—</b></div></div><div id="chain"></div></div>
-    <div class="meter-zone"><div id="meterLabel">DASH<i></i></div><div id="meterWrap"><div id="meter"></div></div></div>
+    <div class="meter-zone"><div id="meterLabel">DASH<i></i><b id="barLevel"></b></div><div id="meterWrap"><div id="meter"></div></div></div>
   </div>
 
   <button id="mute" aria-label="Toggle sound">♪</button>

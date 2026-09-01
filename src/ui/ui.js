@@ -22,6 +22,7 @@ export class UI {
     this.distSub = $('distSub');
     this.meterWrap = $('meterWrap');
     this.meterZone = this.meterWrap?.closest('.meter-zone');
+    this.barLevel = document.getElementById('barLevel');
     this.meter = $('meter');
     this.dread = $('dread');
     this.dreadRed = $('dreadRed');
@@ -162,6 +163,17 @@ export class UI {
 
     const pct = (p.boostMeter / TUNING.BOOST.METER_MAX) * 100;
     this.meter.style.width = `${pct.toFixed(1)}%`;
+    // The compression level, as marks. No label: it is the player's own bar,
+    // and naming it would spend the fifth name the game does not have.
+    const lvl = p.compressionLevel | 0;
+    if (lvl !== this._lastBar && this.barLevel) {
+      this._lastBar = lvl;
+      const max = TUNING.WORDS.COMPRESSION_MULT.length - 1;
+      this.barLevel.textContent = '▰'.repeat(lvl) + '▱'.repeat(Math.max(0, max - lvl));
+      this.barLevel.classList.toggle('set', lvl > 0);
+      this.barLevel.setAttribute('aria-label', `Reward bar ${lvl} of ${max}`);
+    }
+
     const armed = p.boostMeter >= TUNING.BOOST.MIN_ACTIVATE;
     // Playtest: filling the meter is the run's best moment and it happened in
     // silence. Announce the rising edge once — a sound and a single flash of

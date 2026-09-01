@@ -35,6 +35,9 @@ const SWIPE_MS = 260;
 // the game's most important verb: the player had already decided, and the
 // game spent a quarter of a second finding out.
 const TAP_MS = 220;
+// Phase F: holding a zone past this sets the player's own bar instead of
+// answering. Comfortably past TAP_MS so a slow answer is never a level change.
+const HOLD_MS = 520;
 const TAP_PX = 12;
 // Phase C shipped a both-halves-at-once dash and it is gone again after one
 // playtest. On a phone the gesture has to compete with the buttons that live
@@ -60,6 +63,8 @@ export class Input {
     this.flip = 0;
     this.jump = false;          // said REAL (the right zone)
     this.reject = false;        // said FAKE (the left zone)
+    this.raiseBar = false;      // hold right / Up: raise the compression level
+    this.lowerBar = false;      // hold left / Down: lower it
     this.boostHeld = false;
     this.dragging = false;
 
@@ -218,6 +223,23 @@ export class Input {
     if (this._zoneOf(clientX) === 'right') this.jump = true; else this.reject = true;
   }
 
+  /**
+   * A press held past the tap window is not an answer — it sets the bar. Fires
+   * once per press, and the sim refuses it while a word is armed, so the
+   * gesture only ever lands in the gap between gates.
+   */
+  _pollHolds(now) {
+    for (const [, meta] of this.pointerMeta) {
+      if (meta.barFired || now - meta.downT < HOLD_MS) continue;
+      const travel = Math.hypot((meta.x ?? meta.downX) - meta.downX,
+        (meta.y ?? meta.downY) - meta.downY);
+      if (travel > TAP_PX * 2) { meta.barFired = true; continue; }
+      meta.barFired = true;
+      if (this._zoneOf(meta.downX) === 'right') this.raiseBar = true;
+      else this.lowerBar = true;
+    }
+  }
+
   _key(code, down) {
     switch (code) {
       // Phase C: the arrow and WASD pairs are the two zones. They were the
@@ -225,8 +247,10 @@ export class Input {
       // auto-followed — nothing reads `carve`.
       case 'ArrowRight': case 'KeyD': if (down) this.jump = true; return true;
       case 'ArrowLeft': case 'KeyA': if (down) this.reject = true; return true;
-      case 'ArrowUp': case 'KeyW': this.keyUp = down; return true;
-      case 'ArrowDown': case 'KeyS': this.keyDown = down; return true;
+      // The vertical pair sets the bar on a keyboard, where a held key has
+      // already fired its answer on the way down and cannot be reused.
+      case 'ArrowUp': case 'KeyW': if (down) this.raiseBar = true; return true;
+      case 'ArrowDown': case 'KeyS': if (down) this.lowerBar = true; return true;
       case 'Space': if (down) this.dashEdge = true; return true;
       case 'KeyF': case 'ShiftLeft': case 'ShiftRight': this.keyBoost = down; return true;
       default: return false;
@@ -246,6 +270,7 @@ export class Input {
     this.__v1DashButtonHeld = false;
     this._lastGrounded = null;
     this.carve = 0; this.flip = 0; this.jump = false; this.reject = false;
+    this.raiseBar = false; this.lowerBar = false;
     this.boostHeld = false; this.dashEdge = false;
   }
 
@@ -334,9 +359,13 @@ export class Input {
     // frame from Space or from both zones at once; the on-screen button and
     // the F key still hold, because a held control has nothing to gain by
     // becoming a tap.
+    this._pollHolds(performance.now());
     this.boostHeld = this.dashEdge || this.keyBoost || this.__v1DashButtonHeld;
   }
 
   /** The sim consumes these as edges; call after stepping. */
-  consumeJump() { this.jump = false; this.reject = false; this.dashEdge = false; }
+  consumeJump() {
+    this.jump = false; this.reject = false; this.dashEdge = false;
+    this.raiseBar = false; this.lowerBar = false;
+  }
 }

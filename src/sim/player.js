@@ -63,9 +63,23 @@ export class Player {
     // Phase 25: score accrues in the fixed-step sim so it is deterministic,
     // ghost-comparable and identical for everyone on the same seed.
     this.score = 0;
+    this.compressionLevel = 0;
     this.lastCourage = 1;
     this.dead = false;
     this._hitCooldown = 0;
+  }
+
+  /** What a qualifying read is worth for the bar the player set themselves. */
+  compressionMult() {
+    const m = TUNING.WORDS.COMPRESSION_MULT;
+    return m[Math.max(0, Math.min(m.length - 1, this.compressionLevel | 0))];
+  }
+
+  /** Metres from the gate inside which the early bonus stops paying. */
+  compressionThreshold() {
+    const t = TUNING.WORDS.COMPRESSION_THRESHOLD;
+    const f = t[Math.max(0, Math.min(t.length - 1, this.compressionLevel | 0))];
+    return f * TUNING.WORDS.ARM_DISTANCE_M;
   }
 
   chainMult() {

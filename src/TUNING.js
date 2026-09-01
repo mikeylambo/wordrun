@@ -116,6 +116,22 @@ export const TUNING = {
     // legibility measurement holds. It pays score and meter fill only; it is
     // deliberately NOT applied to the speed gain, which is already an
     // asymptotic curve and would blow through the reading floor if tripled.
+    // Phase F — voluntary compression. The player raises their own bar: at
+    // level n the early-read multiplier pays ONLY for answers landing beyond
+    // a threshold, and everything inside it pays the late rate. In exchange
+    // every qualifying read is worth more.
+    //
+    // Read this next part before touching any of it. Compression does NOT
+    // shrink ARM_DISTANCE_M and must never be made to. The window at the
+    // ceiling with DASH active is already 0.63 s against a 0.75 s floor, and
+    // ARM_DISTANCE_M cannot grow to compensate because it sits under
+    // SPACING_MIN_M so exactly one word is ever answerable. Compression moves
+    // the REWARD line instead: the word stays fully legible for the whole
+    // 55 m at every level, the player can always answer late and live, and
+    // what they lose by answering late is money rather than the run. Risk
+    // without a legibility cost — no gate is ever threatened.
+    COMPRESSION_THRESHOLD: [0, 0.30, 0.50, 0.68],   // fraction of the arm window
+    COMPRESSION_MULT: [1.0, 1.15, 1.35, 1.60],
     LATE_MULT: 1.0,            // answering at the line: today's value
     EARLY_MULT: 3.0,           // answering the instant it arms
     OPENING_GATES: 6,

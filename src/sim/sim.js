@@ -22,7 +22,7 @@ export const PHASE = {
 
 export function emptyInput() {
   return { carve: 0, flip: 0, jump: false, boostHeld: false, dragging: false,
-    confirm: false, reject: false };
+    confirm: false, reject: false, raiseBar: false, lowerBar: false };
 }
 
 export class Sim {
@@ -66,6 +66,7 @@ export class Sim {
     this.mode = M.RULES[opts.mode] ? opts.mode : 'endless';
     this.routeFinished = false;
     this.lastStandUsed = false;
+    this.pendingBar = 0;
     this.lastStand = null;
     this.rules = M.RULES[this.mode];
     this.difficulty = M.DIFFICULTY[opts.difficulty] ? opts.difficulty : 'normal';
@@ -112,6 +113,34 @@ export class Sim {
     // The verb: a correct read adds speed, a wrong read subtracts it (and
     // costs a heart via the obstacle ledger). The Redline feels both only
     // through the speed differential — no pressure is registered anywhere.
+    // Phase F: the bar never moves while a word is up. Raising it on a word
+    // already on screen would be judging the answer after seeing it.
+    if (input.raiseBar || input.lowerBar) {
+      // Consume the edge HERE, not in the frame loop. advance() runs several
+      // fixed steps per frame, and an edge left standing is applied by every
+      // one of them — one hold moved the bar two levels before this.
+      this.pendingBar += input.raiseBar ? 1 : -1;
+      input.raiseBar = false;
+      input.lowerBar = false;
+    }
+    // The intent is buffered and lands at the next moment nothing is armed.
+    // Requiring the gesture to begin AND end inside a gap made it impossible
+    // exactly where it mattered: the gap runs 1.11s early on but only 0.11s
+    // at the spacing floor and the ceiling, against a hold that must outlast
+    // the 0.22s tap window to be distinguishable at all. Buffering keeps the
+    // rule the restriction was written for, and the word the change affects
+    // is still one the player has not seen.
+    if (this.pendingBar !== 0 && !this.wordGates.armed(this.player.d)) {
+      const levels = TUNING.WORDS.COMPRESSION_MULT.length - 1;
+      const before = this.player.compressionLevel;
+      const dir = Math.sign(this.pendingBar);
+      this.player.compressionLevel = Math.max(0, Math.min(levels, before + dir));
+      this.pendingBar -= dir;
+      if (this.player.compressionLevel !== before) {
+        this.events.push({ t: 'bar_set', level: this.player.compressionLevel });
+      }
+    }
+
     this.wordGates.step(this.player, input.confirm, this.events, proxMult, this.time,
       input.reject);
 

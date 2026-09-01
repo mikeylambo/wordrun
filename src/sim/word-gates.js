@@ -226,7 +226,15 @@ export class WordGates {
       if (confirm) g.confirmed = true; else g.rejected = true;
       g.answerDistance = Math.max(0, Math.min(W.ARM_DISTANCE_M, g.d - player.d));
       g.answerLatency = Math.max(0, now - (g.armedAt ?? now));
-      g.latencyMult = latencyMultFor(g.answerDistance);
+      // Phase F: the player's own bar. Beyond it the early multiplier pays
+      // and the compression bonus rides on top; inside it the answer is worth
+      // the late rate and nothing more. The word was legible the whole way —
+      // what a late answer costs here is money, never the run.
+      g.compressionLevel = player.compressionLevel | 0;
+      const bar = player.compressionThreshold ? player.compressionThreshold() : 0;
+      g.qualified = g.answerDistance >= bar;
+      g.latencyMult = g.qualified ? latencyMultFor(g.answerDistance) : W.LATE_MULT;
+      g.compressionMult = g.qualified && player.compressionMult ? player.compressionMult() : 1;
       events?.push({
         t: 'word_confirm', index: g.index, word: g.shown,
         said: confirm ? 'real' : 'fake',
@@ -251,6 +259,7 @@ export class WordGates {
     // the player gets for doing nothing.
     if (!answered) {
       g.answerDistance = 0;
+      g.compressionMult = 1;
       g.answerLatency = Math.max(0, now - (g.armedAt ?? now));
       g.latencyMult = W.LATE_MULT;
     }
@@ -285,7 +294,7 @@ export class WordGates {
       const S = TUNING.SCORE;
       const tierMult = S.TIER_MULT[Math.min(g.tier, S.TIER_MULT.length - 1)] ?? 1;
       g.score = S.PER_READ * tierMult * g.latencyMult * player.chainMult()
-        * (player.compressionMult ?? 1);
+        * (g.compressionMult ?? 1);
       player.score += g.score;
       player.boostMeter = Math.min(B.METER_MAX,
         player.boostMeter + W.CORRECT_FILL * player.chainMult() * proxMult * g.latencyMult);
@@ -302,6 +311,9 @@ export class WordGates {
     } else {
       this.wrongCount++;
       this.streak = 0;
+      // Losing the level is the sting. A wrong read of any kind drops the bar
+      // to the floor — the player chose the risk and it came due.
+      player.compressionLevel = 0;
 
       // Phase 23: BOTH wrong reads now cost a heart. Handing the omission's
       // consequence to the Redline's differential alone made doing nothing a

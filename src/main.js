@@ -889,6 +889,8 @@ function tick(dt) {
     // the ground stays under the word.
     simInput.confirm = input.jump;
     simInput.reject = input.reject;
+    simInput.raiseBar = input.raiseBar;
+    simInput.lowerBar = input.lowerBar;
     simInput.jump = false;
     simInput.boostHeld = input.boostHeld;
     simInput.dragging = input.dragging;

@@ -697,3 +697,32 @@ Slice history:
   timer would double that pressure with nothing calibrating it. On the card it
   is a record of the run rather than a demand during it, and on a fixed route
   it is the one figure besides score that separates two finishers.
+- Phase F — the player sets their own bar. At level n the early-read
+  multiplier pays only for answers landing beyond a threshold, and everything
+  inside it pays the late rate; in exchange every qualifying read is worth
+  more. Clearing a bar you set yourself pays 404,815 / 465,537 / 546,501 /
+  647,705 across the four levels on the same route. Setting one you do not
+  clear costs: answering at forty percent of the window scores 239,824 at
+  level 0 and 137,580 at level 2, where the bonus never arrives and the early
+  rate is gone with it.
+  The constraint the whole phase is fenced by holds. Compression does not
+  shrink the arm window and cannot be made to — the word is fully legible for
+  all 55 metres at every level, both reading floors still measure 1.22 s at
+  cruise and 0.86 s at the ceiling, and a gate asserts nothing in the phase
+  ever writes ARM_DISTANCE_M. What a late answer costs at a high bar is money,
+  never the run: every level still finishes the route answering on the line.
+  Two faults, both found by playing it rather than reading it. One hold moved
+  the bar two levels, because advance() runs several fixed steps per frame and
+  an edge left standing is applied by all of them — the same shape as any edge
+  in a fixed-step loop, and the reason confirm has always carried its own
+  guard. And the gesture as specified was unreachable exactly where it
+  mattered: it had to begin and end inside the gap between words, but that gap
+  runs 1.11 s early in a run and 0.11 s at the spacing floor and the ceiling,
+  against a hold that must outlast the 0.22 s tap window to be told apart from
+  an answer at all. An expert at speed had no window to use it in. The intent
+  is buffered now and lands at the next moment nothing is armed, which keeps
+  the rule the restriction was written for — the bar never moves while a word
+  is on screen — while making the control usable at the speed it exists for.
+  The level shows as marks beside the meter and is never named: the cap is
+  four names and this is not one of them. A wrong read of any kind drops it to
+  the floor, which is the sting the risk is priced against.
