@@ -834,8 +834,10 @@ head('FINISH — the 30 km end is a title card, not a dialog');
 head('SCORE — how well you ran, not how long');
 {
   const S = TUNING.SCORE;
-  check('a metre and a read are both worth the chain multiplier',
-    S.PER_METRE > 0 && S.PER_READ > 0);
+  // Phase D retired the metre term entirely. A read is now the only thing
+  // that scores, and the chain still multiplies it.
+  check('only a read scores, and the chain still multiplies it',
+    !('PER_METRE' in S) && S.PER_READ > 0 && Array.isArray(S.TIER_MULT));
 
   // The whole claim: the same distance is worth more when it is run well.
   // Two sims over identical ground, one holding a chain and one not.
@@ -861,9 +863,13 @@ head('SCORE — how well you ran, not how long');
   };
   const clean = runScore(true);
   const silent = runScore(false);
+  // A silent run still scores a little: letting a fake pass IS a correct read
+  // and pays the late rate. What it cannot do is compete — the same ground is
+  // worth a different order of magnitude when it is actually read.
   check('the same ground scores more when it is read well',
-    clean.score / Math.max(1, clean.d) > silent.score / Math.max(1, silent.d) * 1.5,
-    `${(clean.score / clean.d).toFixed(1)} vs ${(silent.score / silent.d).toFixed(1)} per metre`);
+    clean.score > silent.score * 10,
+    `${clean.score.toLocaleString()} read well against ${silent.score.toLocaleString()} ` +
+    `read not at all — ${(clean.score / Math.max(1, silent.score)).toFixed(0)}x`);
 
   // Determinism: score has to be replayable, or ghosts and challenge links
   // are comparing different games.

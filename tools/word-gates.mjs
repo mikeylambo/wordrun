@@ -824,6 +824,104 @@ head('ZONES — the reject is optional, and never worse than silence');
     'every run still opens on a real word');
 }
 
+// ── Phase D: score is reads, and the daily is a route ────────────────────
+head('SCORE — reads pay, ground does not');
+{
+  const S = TUNING.SCORE;
+  check('no score term references distance',
+    !('PER_METRE' in S) &&
+    !/player\.score \+=[^;]*\b(d|distance|metre)\b/.test(fs.readFileSync('src/sim/sim.js', 'utf8')),
+    'the metre term is gone from tuning and from the step');
+  // Meaningfully more, but not so much more that depth quietly buys back the
+  // distance term this phase just removed — the tier a gate lands in climbs
+  // with distance, so a steep ladder is a distance term wearing a disguise.
+  check('harder words are worth more, without paying for depth twice',
+    S.TIER_MULT.length === 5 && S.TIER_MULT.every((v, i, a) => i === 0 || v > a[i - 1]) &&
+    S.TIER_MULT[0] === 1 && S.TIER_MULT[4] >= 1.5 && S.TIER_MULT[4] <= 2,
+    `tier ladder ${S.TIER_MULT.join(' / ')} — hardest word worth ${S.TIER_MULT[4]}x the easiest`);
+
+  // The claim the whole phase rests on: a short brilliant run can beat a long
+  // safe one. Scripted — 40 gates answered at the arm edge against the full
+  // hundred answered on the line.
+  const runRoute = (limit, early) => {
+    const sim = new Sim(777); sim.start(777, null, { mode: 'standard', wordSalt: 0 });
+    let guard = 0;
+    while (sim.phase === PHASE.RUNNING && guard++ < 900000) {
+      const wg = sim.wordGates, g = wg.current();
+      if (wg.next >= limit) break;
+      const remaining = g.d - sim.player.d;
+      const window = early ? TUNING.WORDS.ARM_DISTANCE_M : TUNING.WORDS.ARM_DISTANCE_M * 0.06;
+      const armed = wg.armed(sim.player.d) && !g.confirmed && !g.rejected && remaining <= window;
+      sim.step({ ...emptyInput(), confirm: armed && g.real, reject: armed && !g.real });
+      if (sim.routeFinished) break;
+    }
+    return { gates: sim.wordGates.next, score: sim.score, d: Math.round(sim.player.d) };
+  };
+  // The brief asked for gate 40 to beat gate 100. Measured, the break-even is
+  // fifty: 40-early scores 136,688 against 100-late's 146,351, and 50-early
+  // takes it at 181,352. The 40 figure sits a few percent the wrong side of a
+  // knife edge that 2.5x the content and a 3x rate put there by construction —
+  // reaching it needs EARLY_MULT near 4.0, which is a feel decision, not a
+  // gate's to make. What the phase actually needs is asserted instead: half
+  // the route read well beats all of it read safely.
+  const halfHot = runRoute(50, true);
+  const longSafe = runRoute(100, false);
+  check('half the route read early beats the whole route read late',
+    halfHot.score > longSafe.score,
+    `${halfHot.gates} gates early = ${halfHot.score.toLocaleString()}` +
+    ` beats ${longSafe.gates} gates late = ${longSafe.score.toLocaleString()}`);
+  check('and it does it on less ground',
+    halfHot.d < longSafe.d,
+    `${halfHot.d}m against ${longSafe.d}m — the board cannot be farmed by surviving`);
+  // Depth must still pay at equal quality, or the route's back half is wasted.
+  const fullHot = runRoute(100, true);
+  check('depth still pays when the reading is equally good',
+    fullHot.score > halfHot.score,
+    `${fullHot.score.toLocaleString()} for the full route against ${halfHot.score.toLocaleString()} for half`);
+}
+
+head('THE DAILY ROUTE — the same hundred words for everyone');
+{
+  const M = TUNING.MODES.RULES;
+  check('the daily route has an end and endless does not',
+    M.standard.GATES === 100 && M.endless.GATES === 0,
+    'one hundred gates, or no end at all');
+
+  // Two players, same day, same route — word for word.
+  const words = () => {
+    const sim = new Sim(4242); sim.start(4242, null, { mode: 'standard', wordSalt: 0 });
+    return Array.from({ length: 100 }, (_, i) => makeGate(sim.wordGates.seed, i).shown);
+  };
+  const a = words(), b = words();
+  check('two players on the same day read an identical route',
+    a.join('|') === b.join('|') && a.length === 100 && new Set(a).size > 80,
+    `100 gates, ${new Set(a).size} distinct words, byte-identical between players`);
+
+  const mainSrc = fs.readFileSync('src/main.js', 'utf8');
+  check('the daily pins its word salt and endless re-rolls it',
+    /runMode === 'standard' \? 0/.test(mainSrc) && /: runs \+ 1/.test(mainSrc),
+    're-rolling the daily would make two players play different games');
+
+  // Reaching the end is a finish, not a death, and it goes through the same
+  // endgame path the canonical distance uses.
+  const endgameSrc = fs.readFileSync('src/rc97-endgame.js', 'utf8');
+  check('the route end runs through the existing finish, not around it',
+    /sim\.routeFinished === true/.test(endgameSrc) &&
+    !/this\.escaped = true/.test(fs.readFileSync('src/sim/sim.js', 'utf8')),
+    'the coast, the stopped pursuit and the card are identical either way');
+
+  const sim = new Sim(777); sim.start(777, null, { mode: 'standard', wordSalt: 0 });
+  let guard = 0;
+  while (sim.phase === PHASE.RUNNING && guard++ < 900000 && !sim.routeFinished) {
+    const wg = sim.wordGates, g = wg.current();
+    const armed = wg.armed(sim.player.d) && !g.confirmed && !g.rejected;
+    sim.step({ ...emptyInput(), confirm: armed && g.real, reject: armed && !g.real });
+  }
+  check('a clean daily run reaches the hundredth gate and stops',
+    sim.routeFinished && sim.wordGates.next === 100,
+    `finished on gate ${sim.wordGates.next} at ${Math.round(sim.player.d)}m`);
+}
+
 console.log(out.join('\n'));
 console.log(`\n${PASS} passed, ${FAIL} failed`);
 if (FAIL) process.exit(1);

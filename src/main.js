@@ -227,7 +227,13 @@ function startRun() {
   // Words are salted per attempt: run N of the day reads fresh vocabulary
   // on the same authored track. Mode/difficulty come from the title chips.
   // A challenge pins the salt instead — its gauntlet IS the challenge.
-  currentSalt = CHALLENGE ? CHALLENGE.salt : runs + 1;
+  // ENDLESS re-rolls the vocabulary each attempt — it is practice, and the
+  // same words twice teaches memory rather than reading. The DAILY RUN pins
+  // the salt so every player on a given day reads the identical route; a
+  // challenge pins it too, because its gauntlet IS the challenge.
+  currentSalt = CHALLENGE ? CHALLENGE.salt
+    : runMode === 'standard' ? 0
+    : runs + 1;
   continuesUsed = 0;
   runContinued = false;
   sim.start(SEED, ghostData, {

@@ -63,6 +63,7 @@ export class Sim {
     this.beast.reset();
     const M = TUNING.MODES;
     this.mode = M.RULES[opts.mode] ? opts.mode : 'endless';
+    this.routeFinished = false;
     this.rules = M.RULES[this.mode];
     this.difficulty = M.DIFFICULTY[opts.difficulty] ? opts.difficulty : 'normal';
     const diff = M.DIFFICULTY[this.difficulty];
@@ -104,17 +105,24 @@ export class Sim {
 
 
     const proxMult = this.beast.proximityMult();
-    const dBefore = this.player.d;
     this.player.step(dt, input, proxMult, this.events);
-    // Every metre is worth the multiplier you were holding when you ran it.
-    const S = TUNING.SCORE;
-    this.player.score += Math.max(0, this.player.d - dBefore) * S.PER_METRE
-      * this.player.chainMult();
     // The verb: a correct read adds speed, a wrong read subtracts it (and
     // costs a heart via the obstacle ledger). The Redline feels both only
     // through the speed differential — no pressure is registered anywhere.
     this.wordGates.step(this.player, input.confirm, this.events, proxMult, this.time,
       input.reject);
+
+    // The DAILY RUN's route has an end: the hundredth gate. Reaching it is a
+    // finish, not a death, and it is the only way that mode stops other than
+    // being run down.
+    // Raising the flag only. The finish itself belongs to the endgame layer,
+    // which stops the pursuit, pins the runner's coast and shows the card —
+    // setting `escaped` here directly would skip all of it.
+    const routeGates = this.rules.GATES | 0;
+    if (routeGates > 0 && this.wordGates.next >= routeGates && !this.routeFinished) {
+      this.routeFinished = true;
+      this.events.push({ t: 'route_finished', gates: routeGates, score: this.score });
+    }
 
 
     this.beast.step(dt, this.player);

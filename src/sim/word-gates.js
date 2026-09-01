@@ -278,9 +278,13 @@ export class WordGates {
       if (player.speed > player.peakSpeed) player.peakSpeed = player.speed;
       player.chain++;
       if (player.chain > player.bestChain) player.bestChain = player.chain;
-      // The pop for reading right, worth the multiplier the read just earned
-      // AND how early it landed. Speed is deliberately left out of this.
-      player.score += TUNING.SCORE.PER_READ * player.chainMult() * g.latencyMult;
+      // Phase D: the whole score, in one line. Reads pay; ground does not.
+      //   base x tier x how early x the chain x compression (1.0 until Phase F)
+      const S = TUNING.SCORE;
+      const tierMult = S.TIER_MULT[Math.min(g.tier, S.TIER_MULT.length - 1)] ?? 1;
+      g.score = S.PER_READ * tierMult * g.latencyMult * player.chainMult()
+        * (player.compressionMult ?? 1);
+      player.score += g.score;
       player.boostMeter = Math.min(B.METER_MAX,
         player.boostMeter + W.CORRECT_FILL * player.chainMult() * proxMult * g.latencyMult);
       player.gatesThreaded++; // the frame's "threaded a gate" ledger carries over

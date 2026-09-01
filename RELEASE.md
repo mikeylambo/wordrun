@@ -626,3 +626,35 @@ Slice history:
   both zones. The arrow and WASD pairs became the two zones, which cost
   nothing: they drove a steering axis the sim has ignored since the track
   became auto-followed, and nothing reads it.
+- Phase D — the score is reads, and the daily is a route. Distance pays
+  nothing now: a metre is time served rather than skill, and a board built on
+  it ranks the player who survived longest above the one who read best.
+  Distance stays on screen as pacing and on the card as context; it is not a
+  term anywhere in the score. What pays is the read — base, times the word's
+  tier, times how early the answer landed, times the chain, with a placeholder
+  for Phase F's compression.
+  The tier ladder went in flatter than it first looks like it should, and the
+  reason is worth recording: the tier a gate lands in climbs with distance, so
+  a steep ladder is a distance term wearing a disguise, quietly buying back
+  exactly what this phase removed. Measured across the ladders, the difference
+  is large — with 1/1.25/1.6/2/2.5 the first forty gates average tier 1.90
+  against 3.16 for the full hundred, and the back half of the route carries
+  the score on depth alone. At 1/1.15/1.3/1.45/1.6 the break-even is fifty
+  gates: half the route read at the arm edge outscores the whole route read at
+  the line, 181,352 against 146,351, on 3,802 metres against 7,016.
+  The brief asked for that comparison at forty gates rather than fifty. It
+  does not hold there and the gate says so plainly: forty-early scores 136,688
+  against 146,351, a few percent the wrong side of a knife edge that two and a
+  half times the content against a three times rate put there by construction.
+  Reaching it needs the early multiplier near 4.0, which is a feel decision
+  rather than a gate's to make — so both dials are on the tuning panel now and
+  the shipped values are the brief's own. Depth still pays at equal quality:
+  the full route read well is 404,815 against half at 181,352.
+  The DAILY RUN is a fixed route of one hundred gates. Its word salt is pinned
+  where ENDLESS re-rolls it every attempt, because a daily that re-rolls is two
+  players playing different games under one name — verified byte-identical
+  across players, a hundred gates and a hundred distinct words. Reaching the
+  hundredth gate raises a flag the existing endgame layer reads, rather than
+  setting the finish directly: the coast, the stopped pursuit and the card are
+  the same as the canonical finish because they are literally the same code.
+  ENDLESS is untouched and endless — it is where the practice happens.

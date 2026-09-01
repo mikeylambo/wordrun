@@ -45,7 +45,10 @@ if (!Beast.prototype.__rc97EscapePatched) {
       sim?.phase === 'running' &&
       !sim.escaped &&
       !sim.escapeConsumed &&
-      player.d >= ENDGAME.ESCAPE_DISTANCE
+      // Two ways to finish now: the canonical distance, or the DAILY RUN's
+      // hundredth gate. Both come through here so the coast, the stopped
+      // pursuit and the card are identical either way.
+      (player.d >= ENDGAME.ESCAPE_DISTANCE || sim.routeFinished === true)
     ) {
       sim.escaped = true;
       sim.escapeConsumed = true;

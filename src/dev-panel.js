@@ -51,6 +51,8 @@ const SLIDERS = [
   { path: 'WORDS.LOOKAHEAD_OPACITY.0', label: 'plate 1 fade', min: 0.05, max: 1, step: 0.01 },
   { path: 'WORDS.LOOKAHEAD_OPACITY.1', label: 'plate 2 fade', min: 0.05, max: 1, step: 0.01 },
   { path: 'WORDS.LOOKAHEAD_OPACITY.2', label: 'plate 3 fade', min: 0.05, max: 1, step: 0.01 },
+  { path: 'WORDS.EARLY_MULT', label: 'early read pays', min: 1, max: 6, step: 0.25 },
+  { path: 'SCORE.TIER_MULT.4', label: 'hardest word pays', min: 1, max: 3, step: 0.05 },
   { path: 'RUN.CEILING', label: 'speed ceiling', min: 40, max: 110, step: 1 },
   { path: 'RUN.SPEED_GAIN_MAX', label: 'gain per read', min: 1, max: 10, step: 0.1 },
   { path: 'CAMERA.FOV_SPEED_GAIN', label: 'fov by speed', min: 0, max: 3, step: 0.05 },

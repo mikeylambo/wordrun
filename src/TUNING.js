@@ -372,8 +372,14 @@ export const TUNING = {
   // pay meter and currency, the stakes just stop coming back.
   MODES: {
     RULES: {
-      endless: { HEART_REPAIR: true },
-      standard: { HEART_REPAIR: false },
+      // ENDLESS is where you train: no end, hearts come back, its own board.
+      endless: { HEART_REPAIR: true, GATES: 0 },
+      // The DAILY RUN is where you compete. A fixed route of the same words in
+      // the same order for everyone, so the score is finite and directly
+      // comparable — which is the whole reason a board can exist at all. The
+      // per-attempt word salt is pinned for it; re-rolling the vocabulary
+      // would make two players' runs different games wearing one name.
+      standard: { HEART_REPAIR: false, GATES: 100 },
     },
     // Difficulty is READING difficulty plus the Redline's pace — never the
     // speed curve itself (one system, shared). This also properly replaces
@@ -399,8 +405,19 @@ export const TUNING = {
   // what the daily goals and objectives ask for. It just stops being the
   // thing you brag about.
   SCORE: {
-    PER_METRE: 10,             // base, before the chain multiplier
+    // Phase D: distance pays nothing. A metre is time served, not skill, and
+    // a board built on it rewards the player who survived longest rather than
+    // the one who read best. Distance stays on screen as pacing and on the
+    // card as context; it is no longer a term in the score anywhere.
     PER_READ: 250,             // the pop a correct read pays, also multiplied
+    // Harder words are worth more, so a deep run still outscores a shallow
+    // one without paying for distance directly. Indexed by the gate's tier.
+    // Flatter than it first looks like it should be, and measured rather than
+    // guessed. The tier a gate lands in climbs with distance, so a steep
+    // ladder quietly pays for depth — exactly the thing this phase removes
+    // from the score. At this ladder the break-even is fifty gates: half the
+    // route read at the arm edge outscores the whole route read at the line.
+    TIER_MULT: [1.0, 1.15, 1.3, 1.45, 1.6],
     // A continue buys the run back, so the score it produces is not the score
     // an unassisted run would have produced. Each continue keeps this share of
     // the total, compounding — one continue banks 70%, two 49%, three 34%.
