@@ -877,9 +877,13 @@ head('SCORE — how well you ran, not how long');
 
   const uiSrc3 = fs.readFileSync('src/ui/ui.js', 'utf8');
   const htmlSrc = fs.readFileSync('index.html', 'utf8');
-  check('the score is the headline and distance is the sub-line',
+  // The sub-line is mode-aware since the daily became a fixed route: metres
+  // in ENDLESS, position on the route in the DAILY RUN, where every finisher
+  // covers the same ground and metres therefore say nothing about the player.
+  check('the score is the headline and the sub-line answers the mode',
     uiSrc3.includes('this.dist.textContent = sc.toLocaleString') &&
-    uiSrc3.includes("this.distSub.textContent = `${d} M`") &&
+    uiSrc3.includes('`${Math.min(sim.wordGates.next, routeGates)} / ${routeGates}`') &&
+    uiSrc3.includes('`${Math.floor(sim.distance)} M`') &&
     htmlSrc.includes('id="distSub"'));
   check('the results card leads with the score, distance in the stat bar',
     uiSrc3.includes("Math.floor(score ?? 0).toLocaleString") &&

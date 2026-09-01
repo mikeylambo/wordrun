@@ -145,10 +145,19 @@ export class UI {
       this._lastScore = sc;
       this.dist.textContent = sc.toLocaleString('en-US');
     }
-    const d = Math.floor(sim.distance);
-    if (d !== this._lastDist) {
-      this._lastDist = d;
-      if (this.distSub) this.distSub.textContent = `${d} M`;
+    // The sub-line answers whichever question the mode actually poses. On the
+    // DAILY RUN's fixed route every finisher travels the same ground, so
+    // metres say nothing about the player; progress through the hundred gates
+    // is the real position, and it is what two players can compare. ENDLESS
+    // has no route to be partway through, so distance stays the honest
+    // endurance figure there.
+    const routeGates = sim.rules?.GATES | 0;
+    const sub = routeGates > 0
+      ? `${Math.min(sim.wordGates.next, routeGates)} / ${routeGates}`
+      : `${Math.floor(sim.distance)} M`;
+    if (sub !== this._lastSub) {
+      this._lastSub = sub;
+      if (this.distSub) this.distSub.textContent = sub;
     }
 
     const pct = (p.boostMeter / TUNING.BOOST.METER_MAX) * 100;
@@ -313,7 +322,8 @@ export class UI {
     this._chainLostT = 0.9;
   }
 
-  renderDeath({ distance, score, scoreLost = 0, continuesUsed = 0, failedRoute = false, avgReadMs = 0, best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult }) {
+  renderDeath({ distance, score, scoreLost = 0, continuesUsed = 0, failedRoute = false, avgReadMs = 0,
+    seconds = 0, gates = 0, routeGates = 0, best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult }) {
     this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null };
     this.finalDist.textContent = Math.floor(score ?? 0).toLocaleString('en-US');
     this._deathDistance = Math.floor(distance);
@@ -336,6 +346,9 @@ export class UI {
     this.deathSeed.style.display = 'none';
     this.deathScreen.classList.add('rc2Poster');
     this._avgReadMs = avgReadMs;
+    this._seconds = seconds;
+    this._gates = gates;
+    this._routeGates = routeGates;
     this._renderRecap(recap, daily, objectives, review, lifetime);
 
     if (shotUrl) {
@@ -449,10 +462,20 @@ export class UI {
       // the lifetime kilometres, which said the least of the three now that
       // distance is not a board metric.
       const avgRead = this._avgReadMs > 0 ? `${(this._avgReadMs / 1000).toFixed(2)}s` : '—';
-      parts.push(`<div class="statBar">${[
-        [`${this._deathDistance ?? 0}`, 'METRES'],
+      // Four facts, and the first one is whichever the mode makes meaningful.
+      // Time is here as a record of the run rather than as live pressure: a
+      // clock on the HUD tells a player to hurry, and this game's whole
+      // posture is that the word stays readable long enough to be read.
+      const secs = Math.max(0, Math.round(this._seconds || 0));
+      const clock = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+      const first = this._routeGates > 0
+        ? [`${Math.min(this._gates, this._routeGates)}/${this._routeGates}`, 'GATES']
+        : [`${this._deathDistance ?? 0}`, 'METRES'];
+      parts.push(`<div class="statBar four">${[
+        first,
         [`${acc}%`, 'TRUE READS'],
         [avgRead, 'AVG READ'],
+        [clock, 'TIME'],
       ].map(([v, k]) => `<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>`);
     }
 

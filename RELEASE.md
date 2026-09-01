@@ -681,3 +681,19 @@ Slice history:
   already driven by the gap, so pinning the gap pins the picture at exactly
   1.000 with no second system to keep in step, and the mix drops to six
   percent under one held tone that does not decay. Silence is the tell.
+- The readout each mode actually needs. Distance survived Phase D as a
+  sub-line out of habit, and on the DAILY RUN it had already stopped meaning
+  anything: the route is a hundred gates, so every finisher covers the same
+  ground — measured, two runs scoring 404,815 and 146,351 finish 0.75% apart
+  in metres. A number that cannot tell those two runs apart is not a readout.
+  The daily shows position on its route instead, 6 / 100, which is the thing
+  two players can actually compare and the thing that says how much is left.
+  ENDLESS keeps metres, because it has no route to be partway through and
+  distance is the honest endurance figure there.
+  Time went onto the results card and deliberately not onto the HUD. A clock
+  on screen tells a player to hurry, and this game's entire posture is that
+  the word stays readable long enough to be read — the window floors exist for
+  that. Phase B already prices answering early, and it is calibrated; a live
+  timer would double that pressure with nothing calibrating it. On the card it
+  is a record of the run rather than a demand during it, and on a fixed route
+  it is the one figure besides score that separates two finishers.

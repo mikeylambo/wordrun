@@ -670,12 +670,12 @@ head('LATENCY — the early read is worth more, and costs the window nothing');
   };
   const early = runAt(1.0);      // answer the moment it arms
   const late = runAt(0.06);      // answer on the line
-  // Distance still pays until Phase D zeroes PER_METRE, so it dilutes the
-  // read component here: the gap widens sharply once score is reads only.
+  // Phase D removed the metre term that used to dilute this: the same
+  // comparison read +16% then and reads +60% now, on identical play.
   check('answering early scores more over the same ground',
-    early.score > late.score * 1.10 && early.correct === late.correct,
+    early.score > late.score * 1.35 && early.correct === late.correct,
     `${early.score.toLocaleString()} vs ${late.score.toLocaleString()} on ${early.correct} identical reads` +
-    ` (+${Math.round((early.score / late.score - 1) * 100)}%, diluted by PER_METRE until Phase D)`);
+    ` (+${Math.round((early.score / late.score - 1) * 100)}%)`);
   check('answering early fills the meter faster',
     early.meter >= late.meter,
     `meter ${early.meter.toFixed(1)} vs ${late.meter.toFixed(1)}`);
@@ -990,6 +990,47 @@ head('LAST STAND — one more word before the run ends');
   check('no new label was introduced for it',
     !/LAST STAND|FINAL WORD|ONE MORE/i.test(uiSrc2 + fs.readFileSync('index.html', 'utf8')),
     'the four-name cap is untouched');
+}
+
+// ── The readout each mode actually needs ─────────────────────────────────
+head('READOUT — metres where they mean something, gates where they do not');
+{
+  const uiSrc = fs.readFileSync('src/ui/ui.js', 'utf8');
+  check('the HUD sub-line follows the mode',
+    /routeGates > 0[\s\S]{0,140}wordGates\.next[\s\S]{0,80}Math\.floor\(sim\.distance\)/.test(uiSrc),
+    'route position on the daily, metres in endless');
+  check('the results card names the same figure',
+    /this\._routeGates > 0[\s\S]{0,120}'GATES'[\s\S]{0,80}'METRES'/.test(uiSrc),
+    'the card and the HUD do not disagree about what the run was');
+  check('time is on the card and not on the HUD',
+    /'TIME'/.test(uiSrc) && !/TIME[\s\S]{0,40}coach|this\.distSub[\s\S]{0,60}clock/.test(uiSrc),
+    'a clock on the HUD tells a player to hurry; the read window exists so they need not');
+
+  // On a fixed route every finisher covers the same ground, which is exactly
+  // why metres cannot be the daily's readout.
+  const finish = (early) => {
+    const sim = new Sim(4242); sim.start(4242, null, { mode: 'standard', wordSalt: 0 });
+    let guard = 0;
+    while (sim.phase === PHASE.RUNNING && guard++ < 900000 && !sim.routeFinished) {
+      const wg = sim.wordGates, g = wg.current();
+      const rem = g.d - sim.player.d;
+      const win = early ? TUNING.WORDS.ARM_DISTANCE_M : TUNING.WORDS.ARM_DISTANCE_M * 0.06;
+      const armed = wg.armed(sim.player.d) && !g.confirmed && !g.rejected && rem <= win;
+      sim.step({ ...emptyInput(), confirm: armed && g.real, reject: armed && !g.real });
+    }
+    return { d: Math.round(sim.player.d), t: sim.time, score: sim.score };
+  };
+  const a = finish(true), b = finish(false);
+  // Not bit-identical — the finish fires on the gate count, so where the
+  // runner physically is at that instant depends on the speed they carried.
+  // Within a percent, which is the point: metres cannot tell them apart.
+  check('two finishers of the daily route cover the same ground',
+    Math.abs(a.d - b.d) / a.d < 0.01,
+    `${a.d}m against ${b.d}m — ${(100 * Math.abs(a.d - b.d) / a.d).toFixed(2)}% apart, ` +
+    'so metres cannot tell these two runs apart');
+  check('but their scores and their times can',
+    a.score !== b.score && Math.abs(a.t - b.t) > 1,
+    `${a.score.toLocaleString()} in ${a.t.toFixed(0)}s against ${b.score.toLocaleString()} in ${b.t.toFixed(0)}s`);
 }
 
 console.log(out.join('\n'));
