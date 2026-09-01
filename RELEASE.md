@@ -1076,8 +1076,10 @@ Slice history:
   and the surge has nothing to add. That is what "peak-flow intensity"
   measures to; how it FEELS on a phone is the on-device check the brief
   asks a human for.
-  **`LOOKAHEAD_GATES` — provisional at 3, waiting on a human.** The question
-  is text-soup, not correctness, and it has to be played. The build honours
+  **`LOOKAHEAD_GATES` — 3, decided.** The question was text-soup, not
+  correctness, and it had to be played; it was, on a 390-wide phone at
+  cruise, and 3 is the highest count at which the armed plate is
+  unambiguously the armed plate. The build honours
   `?lookahead=N` on any URL, so the A/B is three links on the live preview:
   https://wordrun-git-claude-game-brief-clean-073628-mikeylambos-projects.vercel.app/?lookahead=2
   https://wordrun-git-claude-game-brief-clean-073628-mikeylambos-projects.vercel.app/?lookahead=3
@@ -1090,8 +1092,8 @@ Slice history:
   which that is still true. If at 4 you ever find yourself reading a plate
   you cannot yet answer, or the row reads as a paragraph, that count is too
   high; if 2 feels like the road ends too soon, that one is too low. The
-  frozen value follows the pick with a one-line change and `npm run
-  calibrate`.
+  pick was 3, the shipped default, so nothing moved; the golden was re-minted
+  to record the verdict as decided rather than provisional.
   Also in this phase: `gate:v1` had been red since Phase 0.2 — a v1 polish
   check still asserted the props.js verge-post placement that phase deleted
   (the finishing brief's Phase J orders the same deletion). It now asserts

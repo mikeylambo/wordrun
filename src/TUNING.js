@@ -149,6 +149,10 @@ export const TUNING = {
     // must stay under SPACING_MIN_M so exactly one word is ever answerable.
     // The build before this phase drew exactly one preview plate at 0.55, so
     // LOOKAHEAD_GATES = 1 reproduces it; 0 draws none at all.
+    // Phase H verdict, played on a 390-wide phone at cruise: 3 is the highest
+    // count at which the armed plate is unambiguously the armed plate. Frozen
+    // in tools/calibration-gates.mjs; a change is a one-line edit + `npm run
+    // calibrate`.
     LOOKAHEAD_GATES: 3,
     LOOKAHEAD_OPACITY: [0.55, 0.32, 0.18, 0.11, 0.07, 0.05],
     ARM_DISTANCE_M: 55,

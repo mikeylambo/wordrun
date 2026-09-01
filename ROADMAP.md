@@ -8,13 +8,9 @@ this file only holds what is NOT built yet. The plan is the finishing brief
 
 - **Phase H — calibration verdicts.** Shipped: ceiling 64 (held against the
   gated two-tier standard), `EARLY_MULT` 3.5, compression as-is, surge as-is,
-  all frozen by `tools/calibration-gates.mjs` (`npm run calibrate` to
-  regenerate a table deliberately). **Open — waiting on a human:** the
-  `LOOKAHEAD_GATES` default (2 / 3 / 4) is a text-soup question that has to
-  be played on a 390-wide phone at cruise; three `?lookahead=` links are in
-  the RELEASE entry. Also for a human eye: the surge's peak-flow intensity
-  on device, measured in the same entry as +5.5° at cruise (+2.5° under
-  REDUCED FLASH) and saturated under any DASH.
+  `LOOKAHEAD_GATES` 3 (played and decided), all frozen by
+  `tools/calibration-gates.mjs` (`npm run calibrate` to regenerate a table
+  deliberately). Done; H2 below carries the one design change it surfaced.
 - **Phase I — DASH chain.** During an active dash each correct read ramps a
   temporary score multiplier (`DASH_CHAIN_MULT`); a wrong read zeroes it; it
   ends with the dash. Score only — never speed, meter or the window.
