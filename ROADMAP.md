@@ -15,12 +15,9 @@ this file only holds what is NOT built yet. The plan is the finishing brief
 
 ## Pass 2 — make it look like nothing else
 
-- **Phase K — concept stills.** Three stills in `dev/style-lab.js` at the
-  read moment (sparse manuscript / chain 50 blooming / chain 150 typeset with
-  the Redline close), pushed to `dev/stills/`. **A human picks or redirects
-  before anything below starts.**
-- **Phase L — route grammar** (L1 → L5, each gated before the next): vertical
-  centreline + surface-normal camera; per-segment banking; crest / page-fold;
+- **Phase L — route grammar.** Waits on the Phase K pick in `dev/stills/`:
+  a human picks or redirects before anything below starts. (L1 → L5, each
+  gated before the next): vertical centreline + surface-normal camera; per-segment banking; crest / page-fold;
   canyon, tunnel, corkscrew, negative-space drop, pursuit-narrows; authored
   DAILY composition + ENDLESS segment walk. Plate size ≥ 270×68 at 62 m/s on
   flat / bank / crest / descent; plate rotation and skew gated; FOV ≤ 96.

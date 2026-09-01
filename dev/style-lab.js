@@ -231,3 +231,235 @@ export function applyStyle(name) {
 
 window.__STYLE = applyStyle;
 window.__STYLES = STYLES;
+
+// ── Phase K: concept stills — the Editorial World as page geometry ─────────
+// Typographic primitives laid along the track by flow band: margin rules,
+// columns of greeked lines, punctuation as sculpture. Nothing here is a
+// glyph — every "line of type" is a bar, so the background is unreadable by
+// construction and the word plate stays the only text in the frame. Bands
+// are the brief's five (chain 0 / 25 / 50 / 100 / 150+), not the shipped
+// flow curve: a concept layer for a human to pick from, never bundled.
+import TUNING from '../src/TUNING.js';
+import { bandForDistance } from '../src/render/art-direction.js';
+
+const STILL_BANDS = [0, 25, 50, 100, 150];
+export function stillBand(chain) {
+  let b = 0;
+  for (let i = 1; i < STILL_BANDS.length; i++) if ((chain || 0) >= STILL_BANDS[i]) b = i;
+  return b;
+}
+
+// Per band: how much of the page is set, and how bright the ink is.
+const FILL = [0.20, 0.36, 0.58, 0.82, 1.0];
+const INK = [0.42, 0.54, 0.70, 0.86, 1.0];
+const ROW_PITCH = 1.5;        // metres between lines of type
+const ROW_LEN = 0.55;         // depth of a line along the track
+const WINDOW_BACK = 40;       // metres of page behind the runner
+const WINDOW_AHEAD = 320;     // metres of page ahead (past the fog wall)
+const REBUILD_AFTER = 90;     // metres of travel before the page is re-laid
+
+// Deterministic per-row hash so the same row keeps its shape across rebuilds.
+function h32(n) {
+  let x = Math.imul(n | 0, 0x9e3779b1) >>> 0;
+  x ^= x >>> 15; x = Math.imul(x, 0x85ebca6b) >>> 0;
+  x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35) >>> 0;
+  x ^= x >>> 16;
+  return (x >>> 0) / 4294967296;
+}
+
+class PageLayer {
+  constructor(stage, terrain) {
+    this.stage = stage;
+    this.terrain = terrain;
+    this.group = new THREE.Group();
+    this.group.name = 'stills-page';
+    stage.scene.add(this.group);
+
+    const mat = (hex) => new THREE.MeshBasicMaterial({ color: hex, transparent: true, opacity: 1 });
+    this.matRule = mat(0x2a84aa);
+    this.matType = mat(0x3d6690);
+    this.matMark = mat(0x2a84aa);
+    this.matCap = mat(0x3d6690);
+
+    const box = new THREE.BoxGeometry(1, 1, 1);
+    const ball = new THREE.SphereGeometry(0.5, 18, 12);
+    this.rules = new THREE.InstancedMesh(box, this.matRule, 420);
+    this.type = new THREE.InstancedMesh(box, this.matType, 1400);
+    this.stops = new THREE.InstancedMesh(ball, this.matMark, 40);
+    this.dashes = new THREE.InstancedMesh(box, this.matMark, 40);
+    this.brackets = new THREE.InstancedMesh(box, this.matMark, 120);
+    this.caps = new THREE.InstancedMesh(box, this.matCap, 12);
+    for (const m of [this.rules, this.type, this.stops, this.dashes, this.brackets, this.caps]) {
+      m.frustumCulled = false;
+      m.count = 0;
+      this.group.add(m);
+    }
+    this._m = new THREE.Matrix4();
+    this._q = new THREE.Quaternion();
+    this._s = new THREE.Vector3();
+    this._p = new THREE.Vector3();
+    this.anchor = null;
+    this.level = -1;
+    this.bandId = null;
+
+    this._origRender = stage.render.bind(stage);
+    stage.render = () => { this.update(); this._origRender(); };
+    stage.__page = this;
+  }
+
+  _put(mesh, i, x, y, z, sx, sy, sz) {
+    this._p.set(x, y, z);
+    this._s.set(sx, sy, sz);
+    this._m.compose(this._p, this._q, this._s);
+    mesh.setMatrixAt(i, this._m);
+  }
+
+  update() {
+    const sim = window.__SIM;
+    if (!sim) return;
+    const p = sim.player;
+    const level = window.__STILLS_LEVEL ?? stillBand(p.chain);
+    const band = bandForDistance(Math.max(0, p.d));
+    if (this.terrain !== sim.terrain) { this.terrain = sim.terrain; this.anchor = null; }
+    const moved = this.anchor == null || Math.abs(p.d - this.anchor) > REBUILD_AFTER;
+    if (level !== this.level || band.id !== this.bandId || moved) {
+      this.level = level;
+      this.bandId = band.id;
+      this.anchor = p.d;
+      this.build(p.d, level, band);
+    }
+  }
+
+  build(d0, level, band) {
+    const HW = TUNING.RUN.TRACK_HALF_W;
+    const fill = FILL[level];
+    const ink = INK[level];
+    const ice = new THREE.Color(band.ice);
+    const crest = new THREE.Color(band.crest);
+    this.matRule.color.copy(ice).multiplyScalar(0.9 + 0.6 * ink);
+    this.matRule.opacity = 0.35 + 0.65 * ink;
+    this.matType.color.copy(crest).multiplyScalar(0.8 + 0.9 * ink);
+    this.matType.opacity = 0.30 + 0.70 * ink;
+    this.matMark.color.copy(ice).multiplyScalar(1.0 + 0.7 * ink);
+    this.matMark.opacity = 0.5 + 0.5 * ink;
+    this.matCap.color.copy(crest).multiplyScalar(1.6);
+    this.matCap.opacity = 0.95;
+
+    const line = (d) => this.terrain.corridorX(d);
+    const dA = Math.floor((d0 - WINDOW_BACK) / ROW_PITCH) * ROW_PITCH;
+    const dB = d0 + WINDOW_AHEAD;
+
+    // Margin rules: one hairline each side at every band; a second past
+    // chain 50, a third at the full page. Segments of 6 m follow the winding.
+    let r = 0;
+    const ruleCount = level >= 4 ? 3 : level >= 2 ? 2 : 1;
+    for (let d = dA; d < dB && r < 420; d += 6) {
+      for (const side of [-1, 1]) {
+        for (let k = 0; k < ruleCount; k++) {
+          if (r >= 420) break;
+          const off = HW + 2.4 + k * 0.55;
+          this._put(this.rules, r++, line(d + 3) + side * off, 0.05, -(d + 3),
+            0.07, 0.06, 6.0);
+        }
+      }
+    }
+    this.rules.count = r;
+
+    // Greeked type: rows of bars flowing outward from the inner margin.
+    // A paragraph ends on a short line and leaves a blank one; the full
+    // page justifies every other line, the manuscript leaves them ragged.
+    let t = 0;
+    const columns = level >= 3 ? 2 : 1;
+    const colW = level >= 2 ? 11 : 8.5;
+    for (let d = dA, row = Math.round(dA / ROW_PITCH); d < dB; d += ROW_PITCH, row++) {
+      for (const side of [-1, 1]) {
+        for (let c = 0; c < columns; c++) {
+          if (t >= 1400) break;
+          const key = row * 4 + (side + 1) + c * 7919;
+          const prevEnd = h32((row - 1) * 4 + (side + 1) + c * 7919 + 11) < 0.15;
+          if (prevEnd) continue;                       // blank line after a paragraph
+          if (h32(key) > fill) continue;               // unset at this band
+          const end = h32(key + 11) < 0.15;
+          const ragged = level >= 4 ? 1 : 0.55 + 0.45 * h32(key + 23);
+          const w = colW * (end ? 0.3 + 0.4 * h32(key + 5) : ragged);
+          const inner = HW + 4.2 + c * (colW + 2.2);
+          this._put(this.type, t++, line(d) + side * (inner + w / 2), 0.05, -d,
+            w, 0.08, ROW_LEN);
+        }
+      }
+    }
+    this.type.count = t;
+
+    // Punctuation as sculpture, densifying by band.
+    let s = 0, e = 0, b = 0, c = 0;
+    if (level >= 1) {
+      for (let d = Math.ceil(dA / 36) * 36; d < dB && s < 40; d += 36) {
+        const side = (Math.round(d / 36) % 2) ? 1 : -1;
+        this._put(this.stops, s++, line(d) + side * (HW + 3.3), 0.6, -d, 1.0, 1.0, 1.0);
+      }
+    }
+    if (level >= 2) {
+      for (let d = Math.ceil(dA / 54) * 54 + 18; d < dB && e < 40; d += 54) {
+        for (const side of [-1, 1]) {
+          if (e >= 40) break;
+          this._put(this.dashes, e++, line(d) + side * (HW + 6.5), 2.4, -d, 0.14, 0.32, 3.0);
+        }
+      }
+    }
+    if (level >= 3) {
+      for (let d = Math.ceil(dA / 27) * 27; d < dB && b < 120; d += 27) {
+        for (const side of [-1, 1]) {
+          if (b >= 118) break;
+          const x = line(d) + side * (HW + 3.6);
+          // A bracket: the upright, and a return at each end toward the track.
+          this._put(this.brackets, b++, x, 2.3, -d, 0.16, 4.6, 0.16);
+          this._put(this.brackets, b++, x - side * 0.4, 4.55, -d, 0.95, 0.14, 0.16);
+          this._put(this.brackets, b++, x - side * 0.4, 0.09, -d, 0.95, 0.14, 0.16);
+        }
+      }
+    }
+    if (level >= 4) {
+      for (let d = Math.ceil(dA / 72) * 72 + 30; d < dB && c < 12; d += 72) {
+        const side = (Math.round(d / 72) % 2) ? -1 : 1;
+        this._put(this.caps, c++, line(d) + side * (HW + 10.5), 1.1, -d, 2.2, 2.2, 2.2);
+      }
+    }
+    this.stops.count = s; this.dashes.count = e; this.brackets.count = b; this.caps.count = c;
+    for (const m of [this.rules, this.type, this.stops, this.dashes, this.brackets, this.caps]) {
+      m.instanceMatrix.needsUpdate = true;
+    }
+  }
+
+  dispose() {
+    this.stage.render = this._origRender;
+    this.stage.scene.remove(this.group);
+    for (const m of [this.rules, this.type, this.stops, this.dashes, this.brackets, this.caps]) {
+      m.geometry.dispose();
+    }
+    for (const m of [this.matRule, this.matType, this.matMark, this.matCap]) m.dispose();
+    delete this.stage.__page;
+  }
+}
+
+/** Arm the page layer. `level` pins a band (0..4); omit it to follow the chain. */
+export function applyStills(level) {
+  const stage = window.__RENDER?.stage;
+  const sim = window.__SIM;
+  if (!stage || !sim) return 'no stage';
+  window.__STILLS_LEVEL = level;
+  if (!stage.__page) new PageLayer(stage, sim.terrain);
+  else stage.__page.level = -1; // force a rebuild at the new level
+  return `stills level ${level ?? 'chain'}`;
+}
+export function clearStills() {
+  window.__STILLS_LEVEL = undefined;
+  window.__RENDER?.stage?.__page?.dispose();
+}
+window.__STILLS = { apply: applyStills, clear: clearStills, band: stillBand };
+
+// `?dev=1&stills=1` arms the page on load, following the chain. (Not
+// `draft=`: that key is the challenge link's seed.)
+if (new URLSearchParams(location.search).get('stills') === '1') {
+  const arm = () => (window.__RENDER?.stage && window.__SIM ? applyStills() : setTimeout(arm, 50));
+  arm();
+}

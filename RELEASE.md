@@ -1209,3 +1209,29 @@ Slice history:
   placement path drew nothing and is deleted; the stanchions in
   `speed-fantasy.js` are the only posts, gated in `gate:v1`); Phase M
   rebuilds them as ribbon geometry. Confirmed and closed.
+- Phase K — concept stills, for a human to pick from. Four frames of the
+  real game in `dev/stills/` with a dev-only page layer armed: the Editorial
+  World drawn as page geometry along the track — margin rules, columns of
+  greeked lines, full stops, dashes, brackets and drop caps, set denser and
+  brighter through five bands (chain 0 / 25 / 50 / 100 / 150+). Every "line
+  of type" is a box, never a glyph, so the background is unreadable by
+  construction and the plate stays the only text in the world; colours are
+  the art-direction band's own crest and ice, nothing red. It lives at the
+  bottom of `dev/style-lab.js` (`?dev=1&stills=1`, or `__STILLS.apply(n)`
+  to pin a band), never imported by `src/`, never bundled. The driver,
+  `dev/shoot-stills.mjs`, steps the sim headlessly on the DAILY RUN with
+  every read answered right until the fifth gate resolves, pins one chain,
+  one speed and one gap, runs the live frame until the plate sits 37.8 m
+  ahead, and reads the numbers back off the page into `manifest.json` —
+  same seed, same word (`all`), same frame, 36 m/s, in every still. K1 is the
+  sparse manuscript at chain 0, K2 the bloom at 50, K3 the typeset page at
+  150 with the Redline at 16 m (the rig tilts back for it — the one camera
+  difference, measured). K3b was not asked for and is kept because it was
+  measured: at 9 m, inside the scream range, today's correction blocks cross
+  the plate. That is the shipped Redline, not the page, and it wants a
+  decision before "the Redline as an editorial correction" is built. Two
+  more readings in the README: portrait hides the margins beside the runner,
+  so a flat page only enters the frame 30 m out (the page has to climb the
+  banks if it goes ahead), and the ink sits close to the track's cyan. No
+  gameplay file changed; every suite stayed green untouched. **Phase L does
+  not start until a human picks or redirects.**
