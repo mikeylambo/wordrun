@@ -757,3 +757,41 @@ Slice history:
   time trend, and the count of words beaten. It refuses to draw a trend it
   cannot support — a chart from a single run is a lie with a chart around it —
   and it is figures only, with no name of its own.
+- Deferred list — the three items the mastery brief parked, minus the board.
+  Deception families: a block of five gates now shares a preferred mutation,
+  so four transpositions in a row teach a player to look for transpositions
+  where four unrelated single edits taught only that something somewhere was
+  wrong. The family is a bias on the ORDER edits are attempted in, never on
+  which are allowed, so no new string becomes reachable and the safety guard
+  still decides what ships — 422 of 454 blocks run their family with at most
+  one exception, and the exceptions are short words where the preferred edit
+  has nowhere to go. Pure in the seed, so the daily route composes identically
+  for everyone.
+  Flow-state escalation: holding a capped chain while answering early accrues
+  a surge that opens the field of view a little and pushes the music stems as
+  though the chain went further. Deliberately small — the word plates are read
+  at this field of view, so the reward for reading well cannot be a harder
+  read — and it reaches nothing that decides the run: no score term, no speed
+  term, and it sits inside the same FOV clamp as everything else.
+  Building it surfaced a rule worth keeping. A passed fake is a correct answer
+  and always will be, but it resolves AT the line: there is no early moment in
+  it to reward, so passing tops out partway on runs of consecutive real words.
+  Rejecting the same fake from range is the same answer given sooner, and only
+  that sustains the surge. The reject zone has been optional and never worse
+  than silence since Phase C; this is the first thing that makes it better,
+  without making silence cost anything.
+  Word danger ratings, half of one. The honest version of this number is how
+  often everyone ELSE misses a word, and there is no aggregate to ask yet, so
+  the structural half ships and the slot stays open: length, doubled letters,
+  adjacent vowel runs, the suffixes English cannot make up its mind about, and
+  the letter pairs that resolve as a different glyph under motion (rn as m, cl
+  as d). The local ledger supplies a personal correction, ignored below three
+  attempts because one miss is an accident, and weighted to at most 0.6 so one
+  player never fully overrules the word itself. It shows in the review panel
+  as three pips beside each missed word — marks, not a name — answering the
+  question a review always raises: was that one on me, or is it just a
+  horrible word. The first draft scored confusable LETTERS rather than pairs,
+  which matched almost every word in the bank: a constant offset dressed up
+  as a measurement.
+  Charge-banking was rejected rather than deferred, and the per-band hue
+  palette is filed with the visual pass.

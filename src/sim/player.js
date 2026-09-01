@@ -64,9 +64,16 @@ export class Player {
     // ghost-comparable and identical for everyone on the same seed.
     this.score = 0;
     this.compressionLevel = 0;
+    this.surgeReads = 0;
     this.lastCourage = 1;
     this.dead = false;
     this._hitCooldown = 0;
+  }
+
+  /** Sustained excellence, 0..1. Zero until the chain is capped. */
+  surge() {
+    const n = TUNING.BOOST.SURGE_READS;
+    return Math.max(0, Math.min(1, this.surgeReads / n));
   }
 
   /** What a qualifying read is worth for the bar the player set themselves. */

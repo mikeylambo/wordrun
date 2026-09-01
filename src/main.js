@@ -787,7 +787,7 @@ document.getElementById('deathRecap')?.addEventListener('click', (e) => {
   if (!e.target.closest('#missedOpen')) return;
   e.stopPropagation();
   audio.uiTap();
-  ui.renderMissedPanel();
+  ui.renderMissedPanel((w) => nemesis.history(w));
   missedPanel?.classList.add('on');
 });
 document.getElementById('missedClose')?.addEventListener('click', (e) => {

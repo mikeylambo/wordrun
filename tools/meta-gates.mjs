@@ -350,7 +350,7 @@ head('META — wiring and independence');
 
   const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
   check('the review panel teaches the real spelling on a tapped fake',
-    ui.includes('_missedRow(x.answer, x.shown)') && ui.includes('<s>${wrongSpelling}</s>'));
+    ui.includes('_missedRow(x.answer, x.shown,') && ui.includes('<s>${wrongSpelling}</s>'));
   // Phase 19 compressed the sentence into the row's label. Same teaching,
   // same gentle framing, one line instead of one line per wrong read.
   check('an omission is explained without crash language',
@@ -791,7 +791,7 @@ head('DEFINITIONS — what the word actually means');
   // is passed `x.answer` as the word and `x.shown` as the strikethrough —
   // and the panel has room for all of them rather than the card's two.
   check('the review teaches the true word, not the fake',
-    uiSrc2.includes('_missedRow(x.answer, x.shown)') &&
+    uiSrc2.includes('_missedRow(x.answer, x.shown,') &&
     uiSrc2.includes('defineWord(word)'));
   check('and is not capped at two, now that it has a screen of its own',
     uiSrc2.includes('for (const x of m.tapped)') && uiSrc2.includes('for (const x of m.slipped)'));

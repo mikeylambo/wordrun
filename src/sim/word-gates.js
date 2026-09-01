@@ -26,7 +26,7 @@
 
 import TUNING from '../TUNING.js';
 import { mulberry32, mixSeed } from './rng.js';
-import { pickWordCycle, makeFake, tierCount } from '../words/wordlist.js';
+import { pickWordCycle, makeFake, tierCount, familyForGate } from '../words/wordlist.js';
 
 const W = TUNING.WORDS;
 const R = TUNING.RUN;
@@ -159,7 +159,7 @@ export function makeGate(seed, index, prof = DEFAULT_PROFILE, lane = null) {
     d,
     tier,
     real,
-    shown: real ? word : makeFake(word, rng),
+    shown: real ? word : makeFake(word, rng, familyForGate(seed, index)),
     // The true spelling, always: for a fake this is the word it was bent
     // from, which is what the recap and the resolved-plate feedback teach.
     // (Was `real ? word : null` — exactly backwards, so the picked-fake
@@ -317,6 +317,12 @@ export class WordGates {
       player.score += g.score;
       player.boostMeter = Math.min(B.METER_MAX,
         player.boostMeter + W.CORRECT_FILL * player.chainMult() * proxMult * g.latencyMult);
+      // Surge accrues only while the chain is already capped and the answer
+      // landed early. Anything less empties it — it measures holding a peak,
+      // not reaching one.
+      const capped = player.chain >= B.CHAIN_CAP;
+      const early = g.answerDistance >= W.ARM_DISTANCE_M * B.SURGE_EARLY_FRAC;
+      player.surgeReads = capped && early ? player.surgeReads + 1 : 0;
       player.gatesThreaded++; // the frame's "threaded a gate" ledger carries over
       player.lastCourage = proxMult;
 
@@ -336,6 +342,7 @@ export class WordGates {
       // Losing the level is the sting. A wrong read of any kind drops the bar
       // to the floor — the player chose the risk and it came due.
       player.compressionLevel = 0;
+      player.surgeReads = 0;
 
       // Phase 23: BOTH wrong reads now cost a heart. Handing the omission's
       // consequence to the Redline's differential alone made doing nothing a

@@ -341,6 +341,14 @@ export const TUNING = {
     // makes someone restart before the death screen has finished animating.
     CHAIN_STEP: 0.35,          // multiplier added per link
     CHAIN_CAP: 8,              // links counted
+    // Sustained excellence, past the point the chain stops counting. The chain
+    // caps at 8 and the flow colour grammar caps with it, so a player reading
+    // perfectly at link 30 sees exactly what they saw at link 8. Surge is the
+    // amplifier on top: it only accrues while the chain is already at cap AND
+    // the answers keep landing early, and any wrong read or any late answer
+    // empties it at once. It is a state you hold, not a level you reach.
+    SURGE_READS: 6,            // qualifying reads past the cap for full surge
+    SURGE_EARLY_FRAC: 0.5,     // an answer must clear half the window to count
     CHAIN_GATE_CREDIT: true,   // threading a gate also extends the chain
 
     // Phase 22 — the DASH becomes an event. At 8 of 100 the meter armed
@@ -667,6 +675,8 @@ export const TUNING = {
     // Degrees of FOV per unit of music response. The beat bob is deliberately
     // near the threshold of notice; crashes are rare enough to be felt.
     MUSIC_PULSE_FOV: 22,
+    // Surge widens the view. Small: the plates are read at this width.
+    SURGE_FOV: 5.5,
     MUSIC_ACCENT_FOV: 2.5,
   },
 

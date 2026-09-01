@@ -233,8 +233,13 @@ export class Audio {
 
     // Music stems ride the same two values the visual vibrancy rides:
     // speed (effective, so Overdrive lifts the score) and the chain.
+    // Surge rides into the score as extra chain, which is the one dial the
+    // stem engine already understands — sustained excellence sounds like more
+    // of the music, not like a new sound.
+    const surge = p.surge ? p.surge() : 0;
     this.stems.update(
-      { speed: p.effSpeed ?? p.speed, streak: p.chain ?? 0 },
+      { speed: p.effSpeed ?? p.speed,
+        streak: (p.chain ?? 0) + surge * TUNING.BOOST.SURGE_READS },
       !!running && !kill && !this.musicTrackLive
     );
 

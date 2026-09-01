@@ -18,9 +18,11 @@ import TUNING from '../src/TUNING.js';
 import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
 import { mulberry32 } from '../src/sim/rng.js';
 import { latencyMultFor } from '../src/sim/word-gates.js';
+import { MUTATION_FAMILIES, familyForGate } from '../src/words/wordlist.js';
 import { corruptionIntensity } from '../src/render/corruption-curve.js';
 import { NemesisLedger, NEMESIS } from '../src/meta/nemesis.js';
 import { CurveLog } from '../src/meta/curve.js';
+import { structuralDanger, dangerFor, dangerBand } from '../src/words/danger.js';
 import { memoryAdapter } from '../src/meta/stats.js';
 import {
   TIERS, ALL_WORDS, isValidWord, pickWord, makeFake, tierCount, tierWords,
@@ -1265,6 +1267,252 @@ head('LEDGER — bounded, spaced, and it survives being put down');
   check('and reports the week once it does',
     sum.tiers[0].tier === 3 && sum.tiers[0].now === 60 && sum.readMs === 700,
     `tier 3 at ${sum.tiers[0].now}%, ${sum.readMs}ms average read`);
+}
+
+// ── Deception families ───────────────────────────────────────────────────
+head('FAMILIES — runs of one trap, so the trap is learnable');
+{
+  // A block of gates shares a preferred deception. Four unrelated single edits
+  // teach only that something somewhere is wrong; four transpositions in a row
+  // teach a player to look for transpositions.
+  const familyOf = (word, fake) => {
+    const w = String(word), f = String(fake);
+    if (f.length === w.length + 1) return 'double';
+    if (f.length === w.length - 1) return 'drop';
+    if (f.length !== w.length) return 'other';
+    const diff = [...w].map((c, i) => (c === f[i] ? null : i)).filter((x) => x !== null);
+    if (diff.length === 2 && w[diff[0]] === f[diff[1]] && w[diff[1]] === f[diff[0]]) return 'transpose';
+    if (diff.length === 1 && 'aeiou'.includes(w[diff[0]]) && 'aeiou'.includes(f[diff[0]])) return 'vowel';
+    return 'other';
+  };
+  let blocksSeen = 0, blocksPure = 0;
+  for (let seed = 0; seed < 120; seed++) {
+    for (let b = 0; b < 8; b++) {
+      const fams = [];
+      for (let i = b * 5; i < (b + 1) * 5; i++) {
+        const g = makeGate(seed, i);
+        if (!g.real) fams.push(familyOf(g.answer, g.shown));
+      }
+      if (fams.length < 3) continue;
+      blocksSeen++;
+      const want = MUTATION_FAMILIES[familyForGate(seed, b * 5)];
+      if (fams.filter((f) => f === want).length >= fams.length - 1) blocksPure++;
+    }
+  }
+  check('a block of gates leans on one deception family',
+    blocksPure / blocksSeen > 0.7,
+    `${blocksPure} of ${blocksSeen} blocks ran their family with at most one exception`);
+  check('the family is a bias, never a requirement',
+    blocksPure < blocksSeen,
+    'a short word or a blocked edit falls through to the general search rather than failing');
+  check('the family walk is pure in the seed',
+    familyForGate(4242, 17) === familyForGate(4242, 17) &&
+    familyForGate(4242, 17) !== undefined,
+    'the daily route composes identically for everyone');
+
+  // Safety is untouched: the bias reorders which edits are TRIED, never which
+  // are allowed, so no new string becomes reachable.
+  const src = fs.readFileSync('src/words/wordlist.js', 'utf8');
+  check('the safety guard still runs on every preferred edit',
+    /if \(prefer >= 0[\s\S]{0,320}if \(!bad\(f\)\) return f;/.test(src),
+    'the family picks the order of attempts; bad() still decides what ships');
+}
+
+// ── Surge: what holding a peak looks like ────────────────────────────────
+head('SURGE — a reward for staying at the top, not for arriving');
+{
+  const W = TUNING.WORDS, B = TUNING.BOOST, C = TUNING.CAMERA;
+
+  // One run over the daily route, acting on every gate at a chosen fraction of
+  // the arm window: confirming the real words, and optionally rejecting the
+  // fakes rather than letting them pass. Returns the surge trace rather than a
+  // final value — surge is a thing you hold, so the collapse matters as much
+  // as the peak. `breakAt` throws one deliberate commission (calling a fake
+  // real), the one action that costs a heart.
+  const run = (fraction, { reject = true, breakAt = -1 } = {}) => {
+    const sim = new Sim(4242); sim.start(4242);
+    let guard = 0, peak = 0, reads = 0, afterBreak = null, peakBeforeBreak = 0;
+    while (sim.phase === PHASE.RUNNING && guard++ < 90000) {
+      const wg = sim.wordGates, g = wg.current();
+      const armed = wg.armed(sim.player.d) && !g.confirmed;
+      const act = armed && (g.d - sim.player.d) <= W.ARM_DISTANCE_M * fraction;
+      const sabotage = act && !g.real && breakAt >= 0 &&
+        afterBreak === null && sim.player.surge() === 1;
+      const before = sim.player.surgeReads;
+      sim.step({ ...emptyInput(),
+        confirm: act && (g.real || sabotage),
+        reject: act && reject && !g.real && !sabotage });
+      if (sim.player.surgeReads > before) reads++;
+      if (sim.player.surge() > peak) peak = sim.player.surge();
+      if (sabotage) { peakBeforeBreak = 1; afterBreak = sim.player.surgeReads; }
+      if (sim.player.d > 4000) break;
+    }
+    return { peak, reads, afterBreak, peakBeforeBreak,
+      score: Math.floor(sim.player.score), speed: +sim.player.speed.toFixed(6) };
+  };
+
+  const early = run(1.0);
+  const late = run(0.06);
+
+  check('holding the cap while answering early fills the surge',
+    early.peak === 1 && early.reads >= B.SURGE_READS,
+    `peak ${early.peak.toFixed(2)} over ${early.reads} qualifying reads`);
+
+  check('a perfect run answered on the line never surges',
+    late.peak === 0,
+    'the chain caps either way — earliness is the half that is not automatic');
+
+  // The rule the reject zone has been waiting for. A passed fake is a correct
+  // answer and always will be, but it resolves AT the line — there is no early
+  // moment in it to reward. Rejecting the same fake from range is the same
+  // answer, given sooner, and only that sustains the surge. Silence still
+  // costs nothing: the surge is a camera and a mix, never a score or a speed.
+  const passed = run(1.0, { reject: false });
+  check('a passed fake does not sustain the surge; a rejected one does',
+    passed.peak > 0 && passed.peak < 1 && early.peak === 1,
+    `passing tops out at ${passed.peak.toFixed(2)} on runs of consecutive real words; rejecting reaches 1.00`);
+
+  check('the surge needs the chain capped, not merely climbing',
+    (() => {
+      const sim = new Sim(4242); sim.start(4242);
+      let guard = 0, sawUncapped = false;
+      while (sim.phase === PHASE.RUNNING && guard++ < 20000) {
+        const wg = sim.wordGates, g = wg.current();
+        const armed = wg.armed(sim.player.d) && !g.confirmed;
+        sim.step({ ...emptyInput(), confirm: armed && g.real, reject: armed && !g.real });
+        if (sim.player.chain > 0 && sim.player.chain < B.CHAIN_CAP &&
+            sim.player.surgeReads > 0) sawUncapped = true;
+        if (sim.player.chain > B.CHAIN_CAP) break;
+      }
+      return !sawUncapped;
+    })(),
+    `nothing accrues below chain ${B.CHAIN_CAP}, however early the answers land`);
+
+  const broken = run(1.0, { breakAt: 1 });
+  check('one wrong read empties it',
+    broken.peakBeforeBreak === 1 && broken.afterBreak === 0,
+    `full surge into the commission, ${broken.afterBreak} after it`);
+
+  check('and it has to be earned back from nothing',
+    (() => {
+      const p = new Sim(1).player;
+      p.surgeReads = B.SURGE_READS; const full = p.surge();
+      p.surgeReads = 0;
+      return full === 1 && p.surge() === 0;
+    })(),
+    'there is no decay path and no partial credit — it is a streak, not a battery');
+
+  check('the surge reaches nothing that decides the run',
+    early.speed === late.speed &&
+    !/surge/i.test(fs.readFileSync('src/sim/player.js', 'utf8')
+      .slice(fs.readFileSync('src/sim/player.js', 'utf8').indexOf('chainMult()'))),
+    `both runs end at ${early.speed} m/s; no score or speed term reads it`);
+
+  // Legibility is the fence the whole brief sits inside. The surge opens the
+  // field of view, and a field of view that opens far enough shrinks the word.
+  check('the view it opens is smaller than the beat already moves it',
+    C.SURGE_FOV > 0 && C.SURGE_FOV < C.MUSIC_PULSE_FOV / 3 &&
+    C.SURGE_FOV < B.DASH.KICK_FOV / 2,
+    `${C.SURGE_FOV} degrees at full surge against ${C.MUSIC_PULSE_FOV} for the beat`);
+
+  check('and it is clamped with everything else',
+    (() => {
+      const src = fs.readFileSync('src/render/camera-rig.js', 'utf8');
+      const i = src.indexOf('const fov = Math.min(C.FOV_MAX');
+      return i > 0 && /SURGE_FOV/.test(src.slice(i, src.indexOf(';', i)));
+    })(),
+    `the surge term sits inside the FOV_MAX clamp, not after it`);
+}
+
+// ── Danger ratings ───────────────────────────────────────────────────────
+head('DANGER — how hard a word is to read, from the word itself');
+{
+  // The aggregate half of this number ("how often does everyone else miss it")
+  // is blocked on a board that does not exist yet. The structural half needs
+  // nobody, and is the half that is actually a property of the word.
+  const s = structuralDanger;
+
+  check('a short plain word carries no danger',
+    s('cat') === 0 && s('run') === 0 && s('the') === 0,
+    'three letters and nowhere for an edit to hide');
+
+  check('the traps rate above the plain words',
+    s('necessary') > s('receive') && s('maintenance') > s('garden') &&
+    s('accommodate') > s('animal'),
+    `necessary ${s('necessary').toFixed(2)} vs receive ${s('receive').toFixed(2)}`);
+
+  check('it is bounded and pure',
+    ALL_WORDS.every((w) => { const d = s(w); return d >= 0 && d <= 1 && d === s(w); }),
+    `every one of ${ALL_WORDS.length} shipped words rates inside 0..1`);
+
+  check('the bank spreads across all three bands',
+    (() => {
+      const bands = { low: 0, mid: 0, high: 0 };
+      for (const w of ALL_WORDS) bands[dangerBand(s(w))]++;
+      return bands.low > 0 && bands.mid > 0 && bands.high > 0 &&
+        bands.high < ALL_WORDS.length * 0.5;
+    })(),
+    (() => {
+      const b = { low: 0, mid: 0, high: 0 };
+      for (const w of ALL_WORDS) b[dangerBand(s(w))]++;
+      return `${b.low} low, ${b.mid} mid, ${b.high} high`;
+    })());
+
+  check('danger rises with tier, on average',
+    (() => {
+      const avg = (t) => { const ws = tierWords(t); return ws.reduce((a, w) => a + s(w), 0) / ws.length; };
+      return avg(4) > avg(1) && avg(3) > avg(1);
+    })(),
+    `tier 1 ${(tierWords(1).reduce((a, w) => a + s(w), 0) / tierWords(1).length).toFixed(2)}` +
+    ` → tier 4 ${(tierWords(4).reduce((a, w) => a + s(w), 0) / tierWords(4).length).toFixed(2)}`);
+
+  // Evidence from the local ledger. One miss is an accident; a pattern is a
+  // rating — and a single player is never enough to overrule the word itself.
+  check('one miss does not make a word dangerous',
+    dangerFor('cat', { a: 1, m: 1 }) === s('cat') &&
+    dangerFor('cat', { a: 2, m: 2 }) === s('cat'),
+    'below three attempts the ledger is ignored entirely');
+
+  check('a pattern of misses does move it',
+    dangerFor('cat', { a: 6, m: 6 }) > s('cat') &&
+    dangerFor('necessary', { a: 6, m: 0 }) < s('necessary'),
+    `a word missed 6 of 6 rates ${dangerFor('cat', { a: 6, m: 6 }).toFixed(2)} against ${s('cat').toFixed(2)} cold`);
+
+  check('and one player never fully overrules the word',
+    (() => {
+      let worst = 0;
+      for (let a = 3; a < 400; a++) worst = Math.max(worst, Math.abs(dangerFor('cat', { a, m: a }) - 1));
+      return worst > 0.39;
+    })(),
+    'the local weight is capped at 0.6, so the structural half always survives');
+
+  // Where it shows up. The review panel is the only place a danger rating has
+  // anything to do: mid-run it would be a hint, and on the results card it
+  // would compete with the score.
+  {
+    const uiSrc = fs.readFileSync('src/ui/ui.js', 'utf8');
+    const row = uiSrc.slice(uiSrc.indexOf('_missedRow('), uiSrc.indexOf('clearRun()'));
+    check('the rating reaches the review panel and nowhere else',
+      /dangerBand\(dangerFor\(/.test(row) &&
+      /renderMissedPanel\(\(w\) => nemesis\.history\(w\)\)/
+        .test(fs.readFileSync('src/main.js', 'utf8')),
+      'drawn per missed word, with that word\'s own ledger row as evidence');
+
+    check('and it is shown as marks, never as a name',
+      /mRisk/.test(row) && !/'(LOW|MID|HIGH|HARD|TRICKY|EASY)'/.test(row),
+      'three pips — the same choice the compression bar makes, and the naming cap is still four');
+
+    check('a word with no history still rates',
+      dangerBand(dangerFor('necessary', null)) === dangerBand(structuralDanger('necessary')),
+      'a first-run player sees the same panel as a returning one, minus the personal half');
+  }
+
+  check('the rating is bounded whatever the ledger says',
+    [[0, 0], [3, 9], [50, 50], [7, -4]].every(([a, m]) => {
+      const d = dangerFor('necessary', { a, m });
+      return d >= 0 && d <= 1;
+    }),
+    'a corrupt or impossible evidence row cannot produce an out-of-range band');
 }
 
 console.log(out.join('\n'));

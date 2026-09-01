@@ -8,6 +8,7 @@ import { corruptionIntensity, veilOpacity } from '../render/corruption-curve.js'
 import { ACCESS } from './access.js';
 import { bandForDistance } from '../render/art-direction.js';
 import { defineWord } from '../words/definitions.js';
+import { dangerFor, dangerBand } from '../words/danger.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -505,27 +506,37 @@ export class UI {
   }
 
   /** The review panel: every missed word, with what it meant. */
-  renderMissedPanel() {
+  /** `evidenceFor` is optional and reads the per-word ledger, so a word this
+   *  player keeps missing rates higher than its shape alone would say. */
+  renderMissedPanel(evidenceFor = null) {
     const m = this._missed;
     const body = document.getElementById('missedBody');
     if (!body || !m) return;
     const parts = [];
     if (m.tapped.length) {
       parts.push('<div class="mHead">NOT A WORD</div>');
-      for (const x of m.tapped) parts.push(this._missedRow(x.answer, x.shown));
+      for (const x of m.tapped) parts.push(this._missedRow(x.answer, x.shown, evidenceFor));
     }
     if (m.slipped.length) {
       parts.push('<div class="mHead">UNCAUGHT</div>');
-      for (const x of m.slipped) parts.push(this._missedRow(x.shown, null));
+      for (const x of m.slipped) parts.push(this._missedRow(x.shown, null, evidenceFor));
     }
     body.innerHTML = parts.join('');
   }
 
-  _missedRow(word, wrongSpelling) {
+  _missedRow(word, wrongSpelling, evidenceFor = null) {
     const meaning = defineWord(word);
+    // How hard this word is, as marks rather than a name — the same choice the
+    // compression bar makes, and for the same reason. It answers the question
+    // a review panel always raises: was that one on me, or is it just a
+    // horrible word? Three pips means everybody struggles with it.
+    const band = dangerBand(dangerFor(word, evidenceFor?.(word) || null));
+    const pips = { low: 1, mid: 2, high: 3 }[band];
+    const risk = `<span class="mRisk ${band}">${
+      [0, 1, 2].map((i) => `<i${i < pips ? ' class="on"' : ''}></i>`).join('')}</span>`;
     return `<div class="mRow"><div class="mWord">`
       + (wrongSpelling ? `<s>${wrongSpelling}</s>` : '')
-      + `<b>${word}</b></div>`
+      + `<b>${word}</b>${risk}</div>`
       + (meaning ? `<div class="mDef">${meaning}</div>` : '')
       + '</div>';
   }

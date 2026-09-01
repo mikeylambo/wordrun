@@ -780,7 +780,7 @@ head('BROADCAST — few words, one type system, numbers first');
     /class="statBar( four)?"/.test(uiSrc) && uiSrc.includes('class="objRow"') &&
     uiSrc.includes("row('TARGET'"));
   check('the review still teaches the true spelling of a tapped fake',
-    uiSrc.includes('_missedRow(x.answer, x.shown)') &&
+    uiSrc.includes('_missedRow(x.answer, x.shown,') &&
     uiSrc.includes('<s>${wrongSpelling}</s>') && uiSrc.includes('<b>${word}</b>'));
 }
 

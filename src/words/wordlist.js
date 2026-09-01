@@ -1128,6 +1128,11 @@ export function pickWordCycle(tier, k, rand) {
 const VOWELS = 'aeiou';
 
 /** The mutation strategies, all one honest "misread" away from the source. */
+// Named so a run can be composed of one family at a time. A player who meets
+// four transpositions in a row learns to look for transpositions; four
+// unrelated single edits teach only that something, somewhere, is wrong.
+export const MUTATION_FAMILIES = ['transpose', 'double', 'drop', 'vowel'];
+
 const MUTATIONS = [
   // Swap two adjacent letters: recieve.
   (w, i) => (i < w.length - 1 && w[i] !== w[i + 1]
@@ -1154,7 +1159,20 @@ const MUTATIONS = [
  * after bounded random attempts it sweeps every mutation × position, and a
  * finite guard set cannot absorb every single-edit variant of a word.
  */
-export function makeFake(word, rand) {
+/**
+ * Which deception family a gate should prefer. Blocks of BLOCK gates share one,
+ * so the run reads as sequences rather than as noise — pure in (seed, index),
+ * because the daily route has to be identical for everyone.
+ */
+export function familyForGate(seed, index, block = 5) {
+  const b = Math.floor(Math.max(0, index) / block);
+  // A cheap integer hash of (seed, block): the family walks rather than
+  // repeating, so no run is four blocks of the same trap.
+  const h = ((seed >>> 0) * 2654435761 + b * 40503) >>> 0;
+  return h % MUTATIONS.length;
+}
+
+export function makeFake(word, rand, prefer = -1) {
   const w = String(word).toLowerCase();
   // A fake must not be a real word (the player would be punished for reading
   // correctly) and must not be something a general-audience rating will not
@@ -1162,6 +1180,20 @@ export function makeFake(word, rand) {
   // 'clock', 'rape' from 'grape', 'fag' from 'flag'. tools/family-gate.mjs
   // enumerates every reachable mutation and fails the build on a hit.
   const bad = (f) => !f || f === w || GUARD.has(f) || isBlocked(f);
+
+  // The preferred family first, at every position, starting from a seeded
+  // offset so the same family does not always bend the same letter. If the
+  // family cannot produce a legal fake for this word — short words and the
+  // blocklist both rule edits out — the original search runs unchanged, so a
+  // composed sequence is a bias and never a requirement.
+  if (prefer >= 0 && prefer < MUTATIONS.length) {
+    const m = MUTATIONS[prefer];
+    const start = Math.floor(rand() * w.length) % w.length;
+    for (let k = 0; k < w.length; k++) {
+      const f = m(w, (start + k) % w.length);
+      if (!bad(f)) return f;
+    }
+  }
 
   for (let attempt = 0; attempt < 24; attempt++) {
     const m = MUTATIONS[Math.floor(rand() * MUTATIONS.length) % MUTATIONS.length];

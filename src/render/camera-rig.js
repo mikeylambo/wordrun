@@ -177,7 +177,11 @@ export class CameraRig {
     const fov = Math.min(C.FOV_MAX,
       this.fov + this._dashKick * TUNING.BOOST.DASH.KICK_FOV * motion
       + (this.music?.pulse || 0) * C.MUSIC_PULSE_FOV * motion
-      + (this.music?.accent || 0) * C.MUSIC_ACCENT_FOV * motion);
+      + (this.music?.accent || 0) * C.MUSIC_ACCENT_FOV * motion
+      // Sustained excellence opens the view a little further. Deliberately
+      // small — the word plates are read at this field of view, and the
+      // reward for reading well cannot be a harder read.
+      + (p.surge ? p.surge() : 0) * C.SURGE_FOV * motion);
     if (Math.abs(this.camera.fov - fov) > 0.01) {
       this.camera.fov = fov;
       this.camera.updateProjectionMatrix();
