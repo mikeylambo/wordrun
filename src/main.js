@@ -7,7 +7,6 @@ import { Sim, PHASE, emptyInput } from './sim/sim.js';
 import { makeGate, wordSeedFor } from './sim/word-gates.js';
 import { dailySeed, dailySeedString, hashString } from './sim/rng.js';
 import { parseChallenge, buildChallengeLink } from './meta/challenge.js';
-import { buildShopPanel } from './ui/shop.js';
 import { Stage } from './render/scene.js';
 import { TerrainMesh } from './render/terrain-mesh.js';
 import { Props } from './render/props.js';
@@ -38,8 +37,12 @@ import { buildStatsExport, formatStatsExport } from './meta/export.js';
 import { ObjectiveQueue } from './meta/objectives.js';
 import { buildReview } from './meta/review.js';
 import { UI } from './ui/ui.js';
-import { PauseUI } from './ui/pause.js';
-import { OnboardingUI } from './ui/onboarding.js';
+// Phase 5: the shop, pause and onboarding panels are code-split behind dynamic
+// import() — none is needed for the first frame, so keeping them out of the
+// main chunk shortens time-to-interactive on the low-end devices Playables
+// gets played on. They are preloaded right after the title paints (so they are
+// ready before any interaction) and every call site is guarded, so nothing
+// breaks in the window before a chunk lands. See loadPanels() below.
 
 const canvas = document.getElementById('gl');
 const stage = new Stage(canvas);
@@ -81,6 +84,10 @@ const trackPylons = new TrackPylons(stage.scene, sim.terrain);
 const bellRenderer = new BellRenderer(stage.scene, sim.terrain, sim.bells);
 
 const simInput = emptyInput();
+// Code-split panel handles (Phase 5) — declared before the first loadShop()
+// call in setup so it never touches a `let` in its temporal dead zone.
+let shopUI = null, pauseUI = null, onboarding = null;
+let _shopP = null, _pauseP = null, _onboardP = null;
 let running = false;
 let paused = false;
 let topSpeed = 0;
@@ -191,7 +198,7 @@ function applyCosmetic() {
   playerActor.setPalette(c);
 }
 applyCosmetic();
-const shopUI = buildShopPanel({ stats: metaStats, onEquip: applyCosmetic });
+loadShop(); // code-split; constructs the ◆ shop + title balance chip on load
 
 // Challenge visits hide the rule chips (pinned by the link) and offer the
 // way home. DAILY RUN is the approved name for the seeded daily.
@@ -340,9 +347,9 @@ function startRun() {
   input.enabled = true;
   input.releaseAll();
 
-  onboarding.hide();
-  pauseUI.setPaused(false);
-  pauseUI.setButton(true);
+  onboarding?.hide();
+  pauseUI?.setPaused(false);
+  pauseUI?.setButton(true);
   ui.showTitle(false);
   ui.showDeath(false);
   ui.showHud(true);
@@ -384,8 +391,8 @@ function onDead() {
   running = false;
   paused = false;
   input.enabled = false;
-  pauseUI.setPaused(false);
-  pauseUI.setButton(false);
+  pauseUI?.setPaused(false);
+  pauseUI?.setButton(false);
   const cost = continueCost();
   if (continueOfferEl && metaStats.get('currency', 0) >= cost) {
     showContinueOffer(cost);
@@ -467,7 +474,7 @@ function reviveRun() {
   paused = false;
   input.enabled = true;
   input.releaseAll();
-  pauseUI.setButton(true);
+  pauseUI?.setButton(true);
   ui.showDeath(false);
   ui.showHud(true);
   audio.resume();
@@ -488,8 +495,8 @@ function finalizeRun() {
   running = false;
   paused = false;
   input.enabled = false;
-  pauseUI.setPaused(false);
-  pauseUI.setButton(false);
+  pauseUI?.setPaused(false);
+  pauseUI?.setButton(false);
 
   const distance = sim.distance;
   // What the run actually banks. Assistance costs score, compounding per
@@ -623,7 +630,7 @@ function pauseGame() {
   input.enabled = false;
   input.releaseAll();
   audio.suspend();
-  pauseUI.setPaused(true);
+  pauseUI?.setPaused(true);
 }
 
 function resumeGame() {
@@ -632,7 +639,7 @@ function resumeGame() {
   input.enabled = true;
   input.releaseAll();
   audio.resume();
-  pauseUI.setPaused(false);
+  pauseUI?.setPaused(false);
 }
 
 function quitToTitle() {
@@ -641,9 +648,9 @@ function quitToTitle() {
   input.enabled = false;
   input.releaseAll();
   sim.phase = PHASE.TITLE;
-  pauseUI.setPaused(false);
-  pauseUI.setButton(false);
-  onboarding.hide();
+  pauseUI?.setPaused(false);
+  pauseUI?.setButton(false);
+  onboarding?.hide();
   ui.showDeath(false);
   ui.showHud(false);
   ui.clearDread();
@@ -661,32 +668,74 @@ function setGhostEnabled(on) {
   if (!ghostEnabled) sim.ghost.load(null);
 }
 
-const pauseUI = new PauseUI({
-  onPause: pauseGame,
-  onResume: resumeGame,
-  onRestart: startRun,
-  onQuit: quitToTitle,
-  ghostEnabled,
-  onGhostChange: setGhostEnabled,
-});
+// ── Code-split panels (Phase 5) ───────────────────────────────────────────
+// Each loader imports its chunk once (cached promise), constructs the panel,
+// and catches it up to the current game state — so a panel that lands mid-run
+// is immediately correct rather than a frame behind. Call sites are guarded
+// with `?.`, so the window before a chunk resolves is a safe no-op. The state
+// they close over is declared up top (near the other run lets) so the first
+// loader call during setup does not hit its TDZ.
+function loadShop() {
+  if (!_shopP) _shopP = import('./ui/shop.js').then(({ buildShopPanel }) => {
+    shopUI = buildShopPanel({ stats: metaStats, onEquip: applyCosmetic });
+    shopUI.sync();
+    return shopUI;
+  });
+  return _shopP;
+}
 
-const onboarding = new OnboardingUI({
-  ghostEnabled,
-  onGhostChange: setGhostEnabled,
-  onStart: () => {
-    Storage.setOnboardingSeen(true);
-    audio.uiTap();
-    startRun();
-  },
-});
+function loadPause() {
+  if (!_pauseP) _pauseP = import('./ui/pause.js').then(({ PauseUI }) => {
+    pauseUI = new PauseUI({
+      onPause: pauseGame,
+      onResume: resumeGame,
+      onRestart: startRun,
+      onQuit: quitToTitle,
+      ghostEnabled,
+      onGhostChange: setGhostEnabled,
+    });
+    // Catch up to wherever the run already is.
+    pauseUI.setButton(running && sim.phase === PHASE.RUNNING);
+    pauseUI.setPaused(paused);
+    return pauseUI;
+  });
+  return _pauseP;
+}
+
+function loadOnboarding() {
+  if (!_onboardP) _onboardP = import('./ui/onboarding.js').then(({ OnboardingUI }) => {
+    onboarding = new OnboardingUI({
+      ghostEnabled,
+      onGhostChange: setGhostEnabled,
+      onStart: () => {
+        Storage.setOnboardingSeen(true);
+        audio.uiTap();
+        startRun();
+      },
+    });
+    return onboarding;
+  });
+  return _onboardP;
+}
+
+// Preload all three once the title is up. They are off the first-frame path,
+// so this shortens time-to-interactive, but firing the fetch now (rather than
+// on demand) means they are ready before the player can reach them — and the
+// pause/how-to cross-talk (the pause menu dispatches events onboarding listens
+// for) needs onboarding present, not just importable.
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  loadShop(); loadPause(); loadOnboarding();
+}));
 
 function onAdvance() {
-  if (running || paused || onboarding.visible || offerActive) return;
+  if (running || paused || onboarding?.visible || offerActive) return;
   if (sim.phase === PHASE.KILL) return;
   if (sim.phase === PHASE.DEAD && performance.now() - deathShownAt < 350) return;
   audio.uiTap();
   if (sim.phase === PHASE.TITLE && !Storage.onboardingSeen()) {
-    onboarding.show();
+    // First run ever: show the how-to. It is preloaded, but await the chunk if
+    // the tap somehow beats the preload so the screen never silently no-ops.
+    loadOnboarding().then((o) => o.show());
     return;
   }
   startRun();
@@ -697,7 +746,7 @@ window.addEventListener('pointerup', (e) => {
   onAdvance();
 });
 window.addEventListener('keydown', (e) => {
-  if (onboarding.visible) return;
+  if (onboarding?.visible) return;
   if (e.code === 'Escape' || e.code === 'KeyP') {
     if (sim.phase === PHASE.RUNNING) {
       e.preventDefault();
@@ -1035,7 +1084,7 @@ function tick(dt) {
     if (running && sim.phase === PHASE.KILL) {
       running = false;
       input.enabled = false;
-      pauseUI.setButton(false);
+      pauseUI?.setButton(false);
     }
   }
 

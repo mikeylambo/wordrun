@@ -942,3 +942,24 @@ Slice history:
   is exactly `days` long, oldest-first, gaps `null`, never fabricated; the
   gallery is bounded and survives a storage round-trip; and the retirement
   flourish introduces no hex the reserved-hue separation does not permit.
+
+- Phase 5 — delivery polish: the bundle is code-split. Vite's own build output
+  warned about the single ~1.19 MB chunk; the shop, pause and onboarding panels
+  are none of them needed for the first frame, so they now load behind dynamic
+  `import()` as their own chunks (shop ~3.1 KB, pause ~3.9 KB, onboarding
+  ~6.2 KB) and the main chunk drops to ~1.13 MB — less JavaScript to parse
+  before the game is interactive on the lower-end devices Playables gets played
+  on. They are preloaded a couple of frames after the title paints, so they are
+  ready before a player can reach them, and every call site is guarded, so the
+  window before a chunk lands is a safe no-op rather than a broken pause or a
+  dead shop button; a panel that lands mid-run catches itself up to the current
+  state on construction. (A `let`-in-TDZ trap on the first setup-time loader
+  call was found and fixed by a browser smoke pass — the node build alone did
+  not surface it.) Fresh audit numbers, taken after the split: `audit:size`
+  8.26 MB total (unchanged — the 6.73 MB music track dominates, and the split
+  only moves JavaScript between chunks), all Playables ceilings green with
+  21.7 MB of headroom to the 30 MB initial limit; `audit:network` still zero
+  external calls across boot, run and death (22 same-origin assets — the new
+  chunks are same-origin module loads, so they add nothing off-origin). The
+  120 fps / WebGPU showcase pass is deliberately left for after there is a
+  public link worth featuring, per the roadmap.
