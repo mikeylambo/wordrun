@@ -4,6 +4,7 @@
  */
 
 import TUNING from '../TUNING.js';
+import { HEARTS } from '../design/bells.js';
 import { corruptionIntensity, veilOpacity } from '../render/corruption-curve.js';
 import { ACCESS } from './access.js';
 import { bandForDistance } from '../render/art-direction.js';
@@ -52,6 +53,26 @@ export class UI {
     this.drainEl = $('drain');
     this.drainDimEl = $('drainDim');
     this._drainT = 0;
+
+    // Hearts — the fail state (Phase 0: folded in from the deleted rc5.js's
+    // second HUD). One pip per life in the HUD column's vitals slot, so they
+    // stack under the score instead of racing its clamped height. The pips are
+    // synced from the sim every frame in update(); a restored heart pulses.
+    // `this.vitals` is the element other layers reach for (mobile UI classes
+    // it, the ship-polish streak widget hangs off it) via window.__UI.
+    this.vitals = document.createElement('div');
+    this.vitals.id = 'vitals';
+    this.vitals.setAttribute('aria-label', 'Health');
+    this.heartPips = [];
+    for (let i = 0; i < HEARTS.MAX; i++) {
+      const h = document.createElement('span');
+      h.className = 'heartPip';
+      h.textContent = '♥';
+      this.vitals.appendChild(h);
+      this.heartPips.push(h);
+    }
+    ($('vitalsSlot') || this.hud || document.body).appendChild(this.vitals);
+    this._lastHearts = HEARTS.MAX;
 
     this._lastDist = -1;
     this._flash = 0;
@@ -156,8 +177,29 @@ export class UI {
     } else this.coach.classList.remove('on');
   }
 
+  /** Paint the heart pips for a life count; `restored` pulses the survivors. */
+  setHearts(n, restored = false) {
+    this.heartPips.forEach((h, i) => h.classList.toggle('empty', i >= n));
+    if (restored) {
+      this.vitals.classList.remove('pulse');
+      void this.vitals.offsetWidth;
+      this.vitals.classList.add('pulse');
+    }
+  }
+
+  /** Keep the hearts in step with the sim: hidden off the run, and a pulse the
+   *  frame a heart comes back (the loss is carried by the sound + drain). */
+  _syncHearts(sim) {
+    const live = sim.phase === 'running';
+    this.vitals.style.opacity = live ? '1' : '0';
+    const n = sim.hearts ?? HEARTS.MAX;
+    this.setHearts(n, live && n > this._lastHearts);
+    this._lastHearts = n;
+  }
+
   update(dt, sim, running) {
     const p = sim.player;
+    this._syncHearts(sim);
     // Phase 25: the headline is the SCORE. Distance only ever said how long
     // you ran; score says how well, because every metre and every read is
     // worth the chain multiplier you were holding. Distance stays on screen
@@ -608,6 +650,8 @@ export class UI {
     this._bandT = 0;
     this._powerT = 0;
     this._showedChargeLesson = false;
+    this._lastHearts = HEARTS.MAX;
+    this.vitals?.classList.remove('pulse');
     this.deathScreen.classList.remove('rc2Poster');
     this.deathScreen.style.backgroundImage = '';
     this.deathStats.style.display = '';

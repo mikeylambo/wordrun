@@ -226,7 +226,7 @@ export function updateMobileTouchUi(player) {
 
   const sim = globalThis.__SIM;
   const input = globalThis.__INPUT;
-  const vitals = globalThis.__RC5?.hud?.vitals;
+  const vitals = globalThis.__UI?.vitals;
   vitals?.classList?.add('v1MobileVitals');
   const running = sim?.phase === 'running';
   const meter = player?.boostMeter || 0;

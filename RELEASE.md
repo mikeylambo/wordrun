@@ -879,3 +879,40 @@ Slice history:
   not re-run, so it shipped a red banned-vocabulary gate: `grid` is the
   engine's name for the road's etched pattern, and naming it in prose trips a
   scan that exempts code spans for exactly that reason.
+
+- Phase 0 — reconcile the architecture. A pure-refactor trust-repair pass:
+  zero player-visible change, proven by a behaviour-snapshot gate
+  (`tools/refactor-snapshot.mjs`) that records the exact hearts/bells/repair/
+  death/score trajectory of five scripted runs and asserts it byte-identical
+  before and after. **The runtime monkey-patch is gone.** `src/rc5.js` — a
+  file named like scaffolding that actually held hearts, heart-repair, bell
+  collection, a second HUD and dead hunt-mode lighting, loaded through one
+  easy-to-miss side-effect import in `render/material-pass.js` and drifted out
+  of sync with the code — was dissolved into its real homes: hearts, the
+  streak-repair ladder and the bell pickup into `sim/sim.js`'s step loop (with
+  the field on `sim.bells`); the bell meshes into `render/bells.js`; the hearts
+  HUD into `ui/ui.js` (styles in `index.html`); the pickup/heart/loss sounds
+  onto the sim's own events in `main.js`. The tiny prototype synth was already
+  dead (the main `Audio` engine had superseded it) and went with the file. The
+  hunt-mode lighting dim and the hunt audio stinger were deleted outright —
+  they keyed on `beast.mode === 'hunt'`, a state that has not existed since the
+  pursuit director was removed. `sim.debug()` no longer throws: it read
+  `this.beast.modeT` / `modeDuration`, fields the live `Beast` never had, so
+  `window.__DEBUG()` threw on every call — dropped. The verge-post branch in
+  `render/props.js` (a confirmed duplicate of `speed-fantasy.js`'s
+  `TrackPylons`, and dead anyway since every feature count is zero) was
+  stripped, and the file now says plainly what it draws and does not. Five
+  orphaned files with zero references were deleted (`rc3.js`,
+  `design/landing-feel.js`, `design/rc6-core.js`, `design/release-tuning.js`,
+  `design/landmarks.js` — the last a name-collision with the live
+  `render/landmarks.js`). The gates that verified behaviour by string-matching
+  `rc5.js` now point at the real homes and prefer the exported `HEARTS.*`
+  constants. Three standing gates were added: the behaviour snapshot, a
+  `sim.debug()` no-throw check, and a reachability gate that fails the build if
+  any `src/` file is unreachable from the two entry points — the check that
+  would have surfaced `rc5.js` in the first place. And the process that let a red
+  gate ship is closed: a `.githooks/pre-commit` re-runs the full suite as the
+  last thing before every commit, after every file including this one. The
+  DASH arming-threshold note left stale on the roadmap (it recommended raising
+  `MIN_ACTIVATE`, which shipped at `= METER_MAX` in Phase 22) was retired, and
+  the leaderboard's policy ruling recorded as settled.

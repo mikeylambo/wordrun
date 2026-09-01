@@ -156,7 +156,6 @@ head('CORRUPTION — identity');
     'src/ui/access.js',
     'src/v1-mobile-ui.js',
     'src/v1-finalize.js',
-    'src/rc5.js',
     'src/render/endgame-sky.js',
   ];
   for (const f of sourceFacing) {
@@ -294,7 +293,7 @@ head('NAMING — five approved names, machine-enforced');
   const nameShaped = [];
   for (const f of ['index.html', 'src/ui/ui.js', 'src/ui/onboarding.js',
     'src/ui/pause.js', 'src/v1-mobile-ui.js', 'src/v1-finalize.js',
-    'src/rc5.js', 'src/render/endgame-sky.js']) {
+    'src/render/endgame-sky.js']) {
     const text = fs.readFileSync(f, 'utf8');
     const strings = [
       ...text.matchAll(/'([^'\n]*)'/g),
@@ -678,7 +677,7 @@ head('BROADCAST — few words, one type system, numbers first');
   const html = htmlAll;
   const uiSrc = fs.readFileSync('src/ui/ui.js', 'utf8');
   const injected = ['src/ui/pause.js', 'src/ui/onboarding.js', 'src/ui/access.js',
-    'src/ui/shop.js', 'src/v1-mobile-ui.js', 'src/rc5.js', 'src/rc81-ui.js']
+    'src/ui/shop.js', 'src/v1-mobile-ui.js', 'src/rc81-ui.js']
     .map((f) => fs.readFileSync(f, 'utf8')).join('\n');
 
   // 1. One face, declared once. Every injected stylesheet inherits it

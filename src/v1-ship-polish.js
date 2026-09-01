@@ -200,9 +200,8 @@ function pollControllerUi() {
 }
 
 function ensureBellChargeHud() {
-  const rc = globalThis.__RC5;
   const sim = globalThis.__SIM;
-  const vitals = rc?.hud?.vitals;
+  const vitals = globalThis.__UI?.vitals;
   if (!vitals || !sim) return;
 
   let root = document.getElementById('v1BellCharge');

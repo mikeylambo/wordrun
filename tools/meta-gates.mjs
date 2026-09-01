@@ -187,7 +187,7 @@ head('META — bells sit on the travel line and feed the balance');
   }
 
   // And an auto-following runner actually collects them: walk the line at
-  // pace and sweep collectNear the way the rc5 layer does each step.
+  // pace and sweep collectNear the way sim.step does each step.
   const t = new Terrain(999);
   const f = new BellField(999, t);
   let collected = 0;
@@ -233,20 +233,24 @@ head('MODES — rules, difficulty, and separated boards');
   check('the Redline hunts at the difficulty pace (gap closes at the pace delta)',
     Math.abs(closed - expect) < 0.05, `closed ${closed.toFixed(2)}m/s vs ${expect}`);
 
-  const rc5 = fs.readFileSync('src/rc5.js', 'utf8');
+  // Phase 0: the heart / bell / streak-repair logic was dissolved out of the
+  // old rc5.js runtime patch into sim.step() itself, so these checks point at
+  // sim/sim.js now — its real home. (The refactor-snapshot gate proves the
+  // relocation was behaviour-preserving; these keep the RULE legible in source.)
+  const simSrc = fs.readFileSync('src/sim/sim.js', 'utf8');
   const bells = fs.readFileSync('src/design/bells.js', 'utf8');
   check('heart repair is still ENDLESS\'s rule alone',
-    rc5.includes("this.rules?.HEART_REPAIR !== false"));
+    simSrc.includes("this.rules?.HEART_REPAIR !== false"));
   // Phase 23: what repairs a heart moved off the bells and onto the verb.
   // The bell drip paid ~4.7 hearts per kilometre with no player input, so a
   // 70% run lost 23 hearts and got all 23 back — ENDLESS could not be lost
   // by misreading, which is exactly why it had no stakes.
   check('bells no longer repair hearts — they pay meter and currency only',
-    !rc5.includes('bellCharge++') && !/BELLS_PER_HEART/.test(rc5 + bells) &&
-    rc5.includes('boostMeter + HEARTS.POWER_PER_BELL'));
+    !simSrc.includes('bellCharge++') && !/BELLS_PER_HEART/.test(simSrc + bells) &&
+    simSrc.includes('boostMeter + HEARTS.POWER_PER_BELL'));
   check('a clean reading streak is what brings a heart back',
-    rc5.includes('this.wordGates.streak') && rc5.includes('STREAK_REPAIR_BY_HEARTS') &&
-    rc5.includes("t: 'heart_restore'"));
+    simSrc.includes('this.wordGates.streak') && simSrc.includes('STREAK_REPAIR_BY_HEARTS') &&
+    simSrc.includes("t: 'heart_restore'"));
   // The ladder shortens under pressure: a flat threshold put a 14x cliff
   // between a 70% reader and an 85% one, because the repair rate crosses the
   // loss rate at about 80% accuracy and nothing either side is close.

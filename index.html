@@ -54,6 +54,14 @@
      grew straight through them. They live in the column's flow now and cannot
      collide with it at any size. */
   #vitalsSlot{margin-top:10px;min-height:22px}
+  /* Hearts — the fail state, one pip per life. Built and driven by ui.js
+     (Phase 0: relocated here from the deleted rc5.js style injection). The
+     danger colour is overridden per colour-vision palette in ui/access.js. */
+  #vitals{display:flex;align-items:center;gap:9px;pointer-events:none;transition:opacity .18s ease}
+  .heartPip{font:600 30px/1 var(--face);color:#d62d24;text-shadow:0 1px 0 rgba(255,255,255,.42),0 2px 8px rgba(60,0,0,.18);opacity:.97;transition:opacity .18s ease,transform .18s ease}
+  .heartPip.empty{opacity:.14;transform:scale(.82)}
+  #vitals.pulse .heartPip:not(.empty){animation:heartPulse .38s ease}
+  @keyframes heartPulse{0%{transform:scale(1)}35%{transform:scale(1.26)}100%{transform:scale(1)}}
   #best{text-align:right;margin-right:42px;font-size:8px;line-height:1.5;letter-spacing:var(--tag);text-transform:uppercase;color:var(--dim)}
   #best b{display:block;margin-top:2px;font-size:15px;font-weight:700;letter-spacing:-.02em;color:#e8f7ff}
   #chain{display:none!important}

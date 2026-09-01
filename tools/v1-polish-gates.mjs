@@ -168,11 +168,13 @@ check(!viewport.includes('requestAnimationFrame'),
 // clamp(38px..66px), so on a wide viewport the score grew straight through
 // them. Position them in the HUD column's flow and the collision cannot
 // return at any width — measured clear at 390, 430, 768, 1280 and 1670.
-const rc5Src = read('src/rc5.js');
+// Phase 0: the hearts HUD was folded out of the deleted rc5.js into ui.js
+// (built there, appended to the #vitalsSlot flow) with its CSS in index.html.
+const uiSrc = read('src/ui/ui.js');
 const html = read('index.html');
-check(html.includes('id="vitalsSlot"') && rc5Src.includes("getElementById('vitalsSlot')"),
+check(html.includes('id="vitalsSlot"') && uiSrc.includes("$('vitalsSlot')"),
   'the hearts live in the HUD column, not at a guessed offset');
-check(!/#rc5Vitals\{position:absolute[^}]*top:calc\(var\(--safe-t\) \+ 60px\)/.test(rc5Src),
+check(!/#vitals\{[^}]*position:absolute/.test(html),
   'no fixed top offset races the fluid score headline');
 check(/#vitalsSlot\{[^}]*margin-top/.test(html),
   'the slot spaces itself from the line above rather than overlapping it');

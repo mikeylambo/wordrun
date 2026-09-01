@@ -60,7 +60,7 @@ function apply() {
   }
   const c = p.dangerCss;
   styleEl.textContent = ACCESS.palette === 'off' ? '' : `
-    .rc5-heart{color:rgb(${c}) !important}
+    .heartPip{color:rgb(${c}) !important}
     #dreadRed{background:radial-gradient(135% 90% at 50% 118%,rgba(${c},.5) 0%,rgba(${c},0) 58%) !important}
   `;
 }

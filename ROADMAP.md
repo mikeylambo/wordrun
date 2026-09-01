@@ -9,13 +9,11 @@ file only holds what is NOT built yet.
    running game (Speed Stars), the leaderboard is the stated retention engine,
    not cosmetics — "climb the global leaderboard" is the whole pitch. Clone the
    daily-board pattern from the studio's earlier brain-training game (Supabase,
-   daily seed, display names). Still blocked on a policy ruling: should daily
-   goals and boards require NORMAL difficulty, or stay per-variant? Today goals
-   clear on EASY. The same ruling decides whether continued runs (Phase 14's
-   priced continue) are board-eligible — the shipped local rule is that they
-   are not: a continue never sets BEST TODAY and never saves a ghost. This
-   ruling is now the single thing blocking the highest-leverage item on this
-   list.
+   daily seed, display names). Policy ruling now settled: boards are
+   per-difficulty-variant (separate EASY / NORMAL / HARD); daily goals clear on
+   any difficulty; continued runs stay board-ineligible, matching the shipped
+   local rule (a continue never sets BEST TODAY and never saves a ghost). What
+   remains is the build itself, behind its own network audit.
 
 2. **120 fps / WebGPU showcase pass.** Real work, but it is courting-featuring
    work — it earns most after there is a public link worth featuring. Pairs
@@ -35,9 +33,6 @@ file only holds what is NOT built yet.
   prints the decision table), the drain's bite, HARD's pace-30 fairness,
   peak-flow intensity with and without REDUCED FLASH. The stats export
   (Phase 21) is the path for getting real numbers off a player's device.
-- **The DASH arming threshold.** `MIN_ACTIVATE` is 8 against a `METER_MAX`
-  of 100, so the meter arms at 8% and is effectively always armed — the
-  "DASH READY" moment is not a moment. Recommend ~30.
 - **Trademark search result on "Diction Dash"** — repo rename and any store
   listing wait on it.
 - **YouTube Playables application** — the build is audit-green

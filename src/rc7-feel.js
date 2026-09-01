@@ -1,25 +1,6 @@
 // RC7.1 — feel/stability only. No new game systems.
 // Runs inside the existing game frame: no second requestAnimationFrame loop.
 
-function addThreatBang() {
-  if (document.getElementById('rc71-threat-style')) return;
-  const style = document.createElement('style');
-  style.id = 'rc71-threat-style';
-  style.textContent = `
-    #rc5Threat svg{display:none!important}
-    #rc5Threat::before{
-      content:'!';display:grid;place-items:center;width:100%;height:100%;
-      color:#ff382f;font:800 34px/.9 var(--face);
-      -webkit-text-stroke:1px rgba(255,255,255,.7);
-      text-shadow:0 3px 9px rgba(0,0,0,.42);
-    }
-    #rc5Threat.left{margin-left:-31px!important}
-    #rc5Threat.right{margin-left:-3px!important}
-    #rc5Threat.leap::before{font-size:38px}
-  `;
-  document.head.appendChild(style);
-}
-
 function patchTracks(actor) {
   if (!actor || actor.__rc71TrackPatched || !actor._trackLeft || !actor._trackRight) return;
   actor.__rc71TrackPatched = true;
@@ -104,10 +85,9 @@ function boot() {
     requestAnimationFrame(boot);
     return;
   }
-  addThreatBang();
   patchTracks(render.playerActor);
   patchRenderBudget(render.stage);
-  window.__RC71_FEEL = { threatBang: true, trackGcReduced: true, adaptiveDpr: true };
+  window.__RC71_FEEL = { trackGcReduced: true, adaptiveDpr: true };
 }
 
 requestAnimationFrame(boot);

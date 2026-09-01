@@ -1,6 +1,8 @@
 // RC8.1 — UI clarity fixes that need access to live render/storage state.
-// No extra animation loop: all screen anchoring rides the existing player update.
-import * as THREE from 'three';
+// (Phase 0: the threat-indicator anchoring and its CSS were removed with the
+// rest of the dead hunt/threat cue — beast.mode has been hardcoded 'run' since
+// the pursuit director was deleted, so the indicator never appeared. What
+// remains is the live BEST RUN toggle, which genuinely needs sim state.)
 import Storage from './storage/storage.js';
 
 function patchGhostPreference() {
@@ -32,54 +34,9 @@ function patchGhostPreference() {
   };
 }
 
-function addUiStyle() {
-  if (document.getElementById('rc81-ui-style')) return;
-  const style = document.createElement('style');
-  style.id = 'rc81-ui-style';
-  style.textContent = `
-    #rc5Threat{margin-left:-17px!important;margin-top:-34px!important}
-    #rc5Threat.left,#rc5Threat.right,#rc5Threat.leap{margin-left:-17px!important}
-  `;
-  document.head.appendChild(style);
-}
-
-function patchThreatAnchor(stage, playerActor) {
-  if (!stage?.camera || !playerActor || playerActor.__rc81ThreatAnchor) return;
-  playerActor.__rc81ThreatAnchor = true;
-  const point = new THREE.Vector3();
-  const baseUpdate = playerActor.update.bind(playerActor);
-
-  playerActor.update = function updateRC81Threat(p, slope, dt, beastGap) {
-    baseUpdate(p, slope, dt, beastGap);
-    const threat = document.getElementById('rc5Threat');
-    if (!threat) return;
-
-    point.set(p.x, p.y + 2.65, -p.d).project(stage.camera);
-    const rect = stage.renderer.domElement.getBoundingClientRect();
-    const x = rect.left + (point.x * 0.5 + 0.5) * rect.width;
-    const y = rect.top + (-point.y * 0.5 + 0.5) * rect.height;
-    threat.style.left = `${x.toFixed(1)}px`;
-    threat.style.top = `${y.toFixed(1)}px`;
-    threat.style.visibility = point.z > -1 && point.z < 1 ? 'visible' : 'hidden';
-  };
-}
-
 patchGhostPreference();
 
-function boot() {
-  const render = window.__RENDER;
-  // Wait until RC7.1 has installed its player wrapper and CSS so our anchor/style
-  // are definitively the final player-facing threat treatment.
-  if (!render?.stage || !render?.playerActor || !window.__RC71_FEEL) {
-    requestAnimationFrame(boot);
-    return;
-  }
-  addUiStyle();
-  patchThreatAnchor(render.stage, render.playerActor);
-  window.__RC81_UI = {
-    version: '8.1',
-    threatAnchored: true,
-    ghostLiveToggle: true,
-  };
-}
-requestAnimationFrame(boot);
+window.__RC81_UI = {
+  version: '8.1',
+  ghostLiveToggle: true,
+};

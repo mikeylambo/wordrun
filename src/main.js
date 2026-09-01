@@ -19,6 +19,8 @@ import { WordGateActors, plateFontReady } from './render/word-gates.js';
 import { DataworldPass } from './render/dataworld.js';
 import { StreakBurst } from './render/streak-burst.js';
 import { WindStreaks, TrackPylons } from './render/speed-fantasy.js';
+import { BellRenderer } from './render/bells.js';
+import { HEARTS } from './design/bells.js';
 import { flowFactor, flowGlow, flowLevel } from './render/flow-curve.js';
 import { ACCESS, initAccess, buildAccessPanel } from './ui/access.js';
 import { applyMaterialPass } from './render/material-pass.js';
@@ -73,6 +75,10 @@ const streakBurst = new StreakBurst(stage.scene);
 stage.scene.add(stage.camera);
 const windStreaks = new WindStreaks(stage.camera);
 const trackPylons = new TrackPylons(stage.scene, sim.terrain);
+// The bells the runner collects. The sim owns the field and the pickup
+// (sim.bells); this only draws it. Created after the material pass so its
+// baked-in gold emissive is left alone by the pass's material sweep.
+const bellRenderer = new BellRenderer(stage.scene, sim.terrain, sim.bells);
 
 const simInput = emptyInput();
 let running = false;
@@ -297,6 +303,7 @@ function startRun() {
   terrainMesh.flush();
   props.reset();
   props.update(0, true);
+  bellRenderer.reset(sim.terrain);
   landmarks.reset();
   landmarks.update(0);
 
@@ -872,6 +879,12 @@ function drainSimEvents() {
         if (e.chain > 0) audio.chainLink(e.chain);
         break;
       case 'chain_lost': audio.chainLost(); break;
+      // Hearts and bells (Phase 0: driven by sim events now, not a frame-delta
+      // poll in the deleted rc5 layer). The heart HUD itself is synced from
+      // sim.hearts in ui.update; these are only the sounds.
+      case 'heart_lost': audio.heartLost(); break;
+      case 'heart_restore': audio.heartRestore(); break;
+      case 'bell': audio.bell((((e.charge | 0) - 1) % HEARTS.BELL_TONE_CYCLE + HEARTS.BELL_TONE_CYCLE) % HEARTS.BELL_TONE_CYCLE); break;
       case 'overdrive_on':
         learn('Dash');
         // The DASH lands as one event across three channels (Phase 16):
@@ -1003,6 +1016,8 @@ function tick(dt) {
   terrainMesh.update(p.d);
   terrainMesh.pump();
   props.update(p.d);
+  if (bellRenderer.terrain !== sim.terrain) bellRenderer.reset(sim.terrain);
+  bellRenderer.update(p.d, performance.now() / 1000);
   landmarks.update(p.d);
   wordGateActors.update(dt, p.d, stage.camera);
   streakBurst.update(paused ? 0 : dt, stage.camera);
@@ -1107,9 +1122,10 @@ window.__MUSIC = () => ({
   el: music.el, clock: music.clock, state: musicState, fov: rig.camera.fov,
 });
 window.__TUNING = TUNING;
+window.__UI = ui;
 window.__RENDER = {
   stage, terrainMesh, props, landmarks, rig, playerActor, beastActor, ghostActor, spray, materialPass,
-  wordGateActors, dataworld, streakBurst,
+  wordGateActors, dataworld, streakBurst, bells: bellRenderer,
 };
 // The tuning panel, for playtesting where there is no console. A dynamic
 // import so it lands in its own chunk: a normal load never fetches it.

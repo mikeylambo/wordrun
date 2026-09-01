@@ -1,8 +1,22 @@
 /**
- * Instanced mountain props.
+ * Instanced mountain props — trees and rocks placed on terrain colliders.
  *
- * Collision stays deterministic; presentation gets enough per-instance variation
- * that the mountain does not read as repeated Christmas-tree / frosted-rock stamps.
+ * WHAT IT DRAWS TODAY: nothing. Every FEATURES spawn count is zeroed
+ * (TREE_COUNT / ROCK_COUNT [0,0]; GATE_CHANCE / CLIFF_CHANCE / MOGUL_CHANCE 0 —
+ * the dodge verb was removed), so terrain.chunk() returns an empty collider
+ * list and the update() loop below places zero instances. The tree/rock
+ * rendering is kept, dormant, because it is a designed system with a full
+ * density/character profile in TUNING.FEATURES.PITCHES waiting on features to
+ * return — it is NOT dead code, it is unfed code. When counts come back it
+ * draws again with no further wiring.
+ *
+ * WHAT IT DOES NOT DRAW: the verge posts. Those are `TrackPylons` in
+ * render/speed-fantasy.js, which owns them outright. Phase 0.2 removed the
+ * GATE/pole branch that used to live here — it drew nothing (GATE_CHANCE is 0)
+ * and only invited the two-systems-for-one-thing confusion the audit found.
+ *
+ * Collision stays deterministic; presentation gets enough per-instance
+ * variation that the mountain does not read as repeated stamps.
  */
 
 import * as THREE from 'three';
@@ -14,15 +28,10 @@ import { SURFACES, applySurface } from './surface-textures.js';
 
 const T = TUNING.TERRAIN;
 const F = TUNING.FEATURES;
-const R = TUNING.RUN;
-// Must match BANK in terrain-mesh.js — the ribbon's edge lift into a turn, so
-// a post planted on that edge sits on it rather than through it.
-const EDGE_BANK = 0.35;
 const CHUNKS = T.CHUNKS_AHEAD + T.CHUNKS_BEHIND + 1;
 
 const CAP_TREE = CHUNKS * (F.TREE_COUNT[1] + 2) * 2;
 const CAP_ROCK = CHUNKS * (F.ROCK_COUNT[1] + 2);
-const CAP_POLE = CHUNKS * 6;
 
 const m4 = new THREE.Matrix4();
 const mSnow = new THREE.Matrix4();
@@ -64,20 +73,12 @@ export class Props {
     const rockSnowGeo = new THREE.SphereGeometry(0.88, 7, 4);
     rockSnowGeo.scale(1, 0.18, 0.82);
     rockSnowGeo.translate(0, 0.82, 0);
-    const poleGeo = new THREE.CylinderGeometry(
-      F.GATE_POLE_RADIUS, F.GATE_POLE_RADIUS, F.GATE_POLE_HEIGHT, 7
-    );
-    poleGeo.translate(0, F.GATE_POLE_HEIGHT / 2, 0);
-    const tipGeo = new THREE.OctahedronGeometry(0.5, 0);
-    tipGeo.translate(0, F.GATE_POLE_HEIGHT + 0.35, 0);
 
     this.mats = {
       pine: surfaceMat(PALETTE.PINE, 'bark', 0.9, 0),
       trunk: surfaceMat(PALETTE.TRUNK, 'bark', 0.92, 0),
       rock: surfaceMat(PALETTE.ROCK, 'rock', 0.89, 0.005),
       snow: surfaceMat(PALETTE.SNOW_CREST, 'snow', 0.92, 0),
-      pole: surfaceMat(PALETTE.GATE_POLE, 'metal', 0.5, 0.2),
-      tip: surfaceMat(PALETTE.GATE_TIP, 'metal', 0.42, 0.16),
     };
 
     this.pine = this._inst(pineGeo, this.mats.pine, CAP_TREE);
@@ -85,8 +86,6 @@ export class Props {
     this.trunk = this._inst(trunkGeo, this.mats.trunk, CAP_TREE);
     this.rock = this._inst(rockGeo, this.mats.rock, CAP_ROCK);
     this.rockSnow = this._inst(rockSnowGeo, this.mats.snow, CAP_ROCK);
-    this.pole = this._inst(poleGeo, this.mats.pole, CAP_POLE);
-    this.tip = this._inst(tipGeo, this.mats.tip, CAP_POLE);
 
     this.baseCi = null;
   }
@@ -109,10 +108,6 @@ export class Props {
     this.mats.trunk.color.setHex(a.rockDark).lerp(mixColor.setHex(b.rockDark), mix.t);
     this.mats.rock.color.setHex(a.rock).lerp(mixColor.setHex(b.rock), mix.t);
     this.mats.snow.color.setHex(a.crest).lerp(mixColor.setHex(b.crest), mix.t);
-
-    const depth = Math.min(1, playerD / 3200);
-    this.mats.pole.color.setHex(PALETTE.GATE_POLE).lerp(mixColor.setHex(0x39434c), depth * 0.7);
-    this.mats.tip.color.setHex(PALETTE.GATE_TIP).lerp(mixColor.setHex(0x9bb5c3), depth * 0.55);
   }
 
   update(playerD, force = false) {
@@ -121,7 +116,7 @@ export class Props {
     this.baseCi = base;
     this._setMood(playerD);
 
-    let nTree = 0, nTreeSnow = 0, nRock = 0, nRockSnow = 0, nPole = 0;
+    let nTree = 0, nTreeSnow = 0, nRock = 0, nRockSnow = 0;
 
     for (let i = 0; i < CHUNKS; i++) {
       const chunk = this.terrain.chunk(base + i);
@@ -198,35 +193,15 @@ export class Props {
             this.rockSnow.setMatrixAt(nRockSnow++, mSnow);
           }
           nRock++;
-        } else if (c.type === FEATURE.GATE && nPole < CAP_POLE) {
-          // Playtest: "the poles aren't attached to anything". They weren't —
-          // they took the generator's own x and the terrain height there,
-          // which for a verge post is a point somewhere off the side of a
-          // ribbon that is the only visible ground in the scene, so each one
-          // stood on nothing. Snap them to the ribbon's own edge, on the side
-          // they were generated, at the banked height that edge actually sits
-          // at. They now rise off the rail — which is also where the etched
-          // grid stops — so the road has one continuous boundary instead of
-          // three things that nearly agree.
-          const cx = this.terrain.corridorX(c.d);
-          const side = c.x >= cx ? 1 : -1;
-          const slope = this.terrain.corridorSlope ? this.terrain.corridorSlope(c.d) : 0;
-          vPos.set(cx + side * R.TRACK_HALF_W,
-            -side * slope * EDGE_BANK * R.TRACK_HALF_W * 0.5, -c.d);
-          q.identity();
-          vScale.set(1, 1, 1);
-          m4.compose(vPos, q, vScale);
-          this.pole.setMatrixAt(nPole, m4);
-          this.tip.setMatrixAt(nPole, m4);
-          nPole++;
         }
+        // Verge posts (FEATURE.GATE) are NOT drawn here — see the file header.
+        // TrackPylons in render/speed-fantasy.js owns them.
       }
     }
 
     this.pine.count = nTree; this.trunk.count = nTree; this.pineSnow.count = nTreeSnow;
     this.rock.count = nRock; this.rockSnow.count = nRockSnow;
-    this.pole.count = nPole; this.tip.count = nPole;
-    for (const m of [this.pine, this.pineSnow, this.trunk, this.rock, this.rockSnow, this.pole, this.tip]) {
+    for (const m of [this.pine, this.pineSnow, this.trunk, this.rock, this.rockSnow]) {
       m.instanceMatrix.needsUpdate = true;
       if (m.instanceColor) m.instanceColor.needsUpdate = true;
     }
@@ -235,7 +210,7 @@ export class Props {
   reset() { this.baseCi = null; }
 
   dispose() {
-    const meshes = [this.pine, this.pineSnow, this.trunk, this.rock, this.rockSnow, this.pole, this.tip];
+    const meshes = [this.pine, this.pineSnow, this.trunk, this.rock, this.rockSnow];
     const disposedMaterials = new Set();
     for (const m of meshes) {
       m.geometry.dispose();

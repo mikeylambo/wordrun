@@ -406,16 +406,11 @@ if (!Input.prototype.__rc9AirDirectionFixed) {
 let rc99PresentationInstalled = false;
 function ensureRC99Presentation() {
   if (rc99PresentationInstalled) return;
-  const rc = globalThis.__RC5;
   const render = globalThis.__RENDER;
-  if (!rc?.bellRenderer || !render?.landmarks) return;
+  if (!render?.bells || !render?.landmarks) return;
 
-  // InstancedMesh's default bounds remain near its construction origin. At long
-  // distances that can cull every bell even though the instance matrices are
-  // correctly rebuilt around the player. These are only 56 tiny instances, so
-  // always submitting them is cheaper and more correct than rebuilding bounds.
-  rc.bellRenderer.body.frustumCulled = false;
-  rc.bellRenderer.clapper.frustumCulled = false;
+  // (Phase 0: the bell frustum-cull opt-out now lives in the BellRenderer
+  // constructor in render/bells.js, so there is nothing to fix up here.)
 
   // TorusGeometry is already a vertical XY hoop. The old X rotation turned THE
   // TUNNEL into horizontal donuts while gameplay collision expected vertical

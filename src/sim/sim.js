@@ -9,6 +9,7 @@ import { Beast } from './beast.js';
 import { ENDGAME } from '../design/endgame.js';
 import { GhostRecorder, GhostPlayer } from './ghost.js';
 import { WordGates } from './word-gates.js';
+import { BellField, HEARTS } from '../design/bells.js';
 // Phase 7: the RC6 beat/pursuit pass and the landing-feel pass are retired
 // with the downhill verb — the track is flat and the pursuit is a pure
 // speed differential. See sim/terrain.js and sim/beast.js.
@@ -43,6 +44,20 @@ export class Sim {
     this._acc = 0;
     this._lastStuntId = null;
     this.stuntsCleared = 0;
+
+    // Hearts, the streak-repair ladder and the bell pickup (Phase 0: dissolved
+    // out of the old rc5.js runtime patch into the sim itself, where the
+    // mechanics they gate already live). Hearts are the fail state; the bell
+    // field is the ambient meter/currency drip. Both are stepped natively in
+    // step() and surfaced through state()/debug() — nothing patches the sim at
+    // runtime any more.
+    this.bells = new BellField(this.seed, this.terrain);
+    this.maxHearts = HEARTS.MAX;
+    this.hearts = HEARTS.MAX;
+    this.bellsCollected = 0;
+    this.bellCharge = 0;
+    this._lastCleanStreak = 0;
+    this.deathCause = null;
   }
 
   /**
@@ -94,6 +109,16 @@ export class Sim {
     this.events.length = 0;
     this._lastStuntId = null;
     this.stuntsCleared = 0;
+
+    // Fresh vitals per run, and the bell field re-seeded onto this run's
+    // terrain (a new run may have rebuilt it above).
+    this.maxHearts = HEARTS.MAX;
+    this.hearts = HEARTS.MAX;
+    this.bellsCollected = 0;
+    this.bellCharge = 0;
+    this._lastCleanStreak = 0;
+    this.deathCause = null;
+    this.bells.reset(this.seed, this.terrain);
     return this;
   }
 
@@ -111,6 +136,10 @@ export class Sim {
     }
     if (this.phase !== PHASE.RUNNING) return;
 
+    // A wrong read costs a heart through the obstacle ledger (word-gates.js
+    // increments obstaclesHit on a tapped fake). Snapshot it before the step so
+    // the heart bookkeeping at the end can price exactly this step's mistakes.
+    const beforeHits = this.player.obstaclesHit;
 
     const proxMult = this.beast.proximityMult();
     this.player.step(dt, input, proxMult, this.events);
@@ -207,6 +236,62 @@ export class Sim {
       this.killSource = 'main';
       this.events.push({ t: 'kill', source: 'main', air: !!this.beast.killAir });
     }
+
+    this._stepVitals(beforeHits);
+  }
+
+  /**
+   * Hearts, the bell pickup and the streak-repair ladder — relocated verbatim
+   * from the old rc5.js runtime patch (Phase 0). Runs at the tail of step(),
+   * exactly where the patch used to wrap it.
+   *
+   *  - Being run down is 'redlined': the pursuit closed the gap, the kill cam
+   *    is already rolling, and the hearts never enter into it.
+   *  - A wrong read spends a heart; the third wrong read is a 'wipeout'.
+   *  - Bells pay boost meter and banked currency (never hearts — Phase 23).
+   *  - A clean reading streak brings a heart back, the ladder shortening the
+   *    closer to the end you are (ENDLESS only; STANDARD is three reads, ever).
+   */
+  _stepVitals(beforeHits) {
+    if (this.phase === PHASE.KILL) { this.deathCause = 'redlined'; return; }
+    if (this.phase !== PHASE.RUNNING) return;
+
+    const hits = this.player.obstaclesHit - beforeHits;
+    if (hits > 0) {
+      this.hearts = Math.max(0, this.hearts - hits);
+      this.events.push({ t: 'heart_lost', hearts: this.hearts });
+      if (this.hearts <= 0) {
+        this.player.dead = true;
+        this.deathCause = 'wipeout';
+        this.recorder.finish(this.player);
+        this.phase = PHASE.DEAD;
+        this.events.push({ t: 'wipeout' });
+        return;
+      }
+    }
+
+    const heartRepair = this.rules?.HEART_REPAIR !== false;
+    const picked = this.bells.collectNear(this.player);
+    for (const bell of picked) {
+      this.bellsCollected++;
+      this.player.boostMeter = Math.min(
+        TUNING.BOOST.METER_MAX,
+        this.player.boostMeter + HEARTS.POWER_PER_BELL
+      );
+      this.events.push({
+        t: 'bell', id: bell.id, x: bell.x, d: bell.d,
+        charge: this.bellsCollected, power: HEARTS.POWER_PER_BELL,
+      });
+    }
+
+    const streak = this.wordGates.streak;
+    const need = HEARTS.STREAK_REPAIR_BY_HEARTS[this.hearts] ?? HEARTS.STREAK_REPAIR_DEFAULT;
+    if (heartRepair && streak > 0 && streak !== this._lastCleanStreak &&
+        streak % need === 0 && this.hearts < this.maxHearts) {
+      this.hearts++;
+      this.events.push({ t: 'heart_restore', hearts: this.hearts, streak });
+    }
+    this._lastCleanStreak = streak;
   }
 
   advance(realDt, input) {
@@ -251,6 +336,12 @@ export class Sim {
       wordStreak: this.wordGates.streak,
       bestWordStreak: this.wordGates.bestStreak,
       killSource: this.killSource,
+      hearts: this.hearts,
+      maxHearts: this.maxHearts,
+      bellsCollected: this.bellsCollected,
+      bellCharge: this.bellCharge,
+      chaseMode: this.beast.mode,
+      deathCause: this.deathCause,
     };
   }
 
@@ -298,6 +389,14 @@ export class Sim {
       wakefulness: +this.beast.wakefulness().toFixed(3),
       stuntsCleared: this.stuntsCleared,
       lastStuntId: this._lastStuntId,
+      hearts: this.hearts,
+      bellsCollected: this.bellsCollected,
+      bellCharge: this.bellCharge,
+      // beast.mode is hardcoded 'run' since the pursuit director was deleted;
+      // the old debug read this.beast.modeT / modeDuration, which never existed
+      // on the live Beast and made __DEBUG() throw. Dropped (Phase 0.1).
+      chaseMode: this.beast.mode,
+      deathCause: this.deathCause,
       wordGate: (() => {
         const g = this.wordGates.current();
         return {
