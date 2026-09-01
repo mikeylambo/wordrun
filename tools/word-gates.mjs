@@ -173,25 +173,33 @@ function runReader(seed, metres, answerFn) {
   check('never answering is punished by every real word',
     s.wordsWrong > 0 && s.wordsCorrect > 0,
     `${s.wordsWrong} missed reals, ${s.wordsCorrect} correctly ignored fakes`);
-  // Phase 23: a silent run wipes out. Every real word that slips costs a
-  // heart, so the run that never touches the screen ends on the third one —
-  // it does not coast on the free 50% that passing every fake used to bank.
-  // Nothing is ever tapped, so nothing is ever a false tap.
-  check('a silent run wipes out — every missed real is on the hearts ledger',
-    sim.player.obstaclesHit === sim.wordGates.missedReals &&
-    sim.wordGates.missedReals === s.wordsWrong && sim.wordGates.falseTaps === 0,
+  // Phase C moved the heart onto the single action that earns it. A silent
+  // run therefore spends no hearts at all — it is run down by the speed it
+  // keeps losing, which is what was actually ending those runs even when the
+  // heart was also being charged. Nothing is tapped, so nothing is a false tap.
+  check('a silent run spends no hearts and is run down instead',
+    sim.player.obstaclesHit === 0 && sim.wordGates.falseTaps === 0 &&
+    sim.wordGates.missedReals === s.wordsWrong,
     `${sim.wordGates.missedReals} omissions, ${sim.player.obstaclesHit} on the hit ledger`);
 }
 
 {
   // The DESCENT-equivalent hit: compare a wrong read against the frame's
   // obstacle-hit contract directly.
-  const seed = SEEDS.find((s2) => !makeGate(s2, 0).real) ?? 12345;
+  // The first gate is ALWAYS real since Phase 29 shaped the opening, so a
+  // seed search for a fake gate 0 can never succeed — it used to fall through
+  // to a real word and test an omission while claiming to test a tapped fake,
+  // which passed only while both cost a heart. Advance to the first fake.
+  const seed = SEEDS[0];
   const sim = new Sim(seed);
   sim.start(seed);
   const input = emptyInput();
-  const g = sim.wordGates.current();
-  // run to just before the first gate
+  let g = sim.wordGates.current();
+  while (g.real && g.index < 40) {
+    while (sim.player.d < g.d + 1) sim.step(input);
+    g = sim.wordGates.current();
+  }
+  // run to just before that gate
   while (sim.player.d < g.d - 2) sim.step(input);
   const speedBefore = sim.player.speed;
   const hitsBefore = sim.player.obstaclesHit;
@@ -706,6 +714,115 @@ head('LATENCY — the early read is worth more, and costs the window nothing');
     !/'[A-Z][A-Z ]{3,}'/.test(body) && /audio\.gate\(e\.chain, early\)/.test(body) &&
     /rig\.dashKick\(/.test(body),
     'the correct-read path carries no display string — sound and camera only');
+}
+
+// ── Phase C: two zones, one primitive ────────────────────────────────────
+head('ZONES — the reject is optional, and never worse than silence');
+{
+  // Bank some meter before testing the commission, or the half-meter penalty
+  // has nothing to take and the assertion measures the harness, not the rule.
+  const play = (kind, action, seed = 11) => {
+    const sim = new Sim(seed); sim.start(seed);
+    let guard = 0, banked = false;
+    while (sim.phase === PHASE.RUNNING && guard++ < 100000) {
+      const wg = sim.wordGates, g = wg.current();
+      if (!banked) {
+        if (sim.player.boostMeter >= 25) banked = true;
+        else {
+          const arm = wg.armed(sim.player.d) && !g.confirmed && !g.rejected;
+          sim.step({ ...emptyInput(), confirm: arm && g.real, reject: arm && !g.real });
+          continue;
+        }
+      }
+      const match = (kind === 'real') === g.real;
+      const armed = wg.armed(sim.player.d) && match && !g.confirmed && !g.rejected;
+      const before = { hits: sim.player.obstaclesHit, correct: wg.correctCount,
+        stagger: sim.player.staggerT, meter: sim.player.boostMeter };
+      sim.step({ ...emptyInput(),
+        confirm: armed && action === 'right', reject: armed && action === 'left' });
+      if (match && g.resolved) {
+        return { correct: wg.correctCount > before.correct,
+          heart: sim.player.obstaclesHit > before.hits,
+          stagger: sim.player.staggerT > before.stagger,
+          meterLost: sim.player.boostMeter < before.meter };
+      }
+    }
+    return null;
+  };
+
+  const t = {
+    realRight: play('real', 'right'), fakeLeft: play('fake', 'left'),
+    fakePass: play('fake', 'pass'), fakeRight: play('fake', 'right'),
+    realLeft: play('real', 'left'), realPass: play('real', 'pass'),
+  };
+  check('saying real to a real word is correct', t.realRight?.correct === true, 'right zone on a true spelling');
+  check('saying fake to a fake word is correct', t.fakeLeft?.correct === true, 'left zone on a misspelling');
+  check('letting a fake go past is still correct', t.fakePass?.correct === true,
+    'the passive path survives — a cautious player plays the old game');
+  check('saying real to a fake is the hit',
+    t.fakeRight?.correct === false && t.fakeRight?.heart && t.fakeRight?.stagger && t.fakeRight?.meterLost,
+    'heart, stagger and meter, exactly as before');
+  check('rejecting a real word costs no heart',
+    t.realLeft?.correct === false && t.realLeft?.heart === false && t.realLeft?.stagger === false,
+    'a reject must never be more dangerous than silence, or nobody presses it');
+  check('the reject is never worse than saying nothing',
+    t.realLeft?.heart === t.realPass?.heart && t.realLeft?.stagger === t.realPass?.stagger,
+    'identical consequence, so using the control is never punished');
+
+  // A player who never touches the left zone must play exactly today's game.
+  const run = (useLeft) => {
+    const sim = new Sim(4242); sim.start(4242);
+    let guard = 0;
+    while (sim.phase === PHASE.RUNNING && guard++ < 300000 && sim.player.d < 6000) {
+      const wg = sim.wordGates, g = wg.current();
+      const armed = wg.armed(sim.player.d) && !g.confirmed && !g.rejected;
+      sim.step({ ...emptyInput(),
+        confirm: armed && g.real, reject: armed && useLeft && !g.real });
+    }
+    return { d: Math.round(sim.player.d), correct: sim.wordGates.correctCount,
+      wrong: sim.wordGates.wrongCount, hearts: sim.player.obstaclesHit };
+  };
+  const cautious = run(false); const active = run(true);
+  check('never using the left zone is not a disadvantage',
+    cautious.correct === active.correct && cautious.wrong === active.wrong &&
+    cautious.hearts === active.hearts,
+    `${cautious.correct} correct either way — the left zone buys timing, not outcomes`);
+
+  // Both zones at once is the dash, and it must not also read as an answer.
+  const inputSrc = fs.readFileSync('src/input/input.js', 'utf8');
+  // The dash is decided on the PRESS. Deciding it on the release cannot work:
+  // a reading fires when a thumb lifts, so the first half of a two-thumb dash
+  // had already been spent as an answer before the second half arrived —
+  // measured, two edges instead of one. Waiting to see whether a second thumb
+  // lands would instead tax every single answer, which Phase B made costly.
+  check('the dash is detected on the press, not on the release',
+    /_zonePress\(id, clientX\)/.test(inputSrc) &&
+    /if \(this\.enabled\) this\._zonePress\(e\.pointerId, e\.clientX\)/.test(inputSrc) &&
+    /meta\.spent = true/.test(inputSrc),
+    'both pointers are marked spent, so neither lift becomes a reading');
+  check('a spent pointer can never also answer',
+    /_zoneTap\(id, clientX\) \{\s*\n\s*if \(this\.pointerMeta\.get\(id\)\?\.spent\) return;/.test(inputSrc),
+    'the tap path checks the flag the press path set');
+  check('the hold that used to arm the dash is gone',
+    !/GO_HOLD_MS/.test(inputSrc) && /dashEdge/.test(inputSrc),
+    'the dash is an edge — no quarter-second tax on the most important verb');
+
+  // Every device reaches the same two sim flags.
+  check('keyboard, pointer and the on-screen button all reach the same flags',
+    /case 'ArrowRight': case 'KeyD': if \(down\) this\.jump = true/.test(inputSrc) &&
+    /case 'ArrowLeft': case 'KeyA': if \(down\) this\.reject = true/.test(inputSrc) &&
+    /_zoneTap\(e\.pointerId, e\.clientX\)/.test(inputSrc) &&
+    /consumeJump\(\) \{ this\.jump = false; this\.reject = false; this\.dashEdge = false; \}/.test(inputSrc),
+    'one primitive, three ways in, one edge consumed per frame');
+
+  // The shaped opening still holds with the new action available.
+  let openingHolds = true;
+  for (let seed = 0; seed < 500; seed++) {
+    if (!makeGate(seed, 0).real) { openingHolds = false; break; }
+  }
+  check('the teaching window still holds with the reject available',
+    openingHolds && TUNING.WORDS.OPENING_GATES === 6,
+    'every run still opens on a real word');
 }
 
 console.log(out.join('\n'));

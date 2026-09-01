@@ -597,3 +597,32 @@ Slice history:
   play read as slow. The results card carries the one new figure, replacing
   lifetime kilometres — which said the least of the three now that distance is
   on its way out as a board metric.
+- Phase C — two zones, one primitive. The right half of the screen says the
+  word is real, the left half says it is fake, and saying nothing still says
+  fake. The passive path is untouched on purpose: a cautious player who never
+  reaches for the left zone plays exactly the game they already knew, and a
+  scripted pair of runs confirms it — 84 correct reads either way, identical
+  hearts and identical mistakes. The left zone buys timing, not outcomes.
+  The heart moved, deliberately, and this needed thinking about because
+  Phase 23 had put it on both wrong reads to stop idling. It now sits on
+  exactly one action — saying REAL to a fake — because a reject that costs
+  MORE than silence is a control nobody would ever press, which would have
+  made the whole phase decorative. The worry was that idling would come back;
+  it does not. An untouched run ends at 328 metres in 14.4 seconds with zero
+  hearts spent, run down rather than wiped out. The speed differential was
+  always what ended those runs; the heart was never doing that work.
+  Two real faults surfaced while building it. The two-thumb dash was detected
+  on the release, and a reading fires when a thumb lifts — so the first half
+  of the gesture had already been spent as an answer before the second half
+  landed, measured as two edges where there should be one. Deciding on the
+  press instead fixes it with no cost anywhere: waiting to see whether a
+  second thumb arrives would have taxed every single answer by the width of
+  the window, and Phase B had just made answer latency worth score. And a gate
+  that claimed to test a tapped fake had been testing an omission since
+  Phase 29 shaped the opening — it searched for a seed whose first gate is
+  fake, which can no longer exist, and passed only while both mistakes cost a
+  heart. Both are gated now.
+  The 250 ms hold that armed the dash is gone; it is an edge on Space or on
+  both zones. The arrow and WASD pairs became the two zones, which cost
+  nothing: they drove a steering axis the sim has ignored since the track
+  became auto-followed, and nothing reads it.

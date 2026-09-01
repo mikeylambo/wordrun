@@ -20,7 +20,8 @@ export const PHASE = {
 };
 
 export function emptyInput() {
-  return { carve: 0, flip: 0, jump: false, boostHeld: false, dragging: false, confirm: false };
+  return { carve: 0, flip: 0, jump: false, boostHeld: false, dragging: false,
+    confirm: false, reject: false };
 }
 
 export class Sim {
@@ -112,7 +113,8 @@ export class Sim {
     // The verb: a correct read adds speed, a wrong read subtracts it (and
     // costs a heart via the obstacle ledger). The Redline feels both only
     // through the speed differential — no pressure is registered anywhere.
-    this.wordGates.step(this.player, input.confirm, this.events, proxMult, this.time);
+    this.wordGates.step(this.player, input.confirm, this.events, proxMult, this.time,
+      input.reject);
 
 
     this.beast.step(dt, this.player);

@@ -27,7 +27,8 @@ const CSS = `
   color:rgba(207,232,245,.72)}
 #devPanel .lbl b{color:#eafaff;font-weight:700}
 #devPanel input[type=range]{width:100%;height:16px;margin:0 0 4px;accent-color:#67d8ff}
-#devPanel .row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px}
+#devPanel .row{display:flex;flex-direction:column;gap:4px;margin-bottom:5px}
+#devPanel .row.wide button{width:100%;text-align:left;padding:7px 9px}
 #devPanel button{appearance:none;cursor:pointer;border:1px solid rgba(255,255,255,.2);
   background:rgba(255,255,255,.06);color:#dff2fc;border-radius:2px;padding:5px 7px;
   font:600 9px/1 ui-monospace,monospace;letter-spacing:.06em}
@@ -81,7 +82,7 @@ export async function mountDevPanel() {
   if (lab) {
     const g = document.createElement('div');
     g.className = 'grp';
-    g.innerHTML = '<div class="lbl"><span>look</span></div><div class="row"></div>';
+    g.innerHTML = '<div class="lbl"><span>look</span></div><div class="row wide"></div>';
     const row = g.querySelector('.row');
     for (const name of ['current', ...Object.keys(lab.STYLES).filter((k) => k !== 'current')]) {
       const b = document.createElement('button');
@@ -100,7 +101,7 @@ export async function mountDevPanel() {
   {
     const g = document.createElement('div');
     g.className = 'grp';
-    g.innerHTML = '<div class="lbl"><span>gates ahead</span><b data-v></b></div><div class="row"></div>';
+    g.innerHTML = '<div class="lbl"><span>gates ahead</span><b data-v></b></div><div class="row wide"></div>';
     const row = g.querySelector('.row');
     const out = g.querySelector('[data-v]');
     const actors = () => window.__RENDER?.wordGateActors;

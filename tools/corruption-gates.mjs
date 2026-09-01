@@ -655,9 +655,12 @@ head('DASH — the second verb, finally legible');
   // list, so the dash's line is prose with its control highlighted inside
   // it. What must hold is that the mechanic is still taught by name on the
   // one screen that explains anything.
+  // Phase C: the dash stopped being a hold, so the line stopped saying Hold.
+  // What must survive is that the mechanic is still taught by name, with its
+  // control set inside the sentence.
   check('the dash gets its own onboarding rule line, by name',
-    files.onboard.includes('Hold <b>${dash}</b>') &&
-    files.onboard.includes('spend a full charge'));
+    files.onboard.includes('<b>${dash}</b>') &&
+    files.onboard.includes('spends a full DASH charge'));
   check('the coach explains where the charge comes from',
     files.ui.includes('CLEAN READS CHARGE THE DASH'));
   check('the teaching beat holds until the player dashes, then retires for good',

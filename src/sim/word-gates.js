@@ -154,7 +154,8 @@ export function makeGate(seed, index, prof = DEFAULT_PROFILE) {
     // (Was `real ? word : null` — exactly backwards, so the picked-fake
     // feedback silently showed the misspelling again. Meta-gated now.)
     answer: word,
-    confirmed: false,
+    confirmed: false,          // answered REAL
+    rejected: false,           // answered FAKE
     resolved: false,
     correct: false,
     // Phase B: filled in at the moment of the answer.
@@ -207,7 +208,7 @@ export class WordGates {
    * `proxMult` is the frame's courage multiplier: reading well with the
    * beast in range banks more, exactly as clean landings did.
    */
-  step(player, confirm, events, proxMult = 1, now = 0) {
+  step(player, confirm, events, proxMult = 1, now = 0, reject = false) {
     const g = this.current();
     const armed = this.armed(player.d);
 
@@ -215,13 +216,19 @@ export class WordGates {
     // moment the player could first have acted rather than from the frame.
     if (armed && g.armedAt == null) g.armedAt = now;
 
-    if (confirm && armed && !g.confirmed) {
-      g.confirmed = true;
+    // Phase C: two zones, one primitive. Right says real, left says fake, and
+    // letting the word go on saying nothing still says fake — the passive path
+    // is not removed, only given a voice for players who want to use it.
+    // Whichever lands first is the answer; a second press cannot revise it.
+    const answering = (confirm || reject) && armed && !g.confirmed && !g.rejected;
+    if (answering) {
+      if (confirm) g.confirmed = true; else g.rejected = true;
       g.answerDistance = Math.max(0, Math.min(W.ARM_DISTANCE_M, g.d - player.d));
       g.answerLatency = Math.max(0, now - (g.armedAt ?? now));
       g.latencyMult = latencyMultFor(g.answerDistance);
       events?.push({
         t: 'word_confirm', index: g.index, word: g.shown,
+        said: confirm ? 'real' : 'fake',
         answerDistance: g.answerDistance, latencyMult: g.latencyMult,
       });
     }
@@ -231,13 +238,16 @@ export class WordGates {
     // it, and holding the outcome back until the line made every answer feel
     // the same however early it came. An untouched gate still resolves at the
     // line exactly as before — the passive path is unchanged.
-    if (!g.confirmed && player.d < g.d) return;
+    const answered = g.confirmed || g.rejected;
+    if (!answered && player.d < g.d) return;
 
     g.resolved = true;
-    g.correct = g.confirmed === g.real;
+    // Said real and it was real, or said fake and it was fake. Saying nothing
+    // still says fake, which is why a passed fake is correct.
+    g.correct = g.confirmed ? g.real : !g.real;
     // Passing pays the late rate: it is the safe answer, and it is the answer
     // the player gets for doing nothing.
-    if (!g.confirmed) {
+    if (!answered) {
       g.answerDistance = 0;
       g.answerLatency = Math.max(0, now - (g.armedAt ?? now));
       g.latencyMult = W.LATE_MULT;
@@ -246,7 +256,7 @@ export class WordGates {
     // has no moment of decision to time — counting its full window transit as
     // a "read" would make the correct cautious play look slow, and the figure
     // is meant to say how fast the player decides, not how long they waited.
-    if (g.confirmed) {
+    if (answered) {
       this.readCount++;
       this.latencySum += g.answerLatency;
       if (g.correct && (this.bestLatency == null || g.answerLatency < this.bestLatency)) {
@@ -297,9 +307,14 @@ export class WordGates {
       // Commission is still strictly the worse mistake, which is the fairness
       // this asymmetry was built for: tapping a fake costs the heart AND the
       // stagger AND the meter. Letting a word slip costs the heart alone.
-      const commission = !g.real; // g.confirmed on a fake
-      player.obstaclesHit++;
+      // Phase C keeps the heart on exactly one action: saying REAL to a fake.
+      // Rejecting a real word is a commission too, but not that one — it costs
+      // what letting a word slip costs, because the player did read it and
+      // decide, and the reject action must not be more dangerous than silence
+      // or nobody will ever use it.
+      const commission = g.confirmed && !g.real;
       if (commission) {
+        player.obstaclesHit++;
         this.falseTaps++;
         player.staggerT = TUNING.PLAYER.STAGGER_TIME;
         player.boostMeter *= 1 - W.WRONG_METER_LOSS;
@@ -311,7 +326,7 @@ export class WordGates {
       if (this.misses.length < 12) {
         this.misses.push({
           shown: g.shown, answer: g.answer, real: g.real,
-          reason: g.real ? 'missed_real' : 'picked_fake',
+          reason: g.real ? (g.rejected ? 'rejected_real' : 'missed_real') : 'picked_fake',
           // Where it happened (Phase 21). The recap has always known WHAT
           // went wrong; the replay review needs WHERE, and the gate has
           // carried its own distance since Phase 7.
@@ -327,7 +342,7 @@ export class WordGates {
       events?.push({
         t: 'word_wrong', index: g.index, word: g.shown, real: g.real,
         answer: g.answer, tier: g.tier, hit: commission,
-        reason: g.real ? 'missed_real' : 'picked_fake',
+        reason: g.real ? (g.rejected ? 'rejected_real' : 'missed_real') : 'picked_fake',
         x: player.x, y: player.y, d: player.d, gateD: g.d,
       });
     }

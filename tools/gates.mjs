@@ -186,13 +186,52 @@ head('SPEED — deterministic consequence, floored and ceilinged');
   check('missing a real word (omission) subtracts exactly SPEED_LOSS',
     Math.abs(sim.player.speed - Math.max(R.FLOOR, speedBefore - R.SPEED_LOSS)) < 1e-9,
     `${f2(speedBefore)} -> ${f2(sim.player.speed)}`);
-  check('and costs a heart, so doing nothing is not a strategy',
-    sim.player.obstaclesHit === hitsBefore + 1 &&
+  // Phase C moved the heart. It was on both wrong reads from Phase 23, which
+  // existed to stop idling; the left zone makes that placement untenable,
+  // because a reject that costs MORE than silence is a control nobody will
+  // ever press. The heart now sits on exactly one action — saying REAL to a
+  // fake — and the anti-idle property is re-established below by measurement
+  // rather than by the heart, which was never the thing doing the work.
+  check('an omission costs no heart — silence must not outrank the reject',
+    sim.player.obstaclesHit === hitsBefore &&
     sim.wordGates.missedReals === 1 && sim.wordGates.falseTaps === 0,
     `hearts ledger ${hitsBefore} -> ${sim.player.obstaclesHit}`);
-  check('but NOT the stagger — hesitation is still not a crash',
+  check('and NOT the stagger — hesitation is still not a crash',
     sim.player.staggerT === 0,
-    `commission stays strictly worse: heart + stagger + meter vs heart alone`);
+    'commission stays strictly worse: heart + stagger + meter, against speed alone');
+
+  // Exactly one action in the whole rulebook spends a heart.
+  const spendsHeart = (kind, action) => {
+    const s2 = new Sim(11); s2.start(11);
+    let guard = 0;
+    while (s2.phase === PHASE.RUNNING && guard++ < 100000) {
+      const wg = s2.wordGates, g = wg.current();
+      const match = (kind === 'real') === g.real;
+      const armed = wg.armed(s2.player.d) && match && !g.confirmed && !g.rejected;
+      const before = s2.player.obstaclesHit;
+      s2.step({ ...emptyInput(),
+        confirm: armed && action === 'right', reject: armed && action === 'left' });
+      if (match && g.resolved) return s2.player.obstaclesHit > before;
+    }
+    return false;
+  };
+  const heartTable = [['real', 'right'], ['real', 'left'], ['real', 'pass'],
+    ['fake', 'left'], ['fake', 'pass'], ['fake', 'right']];
+  const spenders = heartTable.filter(([k, a]) => spendsHeart(k, a)).map(([k, a]) => `${k}+${a}`);
+  check('exactly one action in the rulebook spends a heart',
+    spenders.length === 1 && spenders[0] === 'fake+right',
+    `spends a heart: ${spenders.join(', ') || 'nothing'}`);
+
+  // Doing nothing is still not a strategy — the Redline does that work.
+  const idle = (() => {
+    const s3 = new Sim(4242); s3.start(4242);
+    let guard = 0;
+    while (s3.phase === PHASE.RUNNING && guard++ < 400000) s3.step(emptyInput());
+    return { d: Math.round(s3.player.d), t: s3.time };
+  })();
+  check('doing nothing is still not a strategy',
+    idle.d < 600 && idle.t < 30,
+    `an untouched run ends at ${idle.d}m in ${idle.t.toFixed(1)}s, run down rather than wiped out`);
 }
 
 {

@@ -106,10 +106,14 @@ check(input.includes('TOUCH_RESPONSE_GROUND = 24.0') && input.includes('TOUCH_RE
   'mobile air tricks respond faster than grounded carving');
 check(input.includes('_lastGrounded') && input.includes('_reanchorTouch') && input.includes('grounded !== this._lastGrounded'),
   'held touch re-anchors when takeoff/landing changes gesture context');
-check(input.includes('__v1DashButtonHeld') && input.includes('extraHeld || this.keyBoost || this.__v1DashButtonHeld'),
-  'dedicated DASH button and held second-finger shortcut share the same input contract');
-check(input.includes('GO_HOLD_MS') && input.includes('TAP_MS'),
-  'a quick second-finger tap reads as the word verb, not as a DASH');
+// Phase C: the second-finger hold is gone. The dash is an edge — Space or
+// both zones at once — and the on-screen button still holds, because a held
+// control gains nothing by becoming a tap. All three reach one flag.
+check(input.includes('__v1DashButtonHeld') &&
+  input.includes('this.dashEdge || this.keyBoost || this.__v1DashButtonHeld'),
+  'the on-screen button, the key and the two-zone edge share one dash flag');
+check(!input.includes('GO_HOLD_MS') && input.includes('TAP_MS') && input.includes('BOTH_ZONE_MS'),
+  'a tap is a reading; only both zones together are a dash');
 check(mobile.includes("guide.id = 'v1TouchGuide'"),
   'mobile exposes a touch ring while the thumb is down');
 check(mobile.includes("go.id = 'v1MobileDash'"),
@@ -132,12 +136,15 @@ check(mobile.includes('Audio.prototype.__v1MobileTouchUi'),
 // matters is unchanged — the confirm verb and the DASH are both taught by
 // name, and the touch build names the on-screen button rather than a key
 // nobody on a phone has.
-check(onboarding.includes("touch ? 'TAP' : 'SPACE'") &&
+// Phase C teaches two zones rather than one verb, and names the control set
+// each device actually has.
+check(onboarding.includes("touch ? 'TAP RIGHT' : '\u2192'") &&
+  onboarding.includes("touch ? 'TAP LEFT' : '\u2190'") &&
   onboarding.includes('if the word is spelled correctly'),
-  'onboarding teaches the confirm verb rather than requiring discovery');
-check(onboarding.includes("touch ? 'DASH' : 'F'") &&
-  onboarding.includes('Hold <b>${dash}</b>'),
-  'the DASH is taught by name, and by the button a phone actually has');
+  'onboarding teaches both zones rather than requiring discovery');
+check(onboarding.includes("touch ? 'BOTH SIDES' : 'SPACE'") &&
+  onboarding.includes('spends a full DASH charge'),
+  'the DASH is taught by name, and by the gesture a phone actually has');
 check(onboarding.includes('three hearts') && onboarding.includes('in a row</i> to win one back'),
   'and the heart economy is taught, since a wrong read now costs one');
 check(index.includes('/src/v1-mobile-ui.js'), 'mobile control presentation is loaded by the release page');

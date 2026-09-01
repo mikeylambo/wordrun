@@ -27,13 +27,21 @@ const TOUCH_RESPONSE_GROUND = 24.0;
 const TOUCH_RESPONSE_AIR = 34.0;
 const SWIPE_PX = 42;            // legacy upward flick distance that counts as a jump
 const SWIPE_MS = 260;
-// DICTION DASH: a quick, small-travel touch is a TAP — the confirm verb. Any
-// pointer qualifies, so the steering thumb can stay planted while the other
-// thumb answers a word. A second finger only reads as the GO shortcut once
-// it has been held past the tap window.
+// DICTION DASH (Phase C): one primitive — a press with a location. A quick,
+// small-travel touch on the RIGHT half says the word is real; the same touch
+// on the LEFT half says it is fake. Both halves at once is the DASH.
+//
+// The 250 ms hold that used to arm the dash is gone. It was a latency tax on
+// the game's most important verb: the player had already decided, and the
+// game spent a quarter of a second finding out.
 const TAP_MS = 220;
 const TAP_PX = 12;
-const GO_HOLD_MS = 250;
+// Two presses are one gesture while both are DOWN together. Detected on the
+// press rather than on the release: a reading fires when a thumb lifts, so
+// waiting to see whether a second thumb arrives would tax every single answer
+// by the width of the window — and Phase B made answer latency worth score.
+// Pressing both halves is unambiguous the moment the second one lands.
+const BOTH_ZONE_MS = 140;
 
 const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
 
@@ -52,9 +60,11 @@ export class Input {
     // What the sim consumes.
     this.carve = 0;
     this.flip = 0;
-    this.jump = false;
+    this.jump = false;          // said REAL (the right zone)
+    this.reject = false;        // said FAKE (the left zone)
     this.boostHeld = false;
     this.dragging = false;
+    this._zoneT = { left: 0, right: 0 };
 
     this.enabled = true;
     this.onFirstGesture = null;
@@ -119,7 +129,9 @@ export class Input {
       this.pointerMeta.set(e.pointerId, {
         x: e.clientX, y: e.clientY, type: e.pointerType || 'mouse',
         downX: e.clientX, downY: e.clientY, downT: performance.now(),
+        spent: false,
       });
+      if (this.enabled) this._zonePress(e.pointerId, e.clientX);
       if (this.primaryId === null) {
         this.primaryId = e.pointerId;
         this.primaryTouch = e.pointerType === 'touch';
@@ -154,7 +166,7 @@ export class Input {
       if (meta && this.enabled) {
         const dt = performance.now() - meta.downT;
         const travel = Math.hypot(e.clientX - meta.downX, e.clientY - meta.downY);
-        if (dt < TAP_MS && travel < TAP_PX) this.jump = true;
+        if (dt < TAP_MS && travel < TAP_PX) this._zoneTap(e.pointerId, e.clientX);
       }
       if (e.pointerId === this.primaryId) {
         this.primaryId = null;
@@ -196,13 +208,51 @@ export class Input {
     window.addEventListener('blur', () => this.releaseAll());
   }
 
+  /**
+   * A tap resolved to a zone. The halves are the whole screen, so there is no
+   * target to find and no button to look at — the answer is wherever the thumb
+   * already is. Both halves inside BOTH_ZONE_MS is the dash instead.
+   */
+  _zoneOf(clientX) {
+    const w = (this.target?.clientWidth || window.innerWidth || 1);
+    return clientX >= w / 2 ? 'right' : 'left';
+  }
+
+  /**
+   * A press landed. If a pointer is already held in the OTHER half, this is
+   * the dash: fire it now and mark both pointers spent, so neither release
+   * turns into a reading the player never meant to give.
+   */
+  _zonePress(id, clientX) {
+    const zone = this._zoneOf(clientX);
+    for (const [otherId, meta] of this.pointerMeta) {
+      if (otherId === id || meta.spent) continue;
+      if (this._zoneOf(meta.x ?? meta.downX) !== zone) {
+        this.dashEdge = true;
+        meta.spent = true;
+        const self = this.pointerMeta.get(id);
+        if (self) self.spent = true;
+        return;
+      }
+    }
+  }
+
+  /** A press lifted as a tap. One zone, one reading. */
+  _zoneTap(id, clientX) {
+    if (this.pointerMeta.get(id)?.spent) return;
+    if (this._zoneOf(clientX) === 'right') this.jump = true; else this.reject = true;
+  }
+
   _key(code, down) {
     switch (code) {
-      case 'ArrowLeft': case 'KeyA': this.keyLeft = down; return true;
-      case 'ArrowRight': case 'KeyD': this.keyRight = down; return true;
+      // Phase C: the arrow and WASD pairs are the two zones. They were the
+      // steering axis, which the sim has ignored since the track became
+      // auto-followed — nothing reads `carve`.
+      case 'ArrowRight': case 'KeyD': if (down) this.jump = true; return true;
+      case 'ArrowLeft': case 'KeyA': if (down) this.reject = true; return true;
       case 'ArrowUp': case 'KeyW': this.keyUp = down; return true;
       case 'ArrowDown': case 'KeyS': this.keyDown = down; return true;
-      case 'Space': if (down) this.jump = true; return true;
+      case 'Space': if (down) this.dashEdge = true; return true;
       case 'KeyF': case 'ShiftLeft': case 'ShiftRight': this.keyBoost = down; return true;
       default: return false;
     }
@@ -220,13 +270,16 @@ export class Input {
     this.touchX = 0; this.touchY = 0;
     this.__v1DashButtonHeld = false;
     this._lastGrounded = null;
-    this.carve = 0; this.flip = 0; this.jump = false; this.boostHeld = false;
+    this.carve = 0; this.flip = 0; this.jump = false; this.reject = false;
+    this.boostHeld = false; this.dashEdge = false;
+    this._zoneT.left = this._zoneT.right = 0;
   }
 
   /** Fold pointer + keyboard into the axes the sim reads. Call once per frame. */
   update(dt, grounded) {
     if (!this.enabled) {
-      this.carve = 0; this.flip = 0; this.jump = false; this.boostHeld = false;
+      this.carve = 0; this.flip = 0; this.jump = false; this.reject = false;
+      this.boostHeld = false;
       return;
     }
 
@@ -303,16 +356,13 @@ export class Input {
     // Pointer wins when present, otherwise the keyboard drives.
     this.carve = this.primaryId !== null ? dragX : this.keyX;
     this.flip = this.primaryId !== null ? dragY : this.keyY;
-    // A second finger is GO only once it is clearly a hold, not a word tap.
-    let extraHeld = false;
-    const now = performance.now();
-    for (const id of this.extraPointers) {
-      const held = this.pointerMeta.get(id);
-      if (!held || now - held.downT >= GO_HOLD_MS) { extraHeld = true; break; }
-    }
-    this.boostHeld = extraHeld || this.keyBoost || this.__v1DashButtonHeld;
+    // Phase C: the dash is an edge now, not a hold. `dashEdge` latches for one
+    // frame from Space or from both zones at once; the on-screen button and
+    // the F key still hold, because a held control has nothing to gain by
+    // becoming a tap.
+    this.boostHeld = this.dashEdge || this.keyBoost || this.__v1DashButtonHeld;
   }
 
-  /** The sim consumes jump as an edge; call after stepping. */
-  consumeJump() { this.jump = false; }
+  /** The sim consumes these as edges; call after stepping. */
+  consumeJump() { this.jump = false; this.reject = false; this.dashEdge = false; }
 }

@@ -112,9 +112,13 @@ export class UI {
     const p = sim.player;
     const d = sim.distance;
     let text = '';
-    if (d < 220) text = this.touch ? 'TAP IF THE WORD IS REAL' : 'SPACE IF THE WORD IS REAL';
-    else if (d < 390) text = 'LET FAKES PASS';
-    else if (d < 560) text = 'RIGHT READS RUN FASTER';
+    // Phase C teaches the right zone first, because it is the whole game
+    // without the left one. The left zone arrives as an option, not a rule —
+    // a player who never uses it plays exactly the game they already knew.
+    if (d < 220) text = this.touch ? 'TAP RIGHT IF THE WORD IS REAL' : 'RIGHT ARROW IF THE WORD IS REAL';
+    else if (d < 390) text = 'A MISSPELLED WORD CAN SIMPLY PASS';
+    else if (d < 560) text = this.touch ? 'OR TAP LEFT TO CALL IT OUT SOONER' : 'OR LEFT ARROW TO CALL IT OUT SOONER';
+    else if (d < 720) text = 'ANSWERING EARLY IS WORTH MORE';
     else if (p.gatesThreaded > 0 && !this._showedChargeLesson) {
       // Where the dash comes from. The line that used to sit here ("STYLE
       // MAKES POWER") named a system this game no longer has and told

@@ -64,22 +64,25 @@ export class OnboardingUI {
     this.root.id = 'rc7Onboarding';
     this.root.dataset.rc7Ui = '1';
     const touch = (navigator.maxTouchPoints || 0) > 0 || matchMedia('(pointer:coarse)').matches;
-    const confirm = touch ? 'TAP' : 'SPACE';
+    const yes = touch ? 'TAP RIGHT' : '→';
+    const no = touch ? 'TAP LEFT' : '←';
     // The mobile build has a literal DASH button, so name the button there
     // and the key only on a keyboard. Same for the confirm verb.
-    const dash = touch ? 'DASH' : 'F';
+    const dash = touch ? 'BOTH SIDES' : 'SPACE';
     const HEART_STREAK = HEARTS.STREAK_REPAIR_DEFAULT;
     this.root.innerHTML = `
       <div class="card">
         <h2>HOW TO PLAY</h2>
         <div class="rules">
-          <div class="rule">${touch ? '' : 'Press '}<b>${confirm}</b> if the word is spelled correctly.
-            Let it go past if the spelling is wrong.</div>
+          <div class="rule"><b>${yes}</b> if the word is spelled correctly.
+            A misspelled word can simply pass — or say so with <b>${no}</b>.</div>
           <div class="rule">Every word you read right makes you <i>faster</i>.
             Every one you get wrong slows you down.</div>
           <div class="rule">You have <i>three hearts</i>, and any wrong read costs one.
             Read <i>${HEART_STREAK} in a row</i> to win one back.</div>
-          <div class="rule">Hold <b>${dash}</b> to spend a full charge and tear down the track.</div>
+          <div class="rule"><b>${dash}</b> spends a full DASH charge and tears down the track.</div>
+          <div class="rule">The sooner you answer, the more the read is worth —
+            up to <i>three times</i> for calling it the moment it appears.</div>
           <div class="rule">Fakes look almost right — one letter out of place.
             Take your time early; you will not have it later.</div>
         </div>

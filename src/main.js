@@ -855,10 +855,12 @@ function tick(dt) {
     input.update(dt, !p.airborne);
     simInput.carve = input.carve;
     simInput.flip = input.flip;
-    // DICTION DASH: every tap-ish gesture (screen tap, action button, Space,
-    // upward flick) funnels through the old jump edge and becomes the
-    // confirm verb. The sim never jumps — the ground stays under the word.
+    // Phase C: two zones, one primitive. The right half (or the right arrow,
+    // or D) says the word is real; the left half (or the left arrow, or A)
+    // says it is fake. Saying nothing still says fake. The sim never jumps —
+    // the ground stays under the word.
     simInput.confirm = input.jump;
+    simInput.reject = input.reject;
     simInput.jump = false;
     simInput.boostHeld = input.boostHeld;
     simInput.dragging = input.dragging;
