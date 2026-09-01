@@ -10,7 +10,8 @@ this file only holds what is NOT built yet. The plan is the finishing brief
   gated two-tier standard), `EARLY_MULT` 3.5, compression as-is, surge as-is,
   `LOOKAHEAD_GATES` 3 (played and decided), all frozen by
   `tools/calibration-gates.mjs` (`npm run calibrate` to regenerate a table
-  deliberately). Done; H2 below carries the one design change it surfaced.
+  deliberately). Done. The design change it surfaced shipped as Phase H2:
+  the DAILY RUN now repairs a heart on a clean streak.
 - **Phase I — DASH chain.** During an active dash each correct read ramps a
   temporary score multiplier (`DASH_CHAIN_MULT`); a wrong read zeroes it; it
   ends with the dash. Score only — never speed, meter or the window.

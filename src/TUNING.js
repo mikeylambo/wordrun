@@ -414,7 +414,12 @@ export const TUNING = {
       // comparable — which is the whole reason a board can exist at all. The
       // per-attempt word salt is pinned for it; re-rolling the vocabulary
       // would make two players' runs different games wearing one name.
-      standard: { HEART_REPAIR: false, GATES: 100 },
+      // Phase H2: the route repairs hearts on a clean reading streak, the
+      // same ladder ENDLESS uses (3 clean on the last heart, 5 otherwise).
+      // Phase H measured the old no-repair route as a two-commission budget
+      // that an 85 % reader could not finish on any difficulty; that was not
+      // the intended bar. Bells still never repair a heart in either mode.
+      standard: { HEART_REPAIR: true, GATES: 100 },
     },
     // Difficulty is READING difficulty plus the Redline's pace — never the
     // speed curve itself (one system, shared). This also properly replaces

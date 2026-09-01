@@ -1101,3 +1101,40 @@ Slice history:
   `speed-fantasy.js` stands on the ribbon edge. The stale Phase D comment
   that quoted the 3.0 break-even was rewritten to the 3.5 numbers, and the
   roadmap was replaced with the finishing brief's backlog.
+
+- Phase H2 — the DAILY RUN repairs hearts. Phase H's ladder found that the
+  no-repair route was a two-commission budget: STANDARD repaired no hearts,
+  so a hundred gates allowed exactly two wrong reads on fakes, and an 85 %
+  reader wiped out at gate 56 on every difficulty. That was never the
+  intended bar. The rule now: the DAILY RUN keeps STANDARD's no-drip (bells
+  pay meter and currency, never a heart, in either mode) and uses ENDLESS's
+  clean-streak repair — three clean reads on the last heart, five otherwise —
+  one flag in `TUNING.MODES.RULES.standard`. `STANDARD_FAIL_KEEP` is
+  unchanged: dying short of the finish still keeps 60 %. The ladder,
+  re-driven under the new rule:
+      diff    acc   | DAILY route (100 gates)              | ENDLESS
+      easy     55% | fails     4 gates redlined          0 |     289 m redlined
+      easy     70% | fails    22 gates wipeout      21,652 |   1,749 m wipeout
+      easy     85% | CLEARS  100 gates finish      225,360 |   9,196 m wipeout
+      easy     95% | CLEARS  100 gates finish      327,560 |  35,185 m alive@cap
+      easy    100% | CLEARS  100 gates finish      395,456 |  37,683 m alive@cap
+      normal   55% | fails     3 gates redlined          0 |     205 m redlined
+      normal   70% | fails    22 gates wipeout      23,555 |   1,749 m wipeout
+      normal   85% | CLEARS  100 gates finish      265,970 |   9,196 m wipeout
+      normal   95% | CLEARS  100 gates finish      390,244 |  35,185 m alive@cap
+      normal  100% | CLEARS  100 gates finish      471,624 |  37,683 m alive@cap
+      hard     55% | fails     3 gates redlined          0 |     205 m redlined
+      hard     70% | fails    22 gates wipeout      27,977 |   1,749 m wipeout
+      hard     85% | CLEARS  100 gates finish      283,887 |   9,196 m wipeout
+      hard     95% | CLEARS  100 gates finish      411,152 |  35,185 m alive@cap
+      hard    100% | CLEARS  100 gates finish      494,716 |  37,683 m alive@cap
+  The gate the design asks for is stated directly and frozen: 85 % finishes
+  the route on NORMAL, 70 % does not (gate 22, wipeout — the repair ladder
+  cannot outrun a wrong read every third gate), a clean reader finishes on
+  every difficulty, and the pace only bites once accuracy has collapsed the
+  speed. The route's bar moved from "two commissions in a hundred" to
+  "about one in seven, sustained" — a mastery target a good reader can
+  actually reach, and one that still fails a 70 % reader outright. ENDLESS
+  is untouched (its rows are identical to Phase H). The Phase 0 behaviour
+  snapshot was regenerated: its STANDARD script now repairs a heart where it
+  used to wipe out, which is the change, recorded.

@@ -99,8 +99,9 @@ let shotTaken = false;
 let ghostEnabled = Storage.ghostEnabled();
 
 // ── Mode + difficulty (Phase 10) ─────────────────────────────────────────
-// Two rule sets (ENDLESS repairs hearts by bells; STANDARD is three hits,
-// ever) × three reading difficulties (word-tier curve + Redline pace).
+// Two rule sets (ENDLESS open-ended, STANDARD the fixed daily route; both
+// repair a heart on a clean streak since Phase H2) × three reading
+// difficulties (word-tier curve + Redline pace).
 // Bests, ghosts and run counts are stored per variant so an EASY run can
 // never claim the STANDARD board; the default combo keeps legacy keys.
 let runMode = TUNING.MODES.RULES[Storage.modePref()] ? Storage.modePref() : 'endless';

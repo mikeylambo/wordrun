@@ -205,14 +205,17 @@ head('MODES — rules, difficulty, and separated boards');
 {
   const TUNING = (await import('../src/TUNING.js')).default;
   const M = TUNING.MODES;
-  check('exactly two rule sets: ENDLESS repairs hearts, STANDARD never does',
+  // Phase H2: the DAILY route repairs hearts on a clean streak too. Phase H
+  // measured the no-repair route as a two-commission budget nobody at 85 %
+  // could finish, on any difficulty; that was never the intended bar.
+  check('exactly two rule sets, and both repair a heart on a clean streak',
     Object.keys(M.RULES).length === 2 &&
-    M.RULES.endless.HEART_REPAIR === true && M.RULES.standard.HEART_REPAIR === false);
+    M.RULES.endless.HEART_REPAIR === true && M.RULES.standard.HEART_REPAIR === true);
 
   const sim = new Sim(999);
   sim.start(999, null, { mode: 'standard', difficulty: 'easy' });
   check('sim.start carries the rules and the difficulty pace',
-    sim.mode === 'standard' && sim.rules.HEART_REPAIR === false &&
+    sim.mode === 'standard' && sim.rules.HEART_REPAIR === true && sim.rules.GATES === 100 &&
     sim.beast.pace === M.DIFFICULTY.easy.REDLINE_PACE,
     `pace ${sim.beast.pace}`);
   sim.start(999);
@@ -240,7 +243,7 @@ head('MODES — rules, difficulty, and separated boards');
   // relocation was behaviour-preserving; these keep the RULE legible in source.)
   const simSrc = fs.readFileSync('src/sim/sim.js', 'utf8');
   const bells = fs.readFileSync('src/design/bells.js', 'utf8');
-  check('heart repair is still ENDLESS\'s rule alone',
+  check('heart repair is a rule the sim reads from the mode, not a constant',
     simSrc.includes("this.rules?.HEART_REPAIR !== false"));
   // Phase 23: what repairs a heart moved off the bells and onto the verb.
   // The bell drip paid ~4.7 hearts per kilometre with no player input, so a

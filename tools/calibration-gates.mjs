@@ -237,35 +237,25 @@ for (const r of tables.ladder) {
     `${r.dailyCleared ? 'CLEARS ' : 'fails  '} ${String(r.dailyGates).padStart(3)} gates ${(r.dailyDeath || (r.dailyCleared ? 'finish' : '')).padEnd(9)} ${String(r.dailyScore.toLocaleString()).padStart(9)} | ` +
     `${String(r.endlessM.toLocaleString()).padStart(7)} m ${r.endlessDeath}`);
 }
-// The finding this table forced (Phase H): STANDARD repairs no hearts, so
-// the daily route allows exactly two wrong reads on FAKES in a hundred gates.
-// Hearts, not the Redline's pace, end the route for every reader at 70 % and
-// above — the wipeout gate is identical on every difficulty — and the pace
-// only bites once accuracy has collapsed the speed (the 55 % rows). A clean
-// reader finishes on HARD at pace 30, which is the fairness the brief asked
-// after. The consequence the brief did not expect: an 85 % reader clears the
-// route on NO difficulty. That is a rule about the route, recorded here and
-// raised in the RELEASE entry rather than tuned away in a gate.
+// Phase H measured the no-repair daily route as a two-commission budget: an
+// 85 % reader wiped out at gate 56 on every difficulty, and hearts, not pace,
+// ended every route from 70 % up. Phase H2 is the rule change that followed:
+// the DAILY RUN repairs a heart on a clean reading streak, the same ladder
+// ENDLESS uses. The gate the design asks for is stated directly.
 const row = (d, a) => tables.ladder.find((r) => r.difficulty === d && r.accuracy === a);
 const DIFFS = ['easy', 'normal', 'hard'];
-check('a clean reader finishes the daily route on every difficulty — pace 30 is fair',
-  DIFFS.every((d) => row(d, 1.0).dailyCleared),
-  DIFFS.map((d) => `${d} ${row(d, 1.0).dailyGates}`).join(' · '));
-check('hearts, not pace, end the route from 70 % up: the same wipeout gate on every difficulty',
-  [0.70, 0.85, 0.95].every((a) => DIFFS.every((d) => row(d, a).dailyDeath === 'wipeout' &&
-    row(d, a).dailyGates === row('normal', a).dailyGates)),
-  [0.70, 0.85, 0.95].map((a) => `${Math.round(a * 100)}% → gate ${row('normal', a).dailyGates}`).join(' · '));
+check('85 % finishes the daily route on NORMAL (Phase H2)', row('normal', 0.85).dailyCleared,
+  `${row('normal', 0.85).dailyGates} gates, ${row('normal', 0.85).dailyDeath || 'finish'}`);
+check('and 70 % does not', !row('normal', 0.70).dailyCleared,
+  `${row('normal', 0.70).dailyGates} gates, ${row('normal', 0.70).dailyDeath}`);
+check('a clean reader finishes on every difficulty — pace 30 is fair',
+  DIFFS.every((d) => row(d, 1.0).dailyCleared));
 check('the pace only bites once accuracy has collapsed the speed',
   DIFFS.every((d) => row(d, 0.55).dailyDeath === 'redlined'),
   `55 % is run down at ${DIFFS.map((d) => row(d, 0.55).dailyGates).join('/')} gates`);
-check('HARD at 70 % does not clear the route', !row('hard', 0.70).dailyCleared,
-  `${row('hard', 0.70).dailyGates} gates, ${row('hard', 0.70).dailyDeath}`);
 check('more accuracy always reaches further on the route',
   DIFFS.every((d) => [0.55, 0.70, 0.85, 0.95, 1.0].map((a) => row(d, a).dailyGates)
-    .every((g, i, arr) => i === 0 || g > arr[i - 1])));
-check('the route is a mastery target: 85 % clears it on no difficulty (two commissions is the whole budget)',
-  DIFFS.every((d) => !row(d, 0.85).dailyCleared),
-  `an 85 % reader wipes out at gate ${row('normal', 0.85).dailyGates} everywhere`);
+    .every((g, i, arr) => i === 0 || g >= arr[i - 1])));
 
 head('EARLY — the break-even: gates read at the arm edge against the whole route read at the line');
 say('  EARLY_MULT | 100 late  | 40 early (ratio)   | 50 early (ratio)   | 100 early | charge reads chain0 / cap');

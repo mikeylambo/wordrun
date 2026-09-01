@@ -250,7 +250,7 @@ export class Sim {
    *  - A wrong read spends a heart; the third wrong read is a 'wipeout'.
    *  - Bells pay boost meter and banked currency (never hearts — Phase 23).
    *  - A clean reading streak brings a heart back, the ladder shortening the
-   *    closer to the end you are (ENDLESS only; STANDARD is three reads, ever).
+   *    closer to the end you are (both modes since Phase H2; TUNING.MODES.RULES).
    */
   _stepVitals(beforeHits) {
     if (this.phase === PHASE.KILL) { this.deathCause = 'redlined'; return; }
