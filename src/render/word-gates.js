@@ -255,7 +255,9 @@ export class WordGateActors {
     // On a picked fake, the feedback is the true spelling; otherwise the word.
     const text = e.t === 'word_wrong' && e.reason === 'picked_fake' && e.answer
       ? e.answer : e.word;
-    this.lingerGate = { text, d: e.d };
+    // Phase B: an early answer resolves before the line, so the feedback
+    // belongs at the gate's own position, not at the runner's.
+    this.lingerGate = { text, d: e.gateD ?? e.d };
     this.lingerState = e.t === 'word_correct' ? 'right' : 'wrong';
     this.lingerT = LINGER;
   }

@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import TUNING from '../src/TUNING.js';
 import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
 import { mulberry32 } from '../src/sim/rng.js';
+import { latencyMultFor } from '../src/sim/word-gates.js';
 import {
   TIERS, ALL_WORDS, isValidWord, pickWord, makeFake, tierCount, tierWords,
 } from '../src/words/wordlist.js';
@@ -613,6 +614,98 @@ head('LOOKAHEAD — more gates are shown, no more gates are answerable');
   // The pre-Phase-A build drew exactly one preview plate at 0.55.
   check('LOOKAHEAD_GATES = 1 reproduces the build before this phase',
     fade[0] === 0.55, 'first step is the 0.55 the old preview plate used');
+}
+
+// ── Phase B: when you answer, not only whether ───────────────────────────
+head('LATENCY — the early read is worth more, and costs the window nothing');
+{
+  const W = TUNING.WORDS;
+
+  check('the multiplier spans the arm window and nothing wider',
+    latencyMultFor(W.ARM_DISTANCE_M) === W.EARLY_MULT &&
+    latencyMultFor(0) === W.LATE_MULT &&
+    latencyMultFor(W.ARM_DISTANCE_M * 4) === W.EARLY_MULT &&
+    latencyMultFor(-10) === W.LATE_MULT,
+    `${W.LATE_MULT}x at the line rising to ${W.EARLY_MULT}x at ${W.ARM_DISTANCE_M}m`);
+
+  check('it is monotone across the window',
+    Array.from({ length: 40 }, (_, i) => latencyMultFor(i * W.ARM_DISTANCE_M / 39))
+      .every((v, i, a) => i === 0 || v > a[i - 1]),
+    'no flat spot or reversal a player could sit in');
+
+  check('it is deterministic in the answer distance alone',
+    latencyMultFor(27.5) === latencyMultFor(27.5) && latencyMultFor(27.5) === 2,
+    'the same distance always pays the same, so a replay reproduces it');
+
+  // Two runs over the same seed, one answering the instant each word arms and
+  // one answering at the line. Score and meter must differ; the reading window
+  // and the speed curve must not.
+  const runAt = (fraction) => {
+    const sim = new Sim(4242);
+    sim.start(4242);
+    let guard = 0;
+    while (sim.phase === PHASE.RUNNING && guard++ < 60000) {
+      const wg = sim.wordGates;
+      const g = wg.current();
+      const remaining = g.d - sim.player.d;
+      const want = wg.armed(sim.player.d) && !g.confirmed &&
+        remaining <= W.ARM_DISTANCE_M * fraction && g.real;
+      sim.step({ ...emptyInput(), confirm: want });
+      if (sim.player.d > 2600) break;
+    }
+    return {
+      score: Math.floor(sim.player.score), meter: sim.player.boostMeter,
+      speed: +sim.player.speed.toFixed(6), d: +sim.player.d.toFixed(3),
+      correct: sim.wordGates.correctCount, wrong: sim.wordGates.wrongCount,
+    };
+  };
+  const early = runAt(1.0);      // answer the moment it arms
+  const late = runAt(0.06);      // answer on the line
+  // Distance still pays until Phase D zeroes PER_METRE, so it dilutes the
+  // read component here: the gap widens sharply once score is reads only.
+  check('answering early scores more over the same ground',
+    early.score > late.score * 1.10 && early.correct === late.correct,
+    `${early.score.toLocaleString()} vs ${late.score.toLocaleString()} on ${early.correct} identical reads` +
+    ` (+${Math.round((early.score / late.score - 1) * 100)}%, diluted by PER_METRE until Phase D)`);
+  check('answering early fills the meter faster',
+    early.meter >= late.meter,
+    `meter ${early.meter.toFixed(1)} vs ${late.meter.toFixed(1)}`);
+  check('speed is untouched by when the answer landed',
+    early.speed === late.speed,
+    `both runs end at ${early.speed} m/s — the multiplier never reaches the speed curve`);
+
+  // The legibility floor is the constraint the whole brief is fenced by.
+  // Read time measures decisions, not waiting: a passed fake never entered.
+  const answered = (() => {
+    const sim = new Sim(77); sim.start(77);
+    let guard = 0, passes = 0;
+    while (sim.phase === PHASE.RUNNING && guard++ < 40000 && sim.player.d < 1400) {
+      const wg = sim.wordGates; const g = wg.current();
+      const tap = wg.armed(sim.player.d) && !g.confirmed && g.real;
+      if (!tap && wg.armed(sim.player.d) && !g.real) passes++;
+      sim.step({ ...emptyInput(), confirm: tap });
+    }
+    return { reads: sim.wordGates.readCount, correct: sim.wordGates.correctCount, sawPasses: passes > 0 };
+  })();
+  check('read time counts answers, not passes',
+    answered.sawPasses && answered.reads < answered.correct,
+    `${answered.reads} timed answers against ${answered.correct} correct reads — passed fakes excluded`);
+
+  check('the reading window is unchanged',
+    W.ARM_DISTANCE_M === 55 && W.ARM_DISTANCE_M < W.SPACING_MIN_M &&
+    W.READ_WINDOW_MIN_S === 1.15 && W.READ_WINDOW_HARD_MIN_S === 0.75,
+    'arm distance, spacing floor and both read-window floors all stand');
+
+  // No word may be printed for a fast read. Checked where the feedback is
+  // actually issued rather than by banning vocabulary the game already uses
+  // elsewhere for its own reasons ("PERFECT RUN" is the flawless-run recap).
+  const mainTxt = fs.readFileSync('src/main.js', 'utf8');
+  const block = mainTxt.slice(mainTxt.indexOf("case 'word_correct'"));
+  const body = block.slice(0, block.indexOf("case 'word_wrong'"));
+  check('nothing announces the early read in words',
+    !/'[A-Z][A-Z ]{3,}'/.test(body) && /audio\.gate\(e\.chain, early\)/.test(body) &&
+    /rig\.dashKick\(/.test(body),
+    'the correct-read path carries no display string — sound and camera only');
 }
 
 console.log(out.join('\n'));

@@ -570,3 +570,30 @@ Slice history:
   The treatments themselves were built during the earlier mockup pass and had
   never been reachable from the build at all — they were dev-only files nothing
   imported, which is why looking for them found nothing.
+- Phase B — when you answer, not only whether. A tap now resolves the gate
+  where it was made rather than holding the outcome until the line: answering
+  is the act, and running the remaining metres is not part of it. A word left
+  alone still resolves at the line exactly as before, so the passive path — the
+  gentle-failure spine — is untouched.
+  The reward runs across the existing 55 metre window and changes nothing about
+  it: answering the instant a word arms pays 3x, answering at the line pays 1x,
+  linearly between. It reaches score and meter fill only. It is deliberately
+  kept off the speed curve, which is already asymptotic and would have driven
+  the reading window through its own floor if tripled — both floors are gated
+  and both still stand at 1.15 s and 0.75 s.
+  Two scripted runs over the same seed, one answering at the arm edge and one
+  at the line, land on the same 32 reads, the same distance and the same
+  62.41 m/s: the multiplier reaches the score and stops. The gap is +16% for
+  now because distance still pays, and it widens sharply at Phase D when it
+  stops.
+  Nothing announces this in words — the four-name cap forbids it and the design
+  does not need it. An early read hardens the chime's attack, opens a bright
+  partial above it, and taps the camera; a late read gets today's confirmation
+  unchanged. The gate checks the correct-read path carries no display string at
+  all rather than banning vocabulary the game already uses elsewhere.
+  One deviation from the brief, deliberate: read time is averaged over ANSWERS
+  rather than over every gate. A passed fake has no moment of decision to time,
+  and counting its full window transit would have made the correct cautious
+  play read as slow. The results card carries the one new figure, replacing
+  lifetime kilometres — which said the least of the three now that distance is
+  on its way out as a board metric.

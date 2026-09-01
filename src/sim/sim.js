@@ -112,7 +112,7 @@ export class Sim {
     // The verb: a correct read adds speed, a wrong read subtracts it (and
     // costs a heart via the obstacle ledger). The Redline feels both only
     // through the speed differential — no pressure is registered anywhere.
-    this.wordGates.step(this.player, input.confirm, this.events, proxMult);
+    this.wordGates.step(this.player, input.confirm, this.events, proxMult, this.time);
 
 
     this.beast.step(dt, this.player);

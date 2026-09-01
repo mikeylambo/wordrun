@@ -125,6 +125,16 @@ export function isRealGate(seed, index, prof = DEFAULT_PROFILE) {
   return run >= W.OPENING_MAX_FAKE_RUN;
 }
 
+/**
+ * How much a read is worth for landing early. Linear across the arm window:
+ * answering the instant the word arms pays EARLY_MULT, answering at the line
+ * pays LATE_MULT. Pure in the distance, so it is reproducible from a replay.
+ */
+export function latencyMultFor(answerDistance) {
+  const t = Math.max(0, Math.min(1, answerDistance / W.ARM_DISTANCE_M));
+  return W.LATE_MULT + (W.EARLY_MULT - W.LATE_MULT) * t;
+}
+
 export function makeGate(seed, index, prof = DEFAULT_PROFILE) {
   const rng = mulberry32(mixSeed(mixSeed(seed, WORD_STREAM), index));
   const d = gateDistance(index);
@@ -147,6 +157,10 @@ export function makeGate(seed, index, prof = DEFAULT_PROFILE) {
     confirmed: false,
     resolved: false,
     correct: false,
+    // Phase B: filled in at the moment of the answer.
+    answerDistance: 0,         // metres still to run when the tap landed
+    answerLatency: 0,          // seconds between arming and answering
+    latencyMult: W.LATE_MULT,
   };
 }
 
@@ -167,6 +181,9 @@ export class WordGates {
     this.misses = [];       // this run's wrong reads, for the results recap
     this.streak = 0;        // consecutive correct reads
     this.bestStreak = 0;
+    this.readCount = 0;     // resolved gates, for the average read time
+    this.latencySum = 0;
+    this.bestLatency = null;
   }
 
   /** The gate the player is currently approaching (always exists). */
@@ -190,19 +207,52 @@ export class WordGates {
    * `proxMult` is the frame's courage multiplier: reading well with the
    * beast in range banks more, exactly as clean landings did.
    */
-  step(player, confirm, events, proxMult = 1) {
+  step(player, confirm, events, proxMult = 1, now = 0) {
     const g = this.current();
+    const armed = this.armed(player.d);
 
-    if (confirm && this.armed(player.d) && !g.confirmed) {
+    // Note when the word became answerable, so latency is measured from the
+    // moment the player could first have acted rather than from the frame.
+    if (armed && g.armedAt == null) g.armedAt = now;
+
+    if (confirm && armed && !g.confirmed) {
       g.confirmed = true;
-      events?.push({ t: 'word_confirm', index: g.index, word: g.shown });
+      g.answerDistance = Math.max(0, Math.min(W.ARM_DISTANCE_M, g.d - player.d));
+      g.answerLatency = Math.max(0, now - (g.armedAt ?? now));
+      g.latencyMult = latencyMultFor(g.answerDistance);
+      events?.push({
+        t: 'word_confirm', index: g.index, word: g.shown,
+        answerDistance: g.answerDistance, latencyMult: g.latencyMult,
+      });
     }
 
-    if (player.d < g.d) return;
+    // Phase B: a tap resolves the gate where it was made, not where the line
+    // is. Answering is the act; running the remaining metres is not part of
+    // it, and holding the outcome back until the line made every answer feel
+    // the same however early it came. An untouched gate still resolves at the
+    // line exactly as before — the passive path is unchanged.
+    if (!g.confirmed && player.d < g.d) return;
 
-    // Crossing the line resolves the gate.
     g.resolved = true;
     g.correct = g.confirmed === g.real;
+    // Passing pays the late rate: it is the safe answer, and it is the answer
+    // the player gets for doing nothing.
+    if (!g.confirmed) {
+      g.answerDistance = 0;
+      g.answerLatency = Math.max(0, now - (g.armedAt ?? now));
+      g.latencyMult = W.LATE_MULT;
+    }
+    // Read time is measured over ANSWERS, not over every gate. A passed fake
+    // has no moment of decision to time — counting its full window transit as
+    // a "read" would make the correct cautious play look slow, and the figure
+    // is meant to say how fast the player decides, not how long they waited.
+    if (g.confirmed) {
+      this.readCount++;
+      this.latencySum += g.answerLatency;
+      if (g.correct && (this.bestLatency == null || g.answerLatency < this.bestLatency)) {
+        this.bestLatency = g.answerLatency;
+      }
+    }
 
     if (g.correct) {
       this.correctCount++;
@@ -218,17 +268,20 @@ export class WordGates {
       if (player.speed > player.peakSpeed) player.peakSpeed = player.speed;
       player.chain++;
       if (player.chain > player.bestChain) player.bestChain = player.chain;
-      // The pop for reading right, worth the multiplier the read just earned.
-      player.score += TUNING.SCORE.PER_READ * player.chainMult();
+      // The pop for reading right, worth the multiplier the read just earned
+      // AND how early it landed. Speed is deliberately left out of this.
+      player.score += TUNING.SCORE.PER_READ * player.chainMult() * g.latencyMult;
       player.boostMeter = Math.min(B.METER_MAX,
-        player.boostMeter + W.CORRECT_FILL * player.chainMult() * proxMult);
+        player.boostMeter + W.CORRECT_FILL * player.chainMult() * proxMult * g.latencyMult);
       player.gatesThreaded++; // the frame's "threaded a gate" ledger carries over
       player.lastCourage = proxMult;
 
       events?.push({
         t: 'word_correct', index: g.index, word: g.shown, real: g.real,
         tier: g.tier, chain: player.chain, chainMult: player.chainMult(),
-        proxMult, x: player.x, y: player.y, d: player.d,
+        latencyMult: g.latencyMult, answerDistance: g.answerDistance,
+        answerLatency: g.answerLatency,
+        proxMult, x: player.x, y: player.y, d: player.d, gateD: g.d,
       });
     } else {
       this.wrongCount++;
@@ -275,7 +328,7 @@ export class WordGates {
         t: 'word_wrong', index: g.index, word: g.shown, real: g.real,
         answer: g.answer, tier: g.tier, hit: commission,
         reason: g.real ? 'missed_real' : 'picked_fake',
-        x: player.x, y: player.y, d: player.d,
+        x: player.x, y: player.y, d: player.d, gateD: g.d,
       });
     }
 

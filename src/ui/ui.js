@@ -309,7 +309,7 @@ export class UI {
     this._chainLostT = 0.9;
   }
 
-  renderDeath({ distance, score, scoreLost = 0, continuesUsed = 0, failedRoute = false, best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult }) {
+  renderDeath({ distance, score, scoreLost = 0, continuesUsed = 0, failedRoute = false, avgReadMs = 0, best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult }) {
     this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null };
     this.finalDist.textContent = Math.floor(score ?? 0).toLocaleString('en-US');
     this._deathDistance = Math.floor(distance);
@@ -331,6 +331,7 @@ export class UI {
     this.deathStats.style.display = 'none';
     this.deathSeed.style.display = 'none';
     this.deathScreen.classList.add('rc2Poster');
+    this._avgReadMs = avgReadMs;
     this._renderRecap(recap, daily, objectives, review, lifetime);
 
     if (shotUrl) {
@@ -439,12 +440,15 @@ export class UI {
     if (lifetime) {
       const read = (lifetime.correct || 0) + (lifetime.wrong || 0);
       const acc = read > 0 ? Math.round((lifetime.correct || 0) / read * 100) : 0;
-      const km = ((lifetime.metres || 0) / 1000).toFixed(1);
       const runs = lifetime.runs || 0;
+      // Phase B adds exactly one figure: how fast the reading was. It replaces
+      // the lifetime kilometres, which said the least of the three now that
+      // distance is not a board metric.
+      const avgRead = this._avgReadMs > 0 ? `${(this._avgReadMs / 1000).toFixed(2)}s` : '—';
       parts.push(`<div class="statBar">${[
         [`${this._deathDistance ?? 0}`, 'METRES'],
         [`${acc}%`, 'TRUE READS'],
-        [km, 'KM TOTAL'],
+        [avgRead, 'AVG READ'],
       ].map(([v, k]) => `<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>`);
     }
 

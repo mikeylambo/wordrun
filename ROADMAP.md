@@ -47,6 +47,26 @@ file only holds what is NOT built yet.
   `public/audio/stems/` (contract in that folder's README), then raise
   `TUNING.AUDIO.MUSIC_MAX` and balance against the SFX mix.
 
+## Filed for the visual pass (deliberately last)
+
+Confirmed direction: **broadcast** — the bright-pass bleed treatment, reachable
+now at `?dev=1`. It is the extreme-contrast reading the reference calls for and
+it gets there without touching hue grammar or the word plates. Held until the
+gameplay systems are settled.
+
+- **The verge posts float.** They are placed along the ribbon edge but meet
+  nothing — no footing, no shadow contact, no run of rail between them, so at
+  speed they read as a row of loose marks rather than as structure. Options, in
+  rising cost: a contact shadow and a short base where each post meets the
+  surface; a thin rail threaded through them so they become one object; or
+  replacing them entirely with emissive edge geometry that belongs to the
+  ribbon. The third is the one that suits the confirmed treatment.
+- **Route shape.** The ribbon winds, but gently and on one plane. The reference
+  the direction is drawn from banks, climbs, falls and inverts, and its route
+  is the memorable thing about it. This is a terrain-generation change rather
+  than a material one, it interacts with the camera rig and with plate
+  legibility on a bank, and it wants its own brief. Not a palette job.
+
 ## Standing constraints
 
 Nothing on this list may touch word-plate legibility, the **four-name cap**

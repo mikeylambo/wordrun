@@ -111,6 +111,13 @@ export const TUNING = {
     // The teaching window. A run's first word is always real, and no more than
     // two fakes run together until this many gates have passed — see
     // isRealGate() for the measurement that motivated it.
+    // Phase B. WHEN you answer, not only whether. The multiplier runs over the
+    // existing 55 m window — the window itself is untouched, so every
+    // legibility measurement holds. It pays score and meter fill only; it is
+    // deliberately NOT applied to the speed gain, which is already an
+    // asymptotic curve and would blow through the reading floor if tripled.
+    LATE_MULT: 1.0,            // answering at the line: today's value
+    EARLY_MULT: 3.0,           // answering the instant it arms
     OPENING_GATES: 6,
     OPENING_MAX_FAKE_RUN: 2,
     // Phase A (render-ahead prototype). How many UNARMED gates are drawn

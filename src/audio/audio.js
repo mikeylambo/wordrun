@@ -360,13 +360,24 @@ export class Audio {
    * (Phase 9): a streak becomes an ascending melody, and losing the chain
    * audibly resets the ladder. Bright = up = flow.
    */
-  gate(chain = 0) {
+  /**
+   * A correct read. `early` is 0 at the gate line and 1 the instant the word
+   * armed — Phase B's answer is audible rather than written: the attack gets
+   * harder and a bright partial opens above it. A late read is byte for byte
+   * the confirmation this game has always made.
+   */
+  gate(chain = 0, early = 0) {
     const steps = [0, 2, 4, 7, 9];
     const c = Math.max(0, Math.min(14, chain | 0));
+    const e = Math.max(0, Math.min(1, early));
     const semis = steps[c % 5] + 12 * Math.floor(c / 5);
     const f0 = 660 * Math.pow(2, semis / 12);
-    this._tone({ f0, f1: f0 * 1.5, dur: 0.13, vol: 0.10, bus: this.bus.ui });
+    this._tone({ f0, f1: f0 * 1.5, dur: 0.13 - 0.03 * e, vol: 0.10 + 0.045 * e, bus: this.bus.ui });
     if (c >= 5) this._tone({ type: 'sine', f0: f0 * 2, f1: f0 * 2.02, dur: 0.1, vol: 0.035, bus: this.bus.ui, delay: 0.01 });
+    if (e > 0.35) {
+      this._tone({ type: 'sine', f0: f0 * 3, f1: f0 * 3.01, dur: 0.09 + 0.05 * e,
+        vol: 0.020 * e, bus: this.bus.ui, delay: 0.006 });
+    }
   }
 
   /** The drain: the whole mix darkens for a beat, then the light returns. */

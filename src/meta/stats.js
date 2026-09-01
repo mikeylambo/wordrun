@@ -67,6 +67,20 @@ export class StatsManager {
     return next;
   }
 
+  /**
+   * Keep the smaller of the stored and offered value — bests where lower wins,
+   * like a read time. An unset key has no stored value to beat, so the first
+   * offer takes it rather than losing to a zero.
+   */
+  min(key, value) {
+    const prev = this.stats[key];
+    const next = prev == null || Number(prev) <= 0
+      ? value : Math.min(Number(prev), value);
+    this.stats[key] = next;
+    this._persist();
+    return next;
+  }
+
   increment(key, amount = 1) {
     const next = Number(this.stats[key] ?? 0) + amount;
     this.stats[key] = next;

@@ -430,6 +430,15 @@ function finalizeRun() {
   metaStats.increment('wrong', wg.wrongCount);
   metaStats.increment('falseTaps', wg.falseTaps);
   metaStats.increment('missedReals', wg.missedReals);
+  // Phase B: how fast the reading was, not just how right. Milliseconds, so
+  // the lifetime average survives as an integer ledger.
+  const avgReadMs = wg.readCount > 0 ? Math.round((wg.latencySum / wg.readCount) * 1000) : 0;
+  const bestReadMs = wg.bestLatency != null ? Math.round(wg.bestLatency * 1000) : 0;
+  if (wg.readCount > 0) {
+    metaStats.increment('readMsTotal', avgReadMs * wg.readCount);
+    metaStats.increment('reads', wg.readCount);
+    if (bestReadMs > 0) metaStats.min?.('bestReadMs', bestReadMs);
+  }
   metaStats.max('bestChain', sim.player.bestChain);
   metaStats.max('bestDistance', Math.floor(distance));
   metaStats.max('bestScore', finalScore);
@@ -465,6 +474,7 @@ function finalizeRun() {
     scoreLost: lastRunScoreLost,
     continuesUsed,
     failedRoute,
+    avgReadMs,
     best: Storage.bestFor(SEED),
     isPb,
     shotUrl,
@@ -697,7 +707,8 @@ copyStats?.addEventListener('click', async (e) => {
       score: finalScore,
     scoreLost: lastRunScoreLost,
     continuesUsed,
-    failedRoute, distance: sim.distance, seconds: sim.time,
+    failedRoute,
+    avgReadMs, distance: sim.distance, seconds: sim.time,
       mode: runMode, difficulty: runDifficulty, continued: runContinued,
       correct: wg.correctCount, wrong: wg.wrongCount,
       falseTaps: wg.falseTaps, missedReals: wg.missedReals,
@@ -796,8 +807,15 @@ function drainSimEvents() {
       case 'overdrive_off': audio.overdriveOff(); break;
       case 'kill': audio.kill(); break;
       case 'word_confirm': audio.uiTap(); break;
-      case 'word_correct':
-        audio.gate(e.chain);
+      case 'word_correct': {
+        // Phase B: how early the answer landed, 0 at the line and 1 at the
+        // arm edge, drives the sound's attack and the camera's tick. Never a
+        // word on screen.
+        const W = TUNING.WORDS;
+        const early = Math.max(0, Math.min(1,
+          ((e.latencyMult ?? W.LATE_MULT) - W.LATE_MULT) / (W.EARLY_MULT - W.LATE_MULT)));
+        audio.gate(e.chain, early);
+        if (early > 0.4) rig.dashKick(0.28 * early);
         if (e.chain > 0) audio.chainLink(e.chain);
         if (e.proxMult > 1.05) audio.courageBank(e.proxMult);
         // The payoff is where the vibrancy lives: sparks scale with the
@@ -806,6 +824,7 @@ function drainSimEvents() {
         streakBurst.fire(e);
         wordGateActors.onResolve(e);
         break;
+      }
       case 'word_wrong':
         // The rulebook asymmetry, felt: tapping a fake is the crash (hit
         // sound, red flash, the heart the sim already took). Missing a real

@@ -391,7 +391,7 @@ head('FLOW — brilliance is earned; loss is darkness');
     !/#drain\{[^}]*(255,\s*4?\d,)/.test(indexHtml));
   const audio = fs.readFileSync('src/audio/audio.js', 'utf8');
   check('the mix darkens with the drain and the chime climbs with the chain',
-    audio.includes('duckFilter') && audio.includes('gate(chain = 0)') &&
+    audio.includes('duckFilter') && /gate\(chain = 0(, early = 0)?\)/.test(audio) &&
     audio.includes('[0, 2, 4, 7, 9]'));
 }
 
@@ -644,7 +644,7 @@ head('DASH — the second verb, finally legible');
   check('the dash sound is its own, not the borrowed shove',
     files.audio.includes('  dash() {') && files.audio.includes('_thump(0.34'));
   check('the camera punch is instant and decays (not eased like everything else)',
-    files.rig.includes('dashKick()') && files.rig.includes('KICK_DECAY') &&
+    /dashKick\(amount = 1\)|dashKick\(\)/.test(files.rig) && files.rig.includes('KICK_DECAY') &&
     files.rig.indexOf('this.fov += (wantFov') < files.rig.indexOf('this._dashKick * TUNING.BOOST.DASH.KICK_FOV'));
   check('the speed lines spike on the instant of firing',
     files.speed.includes('burst()') && files.speed.includes('STREAK_BURST') &&

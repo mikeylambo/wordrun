@@ -185,5 +185,9 @@ export class CameraRig {
   }
 
   /** Fire the DASH camera punch. Decays from here on its own. */
-  dashKick() { this._dashKick = 1; }
+  /** A camera punch. Full strength for the dash; Phase B taps it gently for
+   *  an early read, and never lets the smaller call cancel a live dash. */
+  dashKick(amount = 1) {
+    this._dashKick = Math.max(this._dashKick || 0, Math.max(0, Math.min(1, amount)));
+  }
 }
