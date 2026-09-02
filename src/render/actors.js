@@ -136,8 +136,14 @@ function buildRunner(ghost = false) {
  *   speedN   : normalised speed (0..~1.85 with Overdrive)
  *   airborne : freeze the cycle into a leap pose
  */
-function poseRunner(r, phase, speedN, airborne, dt) {
-  const swing = 0.75 + speedN * 0.35;      // shoulder/hip swing amplitude
+function poseRunner(r, phase, speedN, airborne, dt, style = {}) {
+  // E3 runner states: the style knob set is how the PLAYER's posture reads
+  // its situation (dash aggression, high-flow economy, dread crouch). The
+  // ghost passes nothing and strides exactly as it always has.
+  const swingMul = style.swingMul ?? 1;
+  const bobMul = style.bobMul ?? 1;
+  const hipDrop = style.hipDrop ?? 0;
+  const swing = (0.75 + speedN * 0.35) * swingMul;
   const sL = Math.sin(phase);
   const sR = Math.sin(phase + Math.PI);
 
@@ -163,8 +169,10 @@ function poseRunner(r, phase, speedN, airborne, dt) {
   r.armL.joint.rotation.x = sR * swing * 0.9;
   r.armR.joint.rotation.x = sL * swing * 0.9;
 
-  // The body rides the stride: a small double-frequency bob.
-  r.hips.position.y = 0.98 + Math.abs(Math.sin(phase)) * (0.035 + speedN * 0.03);
+  // The body rides the stride: a small double-frequency bob. High flow
+  // spends less of it (economy of motion); the dash drops the whole pelvis.
+  r.hips.position.y = 0.98 - hipDrop +
+    Math.abs(Math.sin(phase)) * (0.035 + speedN * 0.03) * bobMul;
 }
 
 export class PlayerActor {
@@ -260,22 +268,39 @@ export class PlayerActor {
     const norm = Math.max(0, Math.min(1, (p.speed - R.FLOOR) / (R.CEILING - R.FLOOR)));
     const speedN = norm * 1.35 + (p.overdrive ? 0.5 : 0);
 
+    // The nerve is a POSTURE input now (E3), so it is read before the pose.
+    const nerve = Math.max(0, Math.min(1, 1 - beastGap / 45));
+    // E3 — the runner's states, all pure functions of sim state:
+    //   economy : high flow spends less motion — less bob, tighter swing,
+    //             a steadier pulse. Mastery reads as ease, not flailing.
+    //   dash    : the body drops and drives — pelvis low, swing tight,
+    //             the speed-skater's start held for the whole spend.
+    //   dread   : the Redline close pulls the figure into a crouch.
+    const econ = Math.max(0, Math.min(1, ((this.flow ?? 1) - 1.25) / 0.5));
+    const style = {
+      swingMul: (p.overdrive ? 0.85 : 1) * (1 - econ * 0.25),
+      bobMul: (p.overdrive ? 0.8 : 1) * (1 - econ * 0.5),
+      hipDrop: (p.overdrive ? 0.09 : 0) + nerve * 0.035,
+    };
+
     // The run cycle is driven by distance, so stride matches the ground:
     // ~2.4m per full stride pair at base, longer as the figure sprints.
     const strideLen = 2.4 + speedN * 0.9;
     if (!p.airborne && p.speed > 0.5) {
       this._phase += (p.effSpeed ?? p.speed) * dt * (Math.PI * 2) / strideLen;
     }
-    poseRunner(this, this._phase, speedN, p.airborne, dt);
+    poseRunner(this, this._phase, speedN, p.airborne, dt, style);
 
-    // Sprinter's lean deepens with speed; Overdrive is nearly horizontal fury.
-    this.chest.rotation.x = -(0.16 + speedN * 0.22);
+    // Sprinter's lean deepens with speed; Overdrive is nearly horizontal
+    // fury, and the Redline close adds its own tension to the spine (E3).
+    this.chest.rotation.x = -(0.16 + speedN * 0.22 +
+      (p.overdrive ? 0.14 : 0) + nerve * 0.08);
 
     // The figure still pulses like a cursor: calm far from the Redline,
     // frantic close to it — the nerve tell carried over from Phase 5.
-    const nerve = Math.max(0, Math.min(1, 1 - beastGap / 45));
+    // High flow steadies the pulse (E3): the light stops wavering.
     this._blink += dt * (1.6 + nerve * 6.5);
-    const blink = 0.86 + Math.abs(Math.sin(this._blink * Math.PI)) * 0.14;
+    const blink = 0.86 + Math.abs(Math.sin(this._blink * Math.PI)) * 0.14 * (1 - econ * 0.6);
     // Flow (Phase 9): the figure itself burns brighter with the chain —
     // main sets .flow each frame (glow × pulse); wrappers pass through.
     const flow = this.flow ?? 1;
@@ -296,10 +321,14 @@ export class PlayerActor {
     this.tail.position.z = (0.001 + tailN * 9) / 2 + 0.4;
 
     // Stagger: the construct destabilises — hard flicker, a shudder, arms
-    // thrown wide — where the old rig windmilled.
+    // thrown wide — where the old rig windmilled. E3 adds the STUMBLE: one
+    // brutal pitch forward that recovers as the stagger drains, without
+    // ever touching forward motion (the sim owns that; this file never
+    // writes a player field).
     if (p.staggerT > 0) {
       const jitter = Math.sin(this.t * 61) * 0.09;
       this.group.position.x = jitter;
+      this.group.rotation.x += (p.staggerT / TUNING.PLAYER.STAGGER_TIME) * 0.3;
       this.coreMat.opacity *= 0.55 + Math.abs(Math.sin(this.t * 47)) * 0.45;
       this.armL.joint.rotation.z = 0.9 + Math.sin(this.t * 31) * 0.3;
       this.armR.joint.rotation.z = -0.9 - Math.sin(this.t * 29) * 0.3;

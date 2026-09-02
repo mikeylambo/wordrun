@@ -497,6 +497,26 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     'quitting to the title closes every overlay panel and clears the freeze');
 }
 
+// ── Phase E3: the runner's states — posture as a pure function of sim state ──
+{
+  const actors = read('src/render/actors.js');
+  check(/const econ = Math\.max\(0, Math\.min\(1, \(\(this\.flow \?\? 1\) - 1\.25\) \/ 0\.5\)\)/.test(actors) &&
+    actors.includes('(1 - econ * 0.25)') && actors.includes('(1 - econ * 0.5)'),
+    'high flow reads as economy — less bob, tighter swing, mastery as ease');
+  check(actors.includes("(p.overdrive ? 0.09 : 0)") &&
+    actors.includes("(p.overdrive ? 0.14 : 0)") && actors.includes('swingMul: (p.overdrive ? 0.85 : 1)'),
+    'the dash drops the body and drives it — the spend is visible in the spine');
+  check(actors.includes('nerve * 0.035') && actors.includes('nerve * 0.08'),
+    'the Redline close pulls the figure into a crouch, not just a faster blink');
+  check(actors.includes('(p.staggerT / TUNING.PLAYER.STAGGER_TIME) * 0.3'),
+    'the stumble is one pitch forward that recovers with the stagger');
+  check(!/p\.(speed|d|x|y|chain)\s*=/.test(actors),
+    'and the actor never writes a sim field — posture reads, forward motion is the sim\'s');
+  const ghostCall = actors.slice(actors.lastIndexOf('poseRunner('));
+  check(/poseRunner\(this, this\._phase, speedN, false, dt\)/.test(ghostCall),
+    'the ghost strides exactly as it always has — no style, no states');
+}
+
 // ── Phase R: 120 Hz — the fixed-step sim presented through one lerped pose ──
 {
   const player = { x: 2, y: 1, d: 100, heading: 0.2, chain: 7, overdrive: true, speed: 48 };

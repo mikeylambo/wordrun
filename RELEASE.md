@@ -1543,3 +1543,19 @@ Slice history:
   golden moved), and a dash that climbed to rung 3+ ends on an endpoint
   hit, a camera punch and a speed-line burst sized to it. Six checks
   under gate:corruption.
+- Phase E3 — the runner's states. Animation, not a mascot: the one object
+  on every frame now carries its situation in its posture, every term a
+  pure function of sim state and none of them ever writing one. **High
+  flow is economy of motion**: past the flow curve's upper band the bob
+  halves, the swing tightens and the cursor pulse steadies — mastery
+  reads as ease, not flailing. **The dash drops the body**: pelvis down,
+  swing tight, the chest driven near-horizontal — the speed-skater's
+  start held for the whole spend. **Dread is a crouch**: the Redline
+  close pulls the spine and pelvis in, on top of the frantic blink it
+  always caused. **The mistake is a stumble**: one hard pitch forward
+  that recovers exactly as the stagger drains, forward motion untouched
+  (the sim owns it; the actor still never writes a player field —
+  gated). The stride was already distance-true and speed-scaled; it
+  stays. The ghost passes no style and strides exactly as it always
+  has, so yesterday's replay is not retro-posed. Six checks under
+  gate:v1.
