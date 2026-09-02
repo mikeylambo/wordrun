@@ -1,21 +1,30 @@
-# Phase K — concept stills
+# Phase K — concept stills (re-shot on the Phase L route)
 
-## Decision (2026-09-02)
+## The decision is OPEN again (re-shoot, 2026-09-02, same day)
 
-**The look stays as shipped.** The Editorial World is not being built —
-Phases L and M came off the roadmap, and with them the Redline-at-9m
-question (no "editorial correction" is coming; the shipped scream range
-stands as measured in K3b) and the paper-ink hue question. The one thing
-promoted from the style program is the lab's **Broadcast** treatment,
-shipped as an opt-in LOOK toggle (STANDARD / BROADCAST) on the settings
-surface — see `src/render/broadcast-pass.js` and RELEASE.md. The stills
-below stay as the record of what was considered.
+The first set of these stills tested page-bars beside a FLAT road — the
+plate, runner, horizon and palette were identical from K1 to K3, so the
+only honest reading was "the look stays", and that is what was decided.
+That reading was about a weak still, not about the direction: the phase
+that fills the frame (route grammar) had been cut on its evidence.
+
+Phase L (L1–L3) is now built — climbs, descents, banks, crests, one road
+per seed, gameplay byte-identical (see RELEASE.md) — and these four
+frames are re-shot on the routed geometry with the page riding the
+surface: the columns climb the banks and fold over the crests, which is
+what the first shoot could never show. **Pick or redirect the look from
+THESE frames.** Phase M (the Editorial World proper) and L4/L5 (advanced
+segments, authored DAILY composition) wait on the pick; the Broadcast
+settings toggle ships either way.
 
 Four frames of the real game with the dev-only page layer armed
 (`dev/style-lab.js`, `?dev=1&stills=1`). Same seed (the DAILY RUN for
-2026-09-01), same gate (the fifth, word `all`, real), same read moment (plate
-37.8 m ahead), same speed (36 m/s), same portrait frame (390×844 at 2×). The
-only things that change between frames are the chain and the Redline's gap.
+2026-09-02), same gate (the fifth, word `eys`, fake), same read moment (plate
+~37.6 m ahead), same speed (36 m/s), same portrait frame (390×844 at 2×), on
+the ROUTED track — this set happens to catch a banked descent, so the page
+falls away to the right of the frame and the +1 plate is visible far
+downhill. The only things that change between frames are the chain and the
+Redline's gap.
 Every number below was read back from the running page by
 `dev/shoot-stills.mjs` and written to `manifest.json`; nothing is asserted.
 

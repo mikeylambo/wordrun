@@ -15,11 +15,21 @@ this file only holds what is NOT built yet. The plan is the finishing brief
 
 ## Pass 2 — make it look like nothing else
 
-Closed by the Phase K decision (2026-09-02): the look stays as shipped.
-The Editorial World and its route grammar (Phases L and M) are not being
-built; the stills and the decision live in `dev/stills/`. Phase N shipped
-reshaped — the style lab's Broadcast treatment as an opt-in LOOK toggle
-on the settings surface, never the default (see RELEASE.md).
+Phase L (L1–L3) is BUILT — route grammar: climbs, descents, banks and
+crests as a seeded walk, gameplay byte-identical, every reading number
+measured and gated (`tools/route-gates.mjs`; RELEASE.md). Phase N shipped
+reshaped — the Broadcast treatment as an opt-in LOOK toggle. The K stills
+were re-shot on the routed geometry with the page riding the surface,
+because the first set tested bars beside a flat road and could not carry
+the decision it was asked to carry.
+
+- **[MP] The look pick, on the re-shot stills** in `dev/stills/`. Open
+  again, and now a fair test. Everything below waits on it.
+- **Phase L4/L5 — advanced segments and the authored DAILY.** Canyon,
+  tunnel, corkscrew, negative-space drop, pursuit-narrows; authored DAILY
+  composition + ENDLESS escalation walk. After the pick.
+- **Phase M — the Editorial World.** As specified in the brief, IF the
+  re-shot stills win the pick.
 
 ## Pass 3 — competition — HELD until released by a human
 

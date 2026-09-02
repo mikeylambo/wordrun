@@ -115,7 +115,9 @@ try {
         frames, d: +sim.player.d.toFixed(1),
       };
     }, { ...shot, GATE, PLATE_AT_M, SPEED, SETTLE_FRAMES });
-    await page.screenshot({ path: path.join(OUT, shot.file) });
+    // Software rasterisation gets slow at the typeset band's full density;
+    // give the shutter the time it needs rather than failing the shoot.
+    await page.screenshot({ path: path.join(OUT, shot.file), timeout: 120000 });
     manifest.push({ file: shot.file, ...state });
     console.log(shot.file, JSON.stringify(state));
   }

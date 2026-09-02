@@ -351,6 +351,10 @@ class PageLayer {
 
     // Margin rules: one hairline each side at every band; a second past
     // chain 50, a third at the full page. Segments of 6 m follow the winding.
+    // Phase L re-shoot: everything rides the routed surface — the page
+    // climbs the banks and folds over the crests instead of lying on a
+    // plane the road no longer is.
+    const ground = (x, d) => this.terrain.heightAt(x, d);
     let r = 0;
     const ruleCount = level >= 4 ? 3 : level >= 2 ? 2 : 1;
     for (let d = dA; d < dB && r < 420; d += 6) {
@@ -358,7 +362,8 @@ class PageLayer {
         for (let k = 0; k < ruleCount; k++) {
           if (r >= 420) break;
           const off = HW + 2.4 + k * 0.55;
-          this._put(this.rules, r++, line(d + 3) + side * off, 0.05, -(d + 3),
+          const x = line(d + 3) + side * off;
+          this._put(this.rules, r++, x, ground(x, d + 3) + 0.05, -(d + 3),
             0.07, 0.06, 6.0);
         }
       }
@@ -383,7 +388,8 @@ class PageLayer {
           const ragged = level >= 4 ? 1 : 0.55 + 0.45 * h32(key + 23);
           const w = colW * (end ? 0.3 + 0.4 * h32(key + 5) : ragged);
           const inner = HW + 4.2 + c * (colW + 2.2);
-          this._put(this.type, t++, line(d) + side * (inner + w / 2), 0.05, -d,
+          const tx = line(d) + side * (inner + w / 2);
+          this._put(this.type, t++, tx, ground(tx, d) + 0.05, -d,
             w, 0.08, ROW_LEN);
         }
       }
@@ -395,14 +401,16 @@ class PageLayer {
     if (level >= 1) {
       for (let d = Math.ceil(dA / 36) * 36; d < dB && s < 40; d += 36) {
         const side = (Math.round(d / 36) % 2) ? 1 : -1;
-        this._put(this.stops, s++, line(d) + side * (HW + 3.3), 0.6, -d, 1.0, 1.0, 1.0);
+        const sx = line(d) + side * (HW + 3.3);
+        this._put(this.stops, s++, sx, ground(sx, d) + 0.6, -d, 1.0, 1.0, 1.0);
       }
     }
     if (level >= 2) {
       for (let d = Math.ceil(dA / 54) * 54 + 18; d < dB && e < 40; d += 54) {
         for (const side of [-1, 1]) {
           if (e >= 40) break;
-          this._put(this.dashes, e++, line(d) + side * (HW + 6.5), 2.4, -d, 0.14, 0.32, 3.0);
+          const ex = line(d) + side * (HW + 6.5);
+          this._put(this.dashes, e++, ex, ground(ex, d) + 2.4, -d, 0.14, 0.32, 3.0);
         }
       }
     }
@@ -411,17 +419,19 @@ class PageLayer {
         for (const side of [-1, 1]) {
           if (b >= 118) break;
           const x = line(d) + side * (HW + 3.6);
+          const gy = ground(x, d);
           // A bracket: the upright, and a return at each end toward the track.
-          this._put(this.brackets, b++, x, 2.3, -d, 0.16, 4.6, 0.16);
-          this._put(this.brackets, b++, x - side * 0.4, 4.55, -d, 0.95, 0.14, 0.16);
-          this._put(this.brackets, b++, x - side * 0.4, 0.09, -d, 0.95, 0.14, 0.16);
+          this._put(this.brackets, b++, x, gy + 2.3, -d, 0.16, 4.6, 0.16);
+          this._put(this.brackets, b++, x - side * 0.4, gy + 4.55, -d, 0.95, 0.14, 0.16);
+          this._put(this.brackets, b++, x - side * 0.4, gy + 0.09, -d, 0.95, 0.14, 0.16);
         }
       }
     }
     if (level >= 4) {
       for (let d = Math.ceil(dA / 72) * 72 + 30; d < dB && c < 12; d += 72) {
         const side = (Math.round(d / 72) % 2) ? -1 : 1;
-        this._put(this.caps, c++, line(d) + side * (HW + 10.5), 1.1, -d, 2.2, 2.2, 2.2);
+        const cxx = line(d) + side * (HW + 10.5);
+        this._put(this.caps, c++, cxx, ground(cxx, d) + 1.1, -d, 2.2, 2.2, 2.2);
       }
     }
     this.stops.count = s; this.dashes.count = e; this.brackets.count = b; this.caps.count = c;

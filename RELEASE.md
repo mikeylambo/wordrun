@@ -1415,3 +1415,21 @@ Slice history:
   hint is up, so two teaching sentences never share the frame with the
   plate; every lesson still runs and still retires on its action. Four
   checks under gate:corruption.
+- Phase K re-shoot — the concept stills, on geometry that can carry them.
+  The four frames in `dev/stills/` are re-shot on the Phase L route with
+  the page layer riding the surface (`heightAt` under every rule, column,
+  stop, dash, bracket and drop cap — the page climbs the banks and folds
+  over the crests, which the brief itself said a flat page never could).
+  Same driver, same conventions: one DAILY seed (2026-09-02), one gate
+  (the fifth, word `eys`), the plate ~37.6 m ahead, 36 m/s, 390×844 at
+  2×; chain 0 / 50 / 150 and the Redline at 16 m and 9 m. This set
+  happens to catch a banked descent, so the typeset page falls away down
+  the right of the frame and the +1 plate reads far downhill — K1 and K3
+  finally LOOK like different game states, which is the whole test. The
+  HUD in frame is the reduced one (rose hearts, pause-only chrome). No
+  `src/` change; the only repo edits are the dev page layer's surface
+  sampling and a patient screenshot timeout for software rasterisation.
+  **The look decision is reopened and waits on a human**: the first
+  decision was made against stills that could not show the direction, and
+  these can. Phase M and L4/L5 wait on the pick; the Broadcast toggle
+  ships either way. STOPPED here, as directed.
