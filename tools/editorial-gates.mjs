@@ -281,7 +281,7 @@ head('WIRING — explicit integration, frame-accurate loss');
   const worldSrc = fs.readFileSync('src/render/editorial-world.js', 'utf8');
   check('main.js constructs the world and drives it from the frame loop',
     main.includes('new EditorialWorld(stage.scene, sim.terrain)') &&
-    main.includes('editorialWorld.update(pv.d, p.chain, bv.gap)') &&
+    main.includes('editorialWorld.update(pv.d, p.chain, bv.gap, dt)') &&
     main.includes('editorialWorld.setFlow(flowF)'));
   check('a wrong read drops the layer in the same event drain as the drain itself',
     main.includes('editorialWorld.onWrongRead()') &&

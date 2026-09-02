@@ -1525,3 +1525,21 @@ Slice history:
   counted; the narrows floor asserted), the occlusion sweep now includes
   the arches, and the margin floor moved to the narrows' own value with
   ordinary spans still holding the full margin.
+- Phase E2 — punctuation beats. Four discrete arrivals inside the
+  continuous systems, no labels and no new controls, every visual half
+  REDUCED FLASH-safe by construction. **The chain break**: a chain of 25+
+  dying is an event — one hard fall in the mix sized to what stood, and
+  the camera goes STILL for most of a second (pure reduction: the tremor
+  is suppressed, nothing added, so reduced flash needs no special case);
+  the world's layer falling was already frame-accurate with the drain.
+  A small chain keeps the old quiet tick. **The band arrival**: crossing
+  a world threshold lands one rising note and one 0.7 s swell of ink —
+  the swell yields to REDUCED FLASH, the note stays, and it fires only on
+  the way up. **The release**: a run that has been inside the Redline's
+  scream range (< 12 m) and then opens real daylight (> 34 m) gets one
+  rising breath — audiovisual catharsis, no words. **The dash climax**:
+  the overdrive-off event now carries the rung the ladder died on
+  (captured in the sim before the zeroing — a presentation payload, no
+  golden moved), and a dash that climbed to rung 3+ ends on an endpoint
+  hit, a camera punch and a speed-line burst sized to it. Six checks
+  under gate:corruption.

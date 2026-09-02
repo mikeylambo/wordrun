@@ -116,8 +116,11 @@ export class Player {
       // inputs behave the same and the tap is a real control.
       if (this.boostMeter <= 0) {
         this.overdrive = false;
-        this.dashChain = 0;      // the ladder never survives past the dash
-        events?.push({ t: 'overdrive_off' });
+        // The ladder never survives past the dash — but the event carries the
+        // rung it DIED on, so presentation can land the endpoint hit (E2).
+        const rung = this.dashChain;
+        this.dashChain = 0;
+        events?.push({ t: 'overdrive_off', rung });
       } else {
         const drain = Math.min(this.boostMeter, B.DRAIN_RATE * dt);
         this.boostMeter -= drain;

@@ -480,6 +480,41 @@ export class Audio {
     }
   }
 
+  // ── Punctuation beats (Phase E2): discrete arrivals inside the continuous
+  // systems. Sounds, never labels; every visual half of a beat lives with
+  // its consumer and is REDUCED FLASH-safe there — sound is always kept.
+
+  /** A big chain dies. Not the ordinary chainLost tick: one hard fall and a
+   *  low exhale, sized to what was standing. Loss stays darkness. */
+  chainBreak(chain = 0) {
+    const big = Math.min(1, chain / 100);
+    this._tone({ type: 'square', f0: 220, f1: 55, dur: 0.34 + big * 0.2, vol: 0.12 + big * 0.06,
+      bus: this.bus.cinematic, filter: { type: 'lowpass', freq: 900, q: 1 } });
+    this._burst(0.3 + big * 0.2, 0.1, 700, 'lowpass', 0, this.bus.ambience);
+  }
+
+  /** The world sets another layer: a low arrival note, rising by band. */
+  bandRise(band = 1) {
+    const f = 155.56 * Math.pow(2, [0, 0, 3, 5, 7][Math.min(band, 4)] / 12);
+    this._tone({ type: 'sine', f0: f, f1: f, dur: 0.9, vol: 0.075, bus: this.bus.cinematic });
+    this._tone({ type: 'triangle', f0: f * 2, f1: f * 2.01, dur: 0.5, vol: 0.035,
+      bus: this.bus.cinematic, delay: 0.05 });
+  }
+
+  /** Real daylight opened from inside the scream range: the release. */
+  redlineRelease() {
+    this._tone({ type: 'sine', f0: 233, f1: 466, dur: 0.7, vol: 0.08, bus: this.bus.cinematic });
+    this._burst(0.5, 0.09, 3200, 'highpass', 0, this.bus.ambience);
+  }
+
+  /** A dash ends on a climbed ladder: the endpoint hit, sized to the rung. */
+  dashClimax(rung = 0) {
+    const e = Math.min(1, rung / 4);
+    this._tone({ type: 'sine', f0: 311 * (1 + e * 0.5), f1: 933, dur: 0.4 + 0.2 * e,
+      vol: 0.1 + 0.06 * e, bus: this.bus.cinematic });
+    this._thump(0.2 + 0.18 * e, 0, this.bus.score);
+  }
+
   huntStart(side = 0, kind = 'rear') {
     const pan = clamp(side * 0.75, -1, 1);
     this._tone({ type: 'square', f0: side < 0 ? 340 : side > 0 ? 390 : 365, f1: 96, dur: 0.42, vol: 0.075, pan, bus: this.bus.threat, filter: { type: 'bandpass', freq: 1100, q: 3 } });

@@ -103,6 +103,11 @@ let flowChain = 0; // smoothed chain for the flow channel: eased up, snapped dow
 // BEFORE the death-frame snap zeroes flowChain — the results card enters in
 // this band, and the world behind it holds the same earned brightness.
 let endedFlowLevel = 0;
+// E2 punctuation state: the last world band seen (arrival beats fire on the
+// rise) and whether the run has been inside the Redline's scream range
+// (real daylight opened from there gets the release).
+let worldBand = 0;
+let inScream = false;
 let deathShownAt = 0;
 let shotUrl = null;
 let shotTaken = false;
@@ -362,6 +367,8 @@ function startRun() {
   flowChain = 0;
   endedFlowLevel = 0;
   editorialWorld.reset(); // the manuscript starts sparse each run
+  worldBand = 0;
+  inScream = false;
   paused = false;
   running = true;
   input.enabled = true;
@@ -983,7 +990,17 @@ function drainSimEvents() {
         audio.gate();
         if (e.chain > 0) audio.chainLink(e.chain);
         break;
-      case 'chain_lost': audio.chainLost(); break;
+      case 'chain_lost':
+        // E2: a BIG chain dying is an event, not a counter reset — the hard
+        // fall in the mix, and the camera goes still for a beat. The world's
+        // layer falling (Phase M) is already frame-accurate with this.
+        if (e.chain >= 25) {
+          audio.chainBreak(e.chain);
+          rig.settle();
+        } else {
+          audio.chainLost();
+        }
+        break;
       // Hearts and bells (Phase 0: driven by sim events now, not a frame-delta
       // poll in the deleted rc5 layer). The heart HUD itself is synced from
       // sim.hearts in ui.update; these are only the sounds.
@@ -1006,7 +1023,16 @@ function drainSimEvents() {
           Storage.setDashLearned(true);
         }
         break;
-      case 'overdrive_off': audio.overdriveOff(); break;
+      case 'overdrive_off':
+        audio.overdriveOff();
+        // E2: a dash that climbed its ladder ends on an endpoint hit —
+        // sized to the rung it died on, with the camera punch it earned.
+        if ((e.rung | 0) >= 3) {
+          audio.dashClimax(e.rung);
+          rig.dashKick(0.55);
+          windStreaks.burst();
+        }
+        break;
       case 'last_stand':
         // No label, by design. The world going quiet and the corruption
         // pinned at its worst is the whole announcement.
@@ -1159,7 +1185,24 @@ function tick(dt) {
   trackPylons.terrain = sim.terrain;
   trackPylons.update(pv.d);
   editorialWorld.terrain = sim.terrain;
-  editorialWorld.update(pv.d, p.chain, bv.gap);
+  const bandNow = editorialWorld.update(pv.d, p.chain, bv.gap, dt);
+  // E2: crossing a band threshold is an ARRIVAL — one note rising with the
+  // band, one swell of ink (the swell yields to REDUCED FLASH; the note
+  // stays). Fires only on the way up; the fall already lands with the drain.
+  if (running && bandNow > worldBand) {
+    audio.bandRise(bandNow);
+    editorialWorld.pulseInk();
+  }
+  worldBand = bandNow;
+  // E2: the Redline release — the run was inside the scream range and clean
+  // reading opened real daylight. One rising breath, no label.
+  if (running && sim.phase === PHASE.RUNNING) {
+    if (bv.gap < 12) inScream = true;
+    else if (inScream && bv.gap > 34) {
+      inScream = false;
+      audio.redlineRelease();
+    }
+  }
 
   const beastGroundY = sim.terrain.heightAt(bv.x, pv.d - bv.gap);
   const killT = sim.phase === PHASE.KILL || sim.phase === PHASE.DEAD ? sim.killTimer : 0;

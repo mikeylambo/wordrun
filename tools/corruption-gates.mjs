@@ -914,6 +914,36 @@ head('HUD — one alarm colour, one instruction, pause-only chrome');
     ui.includes("if (this.powerHint?.classList.contains('on')) text = '';"));
 }
 
+// ── Punctuation beats (Phase E2) ─────────────────────────────────────────
+head('BEATS — discrete arrivals, no labels, no new controls');
+
+{
+  const main = fs.readFileSync('src/main.js', 'utf8');
+  const audio = fs.readFileSync('src/audio/audio.js', 'utf8');
+  const rig = fs.readFileSync('src/render/camera-rig.js', 'utf8');
+  const player = fs.readFileSync('src/sim/player.js', 'utf8');
+  const world = fs.readFileSync('src/render/editorial-world.js', 'utf8');
+
+  check('a BIG chain dying is an event; a small one keeps the old tick',
+    main.includes('if (e.chain >= 25) {') && main.includes('audio.chainBreak(e.chain)') &&
+    main.includes('rig.settle()') && main.includes('audio.chainLost()'));
+  check('the settle is pure reduction — shake suppressed, nothing added',
+    rig.includes('settle() { this._settleT = 0.9; }') &&
+    rig.includes('* (1 - Math.min(1, this._settleT / 0.9) * 0.85)'));
+  check('the dash endpoint hit rides the rung the ladder DIED on',
+    /const rung = this\.dashChain;\s*\n\s*this\.dashChain = 0;/.test(player) &&
+    main.includes("(e.rung | 0) >= 3") && main.includes('audio.dashClimax(e.rung)'));
+  check('a band arrival fires only on the way up, and its swell yields to REDUCED FLASH',
+    main.includes('bandNow > worldBand') && main.includes('editorialWorld.pulseInk()') &&
+    world.includes("if (!ACCESS.reducedFlash) this._swellT = 0.7"));
+  check('the release needs the scream range entered AND real daylight opened',
+    main.includes('if (bv.gap < 12) inScream = true') &&
+    main.includes('inScream && bv.gap > 34') && main.includes('audio.redlineRelease()'));
+  check('all four cues exist, on the cinematic bus like the moments they mark',
+    ['chainBreak(', 'bandRise(', 'redlineRelease(', 'dashClimax('].every((f) => audio.includes(f)) &&
+    audio.split('chainBreak')[1].includes('bus.cinematic'));
+}
+
 console.log(out.join('\n'));
 console.log(`\n${PASS} passed, ${FAIL} failed`);
 if (FAIL) process.exit(1);

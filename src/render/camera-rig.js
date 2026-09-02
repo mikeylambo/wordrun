@@ -31,8 +31,14 @@ export class CameraRig {
     this.whip = 0;
     this.roll = 0;
     this._dashKick = 0;
+    this._settleT = 0;
     this.shake.set(0, 0, 0);
   }
+
+  /** E2: the beat after a big chain breaks — the camera goes STILL for a
+   *  moment. Pure reduction (shake suppressed, nothing added), so it is
+   *  REDUCED FLASH-safe by construction. */
+  settle() { this._settleT = 0.9; }
 
   update(dt, p, gap, shakeAmp, killT, terrain, beastX = p.x, beastSide = 1) {
     // Speed feel is keyed 0..1 across the whole floor→ceiling range (the
@@ -105,7 +111,10 @@ export class CameraRig {
     // Barely-in-control tremor as the ceiling nears — additive with the
     // dread shake, tiny enough to never smear a plate.
     const speedShake = Math.max(0, speedN - 0.72) / 0.28 * C.SPEED_SHAKE;
-    const amp = Math.max(shakeAmp, speedShake);
+    // E2: the settle after a big chain break — the tremor is held under for
+    // most of a second, then eases back in as the run resumes.
+    this._settleT = Math.max(0, (this._settleT || 0) - dt);
+    const amp = Math.max(shakeAmp, speedShake) * (1 - Math.min(1, this._settleT / 0.9) * 0.85);
     if (amp > 0.001) {
       const t = performance.now() * 0.001;
       // Bias dread shake vertically/downhill; random lateral vibration reads as

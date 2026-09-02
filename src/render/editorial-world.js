@@ -88,6 +88,12 @@ export class EditorialWorld {
     this.band = stepBand(this.band, 0, true);
   }
 
+  /** E2: the arrival beat when a band is earned — one brief swell of ink
+   *  over ~0.7 s. REDUCED FLASH skips the swell; the arrival note stays. */
+  pulseInk() {
+    if (!ACCESS.reducedFlash) this._swellT = 0.7;
+  }
+
   setFlow(factor) { this._flow = factor; }
 
   _fill(mesh, list) {
@@ -122,8 +128,9 @@ export class EditorialWorld {
    * Once a frame. `chain` rises the band; wrong reads arrive through
    * onWrongRead() from the sim-event drain, frame-accurate.
    */
-  update(playerD, chain, beastGap) {
+  update(playerD, chain, beastGap, dt = 1 / 60) {
     this.band = stepBand(this.band, chain, false);
+    this._swellT = Math.max(0, (this._swellT || 0) - dt);
 
     const moved = this._anchor == null || Math.abs(playerD - this._anchor) > REBUILD_AFTER;
     if (this.band !== this._builtBand || moved) {
@@ -139,10 +146,13 @@ export class EditorialWorld {
       this._fill(this.meshes.arches, page.arches);
     }
     this._paint(this.band, playerD);
-    // The earned light breathes with flow, exactly like the stanchions.
-    const glow = Math.min(1.15, 0.75 + 0.25 * this._flow);
-    this.matType.opacity *= glow;
-    this.matRule.opacity *= glow;
+    // The earned light breathes with flow, exactly like the stanchions;
+    // a fresh band arrives on one swell of ink (E2), decaying smoothly.
+    const swell = 1 + (this._swellT || 0) / 0.7 * 0.35;
+    const glow = Math.min(1.15, 0.75 + 0.25 * this._flow) * swell;
+    this.matType.opacity = Math.min(1, this.matType.opacity * glow);
+    this.matRule.opacity = Math.min(1, this.matRule.opacity * glow);
+    return this.band;
 
     // The Redline's correction: red strikes through the nearest lines as
     // the gap closes — the editor catching the manuscript. The colour is
