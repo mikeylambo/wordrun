@@ -12,6 +12,8 @@ import TUNING from '../TUNING.js';
 import { PALETTE, LIGHT } from './palette.js';
 import { bandForDistance } from './art-direction.js';
 import { EndgameSky } from './endgame-sky.js';
+import { BroadcastPass } from './broadcast-pass.js';
+import { ACCESS } from '../ui/access.js';
 
 export class Stage {
   constructor(canvas) {
@@ -118,6 +120,19 @@ export class Stage {
   }
 
   render() {
+    // The BROADCAST look (Phase N as decided): opt-in, constructed and torn
+    // down here so the toggle applies live and the default path stays the
+    // bare render. This branch is the system's one integration point — the
+    // pass is never installed by wrapping a live render function.
+    if (ACCESS.broadcastLook) {
+      if (!this.broadcast) this.broadcast = new BroadcastPass(this.renderer);
+      this.broadcast.render(this.renderer, this.scene, this.camera, ACCESS.reducedFlash);
+      return;
+    }
+    if (this.broadcast) {
+      this.broadcast.dispose(this.renderer);
+      this.broadcast = null;
+    }
     this.renderer.render(this.scene, this.camera);
   }
 }

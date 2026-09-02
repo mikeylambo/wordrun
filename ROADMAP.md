@@ -15,22 +15,11 @@ this file only holds what is NOT built yet. The plan is the finishing brief
 
 ## Pass 2 — make it look like nothing else
 
-- **Phase L — route grammar.** Waits on the Phase K pick in `dev/stills/`:
-  a human picks or redirects before anything below starts. (L1 → L5, each
-  gated before the next): vertical centreline + surface-normal camera; per-segment banking; crest / page-fold;
-  canyon, tunnel, corkscrew, negative-space drop, pursuit-narrows; authored
-  DAILY composition + ENDLESS segment walk. Plate size ≥ 270×68 at 62 m/s on
-  flat / bank / crest / descent; plate rotation and skew gated; FOV ≤ 96.
-- **Phase M — the Editorial World.** Typographic primitives as page geometry
-  (rules, margins, columns, folds, punctuation as sculpture — no readable
-  background text, gated), five flow bands (chain 0 / 25 / 50 / 100 / 150+),
-  a wrong read drops a band, the Redline as an editorial correction. Every
-  environment hue ≥ 35° from the semantic set; the plate never occluded.
-  The floating verge posts get rebuilt here as emissive edge geometry.
-- **Phase N — Broadcast into production.** The bright-pass bleed promoted
-  from the style lab into `material-pass.js` as the compositor under M;
-  colour-grammar gate under banding; REDUCED FLASH controls the glow radius;
-  one measured frame budget on the slowest device.
+Closed by the Phase K decision (2026-09-02): the look stays as shipped.
+The Editorial World and its route grammar (Phases L and M) are not being
+built; the stills and the decision live in `dev/stills/`. Phase N shipped
+reshaped — the style lab's Broadcast treatment as an opt-in LOOK toggle
+on the settings surface, never the default (see RELEASE.md).
 
 ## Pass 3 — competition — HELD until released by a human
 
@@ -42,9 +31,9 @@ this file only holds what is NOT built yet. The plan is the finishing brief
 
 ## Pass 4 — premium finish
 
-- **Phase Q — title, results, motion.** Title in the Editorial World; results
-  with a grade-free stat bar and a score that counts up on the beat clock;
-  no hard cuts between title → run → results.
+- **Phase Q — title, results, motion.** Title staged in the shipped look;
+  results with a grade-free stat bar and a score that counts up on the beat
+  clock; no hard cuts between title → run → results.
 - **Phase R — onboarding, performance, devices.** Left zone + compression
   hold join the action-gated lesson set; 120 Hz render interpolation
   measured on the device matrix; input parity and caching notes.

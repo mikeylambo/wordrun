@@ -783,6 +783,36 @@ head('BROADCAST — few words, one type system, numbers first');
     uiSrc.includes('<s>${wrongSpelling}</s>') && uiSrc.includes('<b>${word}</b>'));
 }
 
+// ── The BROADCAST look (Phase N as decided) ──────────────────────────────
+head('LOOK — BROADCAST is opt-in, explicit, and flash-aware');
+
+{
+  // Phase K's pick: the shipped look stays. The style lab's broadcast
+  // treatment ships only as a settings toggle, default off, integrated
+  // through Stage.render() — never by wrapping a live render function,
+  // which is the Phase 0 banned pattern.
+  const access = fs.readFileSync('src/ui/access.js', 'utf8');
+  const scene = fs.readFileSync('src/render/scene.js', 'utf8');
+  const pass = fs.readFileSync('src/render/broadcast-pass.js', 'utf8');
+
+  check('the shipped look is the default — BROADCAST starts off',
+    access.includes('broadcastLook: false'));
+  check('the toggle is a chip row on the settings surface and it persists',
+    access.includes("[[false, 'STANDARD'], [true, 'BROADCAST']]") &&
+    access.includes('broadcastLook: ACCESS.broadcastLook') &&
+    access.includes('ACCESS.broadcastLook = !!saved.broadcastLook'));
+  check('Stage.render() owns the branch — no runtime render wrapping',
+    scene.includes('if (ACCESS.broadcastLook)') &&
+    scene.includes('this.broadcast = new BroadcastPass(this.renderer)') &&
+    !pass.includes('stage.render =') && !pass.includes('window.__'));
+  check('the toggle tears the pass down on the standard path',
+    scene.includes('this.broadcast.dispose(this.renderer)'));
+  check('REDUCED FLASH controls the glow, radius and strength both',
+    pass.includes('reducedFlash ? BROADCAST.ACCESS_GLOW : BROADCAST.GLOW') &&
+    pass.includes('reducedFlash ? BROADCAST.ACCESS_GLOW_RAD : BROADCAST.GLOW_RAD') &&
+    /ACCESS_GLOW_RAD:\s*7/.test(pass) && /GLOW_RAD:\s*14/.test(pass));
+}
+
 console.log(out.join('\n'));
 console.log(`\n${PASS} passed, ${FAIL} failed`);
 if (FAIL) process.exit(1);

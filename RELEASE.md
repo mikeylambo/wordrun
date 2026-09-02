@@ -1235,3 +1235,30 @@ Slice history:
   banks if it goes ahead), and the ink sits close to the track's cyan. No
   gameplay file changed; every suite stayed green untouched. **Phase L does
   not start until a human picks or redirects.**
+- Phase N — the Phase K decision, and BROADCAST as a look toggle. The pick
+  came back: **the look stays as shipped.** The Editorial World and its
+  route grammar (Phases L and M) came off the roadmap — the stills stay in
+  `dev/stills/` as the record, with the decision written at the top — and
+  the two questions that only existed inside that direction (the Redline as
+  an editorial correction, a distinct paper ink) closed with it. What was
+  promoted is the one candidate a human kept coming back to: the style
+  lab's **broadcast** treatment (cel bands, a drawn ink line on depth and
+  luminance steps, a bright-pass bleed, a vignette), shipped byte-for-byte
+  at the lab's approved dial values in `src/render/broadcast-pass.js` — as
+  an OPT-IN toggle, never the default. The settings surface gets a fourth
+  chip row, LOOK: STANDARD / BROADCAST, persisted with the other prefs and
+  applied live mid-run. Integration is the explicit kind Phase 0 demands:
+  `Stage.render()` owns the one branch, constructing the pass when the chip
+  flips on and tearing it down (render target, quad, material) when it
+  flips off — no wrapped render functions, no `window.__` hooks; the pass
+  re-fits its render target every frame so the RC7.1 adaptive-DPR governor
+  keeps working under it. REDUCED FLASH is honoured, not bypassed, by the
+  cosmetic layer: the bleed is the one element of this look that pulses
+  with scene brightness, so reduced flash halves its radius (14 → 7 px) and
+  damps its strength (0.5 → 0.35). Word-plate legibility keeps its rank:
+  the plates are the brightest, highest-contrast quads in the frame, the
+  banding preserves hue ratios, and the default path is untouched — a
+  player who never opens the panel never sees a changed frame. Five gates
+  under `gate:corruption` hold the shape: default off, the chip row
+  persists, Stage owns the branch, the teardown is real, and reduced flash
+  controls the glow.

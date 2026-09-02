@@ -1,5 +1,16 @@
 # Phase K — concept stills
 
+## Decision (2026-09-02)
+
+**The look stays as shipped.** The Editorial World is not being built —
+Phases L and M came off the roadmap, and with them the Redline-at-9m
+question (no "editorial correction" is coming; the shipped scream range
+stands as measured in K3b) and the paper-ink hue question. The one thing
+promoted from the style program is the lab's **Broadcast** treatment,
+shipped as an opt-in LOOK toggle (STANDARD / BROADCAST) on the settings
+surface — see `src/render/broadcast-pass.js` and RELEASE.md. The stills
+below stay as the record of what was considered.
+
 Four frames of the real game with the dev-only page layer armed
 (`dev/style-lab.js`, `?dev=1&stills=1`). Same seed (the DAILY RUN for
 2026-09-01), same gate (the fifth, word `all`, real), same read moment (plate

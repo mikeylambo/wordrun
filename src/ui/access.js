@@ -14,6 +14,10 @@
  * a game whose reward state is rhythmic flashing owes its players this
  * switch. READABLE TYPE renders the word plates in a wider-spaced
  * humanist face instead of the condensed monospace.
+ *
+ * The panel is also the game's one persisted settings surface, so the
+ * LOOK row (STANDARD / BROADCAST, see render/broadcast-pass.js) lives
+ * here despite being cosmetic rather than accessibility.
  */
 
 import { Storage } from '../storage/storage.js';
@@ -29,6 +33,10 @@ const PALETTES = {
 export const ACCESS = {
   reducedFlash: false,
   readableType: false,
+  // The BROADCAST look (Phase N as decided): a whole-frame cel/ink/glow
+  // treatment, strictly opt-in — the shipped look is the default and this
+  // stays false until a player flips the chip. Stage.render() reads it live.
+  broadcastLook: false,
   palette: 'off',
   epoch: 0, // bumped on every change so canvas caches (plates) re-paint
   ...PALETTES.off,
@@ -38,6 +46,7 @@ function persist() {
   Storage.setAccessPrefs({
     reducedFlash: ACCESS.reducedFlash,
     readableType: ACCESS.readableType,
+    broadcastLook: ACCESS.broadcastLook,
     palette: ACCESS.palette,
   });
 }
@@ -69,6 +78,7 @@ export function initAccess() {
   const saved = Storage.accessPrefs();
   ACCESS.reducedFlash = !!saved.reducedFlash;
   ACCESS.readableType = !!saved.readableType;
+  ACCESS.broadcastLook = !!saved.broadcastLook;
   ACCESS.palette = PALETTES[saved.palette] ? saved.palette : 'off';
   apply();
 }
@@ -134,6 +144,10 @@ export function buildAccessPanel(hooks = {}) {
     chipRow('COLOR VISION', [['off', 'DEFAULT'], ['deuteranopia', 'DEUTERANOPIA'],
       ['protanopia', 'PROTANOPIA'], ['tritanopia', 'TRITANOPIA']],
       () => ACCESS.palette, (v) => { ACCESS.palette = v; }),
+    // Not an accessibility surface, but this panel is the game's one
+    // persisted settings surface, so the look toggle lives here too.
+    chipRow('LOOK', [[false, 'STANDARD'], [true, 'BROADCAST']],
+      () => ACCESS.broadcastLook, (v) => { ACCESS.broadcastLook = v === 'true' || v === true; }),
   ];
   const done = document.createElement('button');
   done.type = 'button';
