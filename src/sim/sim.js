@@ -106,6 +106,7 @@ export class Sim {
     this.killTimer = 0;
     this.killSource = null;
     this._acc = 0;
+    this.viewPrev = null; // stale pose must not bridge into a fresh run
     this.events.length = 0;
     this._lastStuntId = null;
     this.stuntsCleared = 0;
@@ -302,6 +303,7 @@ export class Sim {
     this._acc += Math.min(realDt, 0.25);
     let n = 0;
     while (this._acc >= TUNING.SIM.DT && n < TUNING.SIM.MAX_STEPS_PER_FRAME) {
+      this._capturePrev();
       this.step(input);
       if (input.jump) input.jump = false;
       if (input.confirm) input.confirm = false;
@@ -310,6 +312,19 @@ export class Sim {
     }
     if (n === TUNING.SIM.MAX_STEPS_PER_FRAME) this._acc = 0;
     return this._acc / TUNING.SIM.DT;
+  }
+
+  /** Phase R: the pose before the latest step, for render interpolation.
+   *  Write-only from the sim's side — nothing in step() ever reads it, so the
+   *  fixed 60 Hz simulation is bit-identical with or without a consumer (the
+   *  behaviour snapshot holds that). The render lerps viewPrev -> player by
+   *  the alpha advance() already returned, which un-duplicates poses on
+   *  displays faster than the timestep. */
+  _capturePrev() {
+    const p = this.player, b = this.beast;
+    const v = this.viewPrev || (this.viewPrev = {});
+    v.x = p.x; v.y = p.y; v.d = p.d; v.heading = p.heading;
+    v.beastGap = b.gap; v.beastX = b.x;
   }
 
   drainEvents() {

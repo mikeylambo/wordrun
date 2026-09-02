@@ -164,6 +164,12 @@ export class UI {
       // the charge comes from and then left the player holding a full meter
       // with nothing telling them what to press.
       text = this.touch ? 'TAP DASH — THE BAR IS FULL' : 'SPACE TO DASH — THE BAR IS FULL';
+    } else if (!L.bar && p.compressionLevel === 0 && p.chain >= 4) {
+      // Phase R: the compression hold joins the lesson set. Taught only to a
+      // player already reading cleanly (a four-link chain) — the bar is the
+      // reward knob for someone who has stopped needing the other lessons —
+      // and retired for good the first time they actually raise it.
+      text = this.touch ? 'HOLD RIGHT TO RAISE THE BAR' : 'UP ARROW TO RAISE THE BAR';
     } else if (this._firstRun) {
       if (d < 720) text = 'ANSWERING EARLY IS WORTH MORE';
       else if (p.gatesThreaded > 0 && !this._showedChargeLesson) {

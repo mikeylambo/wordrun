@@ -31,9 +31,6 @@ on the settings surface, never the default (see RELEASE.md).
 
 ## Pass 4 — premium finish
 
-- **Phase R — onboarding, performance, devices.** Left zone + compression
-  hold join the action-gated lesson set; 120 Hz render interpolation
-  measured on the device matrix; input parity and caching notes.
 - **Phase S — package.** Trademark confirmation (human) before any store
   listing; share cards render the flow band; icons regenerated; PWA and
   Playables audits green; accessibility verified on the final build; 1.0

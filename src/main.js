@@ -21,6 +21,7 @@ import { WindStreaks, TrackPylons } from './render/speed-fantasy.js';
 import { BellRenderer } from './render/bells.js';
 import { HEARTS } from './design/bells.js';
 import { flowFactor, flowGlow, flowLevel } from './render/flow-curve.js';
+import { viewPlayer, viewBeast } from './render/view-pose.js';
 import { ACCESS, initAccess, buildAccessPanel } from './ui/access.js';
 import { applyMaterialPass } from './render/material-pass.js';
 import { Audio } from './audio/audio.js';
@@ -150,6 +151,7 @@ function pushLessons() {
     confirm: metaStats.get('usedConfirm', 0) > 0,
     reject: metaStats.get('usedReject', 0) > 0,
     dash: metaStats.get('usedDash', 0) > 0,
+    bar: metaStats.get('usedBar', 0) > 0,
   });
 }
 function learn(which) {
@@ -1071,6 +1073,9 @@ let last = performance.now();
 
 function tick(dt) {
   const p = sim.player;
+  // Phase R: how far this render frame sits between fixed sim steps. 1 when
+  // the sim did not advance (paused, title) so the view is the live state.
+  let alpha = 1;
 
   if (!paused && (running || sim.phase === PHASE.KILL)) {
     input.update(dt, !p.airborne);
@@ -1086,11 +1091,14 @@ function tick(dt) {
     if (simInput.reject) learn('Reject');
     simInput.raiseBar = input.raiseBar;
     simInput.lowerBar = input.lowerBar;
+    // Phase R: the compression lesson retires on the first SUCCESSFUL raise —
+    // the level actually moving — not on an accidental hold that went nowhere.
+    if (p.compressionLevel > 0) learn('Bar');
     simInput.jump = false;
     simInput.boostHeld = input.boostHeld;
     simInput.dragging = input.dragging;
 
-    sim.advance(dt, simInput);
+    alpha = sim.advance(dt, simInput);
     input.consumeJump();
     drainSimEvents();
     if (p.speed > topSpeed) topSpeed = p.speed;
@@ -1107,26 +1115,32 @@ function tick(dt) {
     }
   }
 
-  terrainMesh.update(p.d);
+  // Phase R: everything below is presentation, and presentation reads the
+  // interpolated pose — the sim's own state is never written through pv (its
+  // continuous fields are own properties; the rest falls through).
+  const pv = viewPlayer(p, sim.viewPrev, alpha);
+  const bv = viewBeast(sim.beast, sim.viewPrev, alpha);
+
+  terrainMesh.update(pv.d);
   terrainMesh.pump();
-  props.update(p.d);
+  props.update(pv.d);
   if (bellRenderer.terrain !== sim.terrain) bellRenderer.reset(sim.terrain);
-  bellRenderer.update(p.d, performance.now() / 1000);
-  landmarks.update(p.d);
-  wordGateActors.update(dt, p.d, stage.camera);
+  bellRenderer.update(pv.d, performance.now() / 1000);
+  landmarks.update(pv.d);
+  wordGateActors.update(dt, pv.d, stage.camera);
   streakBurst.update(paused ? 0 : dt, stage.camera);
   dataworld.update(dt);
 
-  const slope = sim.terrain.normalAt(p.x, p.d);
-  playerActor.update(p, slope, dt, sim.beast.gap);
+  const slope = sim.terrain.normalAt(pv.x, pv.d);
+  playerActor.update(pv, slope, dt, bv.gap);
   ghostActor.update(sim.ghost, dt);
   windStreaks.update(paused ? 0 : dt, running ? (p.effSpeed || p.speed) : 0, p.overdrive);
   trackPylons.terrain = sim.terrain;
-  trackPylons.update(p.d);
+  trackPylons.update(pv.d);
 
-  const beastGroundY = sim.terrain.heightAt(sim.beast.x, p.d - sim.beast.gap);
+  const beastGroundY = sim.terrain.heightAt(bv.x, pv.d - bv.gap);
   const killT = sim.phase === PHASE.KILL || sim.phase === PHASE.DEAD ? sim.killTimer : 0;
-  beastActor.update(dt, sim.beast.gap, sim.beast.x, beastGroundY, p.d, killT,
+  beastActor.update(dt, bv.gap, bv.x, beastGroundY, pv.d, killT,
     sim.beast.side, sim.beast.lunge, sim.beast.lungeT);
 
   if (!paused && running && !p.airborne) {
@@ -1135,7 +1149,7 @@ function tick(dt) {
     sprayAcc += rate * dt;
     while (sprayAcc >= 1) {
       sprayAcc -= 1;
-      spray.emit(p.x, p.y, -p.d, 1, 1.6 + edge * 4,
+      spray.emit(pv.x, pv.y, -pv.d, 1, 1.6 + edge * 4,
         0.9 + edge * 2.0, -Math.sign(p.heading) * edge * 3.4);
     }
   }
@@ -1175,9 +1189,9 @@ function tick(dt) {
       + (p.overdrive ? 0.15 : 0))),
   }, { reducedFlash: ACCESS.reducedFlash, motionScale: ACCESS.reducedFlash ? TUNING.CAMERA.ACCESS_MOTION_SCALE : 1 });
   rig.music = musicState;
-  rig.update(dt, p, sim.beast.gap, dreadLive ? bands.shake : 0, killT, sim.terrain,
-    sim.beast.x, sim.beast.side);
-  stage.followLight(p.x, p.y, -p.d);
+  rig.update(dt, pv, bv.gap, dreadLive ? bands.shake : 0, killT, sim.terrain,
+    bv.x, sim.beast.side);
+  stage.followLight(pv.x, pv.y, -pv.d);
   audio.update(dt, p, bands, dreadLive);
   ui.update(dt, sim, dreadLive, clock);
   stage.render();

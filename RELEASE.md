@@ -1291,3 +1291,37 @@ Slice history:
   no pulse — instead of collapsing it to neutral: the collapse already
   landed with the drain; the card is the payoff, not the punishment. Ten
   checks under `gate:corruption` freeze the curve and the wiring.
+- Phase R — onboarding, performance, devices. **The lesson set is
+  complete.** The left zone was already taught (the Phase C coach's second
+  line) and already retired on first use through `learn('Reject')` — that
+  was verified, not rebuilt. The compression hold was the gap: no line in
+  the game ever said the bar existed. It joins the action-gated chain with
+  one sentence — HOLD RIGHT / UP ARROW TO RAISE THE BAR — shown only to a
+  player already holding a four-link chain with the bar still at zero (the
+  bar is the reward knob for someone who has stopped needing the other
+  lessons), and retired for good on the first raise that actually moves
+  the level, not on an accidental hold that went nowhere. Persisted with
+  the other used-control flags. **120 Hz, without touching the sim.** The
+  fixed 60 Hz step already returned its interpolation alpha from
+  `advance()` and nothing consumed it, so a display faster than the
+  timestep drew the same pose twice. `advance()` now captures the pose
+  before each step — write-only state the sim itself never reads, and the
+  behaviour snapshot holds bit-identical — and `src/render/view-pose.js`
+  presents one lerped view: continuous fields (x, y, d, heading, the
+  Redline's gap and lane) interpolate; everything discrete falls through a
+  prototype chain untouched, so no gameplay state is invented between
+  steps and nothing can write back into the sim. The runner, the camera
+  rig, the light, the plates, the spray and the Redline all draw the view
+  pose. Measured with rAF uncapped on the built game: 97.9 fps against
+  the 60 Hz sim with a duplicate-pose ratio of 0.000 across 249 frames —
+  every rendered frame a unique pose (un-interpolated, ~38 % would repeat
+  at that rate) — with a full run to the results card clean at both
+  refresh regimes. That measurement is this container's headless
+  Chromium; the phone matrix can only add numbers, not change the
+  mechanism. WebGPU is skipped per the brief's own rule — the three.js
+  path already presents past 60. **Input parity and caching, audited:**
+  every control has a touch and a keyboard path and the coach names the
+  control per modality; hashed assets ship immutable (`vercel.json`,
+  d19a800) and the service worker refreshes the shell with network-first
+  navigations (both already build-gated in `gate:v1`). Five view-pose
+  gates drive the lerp in node; two more freeze the lesson wiring.

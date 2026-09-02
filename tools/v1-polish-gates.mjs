@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { viewPlayer, viewBeast } from '../src/render/view-pose.js';
 
 const read = (p) => fs.readFileSync(p, 'utf8');
 const contact = read('src/v1-contact.js');
@@ -431,7 +432,7 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   //    dash control at all.
   {
     const uiCode = codeOf('src/ui/ui.js');
-    const coach = uiCode.slice(uiCode.indexOf('_updateCoach('), uiCode.indexOf('update(dt, sim, running)'));
+    const coach = uiCode.slice(uiCode.indexOf('_updateCoach('), uiCode.indexOf('update(dt, sim, running'));
     check(/setLessons\(/.test(uiCode) && /L\.confirm/.test(coach) && /L\.reject/.test(coach),
       'the control lessons run until the player has used the control, not until tomorrow');
     check(!/!this\._firstRun\) \{\s*this\.coach/.test(coach),
@@ -442,7 +443,48 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     check(/learn\('Confirm'\)/.test(mainCode) && /learn\('Reject'\)/.test(mainCode) &&
       /learn\('Dash'\)/.test(mainCode),
       'and each lesson is retired where its action is actually performed');
+    // Phase R: the compression hold joins the set — taught to a player who
+    // is already reading cleanly, retired on the first successful raise.
+    check(/L\.bar/.test(coach) && /RAISE THE BAR/.test(coach) &&
+      /p\.compressionLevel === 0 && p\.chain >= 4/.test(coach),
+      'the compression hold is taught, and only to a player mid-flow');
+    check(/if \(p\.compressionLevel > 0\) learn\('Bar'\)/.test(mainCode) &&
+      /bar: metaStats\.get\('usedBar', 0\) > 0/.test(mainCode),
+      'and it retires on the level actually moving, persisted like the rest');
   }
+}
+
+// ── Phase R: 120 Hz — the fixed-step sim presented through one lerped pose ──
+{
+  const player = { x: 2, y: 1, d: 100, heading: 0.2, chain: 7, overdrive: true, speed: 48 };
+  const prev = { x: 0, y: 0, d: 99, heading: 0, beastGap: 30, beastX: 4 };
+  const beast = { gap: 28, x: 6 };
+
+  const mid = viewPlayer(player, prev, 0.5);
+  check(mid.x === 1 && mid.y === 0.5 && mid.d === 99.5 && Math.abs(mid.heading - 0.1) < 1e-12,
+    'the view pose is the exact midpoint at alpha 0.5 — continuous fields lerp');
+  check(mid.chain === 7 && mid.overdrive === true && mid.speed === 48,
+    'discrete state falls through untouched — nothing is invented between steps');
+  check(player.x === 2 && player.d === 100 && !Object.hasOwn(player, 'viewPrev'),
+    'the view never writes back into the sim');
+  check(viewPlayer(player, prev, 1) === player && viewPlayer(player, null, 0.5) === player,
+    'at a step boundary (or with no captured pose) the view IS the live state');
+  const bMid = viewBeast(beast, prev, 0.5);
+  check(bMid.gap === 29 && bMid.x === 5,
+    'the Redline gap and lane interpolate with the runner, never against');
+
+  const simCode = read('src/sim/sim.js');
+  const mainCode = read('src/main.js');
+  check(simCode.includes('this._capturePrev();\n      this.step(input)') &&
+    simCode.includes('this.viewPrev = null'),
+    'the sim captures the pre-step pose passively and clears it between runs');
+  check(mainCode.includes('alpha = sim.advance(dt, simInput)') &&
+    mainCode.includes('const pv = viewPlayer(p, sim.viewPrev, alpha)'),
+    'the render frame consumes the alpha advance() always returned');
+  check(mainCode.includes('playerActor.update(pv,') &&
+    mainCode.includes('stage.followLight(pv.x, pv.y, -pv.d)') &&
+    mainCode.includes('rig.update(dt, pv,'),
+    'the runner, the camera and the light all draw the interpolated pose');
 }
 
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);
