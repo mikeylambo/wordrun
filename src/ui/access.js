@@ -88,7 +88,11 @@ export function buildAccessPanel(hooks = {}) {
   const style = document.createElement('style');
   style.textContent = `
     #accessBtn{position:absolute;top:calc(var(--safe-t) + 118px);right:14px;z-index:41;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(14,22,28,.6);color:#dff2fc;font:700 12px/1 var(--face);pointer-events:auto;cursor:pointer}
-    #accessPanel{position:absolute;inset:0;z-index:70;display:none;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:rgba(4,7,10,.82);pointer-events:auto}
+    /* z 90: above the pause button (81) and mute (80). At 70 the pause
+       button floated ON TOP of the open panel — a player could pause under
+       it, hit MENU, and land the title screen beneath this sheet with every
+       layer's text overlapping. Nothing behind an open panel is tappable. */
+    #accessPanel{position:absolute;inset:0;z-index:90;display:none;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:rgba(4,7,10,.82);pointer-events:auto}
     #accessPanel.on{display:flex}
     #accessPanel h3{margin:0;font:700 12px/1 var(--face);letter-spacing:.3em;color:rgba(244,250,253,.8)}
     .accessRow{display:flex;flex-direction:column;gap:6px;align-items:center}

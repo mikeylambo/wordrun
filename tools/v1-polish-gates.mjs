@@ -454,6 +454,43 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   }
 }
 
+// ── Playtest fixes: the answer pair, and panels that own the screen ────────
+{
+  // REAL and FAKE are one pair of verbs, and they sit level: same height,
+  // mirrored sides, in portrait and landscape both. (Playtest: FAKE sat at
+  // DASH's height and read as a different kind of button.)
+  const portraitJump = mobile.match(/#v1MobileJump\{[^}]*bottom:max\(104px/);
+  const portraitFake = mobile.match(/#v1MobileFake\{[^}]*bottom:max\(104px/);
+  const landscape = mobile.slice(mobile.indexOf('max-height:500px'));
+  check(!!portraitJump && !!portraitFake &&
+    /#v1MobileJump\{[^}]*bottom:max\(88px/.test(landscape) &&
+    /#v1MobileFake\{[^}]*bottom:max\(88px/.test(landscape),
+    'REAL and FAKE sit level — one answer pair, both orientations');
+
+  // An open overlay panel owns the whole screen: both sheets sit above the
+  // pause button (81) and mute (80), so the pause-under-the-panel route to
+  // the overlapping-text title screen cannot be walked.
+  const accessSrc = read('src/ui/access.js');
+  const shopSrc = read('src/ui/shop.js');
+  const pauseSrc = read('src/ui/pause.js');
+  check(/#accessPanel\{[^}]*z-index:90/.test(accessSrc) &&
+    /#shopPanel\{[^}]*z-index:90/.test(shopSrc) &&
+    /#rc2PauseBtn\{[^}]*z-index:81/.test(pauseSrc),
+    'open panels sit above the pause button — nothing behind them is tappable');
+
+  // The shop freezes a live run exactly like the settings panel does, and
+  // no panel survives the trip back to the title.
+  const mainSrc = read('src/main.js');
+  check(shopSrc.includes('onOpen?.()') && shopSrc.includes('onClose?.()') &&
+    mainSrc.includes('onOpen: freezeForPanel, onClose: unfreezeForPanel,\n    });') &&
+    mainSrc.includes('const accessUI = buildAccessPanel({ onOpen: freezeForPanel, onClose: unfreezeForPanel })'),
+    'the shop quiet-freezes a live run, through the same hooks as settings');
+  check(mainSrc.includes("accessUI?.panel.classList.remove('on')") &&
+    mainSrc.includes("shopUI?.panel.classList.remove('on')") &&
+    mainSrc.indexOf('panelFroze = false;\n  accessUI') > mainSrc.indexOf('function quitToTitle'),
+    'quitting to the title closes every overlay panel and clears the freeze');
+}
+
 // ── Phase R: 120 Hz — the fixed-step sim presented through one lerped pose ──
 {
   const player = { x: 2, y: 1, d: 100, heading: 0.2, chain: 7, overdrive: true, speed: 48 };

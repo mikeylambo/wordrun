@@ -61,10 +61,12 @@ function ensureMobileUi() {
 
     /* Playtest: REAL sat beside DASH and the pair crowded one thumb. They
        stack now — DASH lowest, where the thumb rests, REAL directly above.
-       FAKE mirrors the left zone on the left edge, so the button layout and
-       the screen halves teach the same mapping instead of contradicting it. */
+       FAKE mirrors REAL across the screen at the same height (playtest: it
+       sat at DASH's height, so the two answer buttons read as two different
+       verbs; level with each other they read as the pair they are), and the
+       left/right placement still teaches the same mapping as the zones. */
     #v1MobileJump{right:max(18px,calc(env(safe-area-inset-right,0px) + 12px));bottom:max(104px,calc(env(safe-area-inset-bottom,0px) + 100px));width:64px;height:64px;background:rgba(238,248,252,.16);box-shadow:0 4px 18px rgba(4,9,13,.14);opacity:.74}
-    #v1MobileFake{left:max(18px,calc(env(safe-area-inset-left,0px) + 12px));bottom:max(20px,calc(env(safe-area-inset-bottom,0px) + 16px));width:64px;height:64px;background:rgba(238,248,252,.12);box-shadow:0 4px 18px rgba(4,9,13,.14);opacity:.62}
+    #v1MobileFake{left:max(18px,calc(env(safe-area-inset-left,0px) + 12px));bottom:max(104px,calc(env(safe-area-inset-bottom,0px) + 100px));width:64px;height:64px;background:rgba(238,248,252,.12);box-shadow:0 4px 18px rgba(4,9,13,.14);opacity:.62}
     #v1MobileFake::before{background:rgba(17,26,33,.58)}
     #v1MobileFake.held{opacity:1;transform:scale(.93);box-shadow:0 0 24px rgba(255,255,255,.16),0 4px 18px rgba(4,9,13,.18)}
     #v1MobileJump::before{background:rgba(17,26,33,.58)}
@@ -78,7 +80,7 @@ function ensureMobileUi() {
       #v1MobileDash{width:66px;height:66px;right:max(15px,calc(env(safe-area-inset-right,0px) + 10px));bottom:max(14px,calc(env(safe-area-inset-bottom,0px) + 10px))}
       #v1MobileDash span{font-size:10px;letter-spacing:.06em}
       #v1MobileJump{width:56px;height:56px;right:max(15px,calc(env(safe-area-inset-right,0px) + 10px));bottom:max(88px,calc(env(safe-area-inset-bottom,0px) + 84px))}
-      #v1MobileFake{width:56px;height:56px;left:max(15px,calc(env(safe-area-inset-left,0px) + 10px));bottom:max(14px,calc(env(safe-area-inset-bottom,0px) + 10px))}
+      #v1MobileFake{width:56px;height:56px;left:max(15px,calc(env(safe-area-inset-left,0px) + 10px));bottom:max(88px,calc(env(safe-area-inset-bottom,0px) + 84px))}
       #v1MobileJump span{font-size:10px}
       #v1TouchFrame{width:76px;height:76px}
     }

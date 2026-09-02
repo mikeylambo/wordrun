@@ -14,11 +14,14 @@ import { Storage } from '../storage/storage.js';
 
 const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
 
-export function buildShopPanel({ stats, onEquip }) {
+export function buildShopPanel({ stats, onEquip, onOpen, onClose }) {
   const style = document.createElement('style');
   style.textContent = `
     #shopBtn{position:absolute;top:calc(var(--safe-t) + 160px);right:14px;z-index:41;min-width:34px;height:34px;padding:0 8px;border-radius:17px;border:1px solid rgba(255,255,255,.2);background:rgba(14,22,28,.6);color:#dff2fc;font:700 11px/1 var(--face);pointer-events:auto;cursor:pointer}
-    #shopPanel{position:absolute;inset:0;z-index:70;display:none;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:rgba(4,7,10,.82);pointer-events:auto}
+    /* z 90: above the pause button (81) and mute (80), so nothing behind an
+       open panel is tappable — the overlap bug was the pause button living
+       on top of this sheet. */
+    #shopPanel{position:absolute;inset:0;z-index:90;display:none;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:rgba(4,7,10,.82);pointer-events:auto}
     #shopPanel.on{display:flex}
     #shopPanel h3{margin:0;font:700 12px/1 var(--face);letter-spacing:.3em;color:rgba(244,250,253,.8)}
     #shopBalance{font:600 10px/1 var(--face);letter-spacing:.2em;color:#a8ecff}
@@ -81,7 +84,11 @@ export function buildShopPanel({ stats, onEquip }) {
   done.className = 'modeChip';
   done.id = 'shopDone';
   done.textContent = 'DONE';
-  done.addEventListener('click', (e) => { e.stopPropagation(); panel.classList.remove('on'); });
+  done.addEventListener('click', (e) => {
+    e.stopPropagation();
+    panel.classList.remove('on');
+    onClose?.();
+  });
   panel.appendChild(done);
   document.getElementById('app').appendChild(panel);
 
@@ -102,6 +109,10 @@ export function buildShopPanel({ stats, onEquip }) {
     e.stopPropagation();
     panel.classList.add('on');
     sync();
+    // Playtest: the shop opened over a live run and the run kept going —
+    // the same hearts-behind-a-panel bug the settings surface had. The
+    // caller supplies the quiet freeze; opening always reports.
+    onOpen?.();
   });
 
   return { btn, panel, sync };

@@ -166,27 +166,28 @@ globalThis.__META = { stats: metaStats, daily: metaDaily, objectives: metaObject
 // Accessibility (Phase 11): load persisted options before the warm-start
 // pre-paints plates, so the readable-type/palette choice is baked in.
 initAccess();
-// The settings panel freezes the run while it is open (playtest: the game
-// carried on behind it, so checking a setting cost you hearts). This is a
-// quiet freeze, not pauseGame — that would raise the pause menu on top of
-// the panel. Input is released so a held DASH does not survive the panel.
-let accessFroze = false;
-buildAccessPanel({
-  onOpen: () => {
-    if (!running || sim.phase !== PHASE.RUNNING || paused) return;
-    accessFroze = true;
-    paused = true;
-    input.enabled = false;
-    input.releaseAll();
-  },
-  onClose: () => {
-    if (!accessFroze) return;
-    accessFroze = false;
-    paused = false;
-    input.enabled = true;
-    input.releaseAll();
-  },
-});
+// The overlay panels (settings AND the shop) freeze the run while open
+// (playtest: the game carried on behind them, so checking a setting — or
+// buying a runner light — cost you hearts). This is a quiet freeze, not
+// pauseGame — that would raise the pause menu on top of the panel. Input is
+// released so a held DASH does not survive the panel; input only re-arms if
+// the run is actually still live when the panel closes.
+let panelFroze = false;
+function freezeForPanel() {
+  if (!running || sim.phase !== PHASE.RUNNING || paused) return;
+  panelFroze = true;
+  paused = true;
+  input.enabled = false;
+  input.releaseAll();
+}
+function unfreezeForPanel() {
+  if (!panelFroze) return;
+  panelFroze = false;
+  paused = false;
+  if (running && sim.phase === PHASE.RUNNING) input.enabled = true;
+  input.releaseAll();
+}
+const accessUI = buildAccessPanel({ onOpen: freezeForPanel, onClose: unfreezeForPanel });
 
 document.addEventListener('dictiondash:dash-ready', () => audio.dashReady());
 
@@ -668,6 +669,11 @@ function quitToTitle() {
   sim.phase = PHASE.TITLE;
   pauseUI?.setPaused(false);
   pauseUI?.setButton(false);
+  // No overlay panel survives the trip to the title — the overlap bug was
+  // the settings sheet still open over a freshly shown title screen.
+  panelFroze = false;
+  accessUI?.panel.classList.remove('on');
+  shopUI?.panel.classList.remove('on');
   onboarding?.hide();
   ui.showDeath(false);
   ui.showHud(false);
@@ -695,7 +701,10 @@ function setGhostEnabled(on) {
 // loader call during setup does not hit its TDZ.
 function loadShop() {
   if (!_shopP) _shopP = import('./ui/shop.js').then(({ buildShopPanel }) => {
-    shopUI = buildShopPanel({ stats: metaStats, onEquip: applyCosmetic });
+    shopUI = buildShopPanel({
+      stats: metaStats, onEquip: applyCosmetic,
+      onOpen: freezeForPanel, onClose: unfreezeForPanel,
+    });
     shopUI.sync();
     return shopUI;
   });
