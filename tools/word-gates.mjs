@@ -950,6 +950,30 @@ head('THE DAILY ROUTE — the same hundred words for everyone');
   check('a clean daily run reaches the hundredth gate and stops',
     sim.routeFinished && sim.wordGates.next === 100,
     `finished on gate ${sim.wordGates.next} at ${Math.round(sim.player.d)}m`);
+
+  // Debugging pass: the earned coast is WORDLESS. Before the fix, gates kept
+  // arming and resolving after the finish — measured live: ten more gates,
+  // +2160 score and six "missed" reals in fifteen seconds of coast. With
+  // `escaped` raised (the endgame layer's flag), nothing scores, nothing
+  // punishes, and the next word is always re-dealt ahead of the runner so
+  // KEEP GOING never resumes into a word that was already lost.
+  sim.escaped = true;
+  const frozen = {
+    score: sim.score, correct: sim.wordGates.correctCount,
+    wrong: sim.wordGates.wrongCount, hearts: sim.hearts,
+  };
+  let aheadOk = true;
+  for (let i = 0; i < 900 && sim.phase === PHASE.RUNNING; i++) {
+    sim.step({ ...emptyInput(), confirm: i % 7 === 0 }); // even taps do nothing
+    if (sim.wordGates.current().d < sim.player.d) aheadOk = false;
+  }
+  check('the coast after the finish is wordless',
+    sim.score === frozen.score && sim.wordGates.correctCount === frozen.correct &&
+    sim.wordGates.wrongCount === frozen.wrong && sim.hearts === frozen.hearts,
+    `15s of coast: score ${sim.score - frozen.score >= 0 ? '+' : ''}${sim.score - frozen.score}, wrongs +${sim.wordGates.wrongCount - frozen.wrong}`);
+  check('and every gate the coast rolls past is re-dealt ahead',
+    aheadOk && sim.wordGates.current().d >= sim.player.d,
+    'KEEP GOING can never resume into a word that was already lost');
 }
 
 // ── Phase E: the last stand ──────────────────────────────────────────────

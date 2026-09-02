@@ -858,6 +858,27 @@ head('RESULTS — the score lands on the beat, exactly');
     main.includes('sim.phase === PHASE.DEAD ? flowGlow(endedFlowLevel) : 1'));
   check('no hard cuts: every screen crossfades',
     /\.screen\{[^}]*transition:opacity \.\d+s/.test(html));
+
+  // Debugging pass: END RUN at the finish goes through the SAME results
+  // pipeline as a death. Before the fix it recorded the run's DISTANCE into
+  // the score-best slot and quit straight to the title — no count-up, no
+  // recap, no standout, no board write.
+  const sky = fs.readFileSync('src/render/endgame-sky.js', 'utf8');
+  check('the finish choice hands the run to the one results pipeline',
+    sky.includes('globalThis.__FINISH_RUN') &&
+    main.includes('window.__FINISH_RUN') &&
+    /function onFinishRun\(\)[\s\S]{0,400}finalizeRun\(\);/.test(main),
+    'END RUN reaches finalizeRun: count-up, recap, standout, board — all of it');
+  check('the endgame layer records nothing itself — no distance in the score slot',
+    !/Storage\.setBestFor|saveGhostIfBest/.test(sky),
+    'best and ghost are written once, in finalizeRun, in score units');
+  check('a finished route is named FINISH on the card, a death stays RUN OVER',
+    ui.includes("finished ? 'FINISH' : 'RUN OVER'") &&
+    main.includes('finished: !!sim.escaped'),
+    'both are approved names; the cap of four holds');
+  check('the spent finish choice can never re-arm over the results card',
+    /_finish\(\)\s*\{[\s\S]{0,300}this\.overrun = true/.test(sky),
+    'the overrun latch closes the 3.6s re-show window');
 }
 
 // ── The share card (Phase S) ─────────────────────────────────────────────

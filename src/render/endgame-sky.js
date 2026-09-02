@@ -7,7 +7,6 @@
 import * as THREE from 'three';
 import { MOUNTAIN_BANDS, bandBlend } from './art-direction.js';
 import { ENDGAME, overrunPrestige } from '../design/endgame.js';
-import { Storage } from '../storage/storage.js';
 import { ACCESS } from '../ui/access.js';
 
 const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
@@ -272,8 +271,6 @@ export class EndgameSky {
     this.escapeSeenAt = 0;
     this.choiceVisible = false;
     this.overrun = false;
-    this.lastSavedDistance = 0;
-    this.recordFinalized = false;
     this._wrappedAdvance = false;
 
     this.tmpSky = new THREE.Color();
@@ -304,23 +301,6 @@ export class EndgameSky {
     };
   }
 
-  _recordBest(finalize = false) {
-    const sim = globalThis.__SIM;
-    const seed = globalThis.__SEED?.seed ?? sim?.seed;
-    if (!sim || seed == null) return;
-    Storage.setBestFor(seed, sim.distance);
-    const bestEl = document.getElementById('bestVal');
-    if (bestEl) bestEl.textContent = `${Math.floor(Storage.bestFor(seed))}M`;
-
-    if (finalize && !this.recordFinalized) {
-      this.recordFinalized = true;
-      try {
-        sim.recorder.finish(sim.player);
-        Storage.saveGhostIfBest(seed, sim.recorder.serialize({ seed, distance: sim.distance }));
-      } catch { /* best distance still survives if ghost storage is full */ }
-    }
-  }
-
   _continue() {
     const input = globalThis.__INPUT;
     const sim = globalThis.__SIM;
@@ -333,14 +313,21 @@ export class EndgameSky {
       input.releaseAll?.();
     }
     globalThis.__AUDIO?.resume?.();
-    this.lastSavedDistance = globalThis.__SIM?.distance || ENDGAME.ESCAPE_DISTANCE;
   }
 
   _finish() {
-    this._recordBest(true);
     this.choiceVisible = false;
+    // The choice is spent: without this latch _syncEnding would re-arm the
+    // choice card 3.6s later (escaped is still true behind the results card).
+    this.overrun = true;
     this.ending.hide();
-    globalThis.__QUIT?.();
+    // Debug pass: END RUN used to record the DISTANCE into the score-best
+    // slot and quit straight to the title — no count-up, no recap, no board.
+    // The run's one results pipeline lives in main.js (finalizeRun): score
+    // semantics, board eligibility, the ghost, the standout. Hand the ending
+    // to it; __QUIT stays only as the fallback for a harness without it.
+    if (globalThis.__FINISH_RUN) globalThis.__FINISH_RUN();
+    else globalThis.__QUIT?.();
   }
 
   _syncEnding(distance) {
@@ -357,7 +344,6 @@ export class EndgameSky {
         this.escapeSeenAt = 0;
         this.choiceVisible = false;
         this.overrun = false;
-        this.recordFinalized = false;
         this.choiceSpeed = 0;
         this.ending.hide();
       }
@@ -366,7 +352,6 @@ export class EndgameSky {
 
     if (!this.escapeSeenAt) {
       this.escapeSeenAt = performance.now();
-      this._recordBest(false);
     }
 
     if (!this.choiceVisible && !this.overrun && performance.now() - this.escapeSeenAt >= 3600) {
@@ -391,10 +376,6 @@ export class EndgameSky {
       });
     }
 
-    if (this.overrun && distance - this.lastSavedDistance >= 250) {
-      this.lastSavedDistance = distance;
-      this._recordBest(false);
-    }
   }
 
   _palette(distance) {

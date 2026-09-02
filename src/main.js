@@ -441,6 +441,21 @@ function onDead() {
   finalizeRun();
 }
 
+// Debug pass: the FINISH choice (the endgame overlay's END RUN button) ends
+// the run through the SAME results pipeline as a death — the count-up, the
+// recap, the standout, the board write — instead of quitting to the title
+// with nothing shown and nothing recorded. No continue offer here: a
+// finished route is a completed run, not a death to buy back.
+function onFinishRun() {
+  if (!running) return;
+  running = false;
+  paused = false;
+  input.enabled = false;
+  pauseUI?.setPaused(false);
+  pauseUI?.setButton(false);
+  finalizeRun();
+}
+
 function showContinueOffer(cost) {
   offerActive = true;
   continueBuy.textContent = `CONTINUE ◆${cost}`;
@@ -640,6 +655,9 @@ function finalizeRun() {
     review: buildReview({ samples: sim.recorder.samples, misses: wg.misses }),
     lifetime: metaStats.snapshot(),
     continued: runContinued,
+    // A run that reached the finish gets the card under its own name —
+    // FINISH, one of the four — whether it ended by choice or in overrun.
+    finished: !!sim.escaped,
     challengeResult: CHALLENGE
       ? { goal: CHALLENGE.goal, beaten: CHALLENGE.goal > 0 && finalScore > CHALLENGE.goal }
       : null,
@@ -792,7 +810,9 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
 function onAdvance() {
   if (running || paused || onboarding?.visible || offerActive) return;
   if (sim.phase === PHASE.KILL) return;
-  if (sim.phase === PHASE.DEAD && performance.now() - deathShownAt < 350) return;
+  // The same settle guard covers both ways a card can appear: a death (phase
+  // DEAD) and a finished route (phase still RUNNING, sim.escaped set).
+  if ((sim.phase === PHASE.DEAD || sim.escaped) && performance.now() - deathShownAt < 350) return;
   audio.uiTap();
   if (sim.phase === PHASE.TITLE && !Storage.onboardingSeen()) {
     // First run ever: show the how-to. It is preloaded, but await the chunk if
@@ -1359,6 +1379,7 @@ if (new URLSearchParams(location.search).get('dev') === '1') {
 window.__INPUT = input;
 window.__START = () => { startRun(); return sim.state(); };
 window.__QUIT = () => { quitToTitle(); return { phase: sim.phase }; };
+window.__FINISH_RUN = () => { onFinishRun(); return { phase: sim.phase }; };
 window.__GHOST = (on = ghostEnabled) => { setGhostEnabled(on); return { enabled: ghostEnabled }; };
 window.__PAUSE = (on = true) => { on ? pauseGame() : resumeGame(); return { paused }; };
 window.__SEED = { seed: SEED, string: SEED_STRING };

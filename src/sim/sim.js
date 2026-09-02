@@ -179,8 +179,21 @@ export class Sim {
       }
     }
 
-    this.wordGates.step(this.player, input.confirm, this.events, proxMult, this.time,
-      input.reject);
+    // Debugging pass: the earned coast is WORDLESS. After the finish
+    // (`escaped`, raised by the endgame layer) gates neither arm, score,
+    // nor punish — measured before the fix, ten more gates resolved during
+    // fifteen seconds of coast, six of them "missed" reals that cost speed
+    // and dirtied the recap of a finished run. Any gate the coast rolls
+    // past is re-dealt ahead instead, so KEEP GOING never resumes into a
+    // word that was already lost. Headless tools never set `escaped`, so
+    // every golden and every suite drives the exact same sim as before.
+    if (!this.escaped) {
+      this.wordGates.step(this.player, input.confirm, this.events, proxMult, this.time,
+        input.reject);
+    } else {
+      const wg = this.wordGates;
+      while (wg.current().d < this.player.d + 20) { wg.next++; wg.gate = null; }
+    }
 
     // The DAILY RUN's route has an end: the hundredth gate. Reaching it is a
     // finish, not a death, and it is the only way that mode stops other than

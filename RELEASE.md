@@ -1574,3 +1574,26 @@ Slice history:
   EARLY, BEST 10, CLEAN, AVG READ) — the four-name cap stands. SCORE
   stays the public prestige metric; this is the footnote under it. Six
   checks under gate:corruption drive every branch of the picker in node.
+- Debugging pass — the finish flow made whole. A live sweep, a 75-second
+  endurance soak (heap flat, draw calls flat, frame p95 under budget, both
+  advanced-segment situations met on screen with zero occlusion) and a
+  driven finish exposed two real defects, both at the route's end. **The
+  coast leaked words**: after the hundredth gate, gates kept arming and
+  resolving — measured live, ten more gates, six "missed" reals and a
+  dirtied recap in fifteen seconds of earned coast. The sim now treats the
+  coast as WORDLESS once the endgame layer raises `escaped`: nothing arms,
+  nothing scores, nothing punishes, and any gate the coast rolls past is
+  re-dealt ahead so KEEP GOING can never resume into a word that was
+  already lost. Headless tools never raise the flag, so every golden holds
+  byte-for-byte. **END RUN threw the run away**: the finish choice
+  recorded the run's DISTANCE into the score-best slot (a unit clobber of
+  the board) and quit straight to the title — no count-up, no recap, no
+  standout, no board write. The choice now hands the run to the one
+  results pipeline (`finalizeRun`): full score (a finished route is not a
+  failure), the beat-clock count-up, the learning recap, the standout, the
+  best and the ghost in score units, written once. The card reads FINISH —
+  the approved name — where a death reads RUN OVER, whether the route
+  ended by choice or in overrun. The endgame layer records nothing itself
+  any more, and the spent choice is latched so it can never re-arm over
+  the results card. Two sim-driven checks under gate:words and four
+  source-shaped checks under gate:corruption hold all of it.

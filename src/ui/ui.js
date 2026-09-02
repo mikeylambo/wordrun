@@ -470,7 +470,7 @@ export class UI {
   }
 
   renderDeath({ distance, score, scoreLost = 0, continuesUsed = 0, failedRoute = false, avgReadMs = 0,
-    seconds = 0, gates = 0, routeGates = 0, retired = [], best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult, endFlow = 0, standout = null }) {
+    seconds = 0, gates = 0, routeGates = 0, retired = [], best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult, endFlow = 0, standout = null, finished = false }) {
     this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null, standout };
     // Phase Q: the headline counts up from zero on the beat clock — update()
     // steps it each frame via _updateCount and lands it exactly on the score.
@@ -494,7 +494,10 @@ export class UI {
       this.pbTag.style.visibility = isPb ? 'visible' : 'hidden';
       this.pbTag.textContent = isPb ? 'NEW BEST' : '';
     }
-    this.deathTag.textContent = 'RUN OVER';
+    // A run that reached the end of the route earned the other name: the
+    // card reads FINISH (an approved name), not RUN OVER — a completed
+    // DAILY RUN is a victory screen, not a failure screen.
+    this.deathTag.textContent = finished ? 'FINISH' : 'RUN OVER';
     this.bestVal.textContent = best > 0 ? Math.floor(best).toLocaleString('en-US') : '—';
     this.deathStats.innerHTML = '';
     this.deathStats.style.display = 'none';
