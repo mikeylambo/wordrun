@@ -1262,3 +1262,32 @@ Slice history:
   under `gate:corruption` hold the shape: default off, the chip row
   persists, Stage owns the branch, the teardown is real, and reduced flash
   controls the glow.
+- Phase Q — title, results, motion. The title was audited against the
+  brief's list — wordmark, mode chips, BEGIN RUN, the streak and today's
+  goals, the live world behind them — and holds; the seed line stays (it is
+  the DAILY RUN's identity, and the challenge link re-titles it) and so
+  does the reading-curve entry (Phase G's surface would be orphaned without
+  it). The transitions were already soft — every screen crossfades over
+  0.32 s with the world rendering underneath, now held by a gate — so the
+  phase's real work was the two motion beats the results card lacked.
+  **The score counts up on the beat clock.** `src/ui/results-motion.js` is
+  the whole reveal as one pure curve: eight beats — two bars — of ease-out,
+  monotone, zero at the start and EXACTLY the banked score at the end, so
+  the gate drives the entire animation in node without a browser. The card
+  seeds the counter at zero and `ui.update` steps it each frame from the
+  music clock's beat position; silence (muted, track not loaded) advances
+  it at a fallback rate from frame time, so the reveal always finishes and
+  always lands on the same number. Each whole beat nudges the headline
+  1.8 % — REDUCED FLASH drops the nudge and keeps the count. Measured on
+  the built game: an untouched run's headline sampled mid-reveal ran
+  610 → 5,297 monotonically and settled at 5,298, the sim's score to the
+  point, with the ease-out landing visible in the samples. **The card
+  enters in the flow band the run ended on.** The flow level is sampled
+  every running frame BEFORE the death-frame snap zeroes it (the fatal
+  read collapses the chain in the same frame the card is built, so
+  sampling after would always say zero — that ordering is now a gate),
+  rides onto the card as `--endFlow`, scales the headline's glow, and
+  holds the world behind the card at the same earned brightness — steady,
+  no pulse — instead of collapsing it to neutral: the collapse already
+  landed with the drain; the card is the payoff, not the punishment. Ten
+  checks under `gate:corruption` freeze the curve and the wiring.

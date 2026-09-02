@@ -886,8 +886,10 @@ head('SCORE — how well you ran, not how long');
     uiSrc3.includes('`${Math.min(sim.wordGates.next, routeGates)} / ${routeGates}`') &&
     uiSrc3.includes('`${Math.floor(sim.distance)} M`') &&
     htmlSrc.includes('id="distSub"'));
+  // Phase Q: the headline no longer prints in renderDeath — it seeds the
+  // beat-clock count-up, which lands on exactly this floor(score).
   check('the results card leads with the score, distance in the stat bar',
-    uiSrc3.includes("Math.floor(score ?? 0).toLocaleString") &&
+    uiSrc3.includes("score: Math.floor(score ?? 0)") &&
     uiSrc3.includes("'METRES'"));
 
   // Distance stays the currency the TASKS speak in — a goal should name a

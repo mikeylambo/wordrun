@@ -31,9 +31,6 @@ on the settings surface, never the default (see RELEASE.md).
 
 ## Pass 4 — premium finish
 
-- **Phase Q — title, results, motion.** Title staged in the shipped look;
-  results with a grade-free stat bar and a score that counts up on the beat
-  clock; no hard cuts between title → run → results.
 - **Phase R — onboarding, performance, devices.** Left zone + compression
   hold join the action-gated lesson set; 120 Hz render interpolation
   measured on the device matrix; input parity and caching notes.

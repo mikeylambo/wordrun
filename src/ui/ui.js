@@ -10,6 +10,7 @@ import { ACCESS } from './access.js';
 import { bandForDistance } from '../render/art-direction.js';
 import { defineWord } from '../words/definitions.js';
 import { dangerFor, dangerBand } from '../words/danger.js';
+import { COUNT_BEATS, FALLBACK_BPS, countValue } from './results-motion.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -197,9 +198,10 @@ export class UI {
     this._lastHearts = n;
   }
 
-  update(dt, sim, running) {
+  update(dt, sim, running, clock = null) {
     const p = sim.player;
     this._syncHearts(sim);
+    this._updateCount(dt, clock);
     // Phase 25: the headline is the SCORE. Distance only ever said how long
     // you ran; score says how well, because every metre and every read is
     // worth the chain multiplier you were holding. Distance stays on screen
@@ -383,6 +385,38 @@ export class UI {
     }
   }
 
+  /** Phase Q: step the results headline up the count-up curve. Beats come
+   *  from the music clock when it is playing; otherwise frame time advances
+   *  them at FALLBACK_BPS, so a muted player sees the same reveal and the
+   *  same final number. Each whole beat nudges the headline — REDUCED FLASH
+   *  drops the nudge and keeps the count. */
+  _updateCount(dt, clock) {
+    const c = this._count;
+    if (!c || c.done || !this.deathScreen.classList.contains('on')) return;
+    if (clock?.playing) {
+      if (c.lastBeat != null) c.beats += Math.max(0, clock.beat - c.lastBeat);
+      c.lastBeat = clock.beat;
+    } else {
+      c.lastBeat = null;
+      c.beats += dt * FALLBACK_BPS;
+    }
+    if (c.beats >= COUNT_BEATS) {
+      c.done = true;
+      this.finalDist.textContent = c.score.toLocaleString('en-US');
+      this.deathScreen.classList.add('settled');
+      return;
+    }
+    this.finalDist.textContent = countValue(c.score, c.beats).toLocaleString('en-US');
+    const tick = Math.floor(c.beats);
+    if (tick !== c.lastTick && !ACCESS.reducedFlash) {
+      c.lastTick = tick;
+      const big = this.finalDist.parentElement;
+      big?.classList.remove('tick');
+      void big?.offsetWidth; // restart the nudge on every beat
+      big?.classList.add('tick');
+    }
+  }
+
   /** Whether the player has ever dashed — retires the teaching beat. */
   setDashLearned(learned) { this._dashLearned = !!learned; }
 
@@ -425,9 +459,17 @@ export class UI {
   }
 
   renderDeath({ distance, score, scoreLost = 0, continuesUsed = 0, failedRoute = false, avgReadMs = 0,
-    seconds = 0, gates = 0, routeGates = 0, retired = [], best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult }) {
+    seconds = 0, gates = 0, routeGates = 0, retired = [], best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult, endFlow = 0 }) {
     this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null };
-    this.finalDist.textContent = Math.floor(score ?? 0).toLocaleString('en-US');
+    // Phase Q: the headline counts up from zero on the beat clock — update()
+    // steps it each frame via _updateCount and lands it exactly on the score.
+    this._count = { score: Math.floor(score ?? 0), beats: 0, lastBeat: null, lastTick: -1, done: false };
+    this.finalDist.textContent = '0';
+    // The card enters in the flow band the run ended on: the headline's glow
+    // carries the earned brightness, and main.js holds the world behind the
+    // card at the same level.
+    this.deathScreen.style.setProperty('--endFlow', Math.max(0, Math.min(1, endFlow)).toFixed(3));
+    this.deathScreen.classList.remove('settled');
     this._deathDistance = Math.floor(distance);
     // A continued run banks less than it earned. Say so on the card, where the
     // number is, rather than only refusing the record quietly.

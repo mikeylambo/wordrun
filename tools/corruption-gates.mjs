@@ -13,6 +13,7 @@
 import TUNING from '../src/TUNING.js';
 import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
 import { corruptionIntensity, veilOpacity, fieldScale } from '../src/render/corruption-curve.js';
+import { COUNT_BEATS, countProgress, countValue } from '../src/ui/results-motion.js';
 import fs from 'node:fs';
 
 let PASS = 0, FAIL = 0;
@@ -811,6 +812,51 @@ head('LOOK — BROADCAST is opt-in, explicit, and flash-aware');
     pass.includes('reducedFlash ? BROADCAST.ACCESS_GLOW : BROADCAST.GLOW') &&
     pass.includes('reducedFlash ? BROADCAST.ACCESS_GLOW_RAD : BROADCAST.GLOW_RAD') &&
     /ACCESS_GLOW_RAD:\s*7/.test(pass) && /GLOW_RAD:\s*14/.test(pass));
+}
+
+// ── Results motion (Phase Q) ─────────────────────────────────────────────
+head('RESULTS — the score lands on the beat, exactly');
+
+{
+  // The curve itself, driven pure: the headline may never move backwards,
+  // never start anywhere but zero, and never settle off the banked number.
+  const scores = [0, 7, 292208, 454301.9, 555973];
+  let monotone = true, exact = true, zeroStart = true;
+  for (const s of scores) {
+    let prev = -1;
+    for (let b = 0; b <= COUNT_BEATS + 0.5; b += 0.05) {
+      const v = countValue(s, b);
+      if (v < prev) { monotone = false; break; }
+      prev = v;
+    }
+    if (countValue(s, 0) !== 0) zeroStart = false;
+    if (countValue(s, COUNT_BEATS) !== Math.floor(s)) exact = false;
+  }
+  check('the count-up starts at zero and never moves backwards', zeroStart && monotone);
+  check('it settles on EXACTLY the banked score, ceiling score included',
+    exact && countValue(555973, COUNT_BEATS) === 555973);
+  check('the reveal is front-loaded — a reveal, not a slot machine',
+    countProgress(2) > 2 / COUNT_BEATS && Math.abs(countProgress(COUNT_BEATS) - 1) < 1e-12);
+
+  const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
+  const main = fs.readFileSync('src/main.js', 'utf8');
+  const html = fs.readFileSync('index.html', 'utf8');
+  check('the beat clock drives the count, with a frame-time fallback for silence',
+    ui.includes("if (clock?.playing)") && ui.includes('clock.beat') &&
+    ui.includes('dt * FALLBACK_BPS'));
+  check('REDUCED FLASH drops the per-beat nudge and keeps the count',
+    ui.includes("tick !== c.lastTick && !ACCESS.reducedFlash"));
+  check('the card enters in the flow band the run ended on',
+    main.includes('endFlow: endedFlowLevel') &&
+    ui.includes("setProperty('--endFlow'") &&
+    html.includes('var(--endFlow,0)'));
+  check('the ended band is sampled BEFORE the death-frame snap zeroes it',
+    main.indexOf('endedFlowLevel = flowLevel(flowChain)') <
+    main.indexOf('flowChain = p.chain < flowChain'));
+  check('the world behind the card holds the earned brightness, steady',
+    main.includes('sim.phase === PHASE.DEAD ? flowGlow(endedFlowLevel) : 1'));
+  check('no hard cuts: every screen crossfades',
+    /\.screen\{[^}]*transition:opacity \.\d+s/.test(html));
 }
 
 console.log(out.join('\n'));

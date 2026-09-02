@@ -144,6 +144,12 @@
   #deathTag{font-size:9px;font-weight:600;letter-spacing:.42em;margin-right:-.42em;color:var(--dim)}
   /* The score is the broadcast moment: nothing else on this card competes. */
   .big{margin-top:6px;font-size:clamp(72px,23vw,140px);font-weight:800;line-height:.82;letter-spacing:-.05em;color:#fff;text-shadow:0 4px 28px rgba(0,0,0,.35)}
+  /* Phase Q: the card enters in the flow band the run ended on — the
+     headline's glow scales with --endFlow (0..1, set by renderDeath), and
+     each beat of the count-up nudges it. REDUCED FLASH never adds .tick. */
+  #deathScreen .big{text-shadow:0 4px 28px rgba(0,0,0,.35),0 0 calc(10px + 30px*var(--endFlow,0)) rgba(103,216,255,calc(.10 + .38*var(--endFlow,0)))}
+  #deathScreen .big.tick{animation:countTick .22s ease-out}
+  @keyframes countTick{0%{transform:scale(1.018)}100%{transform:scale(1)}}
   .big small{font-size:.2em;font-weight:500;opacity:.36;margin-left:.28em;letter-spacing:.1em}
   .pb{margin-top:10px;color:#8be4ff;font-size:9px;letter-spacing:.4em;margin-right:-.4em;font-weight:700}
   .stats,#deathSeed{display:none!important}

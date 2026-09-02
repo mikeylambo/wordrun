@@ -93,6 +93,10 @@ let paused = false;
 let topSpeed = 0;
 let sprayAcc = 0;
 let flowChain = 0; // smoothed chain for the flow channel: eased up, snapped down
+// Phase Q: the flow level the run ENDED on, sampled every running frame
+// BEFORE the death-frame snap zeroes flowChain — the results card enters in
+// this band, and the world behind it holds the same earned brightness.
+let endedFlowLevel = 0;
 let deathShownAt = 0;
 let shotUrl = null;
 let shotTaken = false;
@@ -348,6 +352,7 @@ function startRun() {
   topSpeed = 0;
   sprayAcc = 0;
   flowChain = 0;
+  endedFlowLevel = 0;
   paused = false;
   running = true;
   input.enabled = true;
@@ -609,6 +614,7 @@ function finalizeRun() {
     challengeResult: CHALLENGE
       ? { goal: CHALLENGE.goal, beaten: CHALLENGE.goal > 0 && finalScore > CHALLENGE.goal }
       : null,
+    endFlow: endedFlowLevel,
   });
   ui.showHud(false);
   ui.showDeath(true);
@@ -1141,15 +1147,19 @@ function tick(dt) {
   // The flow channel (Phase 9): the chain drives world brilliance through
   // one pure curve — eased upward link by link, snapped down on a loss so
   // the collapse lands with the drain.
+  if (running && sim.phase === PHASE.RUNNING) endedFlowLevel = flowLevel(flowChain);
   flowChain = p.chain < flowChain
     ? p.chain
     : flowChain + (p.chain - flowChain) * (1 - Math.exp(-3.5 * dt));
   // REDUCED FLASH keeps the earned brightness but kills the marquee pulse.
+  // On the results card the world holds the ended band's glow, steady — the
+  // collapse already landed with the drain; the card is the payoff, not the
+  // punishment.
   const flowF = dreadLive && running
     ? (ACCESS.reducedFlash
       ? flowGlow(flowLevel(flowChain))
       : flowFactor(flowChain, performance.now() / 1000))
-    : 1;
+    : sim.phase === PHASE.DEAD ? flowGlow(endedFlowLevel) : 1;
   materialPass.terrain.userData.uP9Flow.value = flowF;
   dataworld.setFlow(flowF);
   trackPylons.setFlow(flowF);
@@ -1169,7 +1179,7 @@ function tick(dt) {
     sim.beast.x, sim.beast.side);
   stage.followLight(p.x, p.y, -p.d);
   audio.update(dt, p, bands, dreadLive);
-  ui.update(dt, sim, dreadLive);
+  ui.update(dt, sim, dreadLive, clock);
   stage.render();
 
   if (!shotTaken && sim.phase === PHASE.KILL &&
