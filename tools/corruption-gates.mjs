@@ -14,6 +14,7 @@ import TUNING from '../src/TUNING.js';
 import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
 import { corruptionIntensity, veilOpacity, fieldScale } from '../src/render/corruption-curve.js';
 import { COUNT_BEATS, countProgress, countValue } from '../src/ui/results-motion.js';
+import { FLOORS, pickStandout } from '../src/meta/standout.js';
 import fs from 'node:fs';
 
 let PASS = 0, FAIL = 0;
@@ -942,6 +943,37 @@ head('BEATS — discrete arrivals, no labels, no new controls');
   check('all four cues exist, on the cinematic bus like the moments they mark',
     ['chainBreak(', 'bandRise(', 'redlineRelease(', 'dashClimax('].every((f) => audio.includes(f)) &&
     audio.split('chainBreak')[1].includes('bus.cinematic'));
+}
+
+// ── The standout line (Phase E4) ─────────────────────────────────────────
+head('STANDOUT — one line, chosen by rarity, or nothing at all');
+
+{
+  check('an ordinary run gets NO standout — scarcity keeps the line meaning something',
+    pickStandout({}) === null &&
+    pickStandout({ dashRung: 3, earlyStreak: 9, burst10: 24999, bestChain: 24,
+      avgReadMs: 421, reads: 40 }) === null);
+  check('rarity ranks the pick: the top dash rung beats everything',
+    pickStandout({ dashRung: FLOORS.DASH_RUNG, earlyStreak: 99, burst10: 9e9,
+      bestChain: 999 }).k === 'DASH');
+  check('each ledger surfaces at its own floor',
+    pickStandout({ earlyStreak: FLOORS.EARLY_STREAK }).k === 'EARLY' &&
+    pickStandout({ burst10: FLOORS.BURST_10 }).k === 'BEST 10' &&
+    pickStandout({ bestChain: FLOORS.CLEAN }).k === 'CLEAN' &&
+    pickStandout({ avgReadMs: FLOORS.AVG_READ_MS, reads: FLOORS.AVG_READ_MIN_N }).k === 'AVG READ');
+  check('the dash standout speaks in the ladder\'s own multiplier',
+    pickStandout({ dashRung: 4 }).v === `×${TUNING.SCORE.DASH_CHAIN_MULT[4]}`);
+
+  const main = fs.readFileSync('src/main.js', 'utf8');
+  const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
+  const wgSrc = fs.readFileSync('src/sim/word-gates.js', 'utf8');
+  check('the ledgers ride the same event the score does, and a wrong read breaks them',
+    wgSrc.includes('score: g.score,') && main.includes('burstWindow.push(e.score || 0)') &&
+    main.includes('burstWindow.length = 0;\n        earlyStreak = 0;'));
+  check('the card renders at most the ONE standout the picker chose',
+    main.includes('standout: pickStandout({') &&
+    ui.includes('if (extras.standout) parts.push(row(extras.standout.k, extras.standout.v));') &&
+    (ui.match(/extras\.standout\.k/g) || []).length === 1);
 }
 
 console.log(out.join('\n'));

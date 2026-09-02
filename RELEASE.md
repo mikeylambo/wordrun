@@ -1559,3 +1559,18 @@ Slice history:
   stays. The ghost passes no style and strides exactly as it always
   has, so yesterday's replay is not retro-posed. Six checks under
   gate:v1.
+- Phase E4 — the standout line. Every attempt gets a story, but only when
+  it earned one. The run keeps five brilliance ledgers off the same event
+  the score already rides (a per-read `score` field added to the correct
+  event — presentation payload, no golden moved): the best ten-read
+  scoring burst (consecutive — a wrong read of any kind breaks the
+  window), the longest early-answer streak (the early half of the arm
+  window), the highest DASH rung reached, the cleanest stretch, and the
+  average decision time over enough answers to mean it. The results card
+  shows AT MOST ONE, chosen by rarity in the pure `meta/standout.js` —
+  the top dash rung beats everything, each ledger has a floor beneath
+  which the feat is routine, and an ordinary run shows NOTHING, which is
+  what keeps the line worth reading. Labels are functional words (DASH,
+  EARLY, BEST 10, CLEAN, AVG READ) — the four-name cap stands. SCORE
+  stays the public prestige metric; this is the footnote under it. Six
+  checks under gate:corruption drive every branch of the picker in node.

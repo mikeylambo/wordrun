@@ -365,6 +365,7 @@ export class WordGates {
         answer: g.answer, fromLane: !!g.fromLane, tier: g.tier, chain: player.chain, chainMult: player.chainMult(),
         latencyMult: g.latencyMult, answerDistance: g.answerDistance,
         answerLatency: g.answerLatency, dashChain: g.dashChain, dashMult: g.dashMult,
+        score: g.score, // E4: the read's own worth, for the brilliance ledgers
         proxMult, x: player.x, y: player.y, d: player.d, gateD: g.d,
       });
     } else {

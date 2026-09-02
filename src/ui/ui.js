@@ -470,8 +470,8 @@ export class UI {
   }
 
   renderDeath({ distance, score, scoreLost = 0, continuesUsed = 0, failedRoute = false, avgReadMs = 0,
-    seconds = 0, gates = 0, routeGates = 0, retired = [], best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult, endFlow = 0 }) {
-    this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null };
+    seconds = 0, gates = 0, routeGates = 0, retired = [], best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult, endFlow = 0, standout = null }) {
+    this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null, standout };
     // Phase Q: the headline counts up from zero on the beat clock — update()
     // steps it each frame via _updateCount and lands it exactly on the score.
     this._count = { score: Math.floor(score ?? 0), beats: 0, lastBeat: null, lastTick: -1, done: false };
@@ -543,6 +543,9 @@ export class UI {
       parts.push(row('TARGET', `${extras.challengeResult.goal.toLocaleString('en-US')} · ${extras.challengeResult.beaten ? 'BEATEN' : 'NOT YET'}`));
     }
     if (extras.continued) parts.push(row('CONTINUED', 'BEST UNCHANGED'));
+    // E4: at most ONE standout, chosen by rarity in meta/standout.js — an
+    // ordinary run shows nothing here, and that is the point.
+    if (extras.standout) parts.push(row(extras.standout.k, extras.standout.v));
 
     // Phase 19: this used to be one full sentence per wrong read — four
     // lines of the same slipped-by sentence stacked under a seven-word

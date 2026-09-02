@@ -36,6 +36,7 @@ import { CurveLog } from './meta/curve.js';
 import { buildCurveScreen } from './ui/curve-screen.js';
 import { DailyManager } from './meta/daily.js';
 import { buildStatsExport, formatStatsExport } from './meta/export.js';
+import { pickStandout } from './meta/standout.js';
 import { ObjectiveQueue } from './meta/objectives.js';
 import { buildReview } from './meta/review.js';
 import { UI } from './ui/ui.js';
@@ -108,6 +109,13 @@ let endedFlowLevel = 0;
 // (real daylight opened from there gets the release).
 let worldBand = 0;
 let inScream = false;
+// E4 brilliance ledgers: the run notices its own best moments. A wrong read
+// breaks the burst window and the early streak — bursts are consecutive.
+let burstWindow = [];
+let burst10 = 0;
+let earlyStreak = 0;
+let bestEarlyStreak = 0;
+let dashRungMax = 0;
 let deathShownAt = 0;
 let shotUrl = null;
 let shotTaken = false;
@@ -369,6 +377,11 @@ function startRun() {
   editorialWorld.reset(); // the manuscript starts sparse each run
   worldBand = 0;
   inScream = false;
+  burstWindow = [];
+  burst10 = 0;
+  earlyStreak = 0;
+  bestEarlyStreak = 0;
+  dashRungMax = 0;
   paused = false;
   running = true;
   input.enabled = true;
@@ -631,6 +644,12 @@ function finalizeRun() {
       ? { goal: CHALLENGE.goal, beaten: CHALLENGE.goal > 0 && finalScore > CHALLENGE.goal }
       : null,
     endFlow: endedFlowLevel,
+    // E4: the run's ONE standout, or null for an ordinary run — scarcity
+    // is what keeps the line meaning something.
+    standout: pickStandout({
+      dashRung: dashRungMax, earlyStreak: bestEarlyStreak, burst10,
+      bestChain: sim.player.bestChain, avgReadMs, reads: wg.readCount,
+    }),
   });
   ui.showHud(false);
   ui.showDeath(true);
@@ -1056,6 +1075,15 @@ function drainSimEvents() {
           const t = tierTally[e.tier] || (tierTally[e.tier] = { a: 0, c: 0 });
           t.a++; t.c++;
         }
+        // E4: the brilliance ledgers ride the same event the score does.
+        burstWindow.push(e.score || 0);
+        if (burstWindow.length > 10) burstWindow.shift();
+        burst10 = Math.max(burst10, burstWindow.reduce((a, b) => a + b, 0));
+        if (e.answerDistance >= TUNING.WORDS.ARM_DISTANCE_M * 0.5) {
+          earlyStreak++;
+          if (earlyStreak > bestEarlyStreak) bestEarlyStreak = earlyStreak;
+        } else earlyStreak = 0;
+        if (e.dashMult > 1) dashRungMax = Math.max(dashRungMax, (e.dashChain | 0) + 1);
         if (e.answer) {
           const before = nemesis.history(e.answer);
           if (nemesis.record(e.answer, true, e.index) === 'retired' && before?.m > 0) {
@@ -1095,6 +1123,9 @@ function drainSimEvents() {
         // Phase M: one layer of the architecture falls, frame-accurate with
         // the drain — the loss made spatial.
         editorialWorld.onWrongRead();
+        // E4: a wrong read of any kind breaks the burst and the streak.
+        burstWindow.length = 0;
+        earlyStreak = 0;
       }
         // The rulebook asymmetry, felt: tapping a fake is the crash (hit
         // sound, red flash, the heart the sim already took). Missing a real
