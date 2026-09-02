@@ -38,12 +38,12 @@ const _axisZ = new THREE.Vector3(0, 0, 1);
 const _flat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
 const _q = new THREE.Quaternion();
 
-// The ribbon's cross-slope at a given distance, as a roll angle. Must track
-// BANK in terrain-mesh.js: the mesh lifts its edge by -u * slope * BANK *
-// halfW * 0.5, so across x the gradient is -slope * BANK * 0.5.
-const EDGE_BANK = 0.35;
+// The ribbon's cross-slope at a given distance, as a roll angle. Phase L:
+// the terrain owns ONE surface function (segment roll + turn-lean combined
+// in crossSlopeAt), so the ground line reads it instead of re-deriving the
+// bank from a constant that had to be kept in sync with the mesh by hand.
 const rollAt = (terrain, d) => Math.atan(
-  -(terrain.corridorSlope ? terrain.corridorSlope(d) : 0) * EDGE_BANK * 0.5);
+  terrain.crossSlopeAt ? terrain.crossSlopeAt(d) : 0);
 
 export const plateFontReady = (typeof document !== 'undefined' && document.fonts?.load)
   ? Promise.all([
@@ -300,7 +300,9 @@ export class WordGateActors {
     if (!g.resolved && g.d - playerD < SHOW_AHEAD) {
       const state = g.confirmed ? 'confirmed' : 'idle';
       this.current.paint(g.shown, state);
-      this.current.place(g.shown, g.d, terrain.heightAt(0, g.d), camera,
+      // Ground the plate at the CENTRELINE's height — heightAt(x=0) would
+      // pick up the cross-slope of a banked row and sink or float the plate.
+      this.current.place(g.shown, g.d, terrain.heightAt(terrain.corridorX(g.d), g.d), camera,
         1, terrain.corridorX(g.d), rollAt(terrain, g.d));
       // The unarmed gates ahead, stepping down in opacity so they read as
       // information rather than competing with the armed plate. They are drawn
@@ -311,7 +313,7 @@ export class WordGateActors {
         const n = this._peekGate(wg.seed, g.index + 1 + i, wg.profile);
         if (n.d - playerD < SHOW_AHEAD) {
           this.ahead[i].paint(n.shown, 'idle');
-          this.ahead[i].place(n.shown, n.d, terrain.heightAt(0, n.d), camera,
+          this.ahead[i].place(n.shown, n.d, terrain.heightAt(terrain.corridorX(n.d), n.d), camera,
             fade[i], terrain.corridorX(n.d), rollAt(terrain, n.d));
         } else {
           this.ahead[i].hide();
@@ -327,7 +329,7 @@ export class WordGateActors {
       this.lingerT -= dt;
       const e = this.lingerGate;
       this.fx.paint(e.text, this.lingerState);
-      this.fx.place(e.text, e.d, terrain.heightAt(0, e.d), camera,
+      this.fx.place(e.text, e.d, terrain.heightAt(terrain.corridorX(e.d), e.d), camera,
         Math.max(0, this.lingerT / LINGER), terrain.corridorX(e.d));
       if (this.lingerT <= 0) this.fx.hide();
     } else {

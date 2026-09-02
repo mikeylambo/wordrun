@@ -46,6 +46,24 @@ export const TUNING = {
     // Mesh resolution per chunk
     SEGS_X: 30,
     SEGS_Z: 48,
+
+    // ── Route grammar (Phase L) ─────────────────────────────────────────────
+    // The track stops being one flat plane: a seeded walk of authored segment
+    // types gives it climbs, descents, banks and crests. Geometry only — the
+    // speed model, the gates and the Redline never read any of it (the Phase 0
+    // behaviour snapshot stays byte-identical), so these are compositional
+    // dials, not calibrated ones. Every value is bounded by the reading
+    // constraint: grades and rolls stay gentle enough that the plate holds
+    // its measured 270×68 px at 62 m/s on every segment type (route-gates).
+    ROUTE: {
+      TRANS_M: 26,          // metres a grade/roll change is blended over
+      GRADE: 0.055,         // climb/descent rise per metre (~3.1°)
+      CREST_GRADE: 0.095,   // the sharper pitch of a crest's two halves
+      ROLL: 0.10,           // bank cross-slope, rise per metre across (~5.7°)
+      ELEV_CAP_M: 16,       // the walk steers back before drifting past this
+      INTRO_FLAT_M: 150,    // every run opens on level ground (teaching zone)
+      EDGE_BANK: 0.35,      // turn-lean of the cross-section (was mesh-local)
+    },
   },
 
   // ── The run (Phase 7, curve reworked Phase 8) ───────────────────────────
@@ -719,6 +737,11 @@ export const TUNING = {
     // Surge widens the view. Small: the plates are read at this width.
     SURGE_FOV: 5.5,
     MUSIC_ACCENT_FOV: 2.5,
+    // Phase L2: how far the rig leans into a banked segment. Partial by
+    // design — 1.0 would re-level the road and erase the bank; 0 would read
+    // as a camera bolted to a gimbal. The plate's screen rotation equals
+    // total camera roll and is gated (route-gates) at ≤ 4.5°.
+    TRACK_ROLL_SYMPATHY: 0.35,
   },
 
   // ── Fog / draw distance ─────────────────────────────────────────────────

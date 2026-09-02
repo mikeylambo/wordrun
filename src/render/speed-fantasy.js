@@ -120,7 +120,9 @@ export class TrackPylons {
       const line = this.terrain.corridorX(d);
       const edge = R.TRACK_HALF_W + 0.9;
       for (const side of [-1, 1]) {
-        this._m.makeTranslation(line + side * edge, 0, -d);
+        const x = line + side * edge;
+        // Phase L: the stanchions stand on the routed surface, not on y=0.
+        this._m.makeTranslation(x, this.terrain.heightAt(x, d), -d);
         this.mesh.setMatrixAt(i++, this._m);
       }
     }

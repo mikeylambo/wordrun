@@ -51,12 +51,12 @@ for (let d = 0; d <= 120000; d += TUNING.TERRAIN.CHUNK_LEN) {
   bells.around(d, 35, 360);
   soakTerrain.prune(ci);
   maxChunks = Math.max(maxChunks, soakTerrain.chunks.size);
-  if (soakTerrain.heightAt(0, d) !== 0 ||
+  if (Math.abs(soakTerrain.elevAt(d)) > TUNING.TERRAIN.ROUTE.ELEV_CAP_M + 1e-9 ||
       Math.abs(soakTerrain.corridorX(d)) >
       TUNING.RUN.CURVE_AMP_A + TUNING.RUN.CURVE_AMP_B + 1e-9) corridorOk = false;
 }
 check(maxChunks <= 18, `track chunk cache stays bounded through 120K (max ${maxChunks})`);
-check(corridorOk, 'the track stays flat and inside its curve envelope through 120K');
+check(corridorOk, 'the route stays inside its elevation cap and curve envelope through 120K');
 check(bells.cache.size < 500, `bell route cache remains small through 120K (${bells.cache.size} lines)`);
 for (const d of [10000, 30000, 50000, 75000, 100000]) {
   check(bells.around(d, 35, 360).length > 0, `bells continue around ${Math.round(d / 1000)}K`);

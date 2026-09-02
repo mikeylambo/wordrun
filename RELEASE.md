@@ -1350,3 +1350,50 @@ Slice history:
   under `gate:corruption`. NOT done here, by design: the store listing
   (waits on the [MP] trademark result), and the 1.0 close-out (waits on
   that plus the Pass 3 decision — boards, or 1.0 without them).
+- Phase L (L1–L3) — route grammar. Reinstated by the second look at the K
+  stills: they had tested page-bars beside a flat road, not a direction,
+  and the empty top half of every portrait frame was a geometry problem no
+  compositor could touch. The track has its third axis back. **The engine**
+  (`sim/terrain.js`): a seeded walk of authored segment types — straight,
+  long-straight, climb, descent, bank-L/R, and the crest as a page-fold
+  pair — with grade and roll ramped linearly over 26 m at each boundary and
+  elevation in CLOSED FORM (the ramp is symmetric, so per-segment
+  accumulation is exact at every boundary and the in-ramp correction is one
+  quadratic; the gate proves the formula against brute-force integration to
+  zero error). Elevation is hard-capped at ±16 m by sizing pitches to the
+  remaining headroom; every run opens on 150 m of level teaching ground;
+  the walk is a pure function of the seed, so the DAILY RUN lays one road.
+  **The contract: geometry only.** Nothing in the speed model, the gates,
+  the meter or the Redline reads elevation or roll — gradeMul stays 1 —
+  and the proof is that the Phase 0 behaviour snapshot passed UNTOUCHED,
+  hash for hash, on the routed track. Same reads, same hearts, same score,
+  new world. **One surface function**: heightAt combines elevation, segment
+  roll and the turn-lean (crossSlopeAt); the ribbon mesh samples it per
+  vertex with analytic normals, the plates ground on it at the centreline,
+  the gate line rolls into it, the stanchions stand on it and the contact
+  shadows already read it — nothing can drift because nothing is
+  hand-synced anymore (the old mesh-local BANK constant and word-gates'
+  copy of it are gone). **The camera** was already surface-following (its
+  height and look-at sample the terrain); L2 adds partial lean into a
+  banked segment (TRACK_ROLL_SYMPATHY 0.35, lagged, REDUCED FLASH damps it
+  with the other motion terms) — partial by design, since a full lean
+  would re-level the road and erase the bank. **Measured, all of it**
+  (`tools/route-gates.mjs`, in the gates chain, 2.4 s): the real rig and a
+  real projection driven through five-seed runs. At 36 m/s — the speed the
+  K manifest's 270×68 standard was actually measured at — every segment
+  type holds the flat track's read-moment plate to within 4×2 px, above a
+  220×55 hard floor; at the 62 m/s ceiling every type is PIXEL-IDENTICAL
+  to flat (the instrument also surfaced that the shipped flat game itself
+  measures ~184×46 at the ceiling — the speed-opens-the-lens trade predates
+  this phase and is the calibrated design). FOV peaked at 93.6°, under the
+  96 clamp. Plate screen rotation 0.14° worst (the billboard erases camera
+  roll from the glyphs — that is what billboarding is for), skew 0.04%.
+  The ARMED plate was never once occluded across 34,175 armed frames; the
+  +2 lookahead plate IS hidden by a crest on 1,289 frames and revealed on
+  a straight (flat track: hidden zero) — the L3 payoff, measured. Crowding
+  of the armed plate by the next word: 28.6% vs the flat track's own
+  27.5%. The ENDLESS walk escalates nothing yet and the DAILY composition
+  is the seeded walk, not an authored list — that is L5, deliberately not
+  built. Ghosts recorded on the flat era render under the new road for one
+  day (playback is terrain-free by design); tomorrow's seed records on the
+  route.

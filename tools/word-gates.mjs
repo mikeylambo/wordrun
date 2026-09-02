@@ -587,8 +587,10 @@ head('LOOKAHEAD — more gates are shown, no more gates are answerable');
     'lookahead plates are built from pure makeGate and push no events');
 
   // The armed plate's own call is untouched by any lookahead value.
+  // (Phase L: the ground argument became the centreline's height — heightAt
+  // at the corridor x — so a banked row cannot sink or float the plate.)
   check('the armed plate is drawn at full opacity, independent of lookahead',
-    /this\.current\.place\(g\.shown, g\.d, terrain\.heightAt\(0, g\.d\), camera,\s*1,/.test(src),
+    /this\.current\.place\(g\.shown, g\.d, terrain\.heightAt\(terrain\.corridorX\(g\.d\), g\.d\), camera,\s*1,/.test(src),
     'armed plate still places at opacity 1 with its own parameters');
 
   // The count is bounded by the fade ladder, so ?lookahead=99 cannot draw 99.

@@ -27,7 +27,6 @@ const SEGS_X = 8;          // vertices across the ribbon
 const ROW_VERTS = SEGS_X + 1;
 const ROWS = SEGS_Z + 1;
 const VERT_COUNT = ROWS * ROW_VERTS;
-const BANK = 0.35;         // metres of edge lift into a full-rate turn
 
 const BAND_COLORS = MOUNTAIN_BANDS.map((b) => ({
   start: b.start,
@@ -101,18 +100,23 @@ export class TerrainMesh {
     for (let r = 0; r < ROWS; r++) {
       const d = d0 + (r / SEGS_Z) * T.CHUNK_LEN;
       const cx = this.terrain.corridorX(d);
-      const slope = this.terrain.corridorSlope ? this.terrain.corridorSlope(d) : 0;
+      // Phase L: the ribbon rides the route — elevation, segment roll and the
+      // turn-lean all come from the terrain's ONE surface function, so the
+      // mesh, the runner, the plates and the pylons agree by construction.
+      const grade = this.terrain.gradeAt ? this.terrain.gradeAt(d) : 0;
+      const cross = this.terrain.crossSlopeAt ? this.terrain.crossSlopeAt(d) : 0;
+      const nLen = Math.hypot(cross, 1, grade);
       bandColorsAt(d);
       for (let c = 0; c < ROW_VERTS; c++) {
         const u = (c / SEGS_X) * 2 - 1; // -1 .. 1 across the ribbon
         const i = r * ROW_VERTS + c;
         const x = cx + u * R.TRACK_HALF_W;
-        // Bank the ribbon gently into the turn: outer edge lifts.
-        const y = -u * slope * BANK * R.TRACK_HALF_W * 0.5;
+        const y = this.terrain.heightAt(x, d);
         pos[i * 3] = x;
         pos[i * 3 + 1] = y;
         pos[i * 3 + 2] = -d;
-        nor[i * 3] = 0; nor[i * 3 + 1] = 1; nor[i * 3 + 2] = 0;
+        // Analytic surface normal (z = -d, so dh/dz = -grade flips sign).
+        nor[i * 3] = -cross / nLen; nor[i * 3 + 1] = 1 / nLen; nor[i * 3 + 2] = grade / nLen;
 
         const edge = Math.abs(u);
         const tint = edge > 0.85 ? rowCrest : edge > 0.5 ? rowShade : rowSnow;

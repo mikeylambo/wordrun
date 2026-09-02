@@ -147,7 +147,15 @@ export class CameraRig {
 
     // Camera roll belongs to FLOW, not spectacle: tiny sympathy with a hard
     // carve makes the arc feel physical while keeping the horizon trustworthy.
-    let wantRoll = killT > 0 ? 0 : -p.heading * 0.075;
+    // Phase L2: the rig also leans PART way into a banked segment — enough
+    // that the bank reads in the body, never enough to re-level the road
+    // (that would cancel the geometry) or to rotate the plate on screen
+    // beyond its gated ceiling. REDUCED FLASH damps it with the other
+    // motion terms; the plate billboards on camera.quaternion, so total
+    // camera roll IS the plate's screen rotation and stays measured.
+    const trackRoll = killT > 0 || !terrain?.rollAt
+      ? 0 : Math.atan(terrain.rollAt(p.d)) * C.TRACK_ROLL_SYMPATHY * motion;
+    let wantRoll = (killT > 0 ? 0 : -p.heading * 0.075) - trackRoll;
     if (p.airborne) {
       // A hint of trick rotation is enough to make air expressive without
       // turning the camera into an SSX imitation or destroying landing reads.

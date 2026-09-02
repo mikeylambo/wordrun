@@ -65,15 +65,41 @@ function run(seed, steps, inputFn = () => ({}), ghostData = null) {
 }
 
 // ── TRACK ─────────────────────────────────────────────────────────────────
-head('TRACK — flat, winding, auto-followed');
+head('TRACK — routed, winding, auto-followed (Phase L)');
 
 {
   const t = new Terrain(SEEDS[1]);
-  let flat = true;
-  for (let d = 0; d < 5000; d += 37) {
-    for (const x of [-7, 0, 7]) if (t.heightAt(x, d) !== 0) { flat = false; break; }
+  // Phase L: the track has its third axis back — a seeded walk of climbs,
+  // descents, banks and crests. The gameplay contract is that NOTHING in the
+  // speed model reads it (gradeMul stays 1 below, and the Phase 0 behaviour
+  // snapshot holds byte-identical, which is the real proof); these checks
+  // hold the geometry itself to its bounds.
+  const RT = TUNING.TERRAIN.ROUTE;
+  let elevMax = 0, gradeMax = 0, rollMax = 0, integ = 0, closedFormErr = 0;
+  for (let d = 0; d < 5000; d += 0.25) {
+    integ += t.gradeAt(d + 0.125) * 0.25;
+    closedFormErr = Math.max(closedFormErr, Math.abs(t.elevAt(d + 0.25) - integ));
+    elevMax = Math.max(elevMax, Math.abs(t.elevAt(d)));
+    gradeMax = Math.max(gradeMax, Math.abs(t.gradeAt(d)));
+    rollMax = Math.max(rollMax, Math.abs(t.rollAt(d)));
   }
-  check('the track is flat: heightAt is zero everywhere', flat);
+  check('elevation never leaves the cap; grade and roll stay gentle',
+    elevMax <= RT.ELEV_CAP_M + 1e-9 && gradeMax <= RT.CREST_GRADE + 1e-9 &&
+    rollMax <= RT.ROLL + 1e-9,
+    `|elev| ≤ ${elevMax.toFixed(1)}m, grade ≤ ${gradeMax.toFixed(3)}, roll ≤ ${rollMax.toFixed(3)}`);
+  // Tolerance sits above the probe's own midpoint-rule error at this step
+  // (~3e-5 across the ramps) and far below any real formula bug (centimetres).
+  check('the closed-form elevation IS the integral of the grade (no drift)',
+    closedFormErr < 5e-4, `max divergence ${closedFormErr.toExponential(1)} over 5km`);
+  let introFlat = true;
+  for (let d = 0; d < RT.INTRO_FLAT_M - RT.TRANS_M / 2; d += 1) {
+    if (t.elevAt(d) !== 0 || t.rollAt(d) !== 0) introFlat = false;
+  }
+  check('every run opens on level ground (the teaching zone stays flat)', introFlat);
+  const types = new Set(t.routeSegments(8000).map((s) => s.type));
+  check('the full vocabulary appears within 8km',
+    ['straight', 'long-straight', 'climb', 'descent', 'bank', 'crest-up'].every((x) => types.has(x)),
+    [...types].join(' '));
 
   let maxSlope = 0;
   for (let d = 0; d < 8000; d += 1) {
@@ -96,6 +122,13 @@ head('TRACK — flat, winding, auto-followed');
   const t3 = new Terrain(SEEDS[2]);
   check('the winding is seeded: same seed same path, new seed new path',
     t.corridorX(1234) === t2.corridorX(1234) && t.corridorX(1234) !== t3.corridorX(1234));
+  let routeSame = true, routeDiffers = false;
+  for (let d = 200; d < 5000; d += 111) {
+    if (t.elevAt(d) !== t2.elevAt(d) || t.rollAt(d) !== t2.rollAt(d)) routeSame = false;
+    if (Math.abs(t.elevAt(d) - t3.elevAt(d)) > 0.25) routeDiffers = true;
+  }
+  check('the ROUTE is seeded the same way — the DAILY RUN lays one road',
+    routeSame && routeDiffers);
 
   check('nothing spawns on the track: no colliders, gates, ice, grade',
     t.collidersNear(500).length === 0 && t.gatesNear(500).length === 0 &&

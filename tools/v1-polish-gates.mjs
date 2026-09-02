@@ -408,22 +408,28 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
 
     // (b) The gate ground line is the one road marking drawn separately from
     //     the ribbon mesh, so it is the one that has to be told about the
-    //     bank. Flat, it was buried at one rail and floating at the other.
-    const meshBank = Number(/const BANK = ([\d.]+)/.exec(read('src/render/terrain-mesh.js'))?.[1]);
+    //     bank. Phase L: the terrain owns ONE surface function now —
+    //     crossSlopeAt combines the segment roll and the turn-lean — and the
+    //     mesh, the line and the plates all read it, so nothing can drift.
+    const meshCode = read('src/render/terrain-mesh.js');
     const gateCode = codeOf('src/render/word-gates.js');
-    const gateBank = Number(/const EDGE_BANK = ([\d.]+)/.exec(gateCode)?.[1]);
-    check(meshBank > 0 && gateBank === meshBank,
-      `the gate ground line uses the ribbon's own bank constant (${gateBank})`);
+    check(meshCode.includes('this.terrain.heightAt(x, d)') &&
+      meshCode.includes('crossSlopeAt') && !/const BANK = /.test(meshCode),
+      'the ribbon samples the terrain\'s one surface function, no local bank constant');
+    check(gateCode.includes('terrain.crossSlopeAt ? terrain.crossSlopeAt(d) : 0') &&
+      !/const EDGE_BANK = /.test(gateCode),
+      'the gate ground line reads the same cross-slope, not a hand-synced copy');
     check(/rollAt\(terrain, g\.d\)/.test(gateCode) && /rollAt\(terrain, n\.d\)/.test(gateCode),
       'and every plate drawn — armed and lookahead — is given that roll');
-    // The error it removes, at this track's worst bend.
+    // The error a hand-synced constant would re-open, at this track's worst bend.
     const t = new Terrain(4242);
+    const edgeBank = TUNING.TERRAIN.ROUTE.EDGE_BANK;
     let worst = 0;
     for (let d = 0; d < 3000; d += 1) {
-      worst = Math.max(worst, Math.abs(t.corridorSlope(d)) * meshBank * R.TRACK_HALF_W * 0.5);
+      worst = Math.max(worst, Math.abs(t.corridorSlope(d)) * edgeBank * R.TRACK_HALF_W * 0.5);
     }
     check(worst > 0.2,
-      `flat, that line missed the road by up to ${worst.toFixed(2)}m at the rail — which is why it had to be rolled`);
+      `flat, that line missed the road by up to ${worst.toFixed(2)}m at the rail — which is why it reads the surface`);
   }
 
   // 3. "L/R works but we have no player onboarding to teach them that."
