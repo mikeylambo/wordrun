@@ -1433,3 +1433,40 @@ Slice history:
   decision was made against stills that could not show the direction, and
   these can. Phase M and L4/L5 wait on the pick; the Broadcast toggle
   ships either way. STOPPED here, as directed.
+- Phase M — the Editorial World, in production. The direction a human
+  picked from the re-shot stills, promoted from the dev layer into the
+  live game as one system in two halves. **The pure half**
+  (`render/editorial-layout.js`): the band machine and the page layout as
+  plain arithmetic. Five bands at the brief's chain thresholds
+  (0/25/50/100/150, ids unnamed anywhere a player reads); the world
+  REMEMBERS more than the chain — crossing a threshold sets a band, and a
+  wrong read drops exactly ONE layer while the chain itself dies, so what
+  you built mostly stands and one piece of architecture falls with every
+  mistake, frame-accurate with the drain. Margin rules, greeked type,
+  full stops, dashes, brackets and drop caps, densities monotone by band,
+  every mark riding the routed surface. **The renderer half**
+  (`render/editorial-world.js`): seven instanced meshes, bounded budgets,
+  explicit construction from main.js — no wrapped render functions, no
+  window hooks; the manuscript resets sparse each run and breathes with
+  the flow factor exactly like the stanchions. **The Redline is an
+  editorial correction now**: as the gap closes, red strikethrough bars
+  land across the nearest greeked lines at the corruption curve's own
+  intensity — the editor catching the manuscript — in the LIVE ACCESS
+  danger colour, so every colour-vision mode keeps the Redline's alarm as
+  its one hue; motionless by construction, so REDUCED FLASH has nothing
+  to strip. **Gated** (`tools/editorial-gates.mjs`, in the chain, 1.6 s):
+  the band machine driven pure (rises, single-layer drops, memory, floor);
+  no glyph machinery in the page modules and none anywhere in the scene
+  outside the plate module; the only colour literal is white (every tint
+  is the art-direction band's own crest and ice — no hue is new); margins
+  hold ≥ 9.4 m off the centreline at every band; and the brief's own
+  acceptance test — camera→plate tested against EVERY page instance on
+  EVERY armed frame of a 100-gate daily run at ALL FIVE bands, plus the
+  correction bars at full intensity: 0 hits over 21,320 armed frames and
+  500 gates. The camera is untouched, so route-gates' plate numbers stand
+  unchanged. Verified live: the band rose to 4 at chain 150, an untouched
+  run's missed real dropped it to 3, a forced wrong to 2, and 23
+  correction bars struck the margins at gap 10. The verge stanchions stay
+  for now — they are the flow pulse's marquee bulbs and share the frame
+  with the margin rules; whether both survive visual review is a look
+  call, not a build call.

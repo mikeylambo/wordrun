@@ -18,6 +18,7 @@ import { WordGateActors, plateFontReady } from './render/word-gates.js';
 import { DataworldPass } from './render/dataworld.js';
 import { StreakBurst } from './render/streak-burst.js';
 import { WindStreaks, TrackPylons } from './render/speed-fantasy.js';
+import { EditorialWorld } from './render/editorial-world.js';
 import { BellRenderer } from './render/bells.js';
 import { HEARTS } from './design/bells.js';
 import { flowFactor, flowGlow, flowLevel } from './render/flow-curve.js';
@@ -80,6 +81,9 @@ const streakBurst = new StreakBurst(stage.scene);
 stage.scene.add(stage.camera);
 const windStreaks = new WindStreaks(stage.camera);
 const trackPylons = new TrackPylons(stage.scene, sim.terrain);
+// Phase M: the Editorial World — the page geometry beside the track, set
+// denser as the run's band rises and struck through as the Redline closes.
+const editorialWorld = new EditorialWorld(stage.scene, sim.terrain);
 // The bells the runner collects. The sim owns the field and the pickup
 // (sim.bells); this only draws it. Created after the material pass so its
 // baked-in gold emissive is left alone by the pass's material sweep.
@@ -357,6 +361,7 @@ function startRun() {
   sprayAcc = 0;
   flowChain = 0;
   endedFlowLevel = 0;
+  editorialWorld.reset(); // the manuscript starts sparse each run
   paused = false;
   running = true;
   input.enabled = true;
@@ -1058,6 +1063,9 @@ function drainSimEvents() {
         const t = tierTally[e.tier] || (tierTally[e.tier] = { a: 0, c: 0 });
         t.a++;
         nemesis.record(e.answer, false, e.index);
+        // Phase M: one layer of the architecture falls, frame-accurate with
+        // the drain — the loss made spatial.
+        editorialWorld.onWrongRead();
       }
         // The rulebook asymmetry, felt: tapping a fake is the crash (hit
         // sound, red flash, the heart the sim already took). Missing a real
@@ -1147,6 +1155,8 @@ function tick(dt) {
   windStreaks.update(paused ? 0 : dt, running ? (p.effSpeed || p.speed) : 0, p.overdrive);
   trackPylons.terrain = sim.terrain;
   trackPylons.update(pv.d);
+  editorialWorld.terrain = sim.terrain;
+  editorialWorld.update(pv.d, p.chain, bv.gap);
 
   const beastGroundY = sim.terrain.heightAt(bv.x, pv.d - bv.gap);
   const killT = sim.phase === PHASE.KILL || sim.phase === PHASE.DEAD ? sim.killTimer : 0;
@@ -1187,6 +1197,7 @@ function tick(dt) {
   materialPass.terrain.userData.uP9Flow.value = flowF;
   dataworld.setFlow(flowF);
   trackPylons.setFlow(flowF);
+  editorialWorld.setFlow(flowF);
   playerActor.flow = flowF;
   playerActor.dashChain = p.overdrive ? p.dashChain : 0; // Phase I: the tail reads the rung
   // The score's reading of the run. Music modulates, the run decides: the
@@ -1260,7 +1271,7 @@ window.__TUNING = TUNING;
 window.__UI = ui;
 window.__RENDER = {
   stage, terrainMesh, props, landmarks, rig, playerActor, beastActor, ghostActor, spray, materialPass,
-  wordGateActors, dataworld, streakBurst, bells: bellRenderer,
+  wordGateActors, dataworld, streakBurst, bells: bellRenderer, editorialWorld,
 };
 // The tuning panel, for playtesting where there is no console. A dynamic
 // import so it lands in its own chunk: a normal load never fetches it.
