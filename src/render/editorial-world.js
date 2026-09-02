@@ -53,6 +53,7 @@ export class EditorialWorld {
       dashes: new THREE.InstancedMesh(box, this.matMark, CAPS.dashes),
       brackets: new THREE.InstancedMesh(box, this.matMark, CAPS.brackets),
       caps: new THREE.InstancedMesh(box, this.matCap, CAPS.caps),
+      arches: new THREE.InstancedMesh(box, this.matRule, CAPS.arches),
       corrections: new THREE.InstancedMesh(box, this.matCorrection, CORRECTION_CAP),
     };
     for (const m of Object.values(this.meshes)) {
@@ -135,6 +136,7 @@ export class EditorialWorld {
       this._fill(this.meshes.dashes, page.dashes);
       this._fill(this.meshes.brackets, page.brackets);
       this._fill(this.meshes.caps, page.caps);
+      this._fill(this.meshes.arches, page.arches);
     }
     this._paint(this.band, playerD);
     // The earned light breathes with flow, exactly like the stanchions.

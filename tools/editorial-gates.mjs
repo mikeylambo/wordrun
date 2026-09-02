@@ -23,7 +23,7 @@ import TUNING from '../src/TUNING.js';
 import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
 import { CameraRig } from '../src/render/camera-rig.js';
 import {
-  BAND_CHAINS, CAPS, FILL, INK, MARGIN,
+  ARCH_CLEAR, BAND_CHAINS, CAPS, FILL, INK, MARGIN, NARROW_MARGIN,
   bandFor, layoutCorrections, layoutPage, stepBand,
 } from '../src/render/editorial-layout.js';
 
@@ -120,8 +120,11 @@ head('LAYOUT — margins hold and budgets bound, at every band');
       }
     }
   }
+  // Phase L4: the narrows deliberately pull the margin in — the floor is
+  // the NARROW margin; ordinary spans still keep the full one (checked in
+  // the L4 section below).
   check('every mark keeps clear of the track — the nearest inner edge stays past the rail',
-    minOff >= HW + MARGIN - 0.1, `closest inner edge ${minOff.toFixed(1)}m (track half-width ${HW}m)`);
+    minOff >= HW + NARROW_MARGIN - 0.1, `closest inner edge ${minOff.toFixed(1)}m (track half-width ${HW}m)`);
   check('instance budgets hold at the densest band', capsOk,
     `caps ${Object.entries(CAPS).map(([k, v]) => `${k}:${v}`).join(' ')}`);
   const corr = layoutCorrections(terrain, 500, 1, HW);
@@ -192,7 +195,8 @@ head('OCCLUSION — the page may frame the plate, never cover it');
       const cx = sim.terrain.corridorX(cur.d);
       const plate = new THREE.Vector3(cx,
         sim.terrain.heightAt(cx, cur.d) + PLATE_ABOVE, -cur.d);
-      const lists = [page.rules, page.type, page.stops, page.dashes, page.brackets, page.caps,
+      const lists = [page.rules, page.type, page.stops, page.dashes, page.brackets,
+        page.caps, page.arches,
         layoutCorrections(sim.terrain, sim.player.d, 1, TUNING.RUN.TRACK_HALF_W)];
       for (const list of lists) {
         for (const inst of list) {
@@ -212,6 +216,61 @@ head('OCCLUSION — the page may frame the plate, never cover it');
     !/\.fov|updateProjectionMatrix|CameraRig|\.camera\b/.test(
       fs.readFileSync('src/render/editorial-world.js', 'utf8')),
     'plate sizes are route-gates\' numbers, unchanged by Phase M');
+}
+
+// ── Phase L4: four reading situations, each provably different ────────────
+head('L4 — the drop empties, the tunnel closes, the canyon walls, the narrows squeeze');
+
+{
+  const sim = new Sim(555001);
+  sim.start(555001);
+  const t = sim.terrain;
+  const HW = TUNING.RUN.TRACK_HALF_W;
+  // Walk far enough that the seeded walk has dealt every advanced type.
+  const findSpan = (type, until = 60000) => {
+    for (const s of t.routeSegments(until)) if (s.type === type) return s;
+    return null;
+  };
+  const drop = findSpan('drop'), tunnel = findSpan('tunnel');
+  const canyon = findSpan('canyon'), narrows = findSpan('narrows');
+  check('the seeded walk deals every advanced situation, none before the run earned it',
+    !!drop && !!tunnel && !!canyon && !!narrows &&
+    [drop, tunnel, canyon, narrows].every((s) => s.d0 >= TUNING.TERRAIN.ROUTE.ADV_MIN_D_M),
+    `drop@${drop?.d0 | 0} tunnel@${tunnel?.d0 | 0} canyon@${canyon?.d0 | 0} narrows@${narrows?.d0 | 0}`);
+
+  const mid = (s) => s.d0 + s.len / 2;
+  const countIn = (page, s) => Object.values(page).flat()
+    .filter(([, , z]) => -z > s.d0 + 5 && -z < s.d0 + s.len - 5).length;
+
+  if (drop) {
+    const page = layoutPage(t, mid(drop) - 100, 4, HW);
+    check('a drop span draws NOTHING — you and the words',
+      countIn(page, drop) === 0, `${countIn(page, drop)} instances inside the span`);
+  }
+  if (tunnel) {
+    const page = layoutPage(t, mid(tunnel) - 100, 4, HW);
+    const arches = page.arches.filter(([, , z]) => -z > tunnel.d0 && -z < tunnel.d0 + tunnel.len);
+    const bars = arches.filter(([, y, z, sx]) => sx > 5);
+    check('the tunnel raises real arches, crossbars metres above any sight line',
+      arches.length >= 9 && bars.length >= 3 &&
+      bars.every(([, y, z]) => y - t.heightAt(t.corridorX(-z), -z) >= ARCH_CLEAR),
+      `${arches.length} pieces, bars at +${ARCH_CLEAR}m`);
+  }
+  if (canyon && narrows) {
+    const pc = layoutPage(t, mid(canyon) - 100, 4, HW);
+    const walls = pc.type.filter(([, , z, , sy]) => -z > canyon.d0 && -z < canyon.d0 + canyon.len && sy > 3);
+    check('the canyon stands the page up — the type rows become walls',
+      walls.length > 10, `${walls.length} wall slabs`);
+    const pn = layoutPage(t, mid(narrows) - 100, 4, HW);
+    const inRules = (page, s) => page.rules
+      .filter(([, , z]) => -z > s.d0 + 5 && -z < s.d0 + s.len - 5)
+      .map(([x, , z]) => Math.abs(x - t.corridorX(-z)));
+    const nOffs = inRules(pn, narrows);
+    check('the narrows pull the first rule to the narrow margin; ordinary spans keep the full one',
+      nOffs.length > 0 && Math.min(...nOffs) < HW + MARGIN - 0.2 &&
+      Math.min(...nOffs) >= HW + NARROW_MARGIN - 0.1,
+      `narrows first rule at ${Math.min(...nOffs).toFixed(1)}m`);
+  }
 }
 
 // ── Wiring ────────────────────────────────────────────────────────────────

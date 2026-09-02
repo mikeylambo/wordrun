@@ -1505,3 +1505,23 @@ Slice history:
   relying on silence failing; the surge check asserts the structural
   rule — hold the surge at 1, pass one fake, watch it die that frame —
   instead of a peak that depended on the coin's texture).
+- Phase L4 — the advanced vocabulary, selectively. Four new route
+  situations, each passing the one test that mattered ("does this produce
+  a different READING situation?"), all as level markers the presentation
+  reacts to — grade and roll stay zero, so nothing gameplay-side changes
+  and no golden moved. **The drop**: the page vanishes — no rules, no
+  type, no punctuation, no corrections — nothing in the world but the
+  runner and the words. **The tunnel**: real arches every nine metres,
+  crossbars twelve metres up, the periphery closing overhead. **The
+  canyon**: the greeked type stands up — the same rows become walls of
+  set text at reading height. **The narrows**: the margins pull in to
+  half their distance and the rules double — the Redline's stretch.
+  Corkscrew was considered and skipped with its reason recorded: the
+  plate is billboarded, so a rolling world under a fixed reading plane is
+  nausea with no new read. None of the four appears before 600 m — the
+  run earns its spectacle — and the seeded walk deals all of them within
+  a few kilometres. Five new checks under editorial-gates (a drop span
+  provably draws zero instances; arch clearance held; canyon walls
+  counted; the narrows floor asserted), the occlusion sweep now includes
+  the arches, and the margin floor moved to the narrows' own value with
+  ordinary spans still holding the full margin.

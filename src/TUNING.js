@@ -63,6 +63,7 @@ export const TUNING = {
       ELEV_CAP_M: 16,       // the walk steers back before drifting past this
       INTRO_FLAT_M: 150,    // every run opens on level ground (teaching zone)
       EDGE_BANK: 0.35,      // turn-lean of the cross-section (was mesh-local)
+      ADV_MIN_D_M: 600,     // L4 vocabulary (drop/tunnel/canyon/narrows) waits
     },
   },
 

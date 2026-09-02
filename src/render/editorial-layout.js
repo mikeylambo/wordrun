@@ -48,8 +48,13 @@ export const WINDOW_AHEAD = 300;// metres of page ahead (past the fog wall)
 export const REBUILD_AFTER = 90;// metres of travel before the page is re-laid
 export const MARGIN = 2.4;      // metres beyond the track edge to the first rule
 
-// Instance caps — six draw calls, bounded however long the run gets.
-export const CAPS = { rules: 420, type: 1400, stops: 40, dashes: 40, brackets: 120, caps: 12 };
+// Instance caps — seven draw calls, bounded however long the run gets.
+export const CAPS = { rules: 420, type: 1400, stops: 40, dashes: 40, brackets: 120, caps: 12, arches: 150 };
+// Phase L4: the narrows pull the margins in to this; everything else keeps
+// MARGIN. The tunnel's crossbars clear the tallest sight line by metres —
+// the occlusion gate proves it against every armed frame anyway.
+export const NARROW_MARGIN = 1.2;
+export const ARCH_CLEAR = 12;
 
 // Deterministic per-row hash so the same row keeps its shape across rebuilds.
 export function h32(n) {
@@ -73,19 +78,26 @@ export function layoutPage(terrain, d0, level, halfW) {
   const fill = FILL[level];
   const line = (d) => terrain.corridorX(d);
   const ground = (x, d) => terrain.heightAt(x, d);
+  const seg = (d) => (terrain.segTypeAt ? terrain.segTypeAt(d) : 'straight');
   const dA = Math.floor((d0 - WINDOW_BACK) / ROW_PITCH) * ROW_PITCH;
   const dB = d0 + WINDOW_AHEAD;
 
-  const out = { rules: [], type: [], stops: [], dashes: [], brackets: [], caps: [] };
+  const out = { rules: [], type: [], stops: [], dashes: [], brackets: [], caps: [], arches: [] };
 
   // Margin rules: one hairline each side at every band; a second past the
   // mid bands, a third at the full page. Segments of 6 m follow the winding.
+  // Phase L4: a drop span draws NOTHING (the world empties to you and the
+  // words); the narrows pull the margin in and double the rules.
   const ruleCount = level >= 4 ? 3 : level >= 2 ? 2 : 1;
   for (let d = dA; d < dB && out.rules.length < CAPS.rules; d += 6) {
+    const st = seg(d + 3);
+    if (st === 'drop') continue;
+    const margin = st === 'narrows' ? NARROW_MARGIN : MARGIN;
+    const rows = st === 'narrows' ? ruleCount + 1 : ruleCount;
     for (const side of [-1, 1]) {
-      for (let k = 0; k < ruleCount; k++) {
+      for (let k = 0; k < rows; k++) {
         if (out.rules.length >= CAPS.rules) break;
-        const off = HW + MARGIN + k * 0.55;
+        const off = HW + margin + k * 0.55;
         const x = line(d + 3) + side * off;
         out.rules.push([x, ground(x, d + 3) + 0.05, -(d + 3), 0.07, 0.06, 6.0]);
       }
@@ -95,9 +107,14 @@ export function layoutPage(terrain, d0, level, halfW) {
   // Greeked type: rows of bars flowing outward from the inner margin.
   // A paragraph ends on a short line and leaves a blank one; the full page
   // justifies every other line, the manuscript leaves them ragged.
+  // Phase L4: inside a canyon the type stands up — the same rows become
+  // walls of set text, the page as architecture at reading height.
   const columns = level >= 3 ? 2 : 1;
   const colW = level >= 2 ? 11 : 8.5;
   for (let d = dA, row = Math.round(dA / ROW_PITCH); d < dB; d += ROW_PITCH, row++) {
+    const st = seg(d);
+    if (st === 'drop') continue;
+    const margin = st === 'narrows' ? NARROW_MARGIN : MARGIN;
     for (const side of [-1, 1]) {
       for (let c = 0; c < columns; c++) {
         if (out.type.length >= CAPS.type) break;
@@ -108,16 +125,34 @@ export function layoutPage(terrain, d0, level, halfW) {
         const end = h32(key + 11) < 0.15;
         const ragged = level >= 4 ? 1 : 0.55 + 0.45 * h32(key + 23);
         const w = colW * (end ? 0.3 + 0.4 * h32(key + 5) : ragged);
-        const inner = HW + MARGIN + 1.8 + c * (colW + 2.2);
+        const inner = HW + margin + 1.8 + c * (colW + 2.2);
         const x = line(d) + side * (inner + w / 2);
-        out.type.push([x, ground(x, d) + 0.05, -d, w, 0.08, ROW_LEN]);
+        if (st === 'canyon') {
+          const wallH = 4.5 + fill * 7 * h32(key + 41);
+          out.type.push([x, ground(x, d) + wallH / 2, -d, w, wallH, ROW_LEN]);
+        } else {
+          out.type.push([x, ground(x, d) + 0.05, -d, w, 0.08, ROW_LEN]);
+        }
       }
     }
+  }
+
+  // Phase L4 — the tunnel: brackets grown to arches, an overhead crossbar
+  // every 9 m at ARCH_CLEAR metres, far above any camera→plate sight line.
+  for (let d = Math.ceil(dA / 9) * 9; d < dB && out.arches.length < CAPS.arches - 2; d += 9) {
+    if (seg(d) !== 'tunnel') continue;
+    const cx = line(d);
+    const gy = ground(cx, d);
+    for (const side of [-1, 1]) {
+      out.arches.push([cx + side * (HW + 1.5), gy + ARCH_CLEAR / 2, -d, 0.25, ARCH_CLEAR, 0.25]);
+    }
+    out.arches.push([cx, gy + ARCH_CLEAR + 0.15, -d, (HW + 1.5) * 2, 0.3, 0.25]);
   }
 
   // Punctuation as sculpture, densifying by band.
   if (level >= 1) {
     for (let d = Math.ceil(dA / 36) * 36; d < dB && out.stops.length < CAPS.stops; d += 36) {
+      if (seg(d) === 'drop') continue;
       const side = (Math.round(d / 36) % 2) ? 1 : -1;
       const x = line(d) + side * (HW + 3.3);
       out.stops.push([x, ground(x, d) + 0.6, -d, 1.0, 1.0, 1.0]);
@@ -125,6 +160,7 @@ export function layoutPage(terrain, d0, level, halfW) {
   }
   if (level >= 2) {
     for (let d = Math.ceil(dA / 54) * 54 + 18; d < dB && out.dashes.length < CAPS.dashes; d += 54) {
+      if (seg(d) === 'drop') continue;
       for (const side of [-1, 1]) {
         if (out.dashes.length >= CAPS.dashes) break;
         const x = line(d) + side * (HW + 6.5);
@@ -134,6 +170,7 @@ export function layoutPage(terrain, d0, level, halfW) {
   }
   if (level >= 3) {
     for (let d = Math.ceil(dA / 27) * 27; d < dB && out.brackets.length < CAPS.brackets - 2; d += 27) {
+      if (seg(d) === 'drop') continue;
       for (const side of [-1, 1]) {
         if (out.brackets.length >= CAPS.brackets - 2) break;
         const x = line(d) + side * (HW + 3.6);
@@ -147,6 +184,7 @@ export function layoutPage(terrain, d0, level, halfW) {
   }
   if (level >= 4) {
     for (let d = Math.ceil(dA / 72) * 72 + 30; d < dB && out.caps.length < CAPS.caps; d += 72) {
+      if (seg(d) === 'drop') continue;
       const side = (Math.round(d / 72) % 2) ? -1 : 1;
       const x = line(d) + side * (HW + 10.5);
       out.caps.push([x, ground(x, d) + 1.1, -d, 2.2, 2.2, 2.2]);
@@ -171,9 +209,12 @@ export function layoutCorrections(terrain, playerD, intensity, halfW) {
   for (let i = 0; i < n; i++) {
     // Struck rows cluster just ahead of the runner, where the eye is.
     const d = playerD - 6 + h32(i * 131 + Math.floor(playerD / 9)) * 42;
+    const st = terrain.segTypeAt ? terrain.segTypeAt(d) : 'straight';
+    if (st === 'drop') continue; // nothing to strike through in the void
+    const margin = st === 'narrows' ? NARROW_MARGIN : MARGIN;
     const side = h32(i * 613) < 0.5 ? -1 : 1;
     const w = 5 + h32(i * 271) * 5;
-    const x = line(d) + side * (halfW + MARGIN + 1.8 + w / 2);
+    const x = line(d) + side * (halfW + margin + 1.8 + w / 2);
     out.push([x, terrain.heightAt(x, d) + 0.16, -d, w, 0.1, 0.22]);
   }
   return out;

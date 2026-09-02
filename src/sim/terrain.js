@@ -56,6 +56,18 @@ const VOCAB = [
   { type: 'descent', w: 2 },
   { type: 'bank', w: 2 },
   { type: 'crest', w: 1.5 },
+  // Phase L4 — the advanced vocabulary, selective: each of these is a
+  // different READING SITUATION, not scenery. They are flat markers (grade
+  // 0, roll 0) the presentation reacts to — the drop empties the world,
+  // the tunnel closes the periphery overhead, the canyon walls the page
+  // up, the narrows pull the margins in for the Redline's stretch. Rare
+  // by weight, and none before ADV_MIN_D_M: the run earns its spectacle.
+  // (Corkscrew was considered and skipped: the plate is billboarded, so a
+  // rolling world with a fixed reading plane is nausea with no new read.)
+  { type: 'drop', w: 0.8 },
+  { type: 'tunnel', w: 0.8 },
+  { type: 'canyon', w: 0.8 },
+  { type: 'narrows', w: 0.6 },
 ];
 
 export class Terrain {
@@ -123,6 +135,9 @@ export class Terrain {
         if (type === 'descent' && elev < -RT.ELEV_CAP_M * 0.55) weight = 0;
         // A crest's apex must clear the cap too: it climbs before it falls.
         if (type === 'crest' && elev + RT.CREST_GRADE * 66 > RT.ELEV_CAP_M) weight = 0;
+        // The advanced vocabulary waits until the run has earned it.
+        if ((type === 'drop' || type === 'tunnel' || type === 'canyon' || type === 'narrows') &&
+            prev.d0 + prev.len < RT.ADV_MIN_D_M) weight = 0;
         total += weight;
         return { type, weight };
       });
@@ -161,6 +176,12 @@ export class Terrain {
         this._pushSeg('crest-down', half, -RT.CREST_GRADE, 0);
         break;
       }
+      // L4 markers: level ground, a changed reading situation. Lengths sit
+      // around two to three gates so a situation is met, read, and released.
+      case 'drop': this._pushSeg(pick, 150 + rng() * 70, 0, 0); break;
+      case 'tunnel': this._pushSeg(pick, 140 + rng() * 60, 0, 0); break;
+      case 'canyon': this._pushSeg(pick, 160 + rng() * 80, 0, 0); break;
+      case 'narrows': this._pushSeg(pick, 130 + rng() * 50, 0, 0); break;
     }
   }
 
@@ -254,6 +275,12 @@ export class Terrain {
   routeSegments(untilD) {
     this._segAt(untilD);
     return this._segs.filter((s) => s.d0 < untilD);
+  }
+
+  /** The segment TYPE under d — the reading situation the presentation
+   *  reacts to (Phase L4). O(log segs), same search as everything else. */
+  segTypeAt(d) {
+    return this._segs[this._segAt(Math.max(0, d))].type;
   }
 
   // ── Nothing spawns ──────────────────────────────────────────────────────
