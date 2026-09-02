@@ -178,6 +178,11 @@ export class UI {
       }
     }
 
+    // Phase L HUD pass: one instruction at a time. The dash hint is the
+    // louder, more contextual line — while it is up, the coach yields, so
+    // two teaching sentences never share the frame with the word.
+    if (this.powerHint?.classList.contains('on')) text = '';
+
     if (text) {
       this.coach.textContent = text;
       this.coach.classList.add('on');

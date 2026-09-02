@@ -46,6 +46,7 @@ import { UI } from './ui/ui.js';
 // breaks in the window before a chunk lands. See loadPanels() below.
 
 const canvas = document.getElementById('gl');
+const appEl = document.getElementById('app');
 const stage = new Stage(canvas);
 const ui = new UI();
 const audio = new Audio();
@@ -1203,6 +1204,9 @@ function tick(dt) {
   stage.followLight(pv.x, pv.y, -pv.d);
   audio.update(dt, p, bands, dreadLive);
   ui.update(dt, sim, dreadLive, clock);
+  // Phase L HUD pass: while the run is live the only chrome is PAUSE — the
+  // sound/settings/shop buttons come back whenever the game is stopped.
+  appEl.classList.toggle('chromeless', running && !paused && sim.phase === PHASE.RUNNING);
   stage.render();
 
   if (!shotTaken && sim.phase === PHASE.KILL &&

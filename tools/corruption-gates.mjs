@@ -871,6 +871,49 @@ head('SHARE — the card carries the run\'s flow band');
     shot.includes('0.22 + 0.7 * f') && shot.includes('0.34 + 0.58 * f'));
 }
 
+// ── The run HUD (Phase L reduction pass) ─────────────────────────────────
+head('HUD — one alarm colour, one instruction, pause-only chrome');
+
+{
+  const html = fs.readFileSync('index.html', 'utf8');
+  const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
+  const main = fs.readFileSync('src/main.js', 'utf8');
+  const access = fs.readFileSync('src/ui/access.js', 'utf8');
+
+  // Hearts left saturated red — that hue is the Redline's alarm. Compute
+  // the shipped heart hue from the stylesheet and hold it ≥ the reserved
+  // separation from EVERY semantic hue, the check the constraints demand
+  // BEFORE a colour is chosen, kept live so it cannot rot.
+  const hex = /\.heartPip\{[^}]*color:#([0-9a-f]{6})/.exec(html)?.[1];
+  let sepOk = false, hue = -1;
+  if (hex) {
+    const r = parseInt(hex.slice(0, 2), 16) / 255;
+    const g = parseInt(hex.slice(2, 4), 16) / 255;
+    const b = parseInt(hex.slice(4, 6), 16) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), c = mx - mn;
+    hue = c === 0 ? 0
+      : mx === r ? 60 * (((g - b) / c) % 6)
+      : mx === g ? 60 * ((b - r) / c + 2)
+      : 60 * ((r - g) / c + 4);
+    hue = (hue + 360) % 360;
+    const RH = TUNING.META.RESERVED_HUES;
+    sepOk = RH.HUES.every(({ deg }) => {
+      const dd = Math.abs(hue - deg);
+      return Math.min(dd, 360 - dd) >= RH.MIN_SEPARATION_DEG;
+    });
+  }
+  check('the hearts cleared the reserved-hue check — red belongs to the Redline alone',
+    sepOk, `heart hue ${hue.toFixed(0)}° vs every reserved hue at ≥ ${TUNING.META.RESERVED_HUES.MIN_SEPARATION_DEG}°`);
+  check('the colour-vision override no longer repaints the hearts as danger',
+    !access.includes('.heartPip{color:rgb'));
+
+  check('while the run is live the only chrome is PAUSE',
+    html.includes('#app.chromeless #mute,#app.chromeless #accessBtn,#app.chromeless #shopBtn{display:none}') &&
+    main.includes("appEl.classList.toggle('chromeless', running && !paused && sim.phase === PHASE.RUNNING)"));
+  check('one instruction at a time — the coach yields to the dash hint',
+    ui.includes("if (this.powerHint?.classList.contains('on')) text = '';"));
+}
+
 console.log(out.join('\n'));
 console.log(`\n${PASS} passed, ${FAIL} failed`);
 if (FAIL) process.exit(1);

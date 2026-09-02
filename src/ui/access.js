@@ -58,10 +58,12 @@ function apply() {
   Object.assign(ACCESS, p);
   ACCESS.epoch++;
 
-  // DOM consumers of the danger accent: the hearts and the close-range
-  // red wash. (The lunge tell went with the lunge in Phase 18 — the
-  // Redline has had no lunge states since the Phase 7 pursuit rewrite.) Source constants stay the shipped red; modes
-  // override at runtime only.
+  // DOM consumer of the danger accent: the close-range red wash. (The
+  // hearts left the danger palette in the Phase L HUD pass — they are
+  // vitality, not the Redline's alarm, and their rose hue reads in every
+  // colour-vision mode without a per-mode repaint. The lunge tell went
+  // with the lunge in Phase 18.) Source constants stay the shipped red;
+  // modes override at runtime only.
   if (!styleEl) {
     styleEl = document.createElement('style');
     styleEl.id = 'accessOverrides';
@@ -69,7 +71,6 @@ function apply() {
   }
   const c = p.dangerCss;
   styleEl.textContent = ACCESS.palette === 'off' ? '' : `
-    .heartPip{color:rgb(${c}) !important}
     #dreadRed{background:radial-gradient(135% 90% at 50% 118%,rgba(${c},.5) 0%,rgba(${c},0) 58%) !important}
   `;
 }

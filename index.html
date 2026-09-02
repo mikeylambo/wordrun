@@ -58,7 +58,11 @@
      (Phase 0: relocated here from the deleted rc5.js style injection). The
      danger colour is overridden per colour-vision palette in ui/access.js. */
   #vitals{display:flex;align-items:center;gap:9px;pointer-events:none;transition:opacity .18s ease}
-  .heartPip{font:600 30px/1 var(--face);color:#d62d24;text-shadow:0 1px 0 rgba(255,255,255,.42),0 2px 8px rgba(60,0,0,.18);opacity:.97;transition:opacity .18s ease,transform .18s ease}
+  /* Phase L HUD pass: hearts leave saturated red — that hue is the
+     Redline's alarm, and two reds on one screen taught the wrong lesson.
+     Soft rose (hue 315°) clears every RESERVED_HUES entry by ≥ 35° and
+     still reads as vitality by shape; the gate holds the separation. */
+  .heartPip{font:600 30px/1 var(--face);color:#ec98d7;text-shadow:0 1px 0 rgba(255,255,255,.35),0 2px 8px rgba(70,20,60,.22);opacity:.97;transition:opacity .18s ease,transform .18s ease}
   .heartPip.empty{opacity:.14;transform:scale(.82)}
   #vitals.pulse .heartPip:not(.empty){animation:heartPulse .38s ease}
   @keyframes heartPulse{0%{transform:scale(1)}35%{transform:scale(1.26)}100%{transform:scale(1)}}
@@ -256,6 +260,11 @@
   #continueBalance{font-size:8px;font-weight:800;letter-spacing:.2em;color:rgba(235,247,252,.55)}
 
   #mute{position:absolute;z-index:80;top:calc(var(--safe-t) + 9px);right:9px;width:38px;height:38px;border:0;border-radius:50%;background:rgba(159,216,255,.1);color:#cfe9f7;font-size:14px;cursor:pointer;pointer-events:auto;display:grid;place-items:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+  /* Phase L HUD pass: while the run is LIVE the only chrome is PAUSE — the
+     sound, settings and shop buttons return the moment the game stops
+     (pause menu, title, results), so nothing is lost, only deferred. The
+     class is driven from the frame loop in main.js. */
+  #app.chromeless #mute,#app.chromeless #accessBtn,#app.chromeless #shopBtn{display:none}
   @media(min-width:760px) and (orientation:landscape){#hud{padding-left:28px;padding-right:28px}#meterWrap{max-width:560px;margin:0 auto}.title-lockup{margin-top:8vh}}
 </style>
 </head>

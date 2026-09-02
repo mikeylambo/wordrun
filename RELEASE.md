@@ -1397,3 +1397,21 @@ Slice history:
   built. Ghosts recorded on the flat era render under the new road for one
   day (playback is terrain-free by design); tomorrow's seed records on the
   route.
+- Phase L HUD pass — one alarm colour, one instruction, pause-only chrome.
+  Three reductions, all of them things the K stills made visible. **The
+  hearts leave saturated red.** Their #d62d24 sat beside the Redline's
+  #ff2a1f as a second alarm on every frame of every run — the one screen
+  relationship the colour grammar exists to prevent. They are soft rose
+  now (hue 315°), which the live gate holds ≥ 25° from EVERY reserved hue
+  (it computes the hue from the stylesheet each run, so the check cannot
+  rot); hearts still read as hearts by shape, in every colour-vision mode,
+  so the per-mode repaint in the access override is gone too. **While the
+  run is live, the only chrome is PAUSE.** The sound, settings and shop
+  buttons — four rounded chrome circles sharing the frame with the word —
+  hide during a live run and return the moment the game stops (pause,
+  title, results); the pause menu already reaches settings and help, so
+  nothing is lost, only deferred. Driven from the frame loop, one class.
+  **One instruction at a time.** The coach line yields whenever the dash
+  hint is up, so two teaching sentences never share the frame with the
+  plate; every lesson still runs and still retires on its action. Four
+  checks under gate:corruption.
