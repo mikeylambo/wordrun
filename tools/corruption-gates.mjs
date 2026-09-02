@@ -859,6 +859,18 @@ head('RESULTS — the score lands on the beat, exactly');
     /\.screen\{[^}]*transition:opacity \.\d+s/.test(html));
 }
 
+// ── The share card (Phase S) ─────────────────────────────────────────────
+head('SHARE — the card carries the run\'s flow band');
+
+{
+  const main = fs.readFileSync('src/main.js', 'utf8');
+  const shot = main.slice(main.indexOf('function composeShot'), main.indexOf('function frame'));
+  check('the share card renders the ended flow band, in the flow\'s own cyan',
+    shot.includes('const f = endedFlowLevel') && shot.includes('rgba(103,216,255,'));
+  check('its length and brightness are the flow level, with an idle floor — never nothing',
+    shot.includes('0.22 + 0.7 * f') && shot.includes('0.34 + 0.58 * f'));
+}
+
 console.log(out.join('\n'));
 console.log(`\n${PASS} passed, ${FAIL} failed`);
 if (FAIL) process.exit(1);

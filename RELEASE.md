@@ -1325,3 +1325,28 @@ Slice history:
   d19a800) and the service worker refreshes the shell with network-first
   navigations (both already build-gated in `gate:v1`). Five view-pose
   gates drive the lerp in node; two more freeze the lesson wiring.
+- Phase S — package, to the trademark line. Everything in the packaging
+  brief that could ship without a human, shipped and measured; the phase
+  stops, as directed, at the [MP] trademark confirmation. **The share card
+  renders the run's flow band**: one centred rule on the shot's lower
+  edge, in the flow's own ice cyan, its length and brightness the flow
+  level the run ended on (the Phase Q sample), with an idle floor so a
+  zero-flow card still says which game it is. Verified by decoding a real
+  card off the built game: the band pixel read (38, 87, 101) against a
+  (3, 18, 20) frame — brighter, cyan, present. **Audits**: initial load
+  8.27 MB against the 30 MB Playables ceiling (21.73 MB of headroom),
+  largest file the music track at 6.73 MB; zero external network calls
+  through boot, run and death. **Accessibility, verified on the final
+  build by driving the real panel**: REDUCED FLASH and READABLE TYPE
+  persist through the settings surface; all three colour-vision modes
+  write the danger-accent override into the DOM; nine surfaces carry
+  screen-reader labels (Health, the streak-to-heart widget, the reward
+  bar with live level, sound, the wordmark, share, accessibility, shop,
+  pause). **Icons and name**: every identity surface — repo, wordmark,
+  manifest, storage namespace, share filenames — already says DICTION
+  DASH, and the PWA gates hold the PNG install icons to the spoiler-safe
+  red scan-bar identity; the wordmark has not changed since they were
+  generated, so there was nothing to regenerate. Two share-card gates
+  under `gate:corruption`. NOT done here, by design: the store listing
+  (waits on the [MP] trademark result), and the 1.0 close-out (waits on
+  that plus the Pass 3 decision — boards, or 1.0 without them).

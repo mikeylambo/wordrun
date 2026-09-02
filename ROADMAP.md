@@ -31,10 +31,15 @@ on the settings surface, never the default (see RELEASE.md).
 
 ## Pass 4 — premium finish
 
-- **Phase S — package.** Trademark confirmation (human) before any store
-  listing; share cards render the flow band; icons regenerated; PWA and
-  Playables audits green; accessibility verified on the final build; 1.0
-  entry in RELEASE.md and this file empty.
+- **Phase S remainder — [MP] the trademark, then 1.0.** Everything
+  package-shaped that could ship without a human has (RELEASE.md): the
+  share card carries the flow band, the Playables size and network audits
+  are green, accessibility and the screen-reader labels are verified on
+  the final build, and the icons already carry the final wordmark identity
+  (gated in `gate:v1`). What remains needs Michael: the trademark result
+  on DICTION DASH before any store listing (the Phase 12 rename path is
+  the template if it changes), and the 1.0 close-out — which also waits
+  on the Pass 3 decision (build the boards, or ship 1.0 without them).
 
 ## Standing constraints
 
