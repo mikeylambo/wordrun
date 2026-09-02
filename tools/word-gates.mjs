@@ -200,18 +200,32 @@ function runReader(seed, metres, answerFn) {
   const sim = new Sim(seed);
   sim.start(seed);
   const input = emptyInput();
+  // This block measures the tapped-fake HIT CONTRACT, not the pursuit — the
+  // gap is pinned open until the tap lands. Phase L5+ made the need real:
+  // the charted opening (two reals, then the fake) means a silent approach
+  // arrives at the first fake already at the floor with the Redline on top,
+  // and the old unguarded walk spun forever on a dead sim. Every walk below
+  // also guards on the phase so a death can never hang the suite again.
   let g = sim.wordGates.current();
-  while (g.real && g.index < 40) {
-    while (sim.player.d < g.d + 1) sim.step(input);
+  while (g.real && g.index < 40 && sim.phase === PHASE.RUNNING) {
+    while (sim.player.d < g.d + 1 && sim.phase === PHASE.RUNNING) {
+      sim.beast.gap = TUNING.BEAST.MAX_GAP;
+      sim.step(input);
+    }
     g = sim.wordGates.current();
   }
   // run to just before that gate
-  while (sim.player.d < g.d - 2) sim.step(input);
+  while (sim.player.d < g.d - 2 && sim.phase === PHASE.RUNNING) {
+    sim.beast.gap = TUNING.BEAST.MAX_GAP;
+    sim.step(input);
+  }
   const speedBefore = sim.player.speed;
   const hitsBefore = sim.player.obstaclesHit;
   const pressureBefore = sim.beast.mistakePressure;
   input.confirm = !g.real; // guarantee the wrong answer
-  while (sim.player.d < g.d + 1) { sim.step(input); input.confirm = false; }
+  while (sim.player.d < g.d + 1 && sim.phase === PHASE.RUNNING) {
+    sim.step(input); input.confirm = false;
+  }
   const p = sim.player;
   check('tapping a fake costs exactly SPEED_LOSS of speed',
     Math.abs(p.speed - Math.max(TUNING.RUN.FLOOR, speedBefore - TUNING.RUN.SPEED_LOSS)) < 1e-9,
@@ -523,9 +537,14 @@ head('OPENING — the first word is always one worth tapping');
     for (let i = W.OPENING_GATES; i < 60; i++) { total++; if (!makeGate(seed, i).real) fakes++; }
   }
   const rate = fakes / total;
-  check('after the window the coin flip is untouched',
-    Math.abs(rate - W.FAKE_CHANCE) < 0.02,
-    `${(rate * 100).toFixed(1)}% fake against a ${(W.FAKE_CHANCE * 100).toFixed(0)}% draw`);
+  // Phase L5+: the phrase chart deliberately shapes the pattern past the
+  // window (fake runs, breathers, alternations), so the invariant is no
+  // longer "raw coin" — it is that the BALANCE the whole economy was
+  // calibrated against survives the shaping. phrase-gates holds the
+  // structure; this holds the mix.
+  check('after the window the charted mix stays at the coin\'s balance',
+    Math.abs(rate - W.FAKE_CHANCE) < 0.08,
+    `${(rate * 100).toFixed(1)}% fake against a ${(W.FAKE_CHANCE * 100).toFixed(0)}% draw (±8% charted band)`);
 
   // The shaping must stay a pure function of the seed, or replays diverge.
   const a = Array.from({ length: 20 }, (_, i) => makeGate(4242, i).shown);
@@ -936,14 +955,21 @@ head('THE DAILY ROUTE — the same hundred words for everyone');
 // ── Phase E: the last stand ──────────────────────────────────────────────
 head('LAST STAND — one more word before the run ends');
 {
+  // Phase L5+ made the stand's word chart-dependent: on this seed it is now
+  // a FAKE, and silence — the correct answer for a fake — held the stand in
+  // both arms of the old silent-vs-answering script. The failing arm now
+  // answers WRONGLY at the stand (rejects a real, confirms a fake), which
+  // fails it whatever the chart deals; the winning arm answers rightly.
   const drive = (answer, mode = 'endless', continues = 0) => {
     const sim = new Sim(4242); sim.start(4242, null, { mode, wordSalt: 0 });
     let guard = 0, stands = 0, held = 0, lost = 0;
     while (sim.phase === PHASE.RUNNING && guard++ < 400000) {
       const wg = sim.wordGates, g = wg.current();
       const armed = wg.armed(sim.player.d) && !g.confirmed && !g.rejected;
-      const act = !!sim.lastStand && answer && armed;
-      sim.step({ ...emptyInput(), confirm: act && g.real, reject: act && !g.real });
+      const act = !!sim.lastStand && armed;
+      sim.step({ ...emptyInput(),
+        confirm: act && (answer ? g.real : !g.real),
+        reject: act && (answer ? !g.real : g.real) });
       for (const e of sim.events) {
         if (e.t === 'last_stand') stands++;
         if (e.t === 'last_stand_held') held++;
@@ -1454,12 +1480,27 @@ head('SURGE — a reward for staying at the top, not for arriving');
   // The rule the reject zone has been waiting for. A passed fake is a correct
   // answer and always will be, but it resolves AT the line — there is no early
   // moment in it to reward. Rejecting the same fake from range is the same
-  // answer, given sooner, and only that sustains the surge. Silence still
-  // costs nothing: the surge is a camera and a mix, never a score or a speed.
-  const passed = run(1.0, { reject: false });
+  // answer, given sooner, and only that sustains the surge.
+  // (Phase L5+: the old form compared peaks over the coin's texture, which
+  // the chart's breathers legitimately changed — long all-real stretches let
+  // a passing reader surge on reals alone. This is the STRUCTURAL rule:
+  // hold the surge at 1, pass one fake, and watch it die on that frame.)
+  const probe = new Sim(4242); probe.start(4242);
+  let pGuard = 0, passedZeroed = null;
+  while (probe.phase === PHASE.RUNNING && pGuard++ < 90000 && passedZeroed === null) {
+    const wg = probe.wordGates, g = wg.current();
+    const armed = wg.armed(probe.player.d) && !g.confirmed;
+    const atSurge = probe.player.surge() === 1;
+    const act = armed && !(atSurge && !g.real); // at full surge, pass the fake
+    const before = wg.next;
+    probe.step({ ...emptyInput(), confirm: act && g.real, reject: act && !g.real });
+    if (atSurge && wg.next > before && !g.real && !g.confirmed && !g.rejected) {
+      passedZeroed = probe.player.surgeReads === 0;
+    }
+  }
   check('a passed fake does not sustain the surge; a rejected one does',
-    passed.peak > 0 && passed.peak < 1 && early.peak === 1,
-    `passing tops out at ${passed.peak.toFixed(2)} on runs of consecutive real words; rejecting reaches 1.00`);
+    passedZeroed === true && early.peak === 1,
+    'the surge held at 1 by rejects died on the frame one fake was let pass');
 
   check('the surge needs the chain capped, not merely climbing',
     (() => {

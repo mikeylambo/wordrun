@@ -637,7 +637,10 @@ function finalizeRun() {
 /** Pre-paint the next attempt's first two plates (salt + difficulty aware). */
 function warmPlates() {
   const d = TUNING.MODES.DIFFICULTY[effectiveDifficulty()];
-  const prof = { TIER_MIN: d.TIER_MIN, TIER_MAX: d.TIER_MAX, TIER_EVERY_M: d.TIER_EVERY_M };
+  const prof = {
+    TIER_MIN: d.TIER_MIN, TIER_MAX: d.TIER_MAX, TIER_EVERY_M: d.TIER_EVERY_M,
+    CHART: runMode === 'standard' ? 'daily' : 'endless',
+  };
   const nextWordSeed = wordSeedFor(SEED,
     CHALLENGE ? CHALLENGE.salt : Storage.runsToday(SEED) + 1);
   // Every plate the first frame will draw, warmed here: the lookahead plates

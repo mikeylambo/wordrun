@@ -1470,3 +1470,38 @@ Slice history:
   for now — they are the flow pulse's marquee bulbs and share the frame
   with the margin rules; whether both survive visual review is a look
   call, not a build call.
+- Phase L5+ — the phrase grammar, and the DAILY becomes a course. The
+  level-design layer the game was missing: `sim/phrases.js` is an
+  encounter director that COMPOSES what already exists. A phrase charts
+  the SHAPE of a stretch — the real/fake pattern and the mutation family
+  — and the seeded word generator fills it under the frozen calibration;
+  spacing, tiers, scoring and every window are untouched (gated: the word
+  walk is byte-identical with the chart on or off). The vocabulary:
+  cadence, breather (all real — the chain rebuild), fakerun (three fakes
+  then one plainly real word that punishes autopilot), alternation, trap
+  (one family pinned for the whole stretch), mixed, and the closing exam
+  that walks all four families pair by pair. **The DAILY RUN is one
+  authored hundred-gate arrangement, a pure function of the gate index
+  alone** — the same dramatic arc every day, every retry, every player,
+  with only the vocabulary changing under it (this also FIXED a quiet
+  defect: the retry salt used to reshuffle the daily's real/fake
+  structure, so the course was never learnable even within one day). The
+  transposition stretch is always 25–29, the vowel stretch always 53–57,
+  the double-letter stretch 75–79, the exam always the last ten — the
+  run is now learnable the way a chart or a course is. ENDLESS strings
+  phrases in a seeded no-repeat walk that always opens on the teaching
+  cadence. Seventeen phrase gates hold the contract; the balance stays
+  at the coin's 45–48% fakes. **Regenerated deliberately, reviewed
+  line by line**: the behaviour snapshot and the calibration goldens
+  (this is a designed content change — the one thing the snapshot
+  exists to flag). Every design verdict survived the chart: 85 %
+  CLEARS the daily on every difficulty and 70 % dies redlined at gate
+  25; compression L3 stays unprofitable for the mid reader; the DASH
+  ladder still sizes to p90 reads-per-dash + 1. Three word-gate test
+  scenarios were rebuilt chart-proof (the tapped-fake block now pins
+  the gap and guards every walk on the phase — the old unguarded loop
+  hung forever once the charted opening let a silent approach die at
+  the first fake; the last-stand script answers wrongly instead of
+  relying on silence failing; the surge check asserts the structural
+  rule — hold the surge at 1, pass one fake, watch it die that frame —
+  instead of a peak that depended on the coin's texture).

@@ -27,6 +27,7 @@
 import TUNING from '../TUNING.js';
 import { mulberry32, mixSeed } from './rng.js';
 import { pickWordCycle, makeFake, tierCount, familyForGate } from '../words/wordlist.js';
+import { phraseAt } from './phrases.js';
 
 const W = TUNING.WORDS;
 const R = TUNING.RUN;
@@ -34,11 +35,14 @@ const B = TUNING.BOOST;
 
 const WORD_STREAM = 0x77_6f_72; // 'wor' — its own rng lane, apart from terrain
 
-/** The default reading-difficulty profile — identical to the pre-mode game. */
+/** The default reading-difficulty profile — identical to the pre-mode game.
+ *  CHART (Phase L5+) picks the phrase chart: 'daily' is the authored
+ *  100-gate course, anything else the seeded endless walk. */
 export const DEFAULT_PROFILE = Object.freeze({
   TIER_MIN: 0,
   TIER_MAX: tierCount() - 1,
   TIER_EVERY_M: W.TIER_EVERY_M,
+  CHART: 'endless',
 });
 
 export function tierAt(d, prof = DEFAULT_PROFILE) {
@@ -114,7 +118,13 @@ export function gateDistance(index) {
  * teaching window is over. After that the coin flip is untouched.
  */
 export function isRealGate(seed, index, prof = DEFAULT_PROFILE) {
-  const raw = mulberry32(mixSeed(mixSeed(seed, WORD_STREAM), index))() >= W.FAKE_CHANCE;
+  // Phase L5+: the phrase chart speaks first — it charts the SHAPE of a
+  // stretch (a fake run, an alternation, a breather) and only ever biases
+  // this coin; a 'coin' phrase returns null and the shipped draw stands.
+  // The opening shaping below clamps charted patterns exactly like raw ones.
+  const charted = phraseAt(seed, index, prof.CHART ?? 'endless').real;
+  const raw = charted != null ? charted
+    : mulberry32(mixSeed(mixSeed(seed, WORD_STREAM), index))() >= W.FAKE_CHANCE;
   if (index === 0) return true;
   if (index >= W.OPENING_GATES || raw) return raw;
   let run = 0;
@@ -154,12 +164,18 @@ export function makeGate(seed, index, prof = DEFAULT_PROFILE, lane = null) {
   const walked = pickWordCycle(tier, index - tierStartIndex(tier, prof), laneRng);
   const substitute = lane ? lane(index, tier) : null;
   const word = substitute || walked;
+  // Phase L5+: a trap or exam phrase pins the mutation family for its whole
+  // stretch — the player who names the family reads it. Unpinned gates keep
+  // the shipped five-gate family walk.
+  const pinned = phraseAt(seed, index, prof.CHART ?? 'endless').family;
+  const family = pinned >= 0 ? pinned : familyForGate(seed, index);
   return {
     index,
     d,
     tier,
     real,
-    shown: real ? word : makeFake(word, rng, familyForGate(seed, index)),
+    family, // which mutation family a fake would bend with (instrumentation)
+    shown: real ? word : makeFake(word, rng, family),
     // The true spelling, always: for a fake this is the word it was bent
     // from, which is what the recap and the resolved-plate feedback teach.
     // (Was `real ? word : null` — exactly backwards, so the picked-fake

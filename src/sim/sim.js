@@ -96,6 +96,10 @@ export class Sim {
     this.wordGates.setLane(this.rules.GATES > 0 ? null : (opts.nemesisLane || null));
     this.wordGates.reset(this.seed, opts.wordSalt || 0, {
       TIER_MIN: diff.TIER_MIN, TIER_MAX: diff.TIER_MAX, TIER_EVERY_M: diff.TIER_EVERY_M,
+      // Phase L5+: the DAILY RUN plays the authored course; ENDLESS walks
+      // seeded phrases. The chart shapes real/fake and the mutation family
+      // only — words, spacing, tiers and every calibrated dial are untouched.
+      CHART: this.rules.GATES > 0 ? 'daily' : 'endless',
     });
     this.beast.pace = diff.REDLINE_PACE;
     this.recorder.reset();

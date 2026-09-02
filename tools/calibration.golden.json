@@ -134,9 +134,9 @@
         "difficulty": "easy",
         "accuracy": 0.7,
         "dailyCleared": false,
-        "dailyGates": 22,
+        "dailyGates": 27,
         "dailyDeath": "wipeout",
-        "dailyScore": 21652,
+        "dailyScore": 24353,
         "endlessM": 1749,
         "endlessDeath": "wipeout"
       },
@@ -147,7 +147,7 @@
         "dailyGates": 100,
         "dailyDeath": null,
         "dailyScore": 225360,
-        "endlessM": 9196,
+        "endlessM": 4206,
         "endlessDeath": "wipeout"
       },
       {
@@ -184,9 +184,9 @@
         "difficulty": "normal",
         "accuracy": 0.7,
         "dailyCleared": false,
-        "dailyGates": 22,
-        "dailyDeath": "wipeout",
-        "dailyScore": 23555,
+        "dailyGates": 25,
+        "dailyDeath": "redlined",
+        "dailyScore": 25081,
         "endlessM": 1749,
         "endlessDeath": "wipeout"
       },
@@ -197,7 +197,7 @@
         "dailyGates": 100,
         "dailyDeath": null,
         "dailyScore": 265970,
-        "endlessM": 9196,
+        "endlessM": 4206,
         "endlessDeath": "wipeout"
       },
       {
@@ -234,9 +234,9 @@
         "difficulty": "hard",
         "accuracy": 0.7,
         "dailyCleared": false,
-        "dailyGates": 22,
-        "dailyDeath": "wipeout",
-        "dailyScore": 27977,
+        "dailyGates": 25,
+        "dailyDeath": "redlined",
+        "dailyScore": 29855,
         "endlessM": 1749,
         "endlessDeath": "wipeout"
       },
@@ -247,7 +247,7 @@
         "dailyGates": 100,
         "dailyDeath": null,
         "dailyScore": 283887,
-        "endlessM": 9196,
+        "endlessM": 4206,
         "endlessDeath": "wipeout"
       },
       {
@@ -434,23 +434,23 @@
       {
         "accuracy": 0.85,
         "dashes": 17,
-        "openDashReads": 1,
+        "openDashReads": null,
         "max": 3,
         "median": 2,
         "p90": 3,
         "topRung": 2,
-        "score": 292208,
+        "score": 289962,
         "cleared": true
       },
       {
         "accuracy": 0.95,
         "dashes": 18,
-        "openDashReads": null,
+        "openDashReads": 1,
         "max": 4,
         "median": 3,
         "p90": 4,
         "topRung": 3,
-        "score": 454301,
+        "score": 455806,
         "cleared": true
       },
       {

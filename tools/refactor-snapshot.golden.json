@@ -4,50 +4,50 @@
     "mode": "standard",
     "difficulty": "normal",
     "policy": "confirmAll",
-    "steps": 1010,
+    "steps": 1934,
     "phase": "dead",
     "hearts": 0,
     "maxHearts": 3,
-    "bellsCollected": 13,
+    "bellsCollected": 25,
     "deathCause": "wipeout",
-    "score": 3815,
-    "obstaclesHit": 3,
-    "correctCount": 3,
-    "wrongCount": 3,
+    "score": 13000,
+    "obstaclesHit": 4,
+    "correctCount": 9,
+    "wrongCount": 4,
     "counts": {
-      "heart_lost": 3,
-      "heart_restore": 0,
-      "bell": 13,
+      "heart_lost": 4,
+      "heart_restore": 1,
+      "bell": 25,
       "wipeout": 1,
-      "word_correct": 3,
-      "word_wrong": 3
+      "word_correct": 9,
+      "word_wrong": 4
     },
-    "heartsHash": "fecb129e7012df6f"
+    "heartsHash": "d34b46cffd60f402"
   },
   {
     "seed": 12345,
     "mode": "endless",
     "difficulty": "normal",
     "policy": "confirmAll",
-    "steps": 1138,
+    "steps": 1068,
     "phase": "dead",
     "hearts": 0,
     "maxHearts": 3,
-    "bellsCollected": 10,
+    "bellsCollected": 14,
     "deathCause": "wipeout",
-    "score": 3827,
+    "score": 5282,
     "obstaclesHit": 3,
-    "correctCount": 3,
+    "correctCount": 4,
     "wrongCount": 3,
     "counts": {
       "heart_lost": 3,
       "heart_restore": 0,
-      "bell": 10,
+      "bell": 14,
       "wipeout": 1,
-      "word_correct": 3,
+      "word_correct": 4,
       "word_wrong": 3
     },
-    "heartsHash": "9f7825e54e8456a8"
+    "heartsHash": "4fd054777436716e"
   },
   {
     "seed": 8675309,
@@ -110,18 +110,18 @@
     "maxHearts": 3,
     "bellsCollected": 280,
     "deathCause": null,
-    "score": 868183,
+    "score": 870793,
     "obstaclesHit": 1,
-    "correctCount": 176,
+    "correctCount": 177,
     "wrongCount": 1,
     "counts": {
       "heart_lost": 1,
       "heart_restore": 1,
       "bell": 280,
       "wipeout": 0,
-      "word_correct": 176,
+      "word_correct": 177,
       "word_wrong": 1
     },
-    "heartsHash": "0edb4612c87771ec"
+    "heartsHash": "66ad5424bba42d59"
   }
 ]
