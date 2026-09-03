@@ -331,22 +331,14 @@ export class Input {
         dragY = rawY;
       }
 
-      // Legacy touch shortcut: upward flick while grounded = jump. The visible
-      // JUMP button is the taught/default path, but flick remains for players who
-      // prefer chaining JUMP + held GO with the existing two-thumb gesture.
-      if (this._swipeArmed && grounded) {
-        const dy = this.cur.y - this.origin.y;
-        const dtms = performance.now() - this.origin.t;
-        if (dy < -SWIPE_PX && dtms < SWIPE_MS) {
-          this.jump = true;
-          this._swipeArmed = false;
-          // Re-origin so the flick does not also read as a full flip input.
-          this._reanchorTouch({ armSwipe: false });
-          dragX = 0; dragY = 0;
-        } else if (dtms >= SWIPE_MS) {
-          this._swipeArmed = false;
-        }
-      }
+      // The legacy upward-flick-to-jump is GONE (mobile playtest, round
+      // three: "words preselect and I press nothing"). The flick served the
+      // retired jump verb; with jump remapped to the REAL answer, a thumb
+      // drifting up 42px — settling, sliding, lifting off — was silently
+      // saying REAL, and since the answer buffer that phantom edge was
+      // banked for the NEXT word. An answer is a TAP, a button, or a key.
+      // Nothing else may ever write the answer edge.
+      this._swipeArmed = false;
     } else {
       this.touchX = 0;
       this.touchY = 0;

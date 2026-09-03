@@ -637,5 +637,17 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     'the verdict plate fills with its own colour under the glyphs');
 }
 
+// ── The answer edge has exactly three writers: tap, button, key ──────────
+{
+  const inputSrc = read('src/input/input.js');
+  // Exactly three writers: the tap zone, the keyboard pair, and the test
+  // harness's scripted input. The legacy flick — a MOVEMENT writing the
+  // answer edge — is gone and must stay gone.
+  const writers = (inputSrc.match(/this\.jump = true/g) || []).length;
+  check(writers === 3 && !inputSrc.includes('dy < -SWIPE_PX') &&
+    inputSrc.includes('Nothing else may ever write the answer edge'),
+    'no gesture but a tap or a key writes the answer — the flick ghost is gone');
+}
+
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);
