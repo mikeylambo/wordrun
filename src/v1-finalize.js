@@ -248,12 +248,13 @@ function syncAllTimeTitle() {
     line.textContent = ch.goal > 0 ? `BEAT ${ch.goal}M` : seed;
     return;
   }
-  // Phase 19: the name of the day lives above this line now, and the
-  // streak lives with the goals, so this carries the seed and the record
-  // and nothing else. 'BEST EVER' stays: it is the all-time number, and
-  // the HUD's 'BEST TODAY' is a different one.
+  // Playtest: the date-seed came off the title — DAILY RUN already says
+  // what today's course is. 'BEST EVER' stays: it is the all-time number,
+  // and the HUD's 'BEST TODAY' is a different one. It is a SCORE (the
+  // finish-flow debug pass fixed the units), so no metres suffix.
   const best = Storage.bestAllTime();
-  line.textContent = best > 0 ? `${seed} · BEST EVER ${best}M` : seed;
+  line.textContent = best > 0
+    ? `BEST EVER ${Math.floor(best).toLocaleString('en-US')}` : '';
 }
 
 function installAllTimeBest() {

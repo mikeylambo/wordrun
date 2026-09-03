@@ -109,6 +109,9 @@ class Plate {
     // itself renders EXACTLY as idle does, because plate legibility outranks
     // every acknowledgment we could draw.
     const held = state === 'held-real' || state === 'held-fake';
+    // 'passed' is the quiet dress: a word that resolved in silence fades
+    // out dim and unaccented — never the selection green.
+    const quiet = state === 'passed';
     const accent = state === 'right' ? ACCESS.right
       : state === 'wrong' ? ACCESS.wrong
       : state === 'confirmed' ? COL.confirm
@@ -116,11 +119,12 @@ class Plate {
 
     // Neon plate: dark glass, glowing rim.
     g.save();
+    if (quiet) g.globalAlpha = 0.55;
     g.fillStyle = COL.plate;
     g.strokeStyle = accent;
-    g.lineWidth = state === 'idle' || held ? (held ? 7 : 5) : 12;
+    g.lineWidth = state === 'idle' || held || quiet ? (held ? 7 : quiet ? 4 : 5) : 12;
     g.shadowColor = accent;
-    g.shadowBlur = state === 'idle' || held ? (held ? 18 : 14) : 30;
+    g.shadowBlur = state === 'idle' || held || quiet ? (held ? 18 : quiet ? 8 : 14) : 30;
     const r = 34;
     g.beginPath();
     g.roundRect(10, 10, cw - 20, ch - 20, r);
@@ -169,8 +173,9 @@ class Plate {
     }
     g.save();
     // Soft neon halo behind the core glyphs — halo only, cores stay solid.
-    g.shadowColor = state === 'idle' || held ? 'rgba(103,216,255,0.75)' : accent;
-    g.shadowBlur = 22;
+    if (quiet) g.globalAlpha = 0.6;
+    g.shadowColor = state === 'idle' || held || quiet ? 'rgba(103,216,255,0.75)' : accent;
+    g.shadowBlur = quiet ? 10 : 22;
     g.fillStyle = state === 'wrong' ? ACCESS.wrong : COL.ink;
     g.fillText(text, cx, cy);
     g.shadowBlur = 0;
@@ -299,8 +304,13 @@ export class WordGateActors {
       ? e.answer : e.word;
     // Phase B: an early answer resolves before the line, so the feedback
     // belongs at the gate's own position, not at the runner's.
+    // Design pass: a PASSIVE correct (a fake let by in silence) lingers in
+    // the quiet 'passed' dress — no green, no selection language. The
+    // bright right/wrong flashes belong to answers the player made.
     this.lingerGate = { text, d: e.gateD ?? e.d };
-    this.lingerState = e.t === 'word_correct' ? 'right' : 'wrong';
+    this.lingerState = e.t === 'word_correct'
+      ? (e.answered === false ? 'passed' : 'right')
+      : 'wrong';
     this.lingerT = LINGER;
   }
 

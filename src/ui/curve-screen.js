@@ -95,7 +95,7 @@ export function buildCurveScreen(getData) {
 
   const el = document.createElement('div');
   el.id = 'curveScreen';
-  el.innerHTML = '<div class="card"><h3>YOUR READING</h3><div id="curveBody"></div>' +
+  el.innerHTML = '<div class="card"><h3>PROFILE</h3><div id="curveBody"></div>' +
     '<button class="btn" id="curveClose" data-rc2-ui>DONE</button></div>';
   document.getElementById('app').appendChild(el);
   const body = el.querySelector('#curveBody');

@@ -1702,3 +1702,28 @@ Slice history:
   pair and reflected across the corridor, so the page reads as composed
   facing pages while the manuscript's raggedness survives row to row.
   Occlusion swept clean again; the mirror is gated over three bands.
+- Phase X — the answer's ownership, and the menu cleared. Mobile round
+  two of "words select themselves" led to a design ruling, not just a
+  fix. THE RULING: the scored rulebook stands — silence says fake, the
+  commission stays strictly the worst mistake, both wrong reads cost a
+  heart — but OWNERSHIP of an answer is now explicit everywhere. (1) A
+  tap landing within 0.3 s of a resolution belonged to the word just
+  answered: it is spent, never banked, so a double-tap or late reflex
+  can never pre-lock the next word (the refractory, on the sim clock,
+  gated). (2) A word the player never touched never LOOKS or SOUNDS
+  selected: the correct event now says whether the player acted, and a
+  fake that passes in silence keeps its mechanics — the chain link, the
+  small late score, every ledger — but loses the celebration language.
+  No gate melody, no typeset snap, no sparks, no green flash: a quiet
+  page-settle tick and a dim unaccented fade. The bright right/wrong
+  plates now mean one thing only: YOU did that. A missed real keeps its
+  loud red truth — that one must teach. THE MENU: the date-seed line,
+  and the metre/chain/read goal chips came off the title (the goals are
+  judged at the run's end and shown on the results card where the
+  numbers mean something); BEST EVER remains and now formats as the
+  score it is. YOUR READING is renamed PROFILE, on the chip and the
+  sheet, and the sheet is properly modal — a tap on or around it can no
+  longer start a run underneath. The launch beat stretched from 1.25 s
+  to 1.9 s (playtest: too short), audio re-timed to the longer reveal,
+  REDUCED FLASH fade lengthened to match. Four new checks under
+  gate:words.

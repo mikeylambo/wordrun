@@ -429,6 +429,15 @@ export class Audio {
   }
 
   /**
+   * A word resolved in SILENCE (a fake let by). The quiet page-settle —
+   * one soft low tick, deliberately unlike the gate melody, so a word the
+   * player never touched never sounds selected.
+   */
+  wordPass() {
+    this._tone({ type: 'sine', f0: 340, f1: 296, dur: 0.07, vol: 0.035, bus: this.bus.ui });
+  }
+
+  /**
    * N1: a pre-arm answer was buffered. A tiny dry tick, panned to the side
    * the player pressed — acknowledgment, never fanfare: the read has not
    * paid yet, and the sound must not suggest it has.
@@ -527,10 +536,10 @@ export class Audio {
    *  forward, the Redline arrives. Three scheduled sounds, one beat. */
   launch() {
     this._burst(0.04, 0.07, 5200, 'highpass', 0, this.bus.ui, 0.8);
-    this._tone({ type: 'sine', f0: 88, f1: 132, dur: 0.7, vol: 0.055,
-      bus: this.bus.cinematic, delay: 0.28 });
+    this._tone({ type: 'sine', f0: 88, f1: 132, dur: 0.9, vol: 0.055,
+      bus: this.bus.cinematic, delay: 0.45 });
     this._tone({ type: 'square', f0: 320, f1: 90, dur: 0.26, vol: 0.06,
-      bus: this.bus.threat, delay: 0.85,
+      bus: this.bus.threat, delay: 1.35,
       filter: { type: 'bandpass', freq: 1100, q: 3 } });
   }
 

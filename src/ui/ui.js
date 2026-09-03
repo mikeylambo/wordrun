@@ -102,9 +102,12 @@ export class UI {
     // not today's shared draft (functional label, not a sixth name).
     // Two tiny lines, not one long one: WHAT this run is, then the numbers.
     this.titleHint.textContent = this._challenge ? 'CHALLENGE' : 'DAILY RUN';
+    // Playtest: the date-seed line came off the title — DAILY RUN already
+    // says what today's course is; the string was inventory, not identity.
+    // A challenge keeps its line: the dare's target is the whole point.
     this.seedLine.textContent = this._challenge
       ? (this._challenge.goal > 0 ? `BEAT ${this._challenge.goal}M` : seedString)
-      : seedString;
+      : '';
     this.deathSeed.textContent = '';
     this.bestVal.textContent = best > 0 ? Math.floor(best).toLocaleString('en-US') : '—';
   }
@@ -112,14 +115,17 @@ export class UI {
   /** Challenge context (Phase 14), or null to clear. */
   setChallenge(challenge) { this._challenge = challenge || null; }
 
-  /** Title card: today's three goals and the play streak (meta layer). */
+  /** Title card: the play streak only (meta layer). Playtest: the three
+   *  goal chips (metres, chain, reads) came off the title — they are judged
+   *  at the run's end and shown on the results card, where the numbers
+   *  mean something; on the menu they were clutter before the first tap.
+   *  The goalChip rendering lives on in the recap. */
   setDaily(card) {
     if (!this.titleGoalRow || !card) return;
     this.titleStreak.textContent = card.streak > 0
       ? `DAY ${card.streak}${card.playedToday ? '' : ' · KEEP IT'}`
       : '';
-    this.titleGoalRow.innerHTML = card.goals.map((g) =>
-      `<span class="goalChip${g.done ? ' done' : ''}">${g.label}</span>`).join('');
+    this.titleGoalRow.innerHTML = '';
   }
 
   showTitle(on) { this.titleScreen.classList.toggle('on', on); }

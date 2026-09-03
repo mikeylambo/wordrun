@@ -18,7 +18,9 @@
 
 import { ACCESS } from '../ui/access.js';
 
-const DUR = 1.25;
+// Playtest: 1.25s read as too short — the beat is now ~1.9s, still well
+// inside the opening flat's seconds of empty road.
+const DUR = 1.9;
 const VEIL = 'rgba(4,8,16,';
 
 export class LaunchSequence {
@@ -61,21 +63,21 @@ export class LaunchSequence {
 
     if (ACCESS.reducedFlash) {
       // One smooth fade — no staged reveal, no slash.
-      const a = Math.max(0, 0.9 * (1 - t / 0.9));
+      const a = Math.max(0, 0.9 * (1 - t / 1.3));
       this.el.style.background = `${VEIL}${a.toFixed(3)})`;
-      if (t >= 0.9) this.cancel();
+      if (t >= 1.3) this.cancel();
       return;
     }
 
-    // 0.00–0.30  darkness holds; the armed plate's glow bleeds through the
+    // 0.00–0.50  darkness holds; the armed plate's glow bleeds through the
     //            near-opaque veil — the first word typesetting in the dark.
-    // 0.30–0.95  the road draws itself forward: the transparent front
+    // 0.50–1.45  the road draws itself forward: the transparent front
     //            sweeps from the runner (bottom) to the horizon (top).
-    // ~0.85      the Redline slashes into existence behind the reveal.
-    if (t < 0.3) {
+    // ~1.35      the Redline slashes into existence behind the reveal.
+    if (t < 0.5) {
       this.el.style.background = `${VEIL}0.94)`;
     } else {
-      const w = Math.min(1, (t - 0.3) / 0.65);
+      const w = Math.min(1, (t - 0.5) / 0.95);
       const e = w * w * (3 - 2 * w);
       const front = 100 - e * 130;           // sweeps bottom→top, then past
       const a = 0.94 * (1 - w * 0.35);
@@ -84,9 +86,9 @@ export class LaunchSequence {
         `${VEIL}${a.toFixed(3)}) ${Math.max(0, front - 18).toFixed(1)}%,` +
         `transparent ${Math.max(0, front).toFixed(1)}%)`;
     }
-    if (t >= 0.85) {
-      const s = Math.min(1, (t - 0.85) / 0.12);
-      const gone = Math.max(0, (t - 1.05) / 0.2);
+    if (t >= 1.35) {
+      const s = Math.min(1, (t - 1.35) / 0.14);
+      const gone = Math.max(0, (t - 1.6) / 0.25);
       this.slash.style.transform = `scaleX(${s.toFixed(3)}) rotate(-2deg)`;
       this.slash.style.opacity = (Math.min(1, s * 2) * (1 - gone)).toFixed(3);
     }

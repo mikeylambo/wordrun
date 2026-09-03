@@ -230,6 +230,7 @@ export class WordGates {
     this.held = 0;
     this.heldIndex = -1;
     this._prevIn = false;   // last step's raw answer input, for edge capture
+    this.lastResolveT = -9; // sim time of the last resolution (refractory)
   }
 
   /** The gate the player is currently approaching (always exists). */
@@ -277,7 +278,14 @@ export class WordGates {
     const inNow = confirm || reject;
     const inEdge = inNow && !this._prevIn;
     this._prevIn = inNow;
-    if (inEdge && !armed && !g.resolved && g.d - player.d > W.ARM_DISTANCE_M) {
+    // The refractory (mobile playtest, round two): a tap that lands within
+    // 0.3 s of a resolution belonged to the word JUST answered — a human
+    // double-tap, a beat of celebration, a late reflex. It is spent, never
+    // banked: only a tap made clear of the previous word can pre-lock the
+    // next one, so a word the player has not consciously chosen can never
+    // "select itself" off a stray gesture.
+    if (inEdge && !armed && !g.resolved && g.d - player.d > W.ARM_DISTANCE_M &&
+        now - this.lastResolveT > 0.3) {
       this.held = confirm ? 1 : -1;
       this.heldIndex = g.index;
       events?.push({ t: 'word_held', index: g.index, said: confirm ? 'real' : 'fake' });
@@ -330,6 +338,7 @@ export class WordGates {
     if (!answered && player.d < g.d) return;
 
     g.resolved = true;
+    this.lastResolveT = now;
     // Said real and it was real, or said fake and it was fake. Saying nothing
     // still says fake, which is why a passed fake is correct.
     g.correct = g.confirmed ? g.real : !g.real;
@@ -402,7 +411,10 @@ export class WordGates {
       player.lastCourage = proxMult;
 
       events?.push({
-        t: 'word_correct', index: g.index, word: g.shown, real: g.real,
+        // `answered`: the player ACTED (tap or reject) rather than letting
+        // the word pass. Presentation payload — a passive resolution must
+        // never look or sound like a selection.
+        t: 'word_correct', answered, index: g.index, word: g.shown, real: g.real,
         // The TRUE spelling, so the per-word ledger keys on the word rather
         // than on whatever was printed — a correctly-passed fake is a read of
         // the word it was bent from.
@@ -464,7 +476,7 @@ export class WordGates {
       }
 
       events?.push({
-        t: 'word_wrong', index: g.index, word: g.shown, real: g.real,
+        t: 'word_wrong', answered, index: g.index, word: g.shown, real: g.real,
         answer: g.answer, tier: g.tier, hit: commission,
         reason: g.real ? (g.rejected ? 'rejected_real' : 'missed_real') : 'picked_fake',
         x: player.x, y: player.y, d: player.d, gateD: g.d,

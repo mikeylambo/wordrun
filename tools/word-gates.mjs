@@ -1051,6 +1051,46 @@ head('THE ANSWER BUFFER — a decided read waits for the window');
   check('one tap is one act — extra fixed steps cannot pre-lock the next word',
     g0.resolved && wg.held === 0 && wg.heldIndex === -1,
     'capture is rising-edge only, tracked inside the gate system');
+
+  // The refractory (mobile playtest, round two): a FRESH tap landing just
+  // after the resolution — a human double-tap — is spent, not banked.
+  sim.step(emptyInput());                              // finger up, one step
+  sim.step({ ...emptyInput(), confirm: true });        // the double-tap
+  check('a tap within 0.3s of a resolution never buffers — it belonged to that word',
+    wg.held === 0 && wg.heldIndex === -1,
+    'the refractory window, on the sim clock');
+  // Clear of the refractory the buffer works exactly as designed.
+  let guard2 = 0;
+  while (sim.time - wg.lastResolveT <= 0.31 && guard2++ < 60 &&
+         sim.phase === PHASE.RUNNING) sim.step(emptyInput());
+  const gNext = wg.current();
+  if (!wg.armed(sim.player.d) && gNext.d - sim.player.d > W.ARM_DISTANCE_M) {
+    sim.step({ ...emptyInput(), confirm: gNext.real, reject: !gNext.real });
+    check('and past the refractory a deliberate pre-read still banks',
+      wg.held !== 0 && wg.heldIndex === gNext.index);
+  } else {
+    check('and past the refractory a deliberate pre-read still banks', true,
+      'gate already inside the window on this seed — covered by the first buffer scenario');
+  }
+}
+{
+  // The design split: a word resolved in SILENCE carries answered:false so
+  // presentation can keep every selection cue for acted answers alone.
+  const sim = new Sim(12345); sim.start(12345);
+  let acted = null, passive = null, guard = 0;
+  while ((!acted || !passive) && sim.phase === PHASE.RUNNING && guard++ < 200000) {
+    const wg = sim.wordGates, g = wg.current();
+    const armed = wg.armed(sim.player.d) && !g.confirmed && !g.rejected;
+    // answer reals, let fakes pass in silence
+    sim.step({ ...emptyInput(), confirm: armed && g.real });
+    for (const e of sim.events) {
+      if (e.t === 'word_correct' && e.answered === true) acted = e;
+      if (e.t === 'word_correct' && e.answered === false) passive = e;
+    }
+  }
+  check('a correct event says whether the player ACTED — the quiet pass is distinguishable',
+    !!acted && !!passive && acted.answered === true && passive.answered === false,
+    'an untouched word can never look or sound selected');
 }
 
 // ── Phase E: the last stand ──────────────────────────────────────────────

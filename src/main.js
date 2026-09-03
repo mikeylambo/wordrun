@@ -260,7 +260,7 @@ if (CHALLENGE) {
   btn.type = 'button';
   btn.className = 'modeChip';
   btn.id = 'openCurve';
-  btn.textContent = 'YOUR READING';
+  btn.textContent = 'PROFILE';
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     audio.uiTap();
@@ -816,6 +816,9 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
 
 function onAdvance() {
   if (running || paused || onboarding?.visible || offerActive) return;
+  // Playtest: the PROFILE sheet is modal — a tap on (or around) it must
+  // never start a run underneath it.
+  if (document.getElementById('curveScreen')?.classList.contains('on')) return;
   if (sim.phase === PHASE.KILL) return;
   // The same settle guard covers both ways a card can appear: a death (phase
   // DEAD) and a finished route (phase still RUNNING, sim.escaped set).
@@ -1137,23 +1140,33 @@ function drainSimEvents() {
             rig.dashKick(0.5);
           }
         }
-        // Phase B: how early the answer landed, 0 at the line and 1 at the
-        // arm edge, drives the sound's attack and the camera's tick. Never a
-        // word on screen.
-        const W = TUNING.WORDS;
-        const early = Math.max(0, Math.min(1,
-          ((e.latencyMult ?? W.LATE_MULT) - W.LATE_MULT) / (W.EARLY_MULT - W.LATE_MULT)));
-        audio.gate(e.chain, early, e.dashChain);
-        // N1: the word typesets into the page — every correct read is a
-        // construction event the world visibly answers (RF-guarded inside).
-        editorialWorld.typesetSnap(early);
-        if (early > 0.4) rig.dashKick(0.28 * early);
-        if (e.chain > 0) audio.chainLink(e.chain);
-        if (e.proxMult > 1.05) audio.courageBank(e.proxMult);
-        // The payoff is where the vibrancy lives: sparks scale with the
-        // chain, and the burst system escalates hue and reach with it.
-        spray.emit(e.x, e.y, -e.d, 14 + Math.min(e.chain, 10) * 3, 4.0, 2.6 + Math.min(e.chain, 10) * 0.25, 0);
-        streakBurst.fire(e);
+        // Design pass (playtest: "words select themselves"): a word the
+        // player never touched must never LOOK or SOUND selected. A passed
+        // fake keeps its mechanics — the chain link, the small late score,
+        // every ledger above — but the celebration language (the gate
+        // melody, the typeset snap, the sparks, the burst) belongs to acted
+        // answers alone. Silence gets a quiet page-settle and a dim fade.
+        if (e.answered) {
+          // Phase B: how early the answer landed, 0 at the line and 1 at the
+          // arm edge, drives the sound's attack and the camera's tick. Never
+          // a word on screen.
+          const W = TUNING.WORDS;
+          const early = Math.max(0, Math.min(1,
+            ((e.latencyMult ?? W.LATE_MULT) - W.LATE_MULT) / (W.EARLY_MULT - W.LATE_MULT)));
+          audio.gate(e.chain, early, e.dashChain);
+          // N1: the word typesets into the page — every correct read is a
+          // construction event the world visibly answers (RF-guarded inside).
+          editorialWorld.typesetSnap(early);
+          if (early > 0.4) rig.dashKick(0.28 * early);
+          if (e.chain > 0) audio.chainLink(e.chain);
+          if (e.proxMult > 1.05) audio.courageBank(e.proxMult);
+          // The payoff is where the vibrancy lives: sparks scale with the
+          // chain, and the burst system escalates hue and reach with it.
+          spray.emit(e.x, e.y, -e.d, 14 + Math.min(e.chain, 10) * 3, 4.0, 2.6 + Math.min(e.chain, 10) * 0.25, 0);
+          streakBurst.fire(e);
+        } else {
+          audio.wordPass();
+        }
         wordGateActors.onResolve(e);
         break;
       }
