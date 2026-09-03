@@ -28,30 +28,21 @@ Editorial World. Phase M is BUILT — the page as production geometry,
 five chain bands with single-layer loss, the Redline as an editorial
 correction, all gated (`tools/editorial-gates.mjs`; RELEASE.md).
 
-- **Phase L5+ — the phrase grammar and the authored DAILY.** The next
-  big lever: an encounter director that composes what already exists.
-  A phrase specifies shape, not words (real/fake pattern, mutation
-  family, tier band, spacing, route segment, lookahead posture) and the
-  generator fills it under the frozen calibration; the DAILY becomes an
-  authored 100-gate arrangement (opening cadence, fake runs, breathers,
-  crest sections, a curated closing ten), ENDLESS strings phrases with a
-  no-repeat walk. Level design, not a new mechanic.
-- **Phase L4 — advanced segments, selectively.** Only the ones that
-  change the READING situation: negative-space drop, tunnel,
-  pursuit-narrows first; canyon for composition; corkscrew only if the
-  stable plate makes it spectacle instead of nausea.
-- **Phase E2 — punctuation beats.** Discrete arrival moments inside the
-  continuous systems, no new controls and no labels: the chain break as
-  an event (audio cut, the architecture's layer falling is already
-  spatial), band-crossing arrival beats, a Redline-escape release, a
-  DASH-ladder endpoint hit. Every beat with a REDUCED FLASH-safe form.
-- **Phase E3 — the runner's states.** Animation, not a mascot: stride
-  by speed, DASH aggression, high-flow economy of motion, a stumble
-  that never breaks forward motion. The trail follows.
-- **Phase E4 — the standout line.** Track brilliance inside a run
-  (best 10-read burst, longest early streak, best DASH chain, cleanest
-  stretch); the results card surfaces ONE standout under the score,
-  within the card's word budget.
+Phases L5+ (phrase grammar + the authored DAILY), L4 (drop, tunnel,
+canyon, narrows), E2 (punctuation beats), E3 (the runner's states) and
+E4 (the standout line) are ALL BUILT — see RELEASE.md. So are the
+playtest-directed follow-ups: N1 (the answer buffer + stronger tells),
+Phase V (landmark staging, travelling page colour, the bell's hue fixed
+by the live reserved-hue check), N3 (the runner's letterform
+silhouette) and N4 (the authored launch and the FINISH arrival).
+
+What remains in this pass is EXPERIENTIAL TRUTH-TESTING, not systems:
+real-phone playtests of the answer buffer's feel, the landmarks in
+motion, the new silhouette at speed, and the launch beat — plus a
+device soak before the release candidate. If a playtest still says
+"it needs more", the location of that feeling (opening, mid-run,
+high-flow, danger, DAILY finale, results) decides the next pass; no
+new foundational system is currently planned.
 
 ## Pass 3 — competition — HELD until released by a human
 
