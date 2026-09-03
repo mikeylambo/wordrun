@@ -1646,3 +1646,17 @@ Slice history:
   against the taller walls, denser arches, fences and pylons — zero
   hits. Seven new Phase V checks under gate:editorial, one under
   gate:corruption.
+- Phase N3 — the runner's silhouette. The playtest verdict: everything
+  else got sophisticated and the figure still read as an engineer's
+  primitives. The mannequin of boxes is now one deliberate figure — a
+  living letterform. Limbs are calligraphic strokes that taper almost to
+  a point, with a small sphere at each joint so every limb reads as ONE
+  continuous stroke of light; the torso is a nib, broad at the shoulders
+  and drawn to a narrow waist; the pelvis a lens; and the head carries
+  the single identity mark, a crest of light swept back off the crown —
+  an apostrophe running. The silhouette you can draw from memory, with
+  no clothing, face, rig or texture. Every pivot, length and returned
+  part keeps its name and position, so the whole E3 posture set (economy,
+  the dash drop, the dread crouch, the stumble) and the ghost pose
+  byte-identically on the new body. Four checks under gate:v1 keep the
+  box primitive from ever creeping back.

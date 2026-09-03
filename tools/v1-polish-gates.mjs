@@ -574,5 +574,20 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     'a missed real borrows the drain — the slip is no longer weightless');
 }
 
+// ── N3: the runner's silhouette — a deliberate figure, not a mannequin ────
+{
+  const actors = read('src/render/actors.js');
+  check(!actors.includes('BoxGeometry'),
+    'no box primitive survives in the runner — the mannequin cannot creep back');
+  check(/CylinderGeometry\(thick \* 0\.40, thick \* 0\.14/.test(actors),
+    'the limbs are calligraphic strokes, tapering almost to a point');
+  check(actors.includes('const crest = new THREE.Mesh') &&
+    /crest\.rotation\.x = 1\.15/.test(actors),
+    'the head carries the one identity mark — the crest swept back off the crown');
+  check(actors.includes('function poseRunner(r, phase, speedN, airborne, dt, style = {})') &&
+    actors.includes('hips, chest, head, halo, pool, tail'),
+    'the rig contract is untouched — every E3 posture and the ghost pose identically');
+}
+
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

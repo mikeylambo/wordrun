@@ -29,21 +29,32 @@ const glow = (color, opacity = 1) => new THREE.MeshBasicMaterial({
   blending: THREE.AdditiveBlending, fog: false,
 });
 
-const box = (w, h, d, material) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
-
 /**
  * One articulated limb: a pivot group at the joint, the bone mesh hanging
  * below it, and a nested second joint (knee/elbow) with its own bone.
+ *
+ * Phase N3 (silhouette): the bones are calligraphic now — tapered strokes
+ * that thin toward their ends, with a small sphere at each joint so the
+ * limb reads as ONE continuous stroke of light rather than boxes with
+ * gaps. Same pivots, same lengths: every pose the rig has ever made
+ * lands identically.
  */
 function limb(material, x, y, upperLen, lowerLen, thick) {
   const joint = new THREE.Group();
   joint.position.set(x, y, 0);
-  const upper = box(thick, upperLen, thick, material);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(thick * 0.62, 7, 5), material);
+  joint.add(cap);
+  const upper = new THREE.Mesh(
+    new THREE.CylinderGeometry(thick * 0.58, thick * 0.42, upperLen, 7), material);
   upper.position.y = -upperLen / 2;
   joint.add(upper);
   const mid = new THREE.Group();
   mid.position.y = -upperLen;
-  const lower = box(thick * 0.82, lowerLen, thick * 0.82, material);
+  const knee = new THREE.Mesh(new THREE.SphereGeometry(thick * 0.46, 7, 5), material);
+  mid.add(knee);
+  // The lower bone tapers almost to a point — the stroke's exit.
+  const lower = new THREE.Mesh(
+    new THREE.CylinderGeometry(thick * 0.40, thick * 0.14, lowerLen, 7), material);
   lower.position.y = -lowerLen / 2;
   mid.add(lower);
   joint.add(mid);
@@ -71,7 +82,14 @@ function buildRunner(ghost = false) {
   hips.position.y = 0.98;
   g.add(hips);
 
-  const pelvis = box(0.30, 0.16, 0.20, limbMat);
+  // Phase N3 (silhouette): the mannequin of boxes becomes one deliberate
+  // figure — a living letterform. The pelvis is a lens, the torso a nib
+  // (broad at the shoulders, drawn to a narrow waist), and the head a
+  // clean ball carrying the ONE identity mark: a crest of light swept
+  // back off the crown, an apostrophe running. Same pivots, same heights;
+  // every E3 posture reads exactly as before.
+  const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.165, 9, 6), limbMat);
+  pelvis.scale.set(1.0, 0.55, 0.65);
   pelvis.position.y = 0.02;
   hips.add(pelvis);
 
@@ -79,13 +97,21 @@ function buildRunner(ghost = false) {
   chest.position.y = 0.1;
   hips.add(chest);
 
-  const torso = box(0.36, 0.52, 0.22, coreMat);
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.095, 0.56, 8), coreMat);
+  torso.scale.z = 0.62;
   torso.position.y = 0.34;
   chest.add(torso);
 
-  const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.145, 0), coreMat);
+  const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.145, 1), coreMat);
   head.position.y = 0.76;
   chest.add(head);
+
+  // The crest: swept back and slightly down off the crown, tapering to a
+  // point — the silhouette you can draw from memory.
+  const crest = new THREE.Mesh(new THREE.CylinderGeometry(0.0, 0.085, 0.36, 6), coreMat);
+  crest.position.set(0, 0.86, 0.16);
+  crest.rotation.x = 1.15;
+  chest.add(crest);
 
   // Arms hang from the chest so they inherit the lean. Elbows stay bent —
   // the swing happens at the shoulder, like an actual runner.
