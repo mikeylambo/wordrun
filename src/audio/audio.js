@@ -540,16 +540,16 @@ export class Audio {
     // draws the world in. Strikes stay at their turned-down level.
     this._burst(0.04, 0.05, 5200, 'highpass', 0, this.bus.ui, 0.8);
     this._tone({ type: 'square', f0: 320, f1: 90, dur: 0.26, vol: 0.032,
-      bus: this.bus.threat, delay: 0.42,
+      bus: this.bus.threat, delay: 0.9,
       filter: { type: 'bandpass', freq: 1100, q: 3 } });
     this._tone({ type: 'square', f0: 420, f1: 140, dur: 0.14, vol: 0.018,
-      bus: this.bus.threat, delay: 0.52,
+      bus: this.bus.threat, delay: 1.0,
       filter: { type: 'bandpass', freq: 1400, q: 3 } });
     this._tone({ type: 'square', f0: 520, f1: 180, dur: 0.12, vol: 0.014,
-      bus: this.bus.threat, delay: 0.62,
+      bus: this.bus.threat, delay: 1.1,
       filter: { type: 'bandpass', freq: 1700, q: 3 } });
     this._tone({ type: 'sine', f0: 88, f1: 132, dur: 0.9, vol: 0.055,
-      bus: this.bus.cinematic, delay: 1.0 });
+      bus: this.bus.cinematic, delay: 1.5 });
   }
 
   /** The hundredth gate: reaching the route's end is an ARRIVAL — one
