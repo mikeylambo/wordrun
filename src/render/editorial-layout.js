@@ -99,7 +99,31 @@ export function layoutPage(terrain, d0, level, halfW) {
         if (out.rules.length >= CAPS.rules) break;
         const off = HW + margin + k * 0.55;
         const x = line(d + 3) + side * off;
-        out.rules.push([x, ground(x, d + 3) + 0.05, -(d + 3), 0.07, 0.06, 6.0]);
+        // Phase V: in the narrows the inner rule RISES — a low continuous
+        // fence pressing toward the corridor, so the squeeze is a wall you
+        // feel, not only a margin you might notice. Outer rules stay flat.
+        const fence = st === 'narrows' && k === 0;
+        out.rules.push(fence
+          ? [x, ground(x, d + 3) + 0.3, -(d + 3), 0.07, 0.55, 6.0]
+          : [x, ground(x, d + 3) + 0.05, -(d + 3), 0.07, 0.06, 6.0]);
+      }
+    }
+  }
+
+  // Phase V: landmark thresholds. Each advanced situation announces its own
+  // entrance — two tall margin pylons a step inside the span, so the player
+  // reads "I am entering a place" before the place itself surrounds them.
+  // They live in the brackets budget and keep the full margin clearance.
+  if (terrain.routeSegments) {
+    for (const s of terrain.routeSegments(dB)) {
+      if (s.d0 + s.len < dA || s.d0 > dB) continue;
+      if (s.type !== 'tunnel' && s.type !== 'canyon' && s.type !== 'narrows') continue;
+      const de = s.d0 + 2;
+      if (de < dA || de > dB || seg(de) === 'drop') continue;
+      for (const side of [-1, 1]) {
+        if (out.brackets.length >= CAPS.brackets) break;
+        const x = line(de) + side * (HW + MARGIN + 0.9);
+        out.brackets.push([x, ground(x, de) + 3.1, -de, 0.3, 6.2, 0.3]);
       }
     }
   }
@@ -124,11 +148,16 @@ export function layoutPage(terrain, d0, level, halfW) {
         if (h32(key) > fill) continue;               // unset at this band
         const end = h32(key + 11) < 0.15;
         const ragged = level >= 4 ? 1 : 0.55 + 0.45 * h32(key + 23);
-        const w = colW * (end ? 0.3 + 0.4 * h32(key + 5) : ragged);
+        // Phase V: canyon rows are always full slabs — a wall is not ragged.
+        const w = st === 'canyon' ? colW
+          : colW * (end ? 0.3 + 0.4 * h32(key + 5) : ragged);
         const inner = HW + margin + 1.8 + c * (colW + 2.2);
         const x = line(d) + side * (inner + w / 2);
         if (st === 'canyon') {
-          const wallH = 4.5 + fill * 7 * h32(key + 41);
+          // Phase V: taller, so the walls rise past the frame's midline and
+          // the canyon reads as a PLACE from inside it. Still margin-side —
+          // the occlusion sweep proves the sight line every armed frame.
+          const wallH = 6.5 + fill * 9 * h32(key + 41);
           out.type.push([x, ground(x, d) + wallH / 2, -d, w, wallH, ROW_LEN]);
         } else {
           out.type.push([x, ground(x, d) + 0.05, -d, w, 0.08, ROW_LEN]);
@@ -137,16 +166,19 @@ export function layoutPage(terrain, d0, level, halfW) {
     }
   }
 
-  // Phase L4 — the tunnel: brackets grown to arches, an overhead crossbar
-  // every 9 m at ARCH_CLEAR metres, far above any camera→plate sight line.
-  for (let d = Math.ceil(dA / 9) * 9; d < dB && out.arches.length < CAPS.arches - 2; d += 9) {
+  // Phase L4 — the tunnel: brackets grown to arches, overhead crossbars at
+  // ARCH_CLEAR metres, far above any camera→plate sight line. Phase V made
+  // it a PLACE: stations every 6 m instead of 9, heavier uprights, and a
+  // second rail above the first so the repeating gate reads as mass.
+  for (let d = Math.ceil(dA / 6) * 6; d < dB && out.arches.length < CAPS.arches - 3; d += 6) {
     if (seg(d) !== 'tunnel') continue;
     const cx = line(d);
     const gy = ground(cx, d);
     for (const side of [-1, 1]) {
-      out.arches.push([cx + side * (HW + 1.5), gy + ARCH_CLEAR / 2, -d, 0.25, ARCH_CLEAR, 0.25]);
+      out.arches.push([cx + side * (HW + 1.5), gy + ARCH_CLEAR / 2, -d, 0.4, ARCH_CLEAR, 0.4]);
     }
     out.arches.push([cx, gy + ARCH_CLEAR + 0.15, -d, (HW + 1.5) * 2, 0.3, 0.25]);
+    out.arches.push([cx, gy + ARCH_CLEAR + 1.05, -d, (HW + 1.9) * 2, 0.22, 0.25]);
   }
 
   // Punctuation as sculpture, densifying by band.

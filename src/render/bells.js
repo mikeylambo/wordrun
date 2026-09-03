@@ -25,19 +25,27 @@ export class BellRenderer {
     this.lastD = -Infinity;
     this.dummy = new THREE.Object3D();
 
-    const gold = new THREE.MeshStandardMaterial({
-      color: 0xd8aa42, roughness: 0.38, metalness: 0.48, flatShading: true,
-      emissive: 0x5a350b, emissiveIntensity: 0.52,
+    // Phase V (playtest: "bell colour on the track needs to change"): the
+    // old gold sat at hue ~46° — one degree from the reserved streak-burst
+    // tier-3 hue (45°), inside the 25° separation every semantic colour
+    // must keep, so the pickup wore an earned signal's clothes. The bell is
+    // now chartreuse (~78°): ≥25° clear of every reserved hue, of the
+    // correct-read green, of the heart rose and of the world's resting
+    // cyan — checked by the hue gate BEFORE this colour was chosen, per
+    // the standing rule. Brighter emissive so it pops off the navy track.
+    const bright = new THREE.MeshStandardMaterial({
+      color: 0xcaff4a, roughness: 0.38, metalness: 0.35, flatShading: true,
+      emissive: 0x51720f, emissiveIntensity: 0.85,
     });
-    const darkGold = new THREE.MeshStandardMaterial({
-      color: 0x8b6424, roughness: 0.5, metalness: 0.32, flatShading: true,
-      emissive: 0x2a1603, emissiveIntensity: 0.28,
+    const dark = new THREE.MeshStandardMaterial({
+      color: 0x74901f, roughness: 0.5, metalness: 0.25, flatShading: true,
+      emissive: 0x243506, emissiveIntensity: 0.35,
     });
     this.body = new THREE.InstancedMesh(
-      new THREE.ConeGeometry(0.34, 0.52, 6, 1, false), gold, this.max
+      new THREE.ConeGeometry(0.34, 0.52, 6, 1, false), bright, this.max
     );
     this.clapper = new THREE.InstancedMesh(
-      new THREE.SphereGeometry(0.09, 5, 3), darkGold, this.max
+      new THREE.SphereGeometry(0.09, 5, 3), dark, this.max
     );
     this.body.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.clapper.instanceMatrix.setUsage(THREE.DynamicDrawUsage);

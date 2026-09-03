@@ -90,8 +90,14 @@ head('COLOUR — no new hue; the correction wears the Redline\'s own accent');
   const worldSrc = fs.readFileSync('src/render/editorial-world.js', 'utf8');
   const hexes = [...worldSrc.matchAll(/0x[0-9a-fA-F]{6}/g)].map((m) => m[0].toLowerCase());
   check('the only colour literal is white — every tint comes from the band table',
-    hexes.every((h) => h === '0xffffff') && worldSrc.includes('bandForDistance'),
+    hexes.every((h) => h === '0xffffff') && worldSrc.includes('bandBlend'),
     hexes.join(' '));
+  check('the page hue TRAVELS — lerped between neighbouring bands as the sky is (Phase V)',
+    worldSrc.includes('MOUNTAIN_BANDS[mix.from]') && worldSrc.includes('.lerp('));
+  check('material role split: page mass wears crest, punctuation wears ice (Phase V)',
+    /matRule\.color\.copy\(this\._crest\)/.test(worldSrc) &&
+    /matType\.color\.copy\(this\._crest\)/.test(worldSrc) &&
+    /matMark\.color\.copy\(this\._ice\)/.test(worldSrc));
   check('the correction bars read the LIVE danger accent — colour-vision modes carry through',
     worldSrc.includes('this.matCorrection.color.setHex(ACCESS.danger)'));
   check('nothing in the world pulses on its own — REDUCED FLASH has nothing to strip',
@@ -270,6 +276,35 @@ head('L4 — the drop empties, the tunnel closes, the canyon walls, the narrows 
       nOffs.length > 0 && Math.min(...nOffs) < HW + MARGIN - 0.2 &&
       Math.min(...nOffs) >= HW + NARROW_MARGIN - 0.1,
       `narrows first rule at ${Math.min(...nOffs).toFixed(1)}m`);
+
+    // ── Phase V: the situations read as PLACES ──────────────────────────
+    const fences = pn.rules.filter(([, , z, , sy]) =>
+      -z > narrows.d0 + 5 && -z < narrows.d0 + narrows.len - 5 && sy > 0.3);
+    check('the narrows\' inner rule rises into a fence — the squeeze is felt (Phase V)',
+      fences.length > 0, `${fences.length} fence segments`);
+    const tallWalls = walls.filter(([, , , , sy]) => sy >= 6.5);
+    check('canyon walls rise past the frame midline, full slabs (Phase V)',
+      tallWalls.length > 0 &&
+      walls.every(([, , , sx]) => sx >= 10.9),
+      `${tallWalls.length} slabs at 6.5m+, all full-width`);
+    const entries = (page, s) => page.brackets.filter(([, y, z, , sy]) =>
+      -z > s.d0 && -z < s.d0 + 5 && sy > 5);
+    check('every landmark announces its entrance with threshold pylons (Phase V)',
+      entries(layoutPage(t, tunnel.d0 - 50, 4, HW), tunnel).length >= 2 &&
+      entries(layoutPage(t, canyon.d0 - 50, 4, HW), canyon).length >= 2 &&
+      entries(layoutPage(t, narrows.d0 - 50, 4, HW), narrows).length >= 2);
+  }
+  if (tunnel) {
+    const page6 = layoutPage(t, mid(tunnel) - 100, 4, HW);
+    const stations = new Set(page6.arches
+      .filter(([, , z]) => -z > tunnel.d0 && -z < tunnel.d0 + tunnel.len)
+      .map(([, , z]) => Math.round(-z)));
+    const rails = page6.arches.filter(([, y, z, sx]) =>
+      -z > tunnel.d0 && -z < tunnel.d0 + tunnel.len && sx > 5 &&
+      y - t.heightAt(t.corridorX(-z), -z) > ARCH_CLEAR + 0.7);
+    check('the tunnel is a mass: stations every 6m with a second rail above the first (Phase V)',
+      stations.size >= Math.floor(tunnel.len / 6) - 2 && rails.length >= 3,
+      `${stations.size} stations, ${rails.length} upper rails`);
   }
 }
 

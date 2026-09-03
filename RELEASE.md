@@ -1620,3 +1620,29 @@ Slice history:
   Redline's correction bars had drifted below update()'s return and never
   rendered live — a functional gate now drives the real renderer object.
   Seven buffer gates, two correction gates, six wiring checks.
+- Phase V — landmarks, vibrance, material separation (playtest-directed).
+  The verdict from the phone: the empty upper frame is dramatic negative
+  space and STAYS empty — no sky architecture; instead the places that
+  already exist got staged until they are unmistakable. The tunnel is a
+  mass: stations every 6 m with heavier uprights and a second rail over
+  the first, a repeating gate that fills the upper frame from inside.
+  The canyon's walls rise past the frame midline as full uninterrupted
+  slabs. The narrows' inner rule rises into a low continuous fence, so
+  the squeeze is a wall you feel. Every landmark announces its entrance
+  with two threshold pylons. The drop still draws NOTHING — the emptiness is
+  its statement. The page's colour now TRAVELS: lerped between
+  neighbouring mood-arc bands exactly as the sky is, so surviving deeper
+  walks the world through the arc's whole palette — the vibrance asked
+  for, from hues that already exist, no new literal (gated). Material
+  separation in the same pass: page mass (rules, type) wears the arc's
+  crest family end to end while punctuation sculpture keeps the cool ice
+  accent and the track keeps its own lines — the road reads as a
+  surface, the page as a world. The bell was recoloured: the old gold
+  sat ONE DEGREE from the reserved streak-tier-3 hue, dressed as an earned
+  cue — it is now chartreuse (78°), ≥25° clear of every
+  reserved hue, with a brighter emissive so it pops off the navy; the
+  reserved-hue check is now computed live for the bell exactly as for
+  the hearts. The occlusion sweep re-proved the plate's sight line
+  against the taller walls, denser arches, fences and pylons — zero
+  hits. Seven new Phase V checks under gate:editorial, one under
+  gate:corruption.

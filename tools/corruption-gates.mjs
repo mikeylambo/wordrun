@@ -926,6 +926,31 @@ head('HUD — one alarm colour, one instruction, pause-only chrome');
   }
   check('the hearts cleared the reserved-hue check — red belongs to the Redline alone',
     sepOk, `heart hue ${hue.toFixed(0)}° vs every reserved hue at ≥ ${TUNING.META.RESERVED_HUES.MIN_SEPARATION_DEG}°`);
+
+  // Phase V: the bell got the same live check. The OLD gold sat at hue ~46°
+  // — one degree from the reserved streak-tier-3 hue — which is exactly the
+  // collision this check exists to catch before a colour ships.
+  const bellHex = /color:\s*0x([0-9a-f]{6})/.exec(
+    fs.readFileSync('src/render/bells.js', 'utf8'))?.[1];
+  let bellSep = false, bellHue = -1;
+  if (bellHex) {
+    const r = parseInt(bellHex.slice(0, 2), 16) / 255;
+    const g = parseInt(bellHex.slice(2, 4), 16) / 255;
+    const b = parseInt(bellHex.slice(4, 6), 16) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), c = mx - mn;
+    bellHue = c === 0 ? 0
+      : mx === r ? 60 * (((g - b) / c) % 6)
+      : mx === g ? 60 * ((b - r) / c + 2)
+      : 60 * ((r - g) / c + 4);
+    bellHue = (bellHue + 360) % 360;
+    const RH = TUNING.META.RESERVED_HUES;
+    bellSep = RH.HUES.every(({ deg }) => {
+      const dd = Math.abs(bellHue - deg);
+      return Math.min(dd, 360 - dd) >= RH.MIN_SEPARATION_DEG;
+    });
+  }
+  check('the bell cleared the reserved-hue check — a pickup never wears an earned signal',
+    bellSep, `bell hue ${bellHue.toFixed(0)}° vs every reserved hue at ≥ ${TUNING.META.RESERVED_HUES.MIN_SEPARATION_DEG}°`);
   check('the colour-vision override no longer repaints the hearts as danger',
     !access.includes('.heartPip{color:rgb'));
 

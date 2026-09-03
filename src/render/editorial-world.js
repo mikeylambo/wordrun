@@ -19,7 +19,7 @@
 import * as THREE from 'three';
 import TUNING from '../TUNING.js';
 import { ACCESS } from '../ui/access.js';
-import { bandForDistance } from './art-direction.js';
+import { MOUNTAIN_BANDS, bandBlend } from './art-direction.js';
 import { corruptionIntensity } from './corruption-curve.js';
 import {
   CAPS, CORRECTION_CAP, INK, REBUILD_AFTER,
@@ -69,6 +69,7 @@ export class EditorialWorld {
     this._p = new THREE.Vector3();
     this._ice = new THREE.Color();
     this._crest = new THREE.Color();
+    this._mix = new THREE.Color();
 
     this.band = 0;        // the world's memory — see stepBand
     this._builtBand = -1;
@@ -120,16 +121,27 @@ export class EditorialWorld {
 
   _paint(level, playerD) {
     const ink = INK[level];
-    const band = bandForDistance(Math.max(0, playerD));
-    this._ice.setHex(band.ice);
-    this._crest.setHex(band.crest);
-    this.matRule.color.copy(this._ice).multiplyScalar(0.9 + 0.6 * ink);
+    // Phase V: the page's colour TRAVELS. The mood arc's bands used to snap
+    // at their thresholds; the page now lerps between neighbouring bands
+    // exactly as the sky does, so surviving deeper visibly walks the world
+    // through the arc's whole palette — vibrance from hues that already
+    // exist, never a new literal (gated).
+    const mix = bandBlend(Math.max(0, playerD), 220);
+    const a = MOUNTAIN_BANDS[mix.from], b = MOUNTAIN_BANDS[mix.to];
+    this._ice.setHex(a.ice).lerp(this._mix.setHex(b.ice), mix.t);
+    this._crest.setHex(a.crest).lerp(this._mix.setHex(b.crest), mix.t);
+    // Phase V role split — material separation: the PAGE MASS (rules, type)
+    // wears the arc's warm crest family end to end, while the punctuation
+    // sculpture keeps the cool ice accent. The track's own lines stay ice
+    // outside this file, so the road reads as a surface and the page reads
+    // as a world instead of both dissolving into one neon wireframe.
+    this.matRule.color.copy(this._crest).multiplyScalar(0.75 + 0.55 * ink);
     this.matRule.opacity = 0.35 + 0.65 * ink;
     this.matType.color.copy(this._crest).multiplyScalar(0.8 + 0.9 * ink);
     this.matType.opacity = 0.30 + 0.70 * ink;
-    this.matMark.color.copy(this._ice).multiplyScalar(1.0 + 0.7 * ink);
+    this.matMark.color.copy(this._ice).multiplyScalar(1.1 + 0.7 * ink);
     this.matMark.opacity = 0.5 + 0.5 * ink;
-    this.matCap.color.copy(this._crest).multiplyScalar(1.6);
+    this.matCap.color.copy(this._ice).multiplyScalar(1.7);
     this.matCap.opacity = 0.95;
   }
 
