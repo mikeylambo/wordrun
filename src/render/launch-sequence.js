@@ -37,16 +37,19 @@ export class LaunchSequence {
     // through a storm of corrections. The main stroke carries a white-hot
     // core; a second bright cut answers it from the right; the rest are
     // the flurry around them.
+    // Sequenced (playtest): menu -> fade to BLACK -> the storm plays on the
+    // black -> the cuts dissolve as the world reveals into gameplay. The
+    // strokes now live in the black act and linger into the reveal's start.
     this.strokes = [
-      { top: 46, angle: -26, h: 6, at: 1.3, dur: 0.13, fade: 1.62, main: true },
-      { top: 22, angle: -34, h: 4, at: 1.37, dur: 0.12, fade: 1.66, from: 'r', hot: true },
-      { top: 8, angle: -14, h: 2.5, at: 1.42, dur: 0.11, fade: 1.68 },
-      { top: 60, angle: -44, h: 3.5, at: 1.44, dur: 0.11, fade: 1.7, from: 'r' },
-      { top: 34, angle: -8, h: 2, at: 1.47, dur: 0.1, fade: 1.7 },
-      { top: 74, angle: -20, h: 3, at: 1.5, dur: 0.1, fade: 1.72 },
-      { top: 16, angle: -50, h: 2, at: 1.52, dur: 0.1, fade: 1.72, from: 'r' },
-      { top: 88, angle: -38, h: 2.5, at: 1.55, dur: 0.1, fade: 1.74 },
-      { top: 52, angle: -58, h: 2, at: 1.58, dur: 0.09, fade: 1.76, from: 'r' },
+      { top: 46, angle: -26, h: 6, at: 0.42, dur: 0.13, fade: 1.0, main: true },
+      { top: 22, angle: -34, h: 4, at: 0.49, dur: 0.12, fade: 1.04, from: 'r', hot: true },
+      { top: 8, angle: -14, h: 2.5, at: 0.54, dur: 0.11, fade: 1.06 },
+      { top: 60, angle: -44, h: 3.5, at: 0.57, dur: 0.11, fade: 1.08, from: 'r' },
+      { top: 34, angle: -8, h: 2, at: 0.6, dur: 0.1, fade: 1.08 },
+      { top: 74, angle: -20, h: 3, at: 0.63, dur: 0.1, fade: 1.1 },
+      { top: 16, angle: -50, h: 2, at: 0.66, dur: 0.1, fade: 1.1, from: 'r' },
+      { top: 88, angle: -38, h: 2.5, at: 0.69, dur: 0.1, fade: 1.12 },
+      { top: 52, angle: -58, h: 2, at: 0.72, dur: 0.09, fade: 1.14 },
     ];
     for (const s of this.strokes) {
       s.el = document.createElement('div');
@@ -109,36 +112,39 @@ export class LaunchSequence {
       return;
     }
 
-    // 0.00–0.50  darkness holds; the armed plate's glow bleeds through the
-    //            near-opaque veil — the first word typesetting in the dark.
-    // 0.50–1.45  the road draws itself forward: the transparent front
-    //            sweeps from the runner (bottom) to the horizon (top).
-    // ~1.35      the Redline slashes into existence behind the reveal.
-    if (t < 0.5) {
-      this.el.style.background = `${VEIL}0.94)`;
+    // The sequence:
+    // 0.00–0.35  fade to BLACK — the menu crossfades out above, the veil
+    //            closes to solid beneath it.
+    // 0.35–1.00  the storm: nine cuts cross the black from both sides.
+    // 1.00–1.90  transition into gameplay: the road draws itself forward
+    //            (the front sweeps runner→horizon) while the last cuts
+    //            dissolve over the arriving world.
+    if (t < 0.35) {
+      this.el.style.background = `${VEIL}${(t / 0.35).toFixed(3)})`;
+    } else if (t < 1.0) {
+      this.el.style.background = `${VEIL}1)`;
     } else {
-      const w = Math.min(1, (t - 0.5) / 0.95);
+      const w = Math.min(1, (t - 1.0) / 0.85);
       const e = w * w * (3 - 2 * w);
       const front = 100 - e * 130;           // sweeps bottom→top, then past
-      const a = 0.94 * (1 - w * 0.35);
+      const a = 1 - w * 0.4;
       this.el.style.background =
         `linear-gradient(180deg,${VEIL}${a.toFixed(3)}) 0%,` +
         `${VEIL}${a.toFixed(3)}) ${Math.max(0, front - 18).toFixed(1)}%,` +
         `transparent ${Math.max(0, front).toFixed(1)}%)`;
     }
-    // The arrival: the cluster sweeps in on staggered beats, crossing
-    // through the focal zone; the bloom breathes off the crossing and
-    // everything is gone by the veil's end.
+    // The storm: staggered cuts crossing the black; each lingers into the
+    // reveal and dissolves over the arriving world.
     for (const s of this.strokes) {
       if (t < s.at) continue;
       const k = Math.min(1, (t - s.at) / s.dur);
-      const gone = Math.max(0, Math.min(1, (t - s.fade) / 0.25));
+      const gone = Math.max(0, Math.min(1, (t - s.fade) / 0.3));
       s.el.style.transform = `scaleX(${k.toFixed(3)}) rotate(${s.angle}deg)`;
       s.el.style.opacity = (Math.min(1, k * 2) * (1 - gone)).toFixed(3);
     }
-    if (t >= 1.3) {
-      const b = Math.min(1, (t - 1.3) / 0.1);
-      const bGone = Math.max(0, Math.min(1, (t - 1.58) / 0.3));
+    if (t >= 0.42) {
+      const b = Math.min(1, (t - 0.42) / 0.12);
+      const bGone = Math.max(0, Math.min(1, (t - 1.0) / 0.35));
       this.bloom.style.opacity = (b * (1 - bGone) * 0.9).toFixed(3);
     }
   }

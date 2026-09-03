@@ -1774,3 +1774,13 @@ Slice history:
   turned-down level — the spectacle grew, the mix did not. The gate now
   demands eight-plus strokes at seven-plus angles cutting from both
   sides.
+- The arrival, sequenced (playtest): menu, fade to black, the storm ON
+  the black, transition into gameplay. The menu crossfades out above
+  the veil while the veil closes to solid black beneath it (0.35 s);
+  the nine cuts then cross the pure black from both sides (0.42–0.85),
+  the bloom breathing among them — the storm finally plays against the
+  stage it wanted; and from 1.0 the road draws the world in
+  runner-to-horizon while the last cuts dissolve over it. The audio
+  re-sequenced to match: the cut-to-black tick, the strikes on the
+  black at their turned-down level, the rising breath under the reveal.
+  Same total beat, same guardrails, gate unchanged and green.
