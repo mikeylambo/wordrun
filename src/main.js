@@ -221,7 +221,18 @@ function unfreezeForPanel() {
   if (running && sim.phase === PHASE.RUNNING) input.enabled = true;
   input.releaseAll();
 }
-const accessUI = buildAccessPanel({ onOpen: freezeForPanel, onClose: unfreezeForPanel });
+const accessUI = buildAccessPanel({
+  onOpen: freezeForPanel, onClose: unfreezeForPanel,
+  // PD-3: the settings sheet's GAME/AUDIO chips reach the state main owns.
+  getGhost: () => ghostEnabled,
+  setGhost: (on) => setGhostEnabled(on),
+  getMuted: () => audio.muted,
+  setMuted: (m) => {
+    audio.start();
+    audio.setMuted(m);
+    ui.mute.textContent = m ? '×' : '♪';
+  },
+});
 
 document.addEventListener('dictiondash:dash-ready', () => audio.dashReady());
 
@@ -285,6 +296,19 @@ if (CHALLENGE) {
     document.dispatchEvent(new CustomEvent('dictiondash:show-curve'));
   });
   document.getElementById('titleGoals')?.appendChild(btn);
+  // PD-3: HOW TO PLAY is a first-class title action beside PROFILE — the
+  // reference card is never a settings hunt.
+  const how = document.createElement('button');
+  how.type = 'button';
+  how.className = 'modeChip';
+  how.id = 'openHow';
+  how.textContent = 'HOW TO PLAY';
+  how.addEventListener('click', (e) => {
+    e.stopPropagation();
+    audio.uiTap();
+    loadOnboarding().then((o) => o.showHelp());
+  });
+  document.getElementById('titleGoals')?.appendChild(how);
   updateCurveBadge();
 }
 

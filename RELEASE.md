@@ -1828,3 +1828,16 @@ Slice history:
   celebrate — so the AGAIN tap always has a target. Six checks under
   gate:v1; verified live end to end (menu arrival, guarded sheet, NEW
   BEST card, gap card, quick retry).
+- PD-3 — settings consolidation (Product Design pass 3). The one settings
+  sheet now reads like one: three plain groups — GAME (guided tips, the
+  BEST RUN ghost), VISUAL (look, flashing light, word type, colour
+  vision), AUDIO (sound) — under a SETTINGS heading, scrolling instead
+  of clipping on a short phone, with every sheet-owned chip persisting
+  exactly as before. The ghost and the sound reach the sheet through
+  hooks so their state stays where it lives (main and the audio system);
+  flipping SOUND keeps the corner icon honest. HOW TO PLAY deliberately
+  does NOT live in settings: learning the controls is never a settings
+  hunt — it is now a first-class title action beside PROFILE, opening
+  the full reference card, and keeps its pause-menu entry. Four checks
+  under gate:v1; verified live (sections, both hook chips, the title
+  card in help mode).

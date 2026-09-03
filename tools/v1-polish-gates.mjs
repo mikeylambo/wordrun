@@ -489,7 +489,7 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   const mainSrc = read('src/main.js');
   check(shopSrc.includes('onOpen?.()') && shopSrc.includes('onClose?.()') &&
     mainSrc.includes('onOpen: freezeForPanel, onClose: unfreezeForPanel,\n    });') &&
-    mainSrc.includes('const accessUI = buildAccessPanel({ onOpen: freezeForPanel, onClose: unfreezeForPanel })'),
+    /const accessUI = buildAccessPanel\(\{\n  onOpen: freezeForPanel, onClose: unfreezeForPanel,/.test(mainSrc),
     'the shop quiet-freezes a live run, through the same hooks as settings');
   check(mainSrc.includes("accessUI?.panel.classList.remove('on')") &&
     mainSrc.includes("shopUI?.panel.classList.remove('on')") &&
@@ -699,6 +699,27 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     'a run short of the best names its gap — the AGAIN tap gets a target');
   check(htmlCode.includes('#accessPanel.on,#shopPanel.on,#curveScreen.on,#rc2Pause.on{animation:panelIn'),
     'every overlay sheet enters with the same soft motion');
+}
+
+// ── PD-3: the settings sheet reads like one ──────────────────────────────
+{
+  const accessCode = read('src/ui/access.js');
+  const mainCode = read('src/main.js');
+  check(accessCode.includes("<h3>SETTINGS</h3>") &&
+    accessCode.includes("section('GAME')") &&
+    accessCode.includes("section('VISUAL')") &&
+    accessCode.includes("section('AUDIO')"),
+    'the sheet is three plain groups — GAME, VISUAL, AUDIO — not a junk drawer');
+  check(accessCode.includes("chipRow('BEST RUN'") &&
+    accessCode.includes("chipRow('SOUND'") &&
+    mainCode.includes('getGhost: () => ghostEnabled') &&
+    mainCode.includes('getMuted: () => audio.muted'),
+    'the ghost and the sound reach the sheet through hooks — state stays where it lives');
+  check(mainCode.includes("how.textContent = 'HOW TO PLAY'") &&
+    !/chipRow\('HOW TO/.test(accessCode),
+    'HOW TO PLAY is a title action, never a settings hunt');
+  check(accessCode.includes('overflow-y:auto'),
+    'the grown sheet scrolls instead of clipping on a short phone');
 }
 
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);

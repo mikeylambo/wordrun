@@ -100,7 +100,8 @@ export function buildAccessPanel(hooks = {}) {
        button floated ON TOP of the open panel — a player could pause under
        it, hit MENU, and land the title screen beneath this sheet with every
        layer's text overlapping. Nothing behind an open panel is tappable. */
-    #accessPanel{position:absolute;inset:0;z-index:90;display:none;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:rgba(4,7,10,.82);pointer-events:auto}
+    #accessPanel{position:absolute;inset:0;z-index:90;display:none;flex-direction:column;gap:12px;align-items:center;justify-content:center;background:rgba(4,7,10,.82);pointer-events:auto;overflow-y:auto;padding:28px 0}
+    .accessSection{font:800 9px/1 var(--face,system-ui);letter-spacing:.34em;color:#8be4ff;margin:6px 0 -4px;opacity:.85}
     #accessPanel.on{display:flex}
     #accessPanel h3{margin:0;font:700 12px/1 var(--face);letter-spacing:.3em;color:rgba(244,250,253,.8)}
     .accessRow{display:flex;flex-direction:column;gap:6px;align-items:center}
@@ -147,8 +148,31 @@ export function buildAccessPanel(hooks = {}) {
     };
   };
 
-  panel.innerHTML = '<h3>ACCESS</h3>';
-  const syncs = [
+  panel.innerHTML = '<h3>SETTINGS</h3>';
+  // PD-3: this is the game's one settings surface, so it reads like one —
+  // three plain groups instead of a junk drawer. HOW TO PLAY deliberately
+  // does NOT live here: learning the controls is never a settings hunt
+  // (it has its own chip on the title, and the pause menu's entry).
+  const section = (label) => {
+    const h = document.createElement('div');
+    h.className = 'accessSection';
+    h.textContent = label;
+    panel.appendChild(h);
+  };
+  const syncs = [];
+  section('GAME');
+  syncs.push(
+    chipRow('GUIDED TIPS', [[true, 'ON'], [false, 'OFF']],
+      () => ACCESS.guidedTips, (v) => { ACCESS.guidedTips = v === 'true' || v === true; }),
+    // The ghost's switch, mirrored here from the how-to card under the same
+    // BEST RUN label. State lives with main.js; hooks carry it.
+    chipRow('BEST RUN', [[true, 'ON'], [false, 'OFF']],
+      () => !!hooks.getGhost?.(), (v) => hooks.setGhost?.(v === 'true' || v === true)),
+  );
+  section('VISUAL');
+  syncs.push(
+    chipRow('LOOK', [[false, 'STANDARD'], [true, 'BROADCAST']],
+      () => ACCESS.broadcastLook, (v) => { ACCESS.broadcastLook = v === 'true' || v === true; }),
     chipRow('FLASHING LIGHT', [[false, 'FULL'], [true, 'REDUCED']],
       () => ACCESS.reducedFlash, (v) => { ACCESS.reducedFlash = v === 'true' || v === true; }),
     chipRow('WORD TYPE', [[false, 'STANDARD'], [true, 'READABLE']],
@@ -156,15 +180,14 @@ export function buildAccessPanel(hooks = {}) {
     chipRow('COLOR VISION', [['off', 'DEFAULT'], ['deuteranopia', 'DEUTERANOPIA'],
       ['protanopia', 'PROTANOPIA'], ['tritanopia', 'TRITANOPIA']],
       () => ACCESS.palette, (v) => { ACCESS.palette = v; }),
-    // Not an accessibility surface, but this panel is the game's one
-    // persisted settings surface, so the look toggle lives here too.
-    chipRow('LOOK', [[false, 'STANDARD'], [true, 'BROADCAST']],
-      () => ACCESS.broadcastLook, (v) => { ACCESS.broadcastLook = v === 'true' || v === true; }),
-    // PD-1: the guided teaching surface's switch lives with the other
-    // persisted settings.
-    chipRow('GUIDED TIPS', [[true, 'ON'], [false, 'OFF']],
-      () => ACCESS.guidedTips, (v) => { ACCESS.guidedTips = v === 'true' || v === true; }),
-  ];
+  );
+  section('AUDIO');
+  syncs.push(
+    // The mute button's state, reachable as a setting too. Hooks again —
+    // the audio system belongs to main.
+    chipRow('SOUND', [[true, 'ON'], [false, 'OFF']],
+      () => !hooks.getMuted?.(), (v) => hooks.setMuted?.(!(v === 'true' || v === true))),
+  );
   const done = document.createElement('button');
   done.type = 'button';
   done.className = 'modeChip';
