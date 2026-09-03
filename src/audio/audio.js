@@ -534,11 +534,18 @@ export class Audio {
 
   /** The launch: the first word typesets in the dark, the road draws
    *  forward, the Redline arrives. Three scheduled sounds, one beat. */
-  launch() {
+  launch(quick = false) {
     // Re-sequenced with the visual: the cut to black (a soft tick), the
     // storm's strikes ON the black, then the rising breath as the road
     // draws the world in. Strikes stay at their turned-down level.
+    // PD-2: a retry's quick cut gets the tick and ONE strike, nothing more.
     this._burst(0.04, 0.05, 5200, 'highpass', 0, this.bus.ui, 0.8);
+    if (quick) {
+      this._tone({ type: 'square', f0: 320, f1: 90, dur: 0.2, vol: 0.028,
+        bus: this.bus.threat, delay: 0.26,
+        filter: { type: 'bandpass', freq: 1100, q: 3 } });
+      return;
+    }
     this._tone({ type: 'square', f0: 320, f1: 90, dur: 0.26, vol: 0.032,
       bus: this.bus.threat, delay: 0.9,
       filter: { type: 'bandpass', freq: 1100, q: 3 } });

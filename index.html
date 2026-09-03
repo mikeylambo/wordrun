@@ -157,6 +157,9 @@
   .big small{font-size:.2em;font-weight:500;opacity:.36;margin-left:.28em;letter-spacing:.1em}
   .pb{margin-top:10px;color:#8be4ff;font-size:9px;letter-spacing:.4em;margin-right:-.4em;font-weight:700}
   .stats,#deathSeed{display:none!important}
+  /* PD-2: every overlay sheet enters with the same soft motion. */
+  #accessPanel.on,#shopPanel.on,#curveScreen.on,#rc2Pause.on{animation:panelIn .18s ease}
+  @keyframes panelIn{from{opacity:0}to{opacity:1}}
 
   /* Daily goals + play streak (title) and the run recap (death card). */
   /* Mode + difficulty chips (Phase 10). Buttons, so the tap-anywhere

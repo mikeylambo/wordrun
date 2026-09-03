@@ -607,14 +607,14 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     launch.includes("from: 'r'") &&
     launch.includes('this.bloom = document.createElement'),
     'the arrival is a full-frame storm: 8+ strokes, 7+ angles, cuts from both sides');
-  check(mainCode.includes('launch.begin()') &&
+  check(mainCode.includes('launch.begin(') &&
     mainCode.includes('launch.update(dt)') &&
     mainCode.includes('launch.cancel()'),
     'explicit integration: startRun begins it, the frame loop drives it, quitToTitle clears it');
   check(mainCode.includes("case 'route_finished':") &&
     /route_finished':[\s\S]{0,300}finishArrival\(\);[\s\S]{0,200}pulseInk\(\);[\s\S]{0,200}settle\(\);/.test(mainCode),
     'the hundredth gate is an arrival: breath, ink swell, camera stillness');
-  check(audioCode.includes('launch()') && audioCode.includes('finishArrival()'),
+  check(audioCode.includes('launch(quick = false)') && audioCode.includes('finishArrival()'),
     'both bookend sounds exist in the one audio system');
 }
 
@@ -672,6 +672,33 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   check(onboardingCode.includes("this.root.classList.add('condensed')") &&
     onboardingCode.includes("this.root.classList.remove('condensed')"),
     'the first launch shows the essence; HOW TO PLAY keeps the full sheet');
+}
+
+// ── PD-2: the continuous journey ─────────────────────────────────────────
+{
+  const launchSrc = read('src/render/launch-sequence.js');
+  const mainCode = read('src/main.js');
+  const uiCode = read('src/ui/ui.js');
+  const htmlCode = read('index.html');
+  const audioCode = read('src/audio/audio.js');
+  check(launchSrc.includes('begin({ quick = false } = {})') &&
+    launchSrc.includes("const dur = q ? 1.0 : DUR") &&
+    launchSrc.includes('if (q && !s.main) continue;'),
+    'a retry gets the one-second cut — dip, one slash, reveal; the menu keeps the full arrival');
+  check(mainCode.includes('const fromTitle = sim.phase === PHASE.TITLE;') &&
+    mainCode.includes('launch.begin({ quick: !fromTitle })') &&
+    mainCode.includes('audio.launch(!fromTitle)') &&
+    audioCode.includes('launch(quick = false)'),
+    'the retry cut is chosen from the phase the run started from, audio matched');
+  check(mainCode.includes("querySelector('#accessPanel.on, #shopPanel.on, #curveScreen.on')"),
+    'one modal rule: no run can start under ANY open sheet');
+  check(mainCode.includes('correct: wg.correctCount') &&
+    uiCode.includes("const read = (this._runCorrect || 0) + (this._runWrong || 0);"),
+    "the scorecard's accuracy is THIS run's, not the lifetime ledger's");
+  check(uiCode.includes('TO BEST'),
+    'a run short of the best names its gap — the AGAIN tap gets a target');
+  check(htmlCode.includes('#accessPanel.on,#shopPanel.on,#curveScreen.on,#rc2Pause.on{animation:panelIn'),
+    'every overlay sheet enters with the same soft motion');
 }
 
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);

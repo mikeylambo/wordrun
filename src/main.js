@@ -335,6 +335,10 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
 }));
 
 function startRun() {
+  // PD-2: the full arrival plays from the MENU; a retry (AGAIN, the pause
+  // menu's restart, a finish-card rerun) gets the one-second cut. Read the
+  // phase before sim.start() overwrites it.
+  const fromTitle = sim.phase === PHASE.TITLE;
   audio.start();
   music.attach(audio);
   music.play();
@@ -392,10 +396,10 @@ function startRun() {
   flowChain = 0;
   endedFlowLevel = 0;
   editorialWorld.reset(); // the manuscript starts sparse each run
-  // N4: the authored launch — darkness, the word typesets, the road draws
-  // forward, the Redline slashes in. Presentation only; input never blocks.
-  launch.begin();
-  audio.launch();
+  // N4: the authored launch — darkness, the storm, the road draws the
+  // world in. Presentation only; input never blocks. PD-2: quick on retry.
+  launch.begin({ quick: !fromTitle });
+  audio.launch(!fromTitle);
   worldBand = 0;
   inScream = false;
   burstWindow = [];
@@ -663,6 +667,10 @@ function finalizeRun() {
     retired: retiredThisRun,
     gates: wg.next,
     routeGates: sim.rules?.GATES | 0,
+    // PD-2: THIS run's reading, for the scorecard — the stat bar used to
+    // quietly show the lifetime accuracy under a run's own numbers.
+    correct: wg.correctCount,
+    wrong: wg.wrongCount,
     best: Storage.bestFor(SEED),
     isPb,
     shotUrl,
@@ -831,9 +839,10 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
 
 function onAdvance() {
   if (running || paused || onboarding?.visible || offerActive) return;
-  // Playtest: the PROFILE sheet is modal — a tap on (or around) it must
-  // never start a run underneath it.
-  if (document.getElementById('curveScreen')?.classList.contains('on')) return;
+  // PD-2: ONE modal rule for every overlay — a tap on or around ANY open
+  // sheet (settings, shop, profile) can never start a run underneath it.
+  // The pause menu and the continue offer are covered by the flags above.
+  if (document.querySelector('#accessPanel.on, #shopPanel.on, #curveScreen.on')) return;
   if (sim.phase === PHASE.KILL) return;
   // The same settle guard covers both ways a card can appear: a death (phase
   // DEAD) and a finished route (phase still RUNNING, sim.escaped set).

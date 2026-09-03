@@ -69,7 +69,11 @@ export class LaunchSequence {
     this.t = -1;
   }
 
-  begin() {
+  begin({ quick = false } = {}) {
+    // PD-2: the full arrival belongs to the menu; a RETRY gets a condensed
+    // ~1s cut — dip, ONE slash, reveal — because the twentieth AGAIN wants
+    // the track back, not the ceremony.
+    this._quick = quick;
     this.t = 0;
     this.el.style.display = 'block';
     // Every stroke wears the LIVE danger accent, so every colour-vision
@@ -103,30 +107,38 @@ export class LaunchSequence {
     if (this.t < 0) return;
     this.t += dt;
     const t = this.t;
-    if (t >= DUR) { this.cancel(); return; }
+    const q = !!this._quick;
+    const dur = q ? 1.0 : DUR;
+    if (t >= dur) { this.cancel(); return; }
 
     if (ACCESS.reducedFlash) {
       // One smooth fade — no staged reveal, no slash.
-      const a = Math.max(0, 0.9 * (1 - t / 1.6));
+      const rf = q ? 0.5 : 1.6;
+      const a = Math.max(0, 0.9 * (1 - t / rf));
       this.el.style.background = `${VEIL}${a.toFixed(3)})`;
-      if (t >= 1.6) this.cancel();
+      if (t >= rf) this.cancel();
       return;
     }
 
-    // The sequence:
+    // The full sequence (from the menu):
     // 0.00–0.80  fade to BLACK, unhurried — the menu crossfades out above,
     //            the veil eases (smoothstep) to solid beneath it.
     // 0.90–1.50  the storm: nine cuts cross the black from both sides.
     // 1.50–2.40  transition into gameplay: the road draws itself forward
     //            (the front sweeps runner→horizon) while the last cuts
     //            dissolve over the arriving world.
-    if (t < 0.8) {
-      const f = t / 0.8;
+    // The QUICK cut (a retry): the same grammar in one second — dip to
+    // black by 0.22, one slash, revealed from 0.5.
+    const fadeEnd = q ? 0.22 : 0.8;
+    const holdEnd = q ? 0.5 : 1.5;
+    const revealLen = q ? 0.45 : 0.85;
+    if (t < fadeEnd) {
+      const f = t / fadeEnd;
       this.el.style.background = `${VEIL}${(f * f * (3 - 2 * f)).toFixed(3)})`;
-    } else if (t < 1.5) {
+    } else if (t < holdEnd) {
       this.el.style.background = `${VEIL}1)`;
     } else {
-      const w = Math.min(1, (t - 1.5) / 0.85);
+      const w = Math.min(1, (t - holdEnd) / revealLen);
       const e = w * w * (3 - 2 * w);
       const front = 100 - e * 130;           // sweeps bottom→top, then past
       const a = 1 - w * 0.4;
@@ -136,15 +148,19 @@ export class LaunchSequence {
         `transparent ${Math.max(0, front).toFixed(1)}%)`;
     }
     // The storm: staggered cuts crossing the black; each lingers into the
-    // reveal and dissolves over the arriving world.
+    // reveal and dissolves over the arriving world. The quick cut draws the
+    // MAIN slash alone.
     for (const s of this.strokes) {
-      if (t < s.at) continue;
-      const k = Math.min(1, (t - s.at) / s.dur);
-      const gone = Math.max(0, Math.min(1, (t - s.fade) / 0.3));
+      if (q && !s.main) continue;
+      const at = q ? 0.26 : s.at;
+      const fade = q ? 0.62 : s.fade;
+      if (t < at) continue;
+      const k = Math.min(1, (t - at) / s.dur);
+      const gone = Math.max(0, Math.min(1, (t - fade) / (q ? 0.2 : 0.3)));
       s.el.style.transform = `scaleX(${k.toFixed(3)}) rotate(${s.angle}deg)`;
       s.el.style.opacity = (Math.min(1, k * 2) * (1 - gone)).toFixed(3);
     }
-    if (t >= 0.9) {
+    if (!q && t >= 0.9) {
       const b = Math.min(1, (t - 0.9) / 0.12);
       const bGone = Math.max(0, Math.min(1, (t - 1.5) / 0.35));
       this.bloom.style.opacity = (b * (1 - bGone) * 0.9).toFixed(3);

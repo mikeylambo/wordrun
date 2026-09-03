@@ -511,7 +511,10 @@ export class UI {
   }
 
   renderDeath({ distance, score, scoreLost = 0, continuesUsed = 0, failedRoute = false, avgReadMs = 0,
-    seconds = 0, gates = 0, routeGates = 0, retired = [], best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult, endFlow = 0, standout = null, finished = false }) {
+    seconds = 0, gates = 0, routeGates = 0, retired = [], best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult, endFlow = 0, standout = null, finished = false,
+    correct = 0, wrong = 0 }) {
+    this._runCorrect = correct;
+    this._runWrong = wrong;
     this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null, standout };
     // Phase Q: the headline counts up from zero on the beat clock — update()
     // steps it each frame via _updateCount and lands it exactly on the score.
@@ -532,8 +535,13 @@ export class UI {
         : 'ROUTE UNFINISHED';
       this.pbTag.textContent = `−${Math.floor(scoreLost).toLocaleString('en-US')} · ${why}`;
     } else {
-      this.pbTag.style.visibility = isPb ? 'visible' : 'hidden';
-      this.pbTag.textContent = isPb ? 'NEW BEST' : '';
+      // PD-2 (why go again): a run that missed the best says by how much —
+      // a target for the AGAIN tap, in the place NEW BEST would celebrate.
+      const gap = !isPb && best > 0
+        ? Math.max(0, Math.floor(best) - Math.floor(score ?? 0)) : 0;
+      this.pbTag.style.visibility = isPb || gap > 0 ? 'visible' : 'hidden';
+      this.pbTag.textContent = isPb ? 'NEW BEST'
+        : gap > 0 ? `${gap.toLocaleString('en-US')} TO BEST` : '';
     }
     // A run that reached the end of the route earned the other name: the
     // card reads FINISH (an approved name), not RUN OVER — a completed
@@ -670,10 +678,12 @@ export class UI {
       parts.push(dailyChips);
     }
 
-    // The lifetime numbers as a broadcast stat bar: figure over label.
+    // The run's numbers as a broadcast stat bar: figure over label.
+    // PD-2: the accuracy here is THIS RUN's — the card is a scorecard for
+    // the attempt just made; the lifetime ledger lives in PROFILE.
     if (lifetime) {
-      const read = (lifetime.correct || 0) + (lifetime.wrong || 0);
-      const acc = read > 0 ? Math.round((lifetime.correct || 0) / read * 100) : 0;
+      const read = (this._runCorrect || 0) + (this._runWrong || 0);
+      const acc = read > 0 ? Math.round((this._runCorrect || 0) / read * 100) : 0;
       const runs = lifetime.runs || 0;
       // Phase B adds exactly one figure: how fast the reading was. It replaces
       // the lifetime kilometres, which said the least of the three now that

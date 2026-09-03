@@ -1809,3 +1809,22 @@ Slice history:
   teaches the rest." — while the full sheet stays exactly as it was
   behind HOW TO PLAY. Four guided-chart checks under gate:phrase, five
   wiring checks under gate:v1; the behaviour snapshot passed untouched.
+- PD-2 — the continuous journey (Product Design pass 2). The path from
+  title to retry audited and tightened as ONE experience. THE RETRY CUT:
+  the full 2.45 s arrival now belongs to the menu alone; a retry — the
+  AGAIN button, the pause menu's restart, a finish-card rerun — gets a
+  one-second cut in the same grammar (dip to black, ONE slash, reveal),
+  with matched audio, because the twentieth AGAIN wants the track back,
+  not the ceremony. Chosen from the phase the run started from; REDUCED
+  FLASH gets a proportionally shorter fade. ONE MODAL RULE: no tap can
+  start a run under ANY open sheet — settings, shop and profile now sit
+  under a single guard instead of per-panel patches, and all four
+  overlay sheets enter with the same soft motion. THE SCORECARD: the
+  results stat bar's accuracy is now THIS run's — it had quietly shown
+  the lifetime ledger's percentage under the run's own numbers, a
+  mislabel a returning player would eventually catch; the lifetime
+  numbers live in PROFILE where they belong. And a run that missed the
+  best now names its gap — "12,480 TO BEST" in the place NEW BEST would
+  celebrate — so the AGAIN tap always has a target. Six checks under
+  gate:v1; verified live end to end (menu arrival, guarded sheet, NEW
+  BEST card, gap card, quick retry).
