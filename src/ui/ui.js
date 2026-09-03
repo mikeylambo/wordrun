@@ -149,6 +149,10 @@ export class UI {
    *  teaching follows the player rather than the calendar. */
   setLessons(learned) { this._lessons = learned || {}; }
 
+  /** PD-1: while the centered TEACH surface owns the fundamentals, the
+   *  coach line skips those rungs — one instruction at a time, everywhere. */
+  setGuidedActive(on) { this._guidedActive = !!on; }
+
   _updateCoach(sim, running) {
     if (!this.coach) return;
     if (!running) {
@@ -173,11 +177,14 @@ export class UI {
     // without the left one. The left zone arrives as an option, not a rule —
     // a player who never uses it plays exactly the game they already knew.
     if (!L.confirm) {
-      text = this.touch ? 'TAP RIGHT IF THE WORD IS REAL' : 'RIGHT ARROW IF THE WORD IS REAL';
+      // PD-1: the TEACH surface owns this rung when guided tips are on.
+      text = this._guidedActive ? ''
+        : (this.touch ? 'TAP RIGHT IF THE WORD IS REAL' : 'RIGHT ARROW IF THE WORD IS REAL');
     } else if (!L.reject) {
-      text = d < 300
-        ? 'A MISSPELLED WORD CAN SIMPLY PASS'
-        : (this.touch ? 'OR TAP LEFT TO CALL IT OUT SOONER' : 'OR LEFT ARROW TO CALL IT OUT SOONER');
+      text = this._guidedActive ? ''
+        : (d < 300
+          ? 'A MISSPELLED WORD CAN SIMPLY PASS'
+          : (this.touch ? 'OR TAP LEFT TO CALL IT OUT SOONER' : 'OR LEFT ARROW TO CALL IT OUT SOONER'));
     } else if (!L.dash && p.boostMeter >= TUNING.BOOST.MIN_ACTIVATE && !p.overdrive) {
       // The line the game never had. "CLEAN READS CHARGE THE DASH" said where
       // the charge comes from and then left the player holding a full meter

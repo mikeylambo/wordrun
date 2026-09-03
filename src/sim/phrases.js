@@ -144,6 +144,16 @@ function endlessWalk(seed, untilIndex) {
  * (family -1 = no pin). `chart` is 'daily' or anything else for endless.
  */
 export function phraseAt(seed, index, chart) {
+  // PD-1: the GUIDED opening, ENDLESS only — the DAILY's identical-for-
+  // everyone course is never touched. Same real/fake pattern as the
+  // cadence the endless walk already opens on (so the walk's shape is
+  // preserved and indices past the opening are identical to plain
+  // endless), but the fakes' mutation family is PINNED to transposition —
+  // the easiest to see — while the teaching surface names the verbs.
+  // Jitter-free: the first lesson is authored, not drawn.
+  if (chart === 'guided' && index < PHRASE_TYPES.cadence.len) {
+    return { real: index % 3 !== 2, family: 0 };
+  }
   if (chart === 'daily' && index < DAILY_CHART_LEN) {
     let s = DAILY_CHART.length - 1;
     while (DAILY_STARTS[s] > index) s--;

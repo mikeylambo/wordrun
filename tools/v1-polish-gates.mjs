@@ -649,5 +649,30 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     'no gesture but a tap or a key writes the answer — the flick ghost is gone');
 }
 
+// ── PD-1: guided onboarding — two surfaces, one instruction at a time ────
+{
+  const guidedSrc = read('src/ui/guided.js');
+  const uiCode = read('src/ui/ui.js');
+  const mainCode = read('src/main.js');
+  const accessCode = read('src/ui/access.js');
+  const onboardingCode = read('src/ui/onboarding.js');
+  check(!/\bsim\.|__SIM/.test(guidedSrc) && guidedSrc.includes('pointer-events:none'),
+    'the TEACH surface is presentation only and never blocks input');
+  check(guidedSrc.includes('veilUp || hintUp') &&
+    uiCode.includes("this._guidedActive ? ''"),
+    'one instruction at a time: TEACH yields to the launch and the dash hint, the coach yields its fundamentals to TEACH');
+  check(accessCode.includes("chipRow('GUIDED TIPS'") &&
+    accessCode.includes('guidedTips: ACCESS.guidedTips') &&
+    accessCode.includes('saved.guidedTips !== false'),
+    'GUIDED TIPS is a persisted chip, default ON');
+  check(mainCode.includes('chart: chartForRun()') &&
+    mainCode.includes("CHART: chartForRun()") &&
+    /return ACCESS\.guidedTips && !fundamentalsDone\(\) \? 'guided' : 'endless';/.test(mainCode),
+    'the guided chart reaches the run and the warm plates through one predicate, ENDLESS only');
+  check(onboardingCode.includes("this.root.classList.add('condensed')") &&
+    onboardingCode.includes("this.root.classList.remove('condensed')"),
+    'the first launch shows the essence; HOW TO PLAY keeps the full sheet');
+}
+
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

@@ -117,6 +117,42 @@ head('ENDLESS — a seeded walk that opens gently and keeps the balance');
 }
 void phraseAt;
 
+// ── PD-1: the GUIDED opening (ENDLESS only) ──────────────────────────────
+head('GUIDED — a teaching opening for the first-timer, never for the DAILY');
+{
+  let jitterFree = true, pinned = true, pattern = true, tailIdentical = true;
+  for (const seed of [1, 4242, 999, 8675309]) {
+    for (let i = 0; i < 6; i++) {
+      const g = phraseAt(seed, i, 'guided');
+      if (g.family !== 0) pinned = false;
+      if (g.real !== (i % 3 !== 2)) pattern = false;
+      const g2 = phraseAt(seed ^ 0x5a5a5a, i, 'guided');
+      if (g2.real !== g.real || g2.family !== g.family) jitterFree = false;
+    }
+    for (let i = 6; i < 60; i++) {
+      const a = phraseAt(seed, i, 'guided');
+      const b = phraseAt(seed, i, 'endless');
+      if (a.real !== b.real || a.family !== b.family) tailIdentical = false;
+    }
+  }
+  check('the guided opening is authored, not drawn — identical on every seed',
+    jitterFree && pattern, 'real real fake real real fake, the cadence shape');
+  check('its fakes are pinned to transposition — the easiest family to see',
+    pinned);
+  check('past the opening the guided run IS the endless run, verdict for verdict',
+    tailIdentical, '54 gates compared across four seeds');
+  const dailySame = [0, 3, 25, 55, 90].every((i) => {
+    const a = phraseAt(777, i, 'daily');
+    const b = phraseAt(777, i, 'daily');
+    return a.real === b.real && a.family === b.family;
+  });
+  check('and the DAILY never sees it — its course belongs to everyone equally',
+    dailySame &&
+    /GATES > 0 \? 'daily' : \(opts\.chart \|\| 'endless'\)/.test(
+      (await import('node:fs')).readFileSync('src/sim/sim.js', 'utf8')),
+    'the sim clamps any chart request to daily on a routed run');
+}
+
 console.log(out.join('\n'));
 console.log(`\nPhrase gates: ${PASS} passed, ${FAIL} failed`);
 if (FAIL) process.exit(1);

@@ -1784,3 +1784,28 @@ Slice history:
   re-sequenced to match: the cut-to-black tick, the strikes on the
   black at their turned-down level, the rising breath under the reveal.
   Same total beat, same guardrails, gate unchanged and green.
+- PD-1 — Guided Onboarding (Product Design pass 1). The teaching moved
+  from a 9px line at the bottom of the screen to where a first-timer
+  actually looks. Two surfaces now split the coach's job: TEACH — a
+  centered, large instruction at 57% height, between the plate's
+  reading zone and the runner, that stays up until the player performs
+  the action it names — owns the two FUNDAMENTALS ("IS IT SPELLED
+  RIGHT? TAP RIGHT", then "MISSPELLED? LET IT PASS — OR TAP LEFT TO
+  CALL IT"); the quiet coach line keeps every later lesson (the dash,
+  the bar, early value) and skips the rungs TEACH owns, so one
+  instruction speaks at a time, everywhere — TEACH itself yields to the
+  launch veil and the dash hint. Lessons still retire on demonstrated
+  action, persisted, exactly as before. GUIDED TIPS ships as a
+  persisted settings chip, default ON. The first-timer's ENDLESS run
+  opens on the GUIDED chart: the same cadence shape the endless walk
+  always opened on, but authored — jitter-free on every seed, its fakes
+  pinned to transposition, the easiest family to see — and from gate
+  six onward the guided run IS the endless run, verdict for verdict.
+  The DAILY never sees it: the sim clamps any chart request to the
+  authored course on a routed run, so the same-course-for-everyone
+  promise holds for first-timers too (as directed). And the first
+  launch practises progressive disclosure: the six-rule card condenses
+  to the two verbs and one sentence — "Read well. Stay ahead. The run
+  teaches the rest." — while the full sheet stays exactly as it was
+  behind HOW TO PLAY. Four guided-chart checks under gate:phrase, five
+  wiring checks under gate:v1; the behaviour snapshot passed untouched.

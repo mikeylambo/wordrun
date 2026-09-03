@@ -99,7 +99,11 @@ export class Sim {
       // Phase L5+: the DAILY RUN plays the authored course; ENDLESS walks
       // seeded phrases. The chart shapes real/fake and the mutation family
       // only — words, spacing, tiers and every calibrated dial are untouched.
-      CHART: this.rules.GATES > 0 ? 'daily' : 'endless',
+      // PD-1: ENDLESS may substitute the 'guided' chart (a first-timer's
+      // teaching opening); the DAILY never does — its course is the same
+      // for everyone, first-timers included. Headless tools pass no chart
+      // and get exactly the game they always got.
+      CHART: this.rules.GATES > 0 ? 'daily' : (opts.chart || 'endless'),
     });
     this.beast.pace = diff.REDLINE_PACE;
     this.recorder.reset();

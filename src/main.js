@@ -20,6 +20,7 @@ import { StreakBurst } from './render/streak-burst.js';
 import { WindStreaks, TrackPylons } from './render/speed-fantasy.js';
 import { EditorialWorld } from './render/editorial-world.js';
 import { LaunchSequence } from './render/launch-sequence.js';
+import { GuidedTeach } from './ui/guided.js';
 import { BellRenderer } from './render/bells.js';
 import { HEARTS } from './design/bells.js';
 import { flowFactor, flowGlow, flowLevel } from './render/flow-curve.js';
@@ -87,6 +88,19 @@ const trackPylons = new TrackPylons(stage.scene, sim.terrain);
 // denser as the run's band rises and struck through as the Redline closes.
 const editorialWorld = new EditorialWorld(stage.scene, sim.terrain);
 const launch = new LaunchSequence();
+const guided = new GuidedTeach();
+
+// PD-1: the fundamentals — has this player EVER confirmed and rejected?
+// While either is undemonstrated and GUIDED TIPS is on, the TEACH surface
+// runs, the coach line yields those rungs, and an ENDLESS run opens on
+// the guided chart (the DAILY course is never touched).
+function fundamentalsDone() {
+  return metaStats.get('usedConfirm', 0) > 0 && metaStats.get('usedReject', 0) > 0;
+}
+function chartForRun() {
+  if (runMode === 'standard') return 'daily';
+  return ACCESS.guidedTips && !fundamentalsDone() ? 'guided' : 'endless';
+}
 // The bells the runner collects. The sim owns the field and the pickup
 // (sim.bells); this only draws it. Created after the material pass so its
 // baked-in gold emissive is left alone by the pass's material sweep.
@@ -346,6 +360,7 @@ function startRun() {
     wordSalt: currentSalt,
     mode: runMode,
     difficulty: effectiveDifficulty(),
+    chart: chartForRun(), // PD-1: 'guided' opening for a first-timer, ENDLESS only
     // ENDLESS only — sim.start refuses it on a route, which is where the
     // rule lives rather than here.
     nemesisLane: (index) => nemesis.substituteFor(index),
@@ -689,7 +704,7 @@ function warmPlates() {
   const d = TUNING.MODES.DIFFICULTY[effectiveDifficulty()];
   const prof = {
     TIER_MIN: d.TIER_MIN, TIER_MAX: d.TIER_MAX, TIER_EVERY_M: d.TIER_EVERY_M,
-    CHART: runMode === 'standard' ? 'daily' : 'endless',
+    CHART: chartForRun(), // PD-1: warm the plates for the chart the run will play
   };
   const nextWordSeed = wordSeedFor(SEED,
     CHALLENGE ? CHALLENGE.salt : Storage.runsToday(SEED) + 1);
@@ -1357,6 +1372,21 @@ function tick(dt) {
     bv.x, sim.beast.side);
   stage.followLight(pv.x, pv.y, -pv.d);
   audio.update(dt, p, bands, dreadLive);
+  // PD-1: the TEACH surface and the coach line split the lessons — TEACH
+  // takes the fundamentals, centered and loud; the coach keeps the rest.
+  const guidedActive = ACCESS.guidedTips && !fundamentalsDone();
+  ui.setGuidedActive(guidedActive);
+  guided.update({
+    running,
+    enabled: guidedActive,
+    lessons: {
+      confirm: metaStats.get('usedConfirm', 0) > 0,
+      reject: metaStats.get('usedReject', 0) > 0,
+    },
+    veilUp: launch.t >= 0,
+    hintUp: !!ui.powerHint?.classList.contains('on'),
+    touch: ui.touch,
+  });
   ui.update(dt, sim, dreadLive, clock);
   // Phase L HUD pass: while the run is live the only chrome is PAUSE — the
   // sound/settings/shop buttons come back whenever the game is stopped.

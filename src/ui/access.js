@@ -37,6 +37,11 @@ export const ACCESS = {
   // treatment, strictly opt-in — the shipped look is the default and this
   // stays false until a player flips the chip. Stage.render() reads it live.
   broadcastLook: false,
+  // PD-1: the guided teaching surface. Default ON — a new player gets the
+  // centered lessons; they retire on demonstrated action anyway, and this
+  // chip serves the two edge cases (an expert on a fresh profile who wants
+  // silence, and a returner who wants the teaching back).
+  guidedTips: true,
   palette: 'off',
   epoch: 0, // bumped on every change so canvas caches (plates) re-paint
   ...PALETTES.off,
@@ -47,6 +52,7 @@ function persist() {
     reducedFlash: ACCESS.reducedFlash,
     readableType: ACCESS.readableType,
     broadcastLook: ACCESS.broadcastLook,
+    guidedTips: ACCESS.guidedTips,
     palette: ACCESS.palette,
   });
 }
@@ -80,6 +86,7 @@ export function initAccess() {
   ACCESS.reducedFlash = !!saved.reducedFlash;
   ACCESS.readableType = !!saved.readableType;
   ACCESS.broadcastLook = !!saved.broadcastLook;
+  ACCESS.guidedTips = saved.guidedTips !== false; // unset = ON
   ACCESS.palette = PALETTES[saved.palette] ? saved.palette : 'off';
   apply();
 }
@@ -153,6 +160,10 @@ export function buildAccessPanel(hooks = {}) {
     // persisted settings surface, so the look toggle lives here too.
     chipRow('LOOK', [[false, 'STANDARD'], [true, 'BROADCAST']],
       () => ACCESS.broadcastLook, (v) => { ACCESS.broadcastLook = v === 'true' || v === true; }),
+    // PD-1: the guided teaching surface's switch lives with the other
+    // persisted settings.
+    chipRow('GUIDED TIPS', [[true, 'ON'], [false, 'OFF']],
+      () => ACCESS.guidedTips, (v) => { ACCESS.guidedTips = v === 'true' || v === true; }),
   ];
   const done = document.createElement('button');
   done.type = 'button';
