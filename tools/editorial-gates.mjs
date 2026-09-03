@@ -290,6 +290,24 @@ head('WIRING — explicit integration, frame-accurate loss');
     main.includes('editorialWorld.reset()'));
   check('no runtime patching — nothing wraps a live render function',
     !worldSrc.includes('stage.render') && !worldSrc.includes('window.__'));
+
+  // N1 debug find: the corrections block had drifted BELOW update()'s return
+  // and never executed — the Redline's red strikes were invisible live while
+  // every pure-layout check stayed green. This drives the real renderer
+  // object: the corrections must fill when the gap closes and clear when it
+  // opens, through update() itself and not through layoutCorrections alone.
+  const sim = new Sim(777); sim.start(777, null, { mode: 'standard', wordSalt: 0 });
+  for (let i = 0; i < 600; i++) sim.step(emptyInput());
+  const world = new (await import('../src/render/editorial-world.js')).EditorialWorld(
+    new THREE.Scene(), sim.terrain);
+  world.update(sim.player.d, 30, 8, 1 / 60);
+  const atScream = world.meshes.corrections.count;
+  world.update(sim.player.d, 30, 200, 1 / 60);
+  const released = world.meshes.corrections.count;
+  check('update() itself lays the corrections when the Redline closes',
+    atScream > 0, `${atScream} strikes at gap 8`);
+  check('and clears them when the gap opens',
+    released === 0, `${released} at gap 200`);
 }
 
 console.log(out.join('\n'));

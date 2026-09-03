@@ -94,6 +94,15 @@ export class EditorialWorld {
     if (!ACCESS.reducedFlash) this._swellT = 0.7;
   }
 
+  /** N1: one correct read typesets — a 0.22s local brightening of the page,
+   *  scaled by how early the answer landed. REDUCED FLASH skips it; the
+   *  audio strike carries the tell there. */
+  typesetSnap(early = 0) {
+    if (ACCESS.reducedFlash) return;
+    this._snapT = 0.22;
+    this._snapAmp = 0.5 + 0.5 * Math.max(0, Math.min(1, early));
+  }
+
   setFlow(factor) { this._flow = factor; }
 
   _fill(mesh, list) {
@@ -148,21 +157,28 @@ export class EditorialWorld {
     this._paint(this.band, playerD);
     // The earned light breathes with flow, exactly like the stanchions;
     // a fresh band arrives on one swell of ink (E2), decaying smoothly.
-    const swell = 1 + (this._swellT || 0) / 0.7 * 0.35;
+    // N1: each correct read lands its own short, sharper snap — the word
+    // visibly typesets INTO the page, so every answer is a construction
+    // event, not only a score event.
+    this._snapT = Math.max(0, (this._snapT || 0) - dt);
+    const swell = 1 + (this._swellT || 0) / 0.7 * 0.35
+      + (this._snapT || 0) / 0.22 * 0.28 * (this._snapAmp || 0);
     const glow = Math.min(1.15, 0.75 + 0.25 * this._flow) * swell;
     this.matType.opacity = Math.min(1, this.matType.opacity * glow);
     this.matRule.opacity = Math.min(1, this.matRule.opacity * glow);
-    return this.band;
 
     // The Redline's correction: red strikes through the nearest lines as
     // the gap closes — the editor catching the manuscript. The colour is
     // the live ACCESS danger accent, so every colour-vision mode keeps the
     // Redline's alarm as ITS one hue. Static — nothing to flash.
+    // (Debug pass N1: this block sat BELOW the return and never ran — the
+    // corrections were invisible live. The gate now proves it executes.)
     const intensity = corruptionIntensity(beastGap);
     this.matCorrection.color.setHex(ACCESS.danger);
     this.matCorrection.opacity = 0.28 + 0.62 * intensity;
     this._fill(this.meshes.corrections,
       intensity > 0.02 ? layoutCorrections(this.terrain, playerD, intensity, HALF_W) : []);
+    return this.band;
   }
 }
 

@@ -221,6 +221,14 @@ export class WordGates {
     this.readCount = 0;     // resolved gates, for the average read time
     this.latencySum = 0;
     this.bestLatency = null;
+    // N1: the answer buffer. Playtest: "I'm reading very far down the line
+    // but can't select soon enough" — the lookahead plates let the word be
+    // read up to 140m out, but a tap before ARM_DISTANCE_M was silently
+    // swallowed, so a decided answer had to be consciously re-timed. The
+    // buffer holds ONE pre-arm answer for the current gate and lands it on
+    // the first armed frame. +1 said real, -1 said fake, 0 nothing held.
+    this.held = 0;
+    this.heldIndex = -1;
   }
 
   /** The gate the player is currently approaching (always exists). */
@@ -251,6 +259,32 @@ export class WordGates {
     // Note when the word became answerable, so latency is measured from the
     // moment the player could first have acted rather than from the frame.
     if (armed && g.armedAt == null) g.armedAt = now;
+
+    // N1: the answer buffer. A tap in the dead zone — the current gate still
+    // beyond ARM_DISTANCE_M — is held instead of swallowed. Latest input
+    // wins (the player can change their mind until the word arms), and the
+    // hold belongs to exactly this gate, so a re-dealt or advanced index can
+    // never inherit it. ARM_DISTANCE_M itself is untouched: the window in
+    // which an answer can LAND is exactly what it always was — the buffer
+    // only lets a decision made from the lookahead plates wait for it.
+    if ((confirm || reject) && !armed && !g.resolved && g.d - player.d > W.ARM_DISTANCE_M) {
+      this.held = confirm ? 1 : -1;
+      this.heldIndex = g.index;
+      events?.push({ t: 'word_held', index: g.index, said: confirm ? 'real' : 'fake' });
+      confirm = false;
+      reject = false;
+    }
+    // Delivery: the first armed frame plays the held answer — at the arm
+    // edge, which is the earliest an answer has ever been able to land, so
+    // it pays exactly what a frame-perfect live tap always paid, no more.
+    // A live tap on the same frame is later information and wins.
+    if (this.held !== 0 && this.heldIndex === g.index && armed && !g.confirmed && !g.rejected) {
+      if (!confirm && !reject) {
+        if (this.held > 0) confirm = true; else reject = true;
+      }
+      this.held = 0;
+      this.heldIndex = -1;
+    }
 
     // Phase C: two zones, one primitive. Right says real, left says fake, and
     // letting the word go on saying nothing still says fake — the passive path

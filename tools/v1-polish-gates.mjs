@@ -550,5 +550,29 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     'the runner, the camera and the light all draw the interpolated pose');
 }
 
+// ── N1: the answer moment — buffer acknowledgment + stronger tells ────────
+{
+  const plateSrc = read('src/render/word-gates.js');
+  const simGates = read('src/sim/word-gates.js');
+  const mainCode = read('src/main.js');
+  const audioCode = read('src/audio/audio.js');
+  check(simGates.includes("events?.push({ t: 'word_held'") &&
+    simGates.includes('this.heldIndex = g.index'),
+    'the sim buffers a dead-zone answer instead of swallowing it');
+  check(plateSrc.includes("'held-real'") && plateSrc.includes("'held-fake'") &&
+    plateSrc.includes('wg.heldIndex === g.index'),
+    'the plate shows the held answer on the side the player pressed');
+  check(/held\b[\s\S]{0,600}fillText\(text, cx, cy\)/.test(plateSrc),
+    'the held mark never touches the word itself — legibility outranks it');
+  check(mainCode.includes("case 'word_held': audio.wordHeld(") &&
+    audioCode.includes('wordHeld(real)'),
+    'the buffered answer is acknowledged in audio, panned to its side');
+  check(mainCode.includes('editorialWorld.typesetSnap(early)') &&
+    read('src/render/editorial-world.js').includes('if (ACCESS.reducedFlash) return;'),
+    'each correct read typesets into the page, and REDUCED FLASH skips it');
+  check(/audio\.slip\(\);[\s\S]{0,400}ui\.drain\(\);/.test(mainCode),
+    'a missed real borrows the drain — the slip is no longer weightless');
+}
+
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

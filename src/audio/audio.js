@@ -422,6 +422,20 @@ export class Audio {
       this._tone({ type: 'sine', f0: f0 * 3, f1: f0 * 3.01, dur: 0.09 + 0.05 * e,
         vol: 0.020 * e, bus: this.bus.ui, delay: 0.006 });
     }
+    // N1: the typeset strike — one short mechanical percussive under the
+    // melodic confirmation, the word being STAMPED into the page. Harder the
+    // earlier the read; it is what makes a correct answer feel like impact.
+    this._burst(0.035, 0.055 + 0.05 * e, 5200, 'highpass', 0, this.bus.ui, 0.8);
+  }
+
+  /**
+   * N1: a pre-arm answer was buffered. A tiny dry tick, panned to the side
+   * the player pressed — acknowledgment, never fanfare: the read has not
+   * paid yet, and the sound must not suggest it has.
+   */
+  wordHeld(real) {
+    this._tone({ type: 'triangle', f0: real ? 1180 : 840, f1: real ? 1180 : 840,
+      dur: 0.045, vol: 0.045, pan: real ? 0.3 : -0.3, bus: this.bus.ui });
   }
 
   /**

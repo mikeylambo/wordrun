@@ -1090,6 +1090,9 @@ function drainSimEvents() {
         break;
       case 'kill': audio.kill(); break;
       case 'word_confirm': audio.uiTap(); break;
+      // N1: a pre-arm answer was buffered — the plate shows the side-bar,
+      // this is only the sound of it. Acknowledgment, not payoff.
+      case 'word_held': audio.wordHeld(e.said === 'real'); break;
       case 'word_correct': {
         {
           const t = tierTally[e.tier] || (tierTally[e.tier] = { a: 0, c: 0 });
@@ -1126,6 +1129,9 @@ function drainSimEvents() {
         const early = Math.max(0, Math.min(1,
           ((e.latencyMult ?? W.LATE_MULT) - W.LATE_MULT) / (W.EARLY_MULT - W.LATE_MULT)));
         audio.gate(e.chain, early, e.dashChain);
+        // N1: the word typesets into the page — every correct read is a
+        // construction event the world visibly answers (RF-guarded inside).
+        editorialWorld.typesetSnap(early);
         if (early > 0.4) rig.dashKick(0.28 * early);
         if (e.chain > 0) audio.chainLink(e.chain);
         if (e.proxMult > 1.05) audio.courageBank(e.proxMult);
@@ -1160,6 +1166,11 @@ function drainSimEvents() {
           ui.drain();
         } else {
           audio.slip();
+          // N1 (playtest: "stronger tells on missed word"): a missed real
+          // now borrows the drain's darkness at the moment of the slip —
+          // loss is darkness in this game's grammar, and the slip was the
+          // one wrong read that had no visual weight at all.
+          ui.drain();
         }
         wordGateActors.onResolve(e);
         break;

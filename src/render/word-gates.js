@@ -105,6 +105,10 @@ class Plate {
     const ch = this.canvas.height;
     g.clearRect(0, 0, cw, ch);
 
+    // N1: the held states look like idle with a commitment mark — the word
+    // itself renders EXACTLY as idle does, because plate legibility outranks
+    // every acknowledgment we could draw.
+    const held = state === 'held-real' || state === 'held-fake';
     const accent = state === 'right' ? ACCESS.right
       : state === 'wrong' ? ACCESS.wrong
       : state === 'confirmed' ? COL.confirm
@@ -114,9 +118,9 @@ class Plate {
     g.save();
     g.fillStyle = COL.plate;
     g.strokeStyle = accent;
-    g.lineWidth = state === 'idle' ? 5 : 12;
+    g.lineWidth = state === 'idle' || held ? (held ? 7 : 5) : 12;
     g.shadowColor = accent;
-    g.shadowBlur = state === 'idle' ? 14 : 30;
+    g.shadowBlur = state === 'idle' || held ? (held ? 18 : 14) : 30;
     const r = 34;
     g.beginPath();
     g.roundRect(10, 10, cw - 20, ch - 20, r);
@@ -165,13 +169,27 @@ class Plate {
     }
     g.save();
     // Soft neon halo behind the core glyphs — halo only, cores stay solid.
-    g.shadowColor = state === 'idle' ? 'rgba(103,216,255,0.75)' : accent;
+    g.shadowColor = state === 'idle' || held ? 'rgba(103,216,255,0.75)' : accent;
     g.shadowBlur = 22;
     g.fillStyle = state === 'wrong' ? ACCESS.wrong : COL.ink;
     g.fillText(text, cx, cy);
     g.shadowBlur = 0;
     g.fillText(text, cx, cy);
     g.restore();
+
+    // N1: the buffered answer's acknowledgment — one bar in the plate's
+    // bottom corner on the SIDE the player pressed (right = real, left =
+    // fake, the same sides as the input zones). Under the word, never on it.
+    if (held) {
+      g.save();
+      g.fillStyle = COL.confirm;
+      g.shadowColor = COL.confirm;
+      g.shadowBlur = 12;
+      const bw = 170, by = ch - 30;
+      if (state === 'held-real') g.fillRect(cw - 34 - bw, by, bw, 9);
+      else g.fillRect(34, by, bw, 9);
+      g.restore();
+    }
     this.tex.needsUpdate = true;
   }
 
@@ -298,7 +316,11 @@ export class WordGateActors {
 
     // Approaching gate — plates sit on the track's centerline through turns.
     if (!g.resolved && g.d - playerD < SHOW_AHEAD) {
-      const state = g.confirmed ? 'confirmed' : 'idle';
+      // N1: a buffered answer shows on the plate it is held for.
+      const heldHere = wg.held !== 0 && wg.heldIndex === g.index;
+      const state = g.confirmed ? 'confirmed'
+        : heldHere ? (wg.held > 0 ? 'held-real' : 'held-fake')
+        : 'idle';
       this.current.paint(g.shown, state);
       // Ground the plate at the CENTRELINE's height — heightAt(x=0) would
       // pick up the cross-slope of a banked row and sink or float the plate.

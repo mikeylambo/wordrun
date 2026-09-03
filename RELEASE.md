@@ -1597,3 +1597,26 @@ Slice history:
   any more, and the spent choice is latched so it can never re-arm over
   the results card. Two sim-driven checks under gate:words and four
   source-shaped checks under gate:corruption hold all of it.
+- Phase N1 — the answer moment. Playtest: "I'm reading very far down the
+  line but can't select soon enough." The lookahead plates let a word be
+  read up to 140 m out, but a tap before the arm distance was silently
+  swallowed — a decided answer had to be consciously re-timed, and the
+  swallowed tap taught that input is unreliable. The sim now BUFFERS one
+  pre-arm answer per gate: held for exactly that gate, latest input wins
+  (the mind can change until the word arms), delivered on the first armed
+  frame at the arm edge — paying exactly what a frame-perfect live tap
+  always paid, with the window itself untouched (the arm distance, the
+  spacing floor and both read-window floors all stand, gated). The plate
+  acknowledges the hold with one bar in its bottom corner on the side the
+  player pressed — right for REAL, left for FAKE, the same sides as the
+  input zones, never touching the word — and a tiny dry panned tick sounds
+  the acknowledgment without suggesting payment. Stronger tells in the
+  same pass (playtest: "brighter lighting, SFX"): every correct read now
+  typesets into the page — a 0.22 s snap of ink scaled by how early the
+  answer landed (REDUCED FLASH skips it; the strike carries the tell
+  there) — with a mechanical typeset strike layered under the melodic
+  confirmation; a missed real borrows the drain's darkness, so the one
+  weightless wrong read now has weight. Found and fixed in passing: the
+  Redline's correction bars had drifted below update()'s return and never
+  rendered live — a functional gate now drives the real renderer object.
+  Seven buffer gates, two correction gates, six wiring checks.

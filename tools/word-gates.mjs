@@ -976,6 +976,61 @@ head('THE DAILY ROUTE — the same hundred words for everyone');
     'KEEP GOING can never resume into a word that was already lost');
 }
 
+// ── N1: the answer buffer ────────────────────────────────────────────────
+head('THE ANSWER BUFFER — a decided read waits for the window');
+{
+  // Playtest: the lookahead plates let a word be read far beyond the arm
+  // distance, but a tap out there was silently swallowed. The buffer holds
+  // it and lands it on the first armed frame — the window itself unmoved.
+  const sim = new Sim(12345); sim.start(12345);
+  const wg = sim.wordGates;
+  const g0 = wg.current();
+  const real = g0.real;
+  check('the opening gate really is beyond the window (the dead zone exists)',
+    g0.d - sim.player.d > W.ARM_DISTANCE_M, `${Math.round(g0.d - sim.player.d)}m out`);
+  sim.step({ ...emptyInput(), confirm: real, reject: !real });
+  const heldEvt = sim.events.find((e) => e.t === 'word_held');
+  check('a dead-zone tap is held, not swallowed',
+    wg.held === (real ? 1 : -1) && wg.heldIndex === g0.index &&
+    !!heldEvt && !g0.confirmed && !g0.rejected,
+    `held ${heldEvt?.said} for gate ${wg.heldIndex}`);
+  let guard = 0;
+  while (!g0.resolved && sim.phase === PHASE.RUNNING && guard++ < 40000) sim.step(emptyInput());
+  check('the held answer lands on the first armed frame, at the arm edge',
+    g0.resolved && g0.correct && g0.answerDistance >= W.ARM_DISTANCE_M - 2,
+    `answered at ${g0.answerDistance.toFixed(1)}m of ${W.ARM_DISTANCE_M} — what a frame-perfect live tap always paid`);
+  check('the buffer empties on delivery — nothing carries to the next word',
+    wg.held === 0 && wg.heldIndex === -1 && wg.current().index === g0.index + 1);
+}
+{
+  // The mind can change until the word arms: the LAST dead-zone input wins.
+  const sim = new Sim(999); sim.start(999);
+  const wg = sim.wordGates;
+  const g0 = wg.current();
+  const real = g0.real;
+  sim.step({ ...emptyInput(), confirm: !real, reject: real });  // the wrong hold
+  sim.step({ ...emptyInput(), confirm: real, reject: !real });  // corrected
+  check('latest input wins across the dead zone', wg.held === (real ? 1 : -1));
+  let guard = 0;
+  while (!g0.resolved && sim.phase === PHASE.RUNNING && guard++ < 40000) sim.step(emptyInput());
+  check('and only the corrected answer lands', g0.resolved && g0.correct === true);
+}
+{
+  // A tap inside the window is byte-for-byte the game it always was: it
+  // answers NOW and never touches the buffer.
+  const sim = new Sim(42); sim.start(42);
+  const wg = sim.wordGates;
+  let sawHeld = false, guard = 0;
+  while (wg.next < 3 && sim.phase === PHASE.RUNNING && guard++ < 60000) {
+    const g = wg.current();
+    const armed = wg.armed(sim.player.d) && !g.confirmed && !g.rejected;
+    sim.step({ ...emptyInput(), confirm: armed && g.real, reject: armed && !g.real });
+    if (sim.events.some((e) => e.t === 'word_held')) sawHeld = true;
+  }
+  check('an armed tap never buffers — the live path is untouched',
+    !sawHeld && wg.correctCount === 3, `${wg.correctCount} live answers, 0 holds`);
+}
+
 // ── Phase E: the last stand ──────────────────────────────────────────────
 head('LAST STAND — one more word before the run ends');
 {
