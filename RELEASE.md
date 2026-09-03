@@ -1753,3 +1753,12 @@ Slice history:
   through), the veil still never blocks input, and REDUCED FLASH still
   replaces the whole staging with one smooth fade. One new check under
   gate:v1. The bells were confirmed good and stand as shipped.
+- The arrival, art-directed (playtest + slash-VFX reference). The three
+  near-parallel bars became a DYNAMIC cluster: five long strokes at five
+  genuinely different angles (-12 to -52 degrees), sweeping in on
+  staggered beats and crossing one another through a focal zone right of
+  centre — the guideline stage of a hand-drawn slash cluster. The main
+  stroke keeps its white-hot core and doubled glow; the bloom breathes
+  off the crossing. And the arrival's audio came down to roughly half
+  (playtest: way too loud) — the choreography reads, the mix rests. The
+  gate now demands five strokes at five distinct angles.
