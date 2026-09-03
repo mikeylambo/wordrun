@@ -104,8 +104,17 @@ export const TUNING = {
     // The authored winding (Sonic-tradition S-curves, no player steering):
     // peak |dx/dd| = 2π(AMP_A/WAVE_A + AMP_B/WAVE_B) ≈ 0.43 — sweeping,
     // never snapping.
+    // Phase W (playtest: "more dynamic twists/turns"): a third, long wave —
+    // the sweeper — layers macro S-curves under the two the road always had,
+    // deepening the lateral excursion ~50% (23m vs 15.5m). Wave B gives back
+    // a little amplitude so the analytic worst-case |dx/dd| stays 0.49,
+    // under the 0.5 readability bound the TRACK gate enforces: deeper
+    // sweeps, same curvature class, the plate still readable through every
+    // turn. A literal loop or corkscrew stays rejected on the record — it
+    // inverts the camera and destroys the read.
     CURVE_AMP_A: 11, CURVE_WAVE_A: 320,
-    CURVE_AMP_B: 4.5, CURVE_WAVE_B: 130,
+    CURVE_AMP_B: 4.2, CURVE_WAVE_B: 130,
+    CURVE_AMP_C: 8, CURVE_WAVE_C: 700,
     TRACK_HALF_W: 7,           // ribbon half-width around the centerline
     FOLLOW_AHEAD: 6,           // metres ahead the runner aims on the line
     FOLLOW_RESPONSE: 7,        // how quickly the runner settles onto it

@@ -229,6 +229,7 @@ export class WordGates {
     // the first armed frame. +1 said real, -1 said fake, 0 nothing held.
     this.held = 0;
     this.heldIndex = -1;
+    this._prevIn = false;   // last step's raw answer input, for edge capture
   }
 
   /** The gate the player is currently approaching (always exists). */
@@ -267,7 +268,16 @@ export class WordGates {
     // never inherit it. ARM_DISTANCE_M itself is untouched: the window in
     // which an answer can LAND is exactly what it always was — the buffer
     // only lets a decision made from the lookahead plates wait for it.
-    if ((confirm || reject) && !armed && !g.resolved && g.d - player.d > W.ARM_DISTANCE_M) {
+    // Capture on the RISING EDGE only. advance() can run several fixed
+    // steps in one render frame with the SAME input object, so a live tap
+    // that answers the armed word on the first step is still true on the
+    // second — where the resolved gate has already advanced and the tap
+    // would be captured as a pre-lock for the NEXT word, auto-answering it
+    // with the previous answer. The edge makes one tap exactly one act.
+    const inNow = confirm || reject;
+    const inEdge = inNow && !this._prevIn;
+    this._prevIn = inNow;
+    if (inEdge && !armed && !g.resolved && g.d - player.d > W.ARM_DISTANCE_M) {
       this.held = confirm ? 1 : -1;
       this.heldIndex = g.index;
       events?.push({ t: 'word_held', index: g.index, said: confirm ? 'real' : 'fake' });

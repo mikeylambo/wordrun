@@ -1678,3 +1678,27 @@ Slice history:
   and choice follow on their own clock as before. Six checks under
   gate:v1; explicit integration throughout (startRun begins it, the
   frame loop drives it, quitToTitle clears it).
+- Phase W — one tap is one act; the sweeper; the mirrored spread. Three
+  playtest items. THE BUG: words were being auto-selected. Root cause —
+  advance() can run several fixed sim steps in one render frame with the
+  same input object, so a tap that answered the armed word on the first
+  step was still true on the second, where the resolved gate had already
+  advanced and the N1 buffer captured it as a pre-lock for the NEXT word,
+  auto-answering it with the previous answer. The buffer now captures on
+  the rising edge only, tracked inside the gate system, so one tap is
+  exactly one act however many steps share the frame; a regression gate
+  reproduces the multi-step frame directly. THE ROAD: a third seeded
+  winding wave — the sweeper, 8 m over 700 m — layers macro S-curves
+  under the two the road always had, deepening the lateral excursion
+  about fifty percent (wave B gives back a little amplitude so the
+  analytic worst-case curvature stays 0.49, under the 0.5 readability
+  bound; measured peak 0.399, auto-follow drift 1.22 m over 60 s at the
+  ceiling, both gated). A literal loop or corkscrew stays rejected on
+  the record: it inverts the camera and destroys the read. Gameplay is
+  untouched — nothing score-shaped reads the corridor, and the Phase 0
+  behaviour snapshot passed byte-identical with the deeper winding. THE
+  SPREAD: the greeked rows flanking the track are now a mirrored spread —
+  each row's two sides share one width and one fate, pushed as an atomic
+  pair and reflected across the corridor, so the page reads as composed
+  facing pages while the manuscript's raggedness survives row to row.
+  Occlusion swept clean again; the mirror is gated over three bands.

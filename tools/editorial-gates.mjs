@@ -137,6 +137,25 @@ head('LAYOUT — margins hold and budgets bound, at every band');
   check('the correction bars live in the margins too, at full intensity',
     corr.length > 0 && corr.every(([x, , z, sx]) =>
       Math.abs(x - terrain.corridorX(-z)) - sx / 2 >= HW + MARGIN - 0.1));
+
+  // Phase W: the greeked rows are a MIRRORED SPREAD — each row's two sides
+  // share one width and one fate, pushed as an atomic pair, reflected
+  // across the corridor. The raggedness survives row to row; the symmetry
+  // lives left to right.
+  let mirrored = true, pairs = 0;
+  for (const level of [1, 3, 4]) {
+    const page = layoutPage(terrain, 900, level, HW);
+    for (let i = 0; i + 1 < page.type.length; i += 2) {
+      const [xL, , zL, wL] = page.type[i];
+      const [xR, , zR, wR] = page.type[i + 1];
+      const c = terrain.corridorX(-zL);
+      if (zL !== zR || Math.abs(wL - wR) > 1e-9 ||
+          Math.abs((xL - c) + (xR - c)) > 1e-6) { mirrored = false; break; }
+      pairs++;
+    }
+  }
+  check('the greeked rows are a mirrored spread — one width, one fate, both sides (Phase W)',
+    mirrored && pairs > 100, `${pairs} mirrored pairs across three bands`);
 }
 
 // ── The sight line: 100 gates, every armed frame, every band ─────────────

@@ -135,29 +135,34 @@ export function layoutPage(terrain, d0, level, halfW) {
   // walls of set text, the page as architecture at reading height.
   const columns = level >= 3 ? 2 : 1;
   const colW = level >= 2 ? 11 : 8.5;
+  // Phase W (playtest: "more symmetrical design on the horizontal lines"):
+  // the two sides of a row are now the SAME line — one width, one fate,
+  // mirrored across the corridor, pushed as an atomic pair so the budget
+  // can never orphan half of one. The page reads as a composed spread of
+  // facing pages; the manuscript's raggedness survives row to row.
   for (let d = dA, row = Math.round(dA / ROW_PITCH); d < dB; d += ROW_PITCH, row++) {
     const st = seg(d);
     if (st === 'drop') continue;
     const margin = st === 'narrows' ? NARROW_MARGIN : MARGIN;
-    for (const side of [-1, 1]) {
-      for (let c = 0; c < columns; c++) {
-        if (out.type.length >= CAPS.type) break;
-        const key = row * 4 + (side + 1) + c * 7919;
-        const prevEnd = h32((row - 1) * 4 + (side + 1) + c * 7919 + 11) < 0.15;
-        if (prevEnd) continue;                       // blank line after a paragraph
-        if (h32(key) > fill) continue;               // unset at this band
-        const end = h32(key + 11) < 0.15;
-        const ragged = level >= 4 ? 1 : 0.55 + 0.45 * h32(key + 23);
-        // Phase V: canyon rows are always full slabs — a wall is not ragged.
-        const w = st === 'canyon' ? colW
-          : colW * (end ? 0.3 + 0.4 * h32(key + 5) : ragged);
-        const inner = HW + margin + 1.8 + c * (colW + 2.2);
+    for (let c = 0; c < columns; c++) {
+      if (out.type.length >= CAPS.type - 1) break;
+      const key = row * 4 + c * 7919;
+      const prevEnd = h32((row - 1) * 4 + c * 7919 + 11) < 0.15;
+      if (prevEnd) continue;                       // blank line after a paragraph
+      if (h32(key) > fill) continue;               // unset at this band
+      const end = h32(key + 11) < 0.15;
+      const ragged = level >= 4 ? 1 : 0.55 + 0.45 * h32(key + 23);
+      // Phase V: canyon rows are always full slabs — a wall is not ragged.
+      const w = st === 'canyon' ? colW
+        : colW * (end ? 0.3 + 0.4 * h32(key + 5) : ragged);
+      const inner = HW + margin + 1.8 + c * (colW + 2.2);
+      // Phase V: taller canyon walls rise past the frame's midline and the
+      // canyon reads as a PLACE from inside it. Still margin-side — the
+      // occlusion sweep proves the sight line every armed frame.
+      const wallH = st === 'canyon' ? 6.5 + fill * 9 * h32(key + 41) : 0;
+      for (const side of [-1, 1]) {
         const x = line(d) + side * (inner + w / 2);
         if (st === 'canyon') {
-          // Phase V: taller, so the walls rise past the frame's midline and
-          // the canyon reads as a PLACE from inside it. Still margin-side —
-          // the occlusion sweep proves the sight line every armed frame.
-          const wallH = 6.5 + fill * 9 * h32(key + 41);
           out.type.push([x, ground(x, d) + wallH / 2, -d, w, wallH, ROW_LEN]);
         } else {
           out.type.push([x, ground(x, d) + 0.05, -d, w, 0.08, ROW_LEN]);

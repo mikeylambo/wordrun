@@ -1009,7 +1009,8 @@ head('THE ANSWER BUFFER — a decided read waits for the window');
   const g0 = wg.current();
   const real = g0.real;
   sim.step({ ...emptyInput(), confirm: !real, reject: real });  // the wrong hold
-  sim.step({ ...emptyInput(), confirm: real, reject: !real });  // corrected
+  sim.step(emptyInput());                                       // finger up
+  sim.step({ ...emptyInput(), confirm: real, reject: !real });  // a fresh tap corrects it
   check('latest input wins across the dead zone', wg.held === (real ? 1 : -1));
   let guard = 0;
   while (!g0.resolved && sim.phase === PHASE.RUNNING && guard++ < 40000) sim.step(emptyInput());
@@ -1029,6 +1030,27 @@ head('THE ANSWER BUFFER — a decided read waits for the window');
   }
   check('an armed tap never buffers — the live path is untouched',
     !sawHeld && wg.correctCount === 3, `${wg.correctCount} live answers, 0 holds`);
+}
+{
+  // The multi-step frame (live playtest find: "words are auto-selected").
+  // advance() can run several fixed steps in one render frame with the SAME
+  // input object: the tap answers the armed word on the first step, and on
+  // the second — the gate already advanced — it used to be captured as a
+  // pre-lock for the NEXT word. One tap must be exactly one act.
+  const sim = new Sim(31337); sim.start(31337);
+  const wg = sim.wordGates;
+  let guard = 0;
+  while (!wg.armed(sim.player.d) && sim.phase === PHASE.RUNNING && guard++ < 60000) {
+    sim.step(emptyInput());
+  }
+  const g0 = wg.current();
+  const held = { ...emptyInput(), confirm: true };
+  sim.step(held);   // the tap answers gate 0
+  sim.step(held);   // the same frame's second fixed step — input still true
+  sim.step(held);   // and a third
+  check('one tap is one act — extra fixed steps cannot pre-lock the next word',
+    g0.resolved && wg.held === 0 && wg.heldIndex === -1,
+    'capture is rising-edge only, tracked inside the gate system');
 }
 
 // ── Phase E: the last stand ──────────────────────────────────────────────

@@ -82,6 +82,7 @@ export class Terrain {
     const rng = mulberry32(mixSeed(this.seed, 0x74726b)); // 'trk'
     this._phaseA = rng() * Math.PI * 2;
     this._phaseB = rng() * Math.PI * 2;
+    this._phaseC = rng() * Math.PI * 2;
 
     // The route walk: its own seeded stream, drawn strictly sequentially so
     // the segment list is a pure function of the seed however far it is read.
@@ -94,7 +95,8 @@ export class Terrain {
   corridorX(d) {
     return (
       R.CURVE_AMP_A * Math.sin((d / R.CURVE_WAVE_A) * Math.PI * 2 + this._phaseA) +
-      R.CURVE_AMP_B * Math.sin((d / R.CURVE_WAVE_B) * Math.PI * 2 + this._phaseB)
+      R.CURVE_AMP_B * Math.sin((d / R.CURVE_WAVE_B) * Math.PI * 2 + this._phaseB) +
+      R.CURVE_AMP_C * Math.sin((d / R.CURVE_WAVE_C) * Math.PI * 2 + this._phaseC)
     );
   }
 
@@ -104,7 +106,9 @@ export class Terrain {
       R.CURVE_AMP_A * Math.cos((d / R.CURVE_WAVE_A) * Math.PI * 2 + this._phaseA) *
         ((Math.PI * 2) / R.CURVE_WAVE_A) +
       R.CURVE_AMP_B * Math.cos((d / R.CURVE_WAVE_B) * Math.PI * 2 + this._phaseB) *
-        ((Math.PI * 2) / R.CURVE_WAVE_B)
+        ((Math.PI * 2) / R.CURVE_WAVE_B) +
+      R.CURVE_AMP_C * Math.cos((d / R.CURVE_WAVE_C) * Math.PI * 2 + this._phaseC) *
+        ((Math.PI * 2) / R.CURVE_WAVE_C)
     );
   }
 
