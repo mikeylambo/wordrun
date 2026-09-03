@@ -39,6 +39,9 @@ check(bands['false-dawn'] === 28000 && bands['first-light'] === 29200 && bands.d
 
 // ── 120K soak on the flat track ───────────────────────────────────────────
 const seed = 0x51a7c0de;
+const CURVE_ENVELOPE = Object.keys(TUNING.RUN)
+  .filter((k) => /^CURVE_AMP_/.test(k))
+  .reduce((sum, k) => sum + TUNING.RUN[k], 0);
 const soakTerrain = new Terrain(seed);
 const bells = new BellField(seed, soakTerrain);
 let maxChunks = 0;
@@ -51,9 +54,13 @@ for (let d = 0; d <= 120000; d += TUNING.TERRAIN.CHUNK_LEN) {
   bells.around(d, 35, 360);
   soakTerrain.prune(ci);
   maxChunks = Math.max(maxChunks, soakTerrain.chunks.size);
+  // The lateral envelope is the SUM OF EVERY curve amplitude the tuning
+  // declares — derived, never hand-summed, so a new winding wave (Phase W
+  // added the third) can never silently invalidate this fence again. The
+  // curvature bound is the same measured invariant the TRACK gate holds.
   if (Math.abs(soakTerrain.elevAt(d)) > TUNING.TERRAIN.ROUTE.ELEV_CAP_M + 1e-9 ||
-      Math.abs(soakTerrain.corridorX(d)) >
-      TUNING.RUN.CURVE_AMP_A + TUNING.RUN.CURVE_AMP_B + 1e-9) corridorOk = false;
+      Math.abs(soakTerrain.corridorX(d)) > CURVE_ENVELOPE + 1e-9 ||
+      Math.abs(soakTerrain.corridorSlope(d)) >= 0.5) corridorOk = false;
 }
 check(maxChunks <= 18, `track chunk cache stays bounded through 120K (max ${maxChunks})`);
 check(corridorOk, 'the route stays inside its elevation cap and curve envelope through 120K');

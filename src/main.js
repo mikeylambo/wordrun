@@ -695,6 +695,7 @@ function finalizeRun() {
     // quietly show the lifetime accuracy under a run's own numbers.
     correct: wg.correctCount,
     wrong: wg.wrongCount,
+    bestChain: sim.player.bestChain,
     best: Storage.bestFor(SEED),
     isPb,
     shotUrl,

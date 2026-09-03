@@ -1841,3 +1841,36 @@ Slice history:
   the full reference card, and keeps its pause-menu entry. Four checks
   under gate:v1; verified live (sections, both hook chips, the title
   card in help mode).
+
+## 1.0-RC — release candidate (2026-09-03)
+
+Every system the finishing brief and the product-design passes called for
+is built, gated (~1,100 checks) and live. This RC entry closes the
+chronological log; what follows it should be verdicts, not phases.
+
+- **Gate repair**: the v1 release suite's route envelope had gone stale
+  against Phase W's third winding wave (a hand-summed amplitude bound).
+  The envelope is now DERIVED from every CURVE_AMP dial the tuning
+  declares, plus the same measured curvature bound the TRACK gate holds —
+  a future wave cannot silently invalidate it. Full chain re-run green.
+- **First-minute audits, on the built game, real inputs**: a fresh
+  profile driven title → essence card → TEACH → first correct → first
+  fake passing quietly → first mistake costing exactly one heart → the
+  DASH hint → RUN OVER → the settled card → the quick AGAIN cut; and a
+  returning profile (all lessons demonstrated, GUIDED TIPS still on)
+  showing zero redundant teaching, the full arrival only from the menu,
+  and the quick cut on retry. Every beat captured to `dev/stills/rc/`.
+- **Scoring comprehension**: the card already answers how the run went
+  (score, best delta, run accuracy, avg read, the review, one standout);
+  the one opaque cause was the CHAIN — the score's dominant multiplier,
+  invisible unless it happened to be the standout. One line was added,
+  only when a chain of 2+ stood: "BEST CHAIN n — unbroken reads multiply
+  the score." Nothing else.
+- **Device soak**: `dev/rc/device-soak.md` — the on-phone checklist
+  (p95 frame time with a paste-back console snippet, 5-minute thermal,
+  full DAILY to FINISH, RUN OVER, continue, END RUN, the retry loop,
+  safe areas, landscape) against the production build. Michael runs it.
+
+Held for humans, unchanged: the trademark result on DICTION DASH before
+any store listing, and Pass 3 (boards + population word danger). No new
+systems until the RC is played on-device.

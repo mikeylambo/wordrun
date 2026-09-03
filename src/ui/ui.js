@@ -512,9 +512,10 @@ export class UI {
 
   renderDeath({ distance, score, scoreLost = 0, continuesUsed = 0, failedRoute = false, avgReadMs = 0,
     seconds = 0, gates = 0, routeGates = 0, retired = [], best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult, endFlow = 0, standout = null, finished = false,
-    correct = 0, wrong = 0 }) {
+    correct = 0, wrong = 0, bestChain = 0 }) {
     this._runCorrect = correct;
     this._runWrong = wrong;
+    this._bestChain = bestChain;
     this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null, standout };
     // Phase Q: the headline counts up from zero on the beat clock — update()
     // steps it each frame via _updateCount and lands it exactly on the score.
@@ -713,6 +714,14 @@ export class UI {
         [avgRead, 'AVG READ'],
         [clock, 'TIME'],
       ].map(([v, k]) => `<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>`);
+
+      // 1.0-RC scoring-comprehension audit: the chain is the score's
+      // dominant multiplier and was invisible on the card unless it
+      // happened to be the standout. ONE line names the cause.
+      if ((this._bestChain || 0) >= 2) {
+        parts.push(`<div class="defRow"><b>BEST CHAIN ${this._bestChain}</b>` +
+          'unbroken reads multiply the score</div>');
+      }
     }
 
     this.deathRecap.innerHTML = parts.join('');

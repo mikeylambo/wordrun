@@ -699,6 +699,11 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     'a run short of the best names its gap — the AGAIN tap gets a target');
   check(htmlCode.includes('#accessPanel.on,#shopPanel.on,#curveScreen.on,#rc2Pause.on{animation:panelIn'),
     'every overlay sheet enters with the same soft motion');
+  // 1.0-RC scoring-comprehension audit: one line, chain-gated, no more.
+  check(mainCode.includes('bestChain: sim.player.bestChain,') &&
+    uiCode.includes('BEST CHAIN ${this._bestChain}') &&
+    uiCode.includes('(this._bestChain || 0) >= 2'),
+    "the score's dominant cause is named on the card — one line, only when a chain stood");
 }
 
 // ── PD-3: the settings sheet reads like one ──────────────────────────────
