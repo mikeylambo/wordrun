@@ -601,6 +601,9 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     'the launch never blocks input, and REDUCED FLASH gets one smooth fade');
   check(launch.includes('ACCESS.dangerCss'),
     'the slash wears the LIVE danger accent — colour-vision modes carry through');
+  check(launch.includes('this.echoA = stroke(') && launch.includes('this.echoB = stroke(') &&
+    launch.includes('this.bloom = document.createElement'),
+    'the arrival is a transition: main slash, red bloom, two echo corrections');
   check(mainCode.includes('launch.begin()') &&
     mainCode.includes('launch.update(dt)') &&
     mainCode.includes('launch.cancel()'),

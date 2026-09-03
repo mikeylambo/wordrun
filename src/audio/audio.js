@@ -538,9 +538,17 @@ export class Audio {
     this._burst(0.04, 0.07, 5200, 'highpass', 0, this.bus.ui, 0.8);
     this._tone({ type: 'sine', f0: 88, f1: 132, dur: 0.9, vol: 0.055,
       bus: this.bus.cinematic, delay: 0.45 });
-    this._tone({ type: 'square', f0: 320, f1: 90, dur: 0.26, vol: 0.06,
+    this._tone({ type: 'square', f0: 320, f1: 90, dur: 0.26, vol: 0.07,
       bus: this.bus.threat, delay: 1.35,
       filter: { type: 'bandpass', freq: 1100, q: 3 } });
+    // The echo strikes — the pen crossing the page twice more, each one
+    // shorter and higher than the last.
+    this._tone({ type: 'square', f0: 420, f1: 140, dur: 0.14, vol: 0.04,
+      bus: this.bus.threat, delay: 1.44,
+      filter: { type: 'bandpass', freq: 1400, q: 3 } });
+    this._tone({ type: 'square', f0: 520, f1: 180, dur: 0.12, vol: 0.035,
+      bus: this.bus.threat, delay: 1.51,
+      filter: { type: 'bandpass', freq: 1700, q: 3 } });
   }
 
   /** The hundredth gate: reaching the route's end is an ARRIVAL — one

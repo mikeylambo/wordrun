@@ -1741,3 +1741,15 @@ Slice history:
   remap, so it survives every mode — for acted answers and both wrong
   reads, never for a passive pass (the ownership ruling holds), and
   REDUCED FLASH skips it entirely. Four checks under gate:v1.
+- The arrival, promoted (playtest: "it could genuinely be a great opening
+  visual transition"). The launch's single thin slash is now the full
+  choreography of the Redline's arrival: the MAIN strike sweeps across
+  with a white-hot core inside its red and a doubled glow, a red bloom
+  breathes off the cut, and two echo corrections cross the page at
+  staggered offsets and angles behind it — the editor's pen striking
+  three times before the chase begins. The audio matches: the arrival
+  tone leads and two shorter, higher echo strikes follow. Every stroke
+  still wears the LIVE danger accent (colour-vision modes carry
+  through), the veil still never blocks input, and REDUCED FLASH still
+  replaces the whole staging with one smooth fade. One new check under
+  gate:v1. The bells were confirmed good and stand as shipped.
