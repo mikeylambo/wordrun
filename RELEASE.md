@@ -1762,3 +1762,15 @@ Slice history:
   off the crossing. And the arrival's audio came down to roughly half
   (playtest: way too loud) — the choreography reads, the mix rests. The
   gate now demands five strokes at five distinct angles.
+- The arrival, full frame (playtest: "more lines, full screen — an FFX
+  battle-intro vibe"). The cluster grew into a STORM: nine strokes
+  covering the screen top to bottom (8% to 88%), angles from -8 to -58
+  degrees, sweeping in on staggered beats from BOTH sides so the cuts
+  genuinely cross — the run entered through a storm of corrections. Two
+  hero cuts now: the main stroke's white-hot core answered by a second
+  bright cut from the right; the bloom spans the whole frame. Same beat
+  budget, same guardrails (live danger accent, input never blocked,
+  REDUCED FLASH keeps its one smooth fade), and the audio stays at its
+  turned-down level — the spectacle grew, the mix did not. The gate now
+  demands eight-plus strokes at seven-plus angles cutting from both
+  sides.

@@ -602,10 +602,11 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   check(launch.includes('ACCESS.dangerCss'),
     'the slash wears the LIVE danger accent — colour-vision modes carry through');
   check(launch.includes('this.strokes = [') &&
-    (launch.match(/\{ top: \d+, angle: -\d+/g) || []).length >= 5 &&
-    new Set((launch.match(/angle: (-\d+)/g) || [])).size >= 5 &&
+    (launch.match(/\{ top: \d+, angle: -\d+/g) || []).length >= 8 &&
+    new Set((launch.match(/angle: (-\d+)/g) || [])).size >= 7 &&
+    launch.includes("from: 'r'") &&
     launch.includes('this.bloom = document.createElement'),
-    'the arrival is a dynamic cluster: five strokes, five distinct angles, one bloom');
+    'the arrival is a full-frame storm: 8+ strokes, 7+ angles, cuts from both sides');
   check(mainCode.includes('launch.begin()') &&
     mainCode.includes('launch.update(dt)') &&
     mainCode.includes('launch.cancel()'),
