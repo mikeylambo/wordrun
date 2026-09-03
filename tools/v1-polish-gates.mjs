@@ -658,9 +658,11 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   const onboardingCode = read('src/ui/onboarding.js');
   check(!/\bsim\.|__SIM/.test(guidedSrc) && guidedSrc.includes('pointer-events:none'),
     'the TEACH surface is presentation only and never blocks input');
+  // RC-2 playtest: partial yielding still let a tip show at the bottom AND
+  // the middle. While TEACH is active the coach line says nothing at all.
   check(guidedSrc.includes('veilUp || hintUp') &&
-    uiCode.includes("this._guidedActive ? ''"),
-    'one instruction at a time: TEACH yields to the launch and the dash hint, the coach yields its fundamentals to TEACH');
+    /if \(this\._guidedActive\) \{\s*\n\s*this\.coach\.classList\.remove\('on'\);\s*\n\s*return;/.test(uiCode),
+    'one instruction at a time: TEACH yields to the launch and the dash hint, and the coach is fully silent while TEACH is active');
   check(accessCode.includes("chipRow('GUIDED TIPS'") &&
     accessCode.includes('guidedTips: ACCESS.guidedTips') &&
     accessCode.includes('saved.guidedTips !== false'),
@@ -669,9 +671,13 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     mainCode.includes("CHART: chartForRun()") &&
     /return ACCESS\.guidedTips && !fundamentalsDone\(\) \? 'guided' : 'endless';/.test(mainCode),
     'the guided chart reaches the run and the warm plates through one predicate, ENDLESS only');
-  check(onboardingCode.includes("this.root.classList.add('condensed')") &&
-    onboardingCode.includes("this.root.classList.remove('condensed')"),
-    'the first launch shows the essence; HOW TO PLAY keeps the full sheet');
+  // RC-2 playtest: the condensed "essence" first-open card made the fresh
+  // open WORSE — the full six-rule sheet is the one card, everywhere, and
+  // the condensed mode must stay deleted.
+  check(!onboardingCode.includes("classList.add('condensed')") &&
+    !onboardingCode.includes('.condensed') &&
+    (onboardingCode.match(/<div class="rule">/g) || []).length === 6,
+    'one HOW TO PLAY card — the full six-rule sheet on fresh open and in the pause menu alike');
 }
 
 // ── PD-2: the continuous journey ─────────────────────────────────────────
@@ -725,6 +731,39 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     'HOW TO PLAY is a title action, never a settings hunt');
   check(accessCode.includes('overflow-y:auto'),
     'the grown sheet scrolls instead of clipping on a short phone');
+}
+
+// ── RC-2: the results card is five moments; the analysis is a fold ───────
+// On-device playtest: ~15 pieces of information competed with the score.
+// The default card is score → celebration → goals → misses → play again;
+// nothing is deleted — the run shape, the queue, the stat bar and the share
+// row are intact behind one MORE STATS tap.
+{
+  const uiCode = read('src/ui/ui.js');
+  const mainCode = read('src/main.js');
+  const htmlCode = read('index.html');
+  check(uiCode.includes('<div id="deepStats" hidden>'),
+    'every card opens folded — the deep stats render hidden');
+  check(uiCode.includes('deep.push(\'<div class="recapHead">THE RUN</div>\')') &&
+    uiCode.includes('deep.push(\'<div class="recapHead">OBJECTIVES</div>\')') &&
+    /deep\.push\(`<div class="statBar four">/.test(uiCode),
+    'the run shape, the queue and the stat bar all live under the fold, none on the default card');
+  check(uiCode.includes('goalCheck') && uiCode.includes('GOALS TODAY') &&
+    htmlCode.includes('.goalCheck i{'),
+    "today's goals are a big ✓/○ checklist with one headline count");
+  check(mainCode.includes('reward: banked + (objectives.reward || 0)') &&
+    uiCode.includes('class="rewardLine"'),
+    'ONE reward figure on the card — bells plus objectives, a single ◆ total');
+  check(mainCode.includes("e.target.closest('#moreStats')") &&
+    uiCode.includes('id="moreStats"'),
+    'MORE STATS is a real fold: the card renders the button, main.js works the hinge');
+  check(htmlCode.includes('#deathScreen #shotBtns{display:none}') &&
+    htmlCode.includes('#deathScreen.deepOpen #shotBtns{display:flex}'),
+    'the share row is a footnote to the analysis — hidden until the card is expanded');
+  check(uiCode.includes('READS MAKE THE SCORE'),
+    'a zero-score run names the cause under the 0, not the distance to the best');
+  check(uiCode.includes("this.deathScreen.classList.remove('deepOpen')"),
+    'the fold closes between runs — MORE STATS is a per-card choice');
 }
 
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);

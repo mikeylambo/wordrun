@@ -1874,3 +1874,34 @@ chronological log; what follows it should be verdicts, not phases.
 Held for humans, unchanged: the trademark result on DICTION DASH before
 any store listing, and Pass 3 (boards + population word danger). No new
 systems until the RC is played on-device.
+
+## 1.0-RC2 — the first on-device verdicts, answered
+
+The RC was played on a real phone. Four verdicts came back; all four are
+in. Two were reversals of RC experiments — recorded here so they stay
+reversed.
+
+- **The how-to card**: the condensed first-open "essence" experiment made
+  the fresh open WORSE. Reverted and deleted — the full six-rule sheet is
+  the one card, on fresh open and behind HOW TO PLAY alike, and a gate now
+  holds the condensed mode gone.
+- **One tip at a time, actually**: the coach line could still co-show with
+  the TEACH surface (a tip at the bottom AND the middle). The coach is now
+  fully silent while TEACH is active; its advanced lessons resume when
+  TEACH retires. Verified live: thirty samples across a guided run, zero
+  co-shows.
+- **The results card is five moments**: score → celebration → goals →
+  misses → play again. The ~15 competing pieces are not deleted — the run
+  shape, WORST STRETCH, the objectives queue, the stat bar, BEST CHAIN,
+  BEATEN and the share row are intact behind one MORE STATS fold, closed
+  on every new card. Today's goals became a ✓/○ checklist under one
+  headline count; the bells and objective payouts merged into ONE ◆ total
+  (in the card's own cyan — gold sits inside two reserved hue bands).
+- **The giant 0 explains itself**: a zero-score run no longer shows the
+  full distance TO BEST under the zero. It names the cause instead —
+  "94 M · READS MAKE THE SCORE" — the one line a far-but-read-nothing
+  first run needs.
+
+The menu arrival was reported out of sequence; the full launch path was
+diffed byte-identical to the approved build — the felt regression was the
+condensed card and the doubled tips beside it, both fixed above.

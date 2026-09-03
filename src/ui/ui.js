@@ -163,6 +163,14 @@ export class UI {
     const p = sim.player;
     const d = sim.distance;
     const L = this._lessons || {};
+    // RC playtest: tips were showing at the bottom AND the middle. While
+    // the TEACH surface is active (guided tips on, fundamentals not yet
+    // demonstrated) the coach line says NOTHING AT ALL — not merely the
+    // rungs TEACH owns. The advanced lessons resume once TEACH retires.
+    if (this._guidedActive) {
+      this.coach.classList.remove('on');
+      return;
+    }
     let text = '';
     // Playtest: "L/R works but we have no player onboarding to teach them
     // that." There was teaching — it just stopped existing after the first
@@ -177,14 +185,11 @@ export class UI {
     // without the left one. The left zone arrives as an option, not a rule —
     // a player who never uses it plays exactly the game they already knew.
     if (!L.confirm) {
-      // PD-1: the TEACH surface owns this rung when guided tips are on.
-      text = this._guidedActive ? ''
-        : (this.touch ? 'TAP RIGHT IF THE WORD IS REAL' : 'RIGHT ARROW IF THE WORD IS REAL');
+      text = this.touch ? 'TAP RIGHT IF THE WORD IS REAL' : 'RIGHT ARROW IF THE WORD IS REAL';
     } else if (!L.reject) {
-      text = this._guidedActive ? ''
-        : (d < 300
-          ? 'A MISSPELLED WORD CAN SIMPLY PASS'
-          : (this.touch ? 'OR TAP LEFT TO CALL IT OUT SOONER' : 'OR LEFT ARROW TO CALL IT OUT SOONER'));
+      text = d < 300
+        ? 'A MISSPELLED WORD CAN SIMPLY PASS'
+        : (this.touch ? 'OR TAP LEFT TO CALL IT OUT SOONER' : 'OR LEFT ARROW TO CALL IT OUT SOONER');
     } else if (!L.dash && p.boostMeter >= TUNING.BOOST.MIN_ACTIVATE && !p.overdrive) {
       // The line the game never had. "CLEAN READS CHARGE THE DASH" said where
       // the charge comes from and then left the player holding a full meter
@@ -512,10 +517,11 @@ export class UI {
 
   renderDeath({ distance, score, scoreLost = 0, continuesUsed = 0, failedRoute = false, avgReadMs = 0,
     seconds = 0, gates = 0, routeGates = 0, retired = [], best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult, endFlow = 0, standout = null, finished = false,
-    correct = 0, wrong = 0, bestChain = 0 }) {
+    correct = 0, wrong = 0, bestChain = 0, reward = 0 }) {
     this._runCorrect = correct;
     this._runWrong = wrong;
     this._bestChain = bestChain;
+    this._reward = Math.floor(reward);
     this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null, standout };
     // Phase Q: the headline counts up from zero on the beat clock — update()
     // steps it each frame via _updateCount and lands it exactly on the score.
@@ -526,6 +532,8 @@ export class UI {
     // card at the same level.
     this.deathScreen.style.setProperty('--endFlow', Math.max(0, Math.min(1, endFlow)).toFixed(3));
     this.deathScreen.classList.remove('settled');
+    // RC-2: every card opens folded — MORE STATS is a per-card choice.
+    this.deathScreen.classList.remove('deepOpen');
     this._deathDistance = Math.floor(distance);
     // A continued run banks less than it earned. Say so on the card, where the
     // number is, rather than only refusing the record quietly.
@@ -538,11 +546,19 @@ export class UI {
     } else {
       // PD-2 (why go again): a run that missed the best says by how much —
       // a target for the AGAIN tap, in the place NEW BEST would celebrate.
+      // RC-2: EXCEPT at zero. A giant 0 over "134,168 TO BEST" reads as
+      // mockery, and worse, it leaves WHY unexplained — a new player who ran
+      // far but read nothing deserves the cause, not the gap.
       const gap = !isPb && best > 0
         ? Math.max(0, Math.floor(best) - Math.floor(score ?? 0)) : 0;
-      this.pbTag.style.visibility = isPb || gap > 0 ? 'visible' : 'hidden';
-      this.pbTag.textContent = isPb ? 'NEW BEST'
-        : gap > 0 ? `${gap.toLocaleString('en-US')} TO BEST` : '';
+      if (!isPb && Math.floor(score ?? 0) === 0) {
+        this.pbTag.style.visibility = 'visible';
+        this.pbTag.textContent = `${this._deathDistance ?? Math.floor(distance)} M · READS MAKE THE SCORE`;
+      } else {
+        this.pbTag.style.visibility = isPb || gap > 0 ? 'visible' : 'hidden';
+        this.pbTag.textContent = isPb ? 'NEW BEST'
+          : gap > 0 ? `${gap.toLocaleString('en-US')} TO BEST` : '';
+      }
     }
     // A run that reached the end of the route earned the other name: the
     // card reads FINISH (an approved name), not RUN OVER — a completed
@@ -589,16 +605,32 @@ export class UI {
    */
   _renderRecap(recap, daily, objectives, review, lifetime) {
     if (!this.deathRecap) return;
-    const parts = [];
+    // RC-2 (on-device playtest): the card carried ~15 pieces of information
+    // and every one of them competed with the score. The default card is now
+    // FIVE moments — score, celebration, goals, misses, play again — and
+    // nothing is deleted: everything analytical is intact one tap deeper,
+    // behind MORE STATS. Nintendo clarity inside the same black/cyan skin.
+    const core = [];
+    const deep = [];
     const extras = this._deathExtras || {};
 
     if (extras.challengeResult?.goal > 0) {
-      parts.push(row('TARGET', `${extras.challengeResult.goal.toLocaleString('en-US')} · ${extras.challengeResult.beaten ? 'BEATEN' : 'NOT YET'}`));
+      core.push(row('TARGET', `${extras.challengeResult.goal.toLocaleString('en-US')} · ${extras.challengeResult.beaten ? 'BEATEN' : 'NOT YET'}`));
     }
-    if (extras.continued) parts.push(row('CONTINUED', 'BEST UNCHANGED'));
+    if (extras.continued) core.push(row('CONTINUED', 'BEST UNCHANGED'));
     // E4: at most ONE standout, chosen by rarity in meta/standout.js — an
     // ordinary run shows nothing here, and that is the point.
-    if (extras.standout) parts.push(row(extras.standout.k, extras.standout.v));
+    if (extras.standout) core.push(row(extras.standout.k, extras.standout.v));
+
+    // Today's goals as a checklist a player can read at arm's length: a big
+    // ✓/○ per goal and one headline count — not nine grey chips.
+    if (daily?.goals?.length) {
+      const done = daily.goals.filter((g) => g.done).length;
+      core.push(`<div class="goalHead">${done} OF ${daily.goals.length} GOALS TODAY</div>`);
+      core.push(`<div class="goalList">${daily.goals.map((g) =>
+        `<div class="goalCheck${g.done ? ' done' : ''}"><i>${g.done ? '✓' : '○'}</i>`
+        + `<span class="goalChip${g.done ? ' done' : ''}">${g.label}</span></div>`).join('')}</div>`);
+    }
 
     // Phase 19: this used to be one full sentence per wrong read — four
     // lines of the same slipped-by sentence stacked under a seven-word
@@ -613,22 +645,20 @@ export class UI {
       const slipped = recap.filter((m) => m.reason !== 'picked_fake');
       const tapped = recap.filter((m) => m.reason === 'picked_fake');
       this._missed = { slipped, tapped, recap };
-      parts.push(`<button class="missedOpen" id="missedOpen" data-rc2-ui>`
+      core.push(`<button class="missedOpen" id="missedOpen" data-rc2-ui>`
         + `${recap.length} MISSED · REVIEW</button>`);
     } else if (recap) {
-      parts.push('<div class="clean">PERFECT RUN</div>');
+      core.push('<div class="clean">PERFECT RUN</div>');
     }
 
-    // Playtest: the card was carrying TWO parallel goal systems in two places
-    // — today's chips floating loose under the score, and the rotating queue
-    // under its own heading much further down. Read together they looked like
-    // six unrelated targets. They are built here and printed once, inside the
-    // one OBJECTIVES block below, which is where a reader is already looking
-    // for "what am I chasing".
-    const dailyChips = daily?.goals?.length
-      ? `<div class="goalRow">${daily.goals.map((g) =>
-        `<span class="goalChip${g.done ? ' done' : ''}">${g.label}</span>`).join('')}</div>`
-      : '';
+    // ONE reward figure. The bells and the objectives used to report their
+    // takings separately, in different corners, in 9px type — a player could
+    // not have said what the run paid.
+    if ((this._reward || 0) > 0) {
+      core.push(`<div class="rewardLine">+${this._reward.toLocaleString('en-US')} ◆</div>`);
+    }
+
+    // ── Everything below lives behind MORE STATS ─────────────────────────
 
     // The run itself, as a shape (Phase 21). The speed curve recovered from
     // the ghost track, with every wrong read hung at the distance it
@@ -643,16 +673,16 @@ export class UI {
         const x = (m.x * 100).toFixed(2);
         return `<line class="rm ${m.kind}" x1="${x}" y1="0" x2="${x}" y2="${H}"/>`;
       }).join('');
-      parts.push('<div class="recapHead">THE RUN</div>');
-      parts.push(
+      deep.push('<div class="recapHead">THE RUN</div>');
+      deep.push(
         `<svg class="runPlot" viewBox="0 0 100 ${H}" preserveAspectRatio="none" aria-hidden="true">`
         + `<polygon class="rf" points="0,${H} ${pts} 100,${H}"/>`
         + `<polyline class="rl" points="${pts}"/>${marks}</svg>`
       );
       if (review.worst) {
-        // The count is already on the REVIEW button directly above; this line
+        // The count is already on the REVIEW button on the card; this line
         // exists to say WHERE, which is the thing the button cannot say.
-        parts.push(`<div class="runNote">WORST STRETCH ${review.worst.from}–${review.worst.to} M</div>`);
+        deep.push(`<div class="runNote">WORST STRETCH ${review.worst.from}–${review.worst.to} M</div>`);
       }
     }
 
@@ -660,8 +690,9 @@ export class UI {
     // then the three now live with the progress this run actually made
     // against them. A freshly drawn objective reports zero by construction:
     // showing it part-filled would draw the retroactive credit the queue
-    // exists to refuse.
-    if (objectives?.live?.length || dailyChips) {
+    // exists to refuse. (The daily chips left this block for the core
+    // checklist above — the queue keeps its own heading, the goals theirs.)
+    if (objectives?.live?.length || objectives?.cleared?.length) {
       const bits = [];
       for (const c of objectives?.cleared || []) {
         bits.push(`<div class="objRow done"><span class="ol">${c.label}</span>`
@@ -674,9 +705,8 @@ export class UI {
           + `<span class="ob"><i style="width:${pct}%"></i></span>`
           + `<span class="ov">◆${o.reward}</span></div>`);
       }
-      parts.push('<div class="recapHead">OBJECTIVES</div>');
-      if (bits.length) parts.push(`<div class="objList">${bits.join('')}</div>`);
-      parts.push(dailyChips);
+      deep.push('<div class="recapHead">OBJECTIVES</div>');
+      if (bits.length) deep.push(`<div class="objList">${bits.join('')}</div>`);
     }
 
     // The run's numbers as a broadcast stat bar: figure over label.
@@ -685,7 +715,6 @@ export class UI {
     if (lifetime) {
       const read = (this._runCorrect || 0) + (this._runWrong || 0);
       const acc = read > 0 ? Math.round((this._runCorrect || 0) / read * 100) : 0;
-      const runs = lifetime.runs || 0;
       // Phase B adds exactly one figure: how fast the reading was. It replaces
       // the lifetime kilometres, which said the least of the three now that
       // distance is not a board metric.
@@ -695,7 +724,7 @@ export class UI {
       // whole per-word ledger: a word missed four times, then read clean three
       // times running, is gone from the lane for good.
       for (const r of (this._retired || []).slice(0, 2)) {
-        parts.push(`<div class="defRow"><b>BEATEN</b>${r.word} — ` +
+        deep.push(`<div class="defRow"><b>BEATEN</b>${r.word} — ` +
           `missed ${r.misses} time${r.misses === 1 ? '' : 's'}, now retired</div>`);
       }
 
@@ -708,7 +737,7 @@ export class UI {
       const first = this._routeGates > 0
         ? [`${Math.min(this._gates, this._routeGates)}/${this._routeGates}`, 'GATES']
         : [`${this._deathDistance ?? 0}`, 'METRES'];
-      parts.push(`<div class="statBar four">${[
+      deep.push(`<div class="statBar four">${[
         first,
         [`${acc}%`, 'TRUE READS'],
         [avgRead, 'AVG READ'],
@@ -719,12 +748,18 @@ export class UI {
       // dominant multiplier and was invisible on the card unless it
       // happened to be the standout. ONE line names the cause.
       if ((this._bestChain || 0) >= 2) {
-        parts.push(`<div class="defRow"><b>BEST CHAIN ${this._bestChain}</b>` +
+        deep.push(`<div class="defRow"><b>BEST CHAIN ${this._bestChain}</b>` +
           'unbroken reads multiply the score</div>');
       }
     }
 
-    this.deathRecap.innerHTML = parts.join('');
+    // The fold. Present only when there is something under it.
+    if (deep.length) {
+      core.push('<button class="moreStats" id="moreStats" data-rc2-ui>MORE STATS ›</button>');
+      core.push(`<div id="deepStats" hidden>${deep.join('')}</div>`);
+    }
+
+    this.deathRecap.innerHTML = core.join('');
   }
 
   /** The review panel: every missed word, with what it meant. */

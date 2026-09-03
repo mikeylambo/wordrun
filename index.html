@@ -196,6 +196,27 @@
   .recapHead{font-size:11px;font-weight:800;letter-spacing:.26em;color:#dcecf7;margin:2px 0 -2px}
     .missedOpen{pointer-events:auto;cursor:pointer;border:1px solid rgba(139,228,255,.3);border-radius:2px;background:rgba(18,42,54,.35);color:#8be4ff;font-family:inherit;font-size:9px;font-weight:700;letter-spacing:.22em;padding:10px 14px;margin:2px auto 0}
   .missedOpen:active{background:rgba(28,62,78,.6)}
+  /* RC-2: the default card is five moments — score, celebration, goals,
+     misses, play again. Goals read at arm's length: one headline count and
+     a big ✓/○ per goal. Everything analytical folds behind MORE STATS. */
+  .goalHead{font-size:8px;font-weight:700;letter-spacing:.3em;color:var(--dimmer);text-align:center;margin-top:6px}
+  .goalList{display:flex;flex-direction:column;gap:9px;margin:0 auto}
+  .goalCheck{display:flex;gap:12px;align-items:center;text-align:left}
+  .goalCheck i{font-style:normal;flex:0 0 22px;width:22px;height:22px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.16);border-radius:50%;font-size:11px;color:var(--dimmer)}
+  .goalCheck.done i{border-color:rgba(139,228,255,.7);background:rgba(18,42,54,.55);color:#8be4ff;font-weight:800}
+  #deathRecap .goalCheck .goalChip{font-size:11px;letter-spacing:.14em;color:rgba(232,244,251,.5)}
+  #deathRecap .goalCheck .goalChip.done{color:#bff0ff;font-weight:700}
+  #deathRecap .goalCheck .goalChip.done::before{content:none}
+  /* Reserved-hue check: gold (~41°) collides with the 28° and 45° reserved
+     accents — the reward celebrates in the card's own cyan instead. */
+  .rewardLine{font-size:14px;font-weight:800;letter-spacing:.16em;color:#8be4ff;text-align:center;margin-top:3px}
+  .moreStats{pointer-events:auto;cursor:pointer;border:0;background:transparent;color:var(--dimmer);font-family:inherit;font-size:8px;font-weight:700;letter-spacing:.26em;padding:11px;margin:2px auto 0}
+  .moreStats:active{color:#cfeaf6}
+  #deepStats{display:flex;flex-direction:column;gap:11px;align-items:stretch}
+  #deepStats[hidden]{display:none}
+  /* The footnote share row belongs to the analysis, not the five moments. */
+  #deathScreen #shotBtns{display:none}
+  #deathScreen.deepOpen #shotBtns{display:flex}
   #missedPanel{position:absolute;inset:0;z-index:44;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(4,7,11,.9);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);pointer-events:auto}
   #missedPanel.on{display:flex}
   #missedPanel .mCard{width:min(90vw,380px);max-height:78vh;overflow-y:auto;text-align:left}

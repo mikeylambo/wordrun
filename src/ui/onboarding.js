@@ -22,11 +22,6 @@ export class OnboardingUI {
          sentence — you learn what the game wants and see which button does
          it in the same glance. */
       #rc7Onboarding .rules{display:grid;gap:0;text-align:left;margin:0 0 18px}
-      /* PD-1: the first-launch card is the ESSENCE — the verbs and one
-         sentence. The full sheet shows from HOW TO PLAY (pause). */
-      #rc7Onboarding.condensed .rule:not(:first-child):not(.essence){display:none}
-      #rc7Onboarding .essence{display:none}
-      #rc7Onboarding.condensed .essence{display:block;color:#8be4ff;font-style:normal}
       #rc7Onboarding .rule{padding:11px 0;border-bottom:1px solid rgba(255,255,255,.08);
         font:500 13px/1.5 var(--face);letter-spacing:.005em;color:rgba(244,251,254,.8)}
       #rc7Onboarding .rule:last-child{border-bottom:0}
@@ -81,7 +76,6 @@ export class OnboardingUI {
         <div class="rules">
           <div class="rule"><b>${yes}</b> if the word is spelled correctly.
             A misspelled word can simply pass — or say so with <b>${no}</b>.</div>
-          <div class="rule essence">Read well. Stay ahead. The run teaches the rest.</div>
           <div class="rule">Every word you read right makes you <i>faster</i>.
             Every one you get wrong slows you down.</div>
           <div class="rule">You have <i>three hearts</i>, and any wrong read costs one.
@@ -123,19 +117,15 @@ export class OnboardingUI {
   setGhost(on) { this.ghostEnabled = !!on; this._sync(); }
 
   show() {
-    // PD-1 (progressive disclosure): a first launch gets the ESSENCE — the
-    // two verbs and one sentence — because the guided run teaches the rest
-    // in context. The full six-rule sheet stays exactly as it was, one
-    // layer deeper, as the reference card behind HOW TO PLAY.
+    // Playtest (RC): the condensed "essence" experiment made the fresh open
+    // WORSE — the full six-rule card is the one that works, everywhere.
     this.helpMode = false;
-    this.root.classList.add('condensed');
     this.startButton.textContent = 'BEGIN RUN';
     this.root.classList.add('on');
   }
 
   showHelp() {
     this.helpMode = true;
-    this.root.classList.remove('condensed');
     this.startButton.textContent = 'BACK';
     this.root.classList.add('on');
   }

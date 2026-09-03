@@ -696,6 +696,9 @@ function finalizeRun() {
     correct: wg.correctCount,
     wrong: wg.wrongCount,
     bestChain: sim.player.bestChain,
+    // RC-2: ONE reward figure on the card — bells plus cleared objectives,
+    // already banked above; the card only reports the total.
+    reward: banked + (objectives.reward || 0),
     best: Storage.bestFor(SEED),
     isPb,
     shotUrl,
@@ -1035,6 +1038,19 @@ copyStats?.addEventListener('click', async (e) => {
 // back to it. The card keeps the score; the panel keeps the teaching.
 const missedPanel = document.getElementById('missedPanel');
 document.getElementById('deathRecap')?.addEventListener('click', (e) => {
+  // RC-2: the fold. The card shows five moments; MORE STATS opens the
+  // analysis (run shape, objectives, stat bar) and the share row with it.
+  const more = e.target.closest('#moreStats');
+  if (more) {
+    e.stopPropagation();
+    audio.uiTap();
+    const deepStats = document.getElementById('deepStats');
+    const opening = !!deepStats?.hidden;
+    if (deepStats) deepStats.hidden = !opening;
+    more.textContent = opening ? 'LESS STATS ‹' : 'MORE STATS ›';
+    ui.deathScreen.classList.toggle('deepOpen', opening);
+    return;
+  }
   if (!e.target.closest('#missedOpen')) return;
   e.stopPropagation();
   audio.uiTap();

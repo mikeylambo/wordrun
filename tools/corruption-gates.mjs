@@ -1018,7 +1018,7 @@ head('STANDOUT — one line, chosen by rarity, or nothing at all');
     main.includes('burstWindow.length = 0;\n        earlyStreak = 0;'));
   check('the card renders at most the ONE standout the picker chose',
     main.includes('standout: pickStandout({') &&
-    ui.includes('if (extras.standout) parts.push(row(extras.standout.k, extras.standout.v));') &&
+    ui.includes('if (extras.standout) core.push(row(extras.standout.k, extras.standout.v));') &&
     (ui.match(/extras\.standout\.k/g) || []).length === 1);
 }
 
