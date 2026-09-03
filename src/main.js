@@ -1154,6 +1154,9 @@ function drainSimEvents() {
           const early = Math.max(0, Math.min(1,
             ((e.latencyMult ?? W.LATE_MULT) - W.LATE_MULT) / (W.EARLY_MULT - W.LATE_MULT)));
           audio.gate(e.chain, early, e.dashChain);
+          // The verdict, peripherally: one screen-edge wash in the right
+          // colour, because at speed the eye is already on the next word.
+          ui.answerFlash(true);
           // N1: the word typesets into the page — every correct read is a
           // construction event the world visibly answers (RF-guarded inside).
           editorialWorld.typesetSnap(early);
@@ -1185,6 +1188,9 @@ function drainSimEvents() {
         // sound, red flash, the heart the sim already took). Missing a real
         // word is only a slowdown — a deflating cue, no crash language, so
         // the player learns hearts are never lost by hesitating.
+        // The verdict wash in the wrong colour, for BOTH wrong reads — the
+        // drain's darkness follows it and the two together are unmissable.
+        ui.answerFlash(false);
         if (e.hit) {
           // The drain (Phase 9): a wrong tap pulls light and highs out of
           // the world for a beat — no bright crash-flash; loss is darkness.

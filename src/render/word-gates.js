@@ -24,7 +24,7 @@ const LETTER_H = 2.05;        // world metres of glyph height (the legibility di
 const CANVAS_H = 256;
 const FONT_PX = 168;
 const SHOW_AHEAD = 260;       // build plates well inside fog range
-const LINGER = 0.65;          // seconds a resolved plate hangs on for feedback
+const LINGER = 0.85;          // seconds a resolved plate hangs on for feedback
 
 // The plates are baked into canvas textures, so a face that finishes loading
 // after the first bake would leave the word drawn in the fallback until the
@@ -122,15 +122,28 @@ class Plate {
     if (quiet) g.globalAlpha = 0.55;
     g.fillStyle = COL.plate;
     g.strokeStyle = accent;
-    g.lineWidth = state === 'idle' || held || quiet ? (held ? 7 : quiet ? 4 : 5) : 12;
+    g.lineWidth = state === 'idle' || held || quiet ? (held ? 7 : quiet ? 4 : 5) : 15;
     g.shadowColor = accent;
-    g.shadowBlur = state === 'idle' || held || quiet ? (held ? 18 : quiet ? 8 : 14) : 30;
+    g.shadowBlur = state === 'idle' || held || quiet ? (held ? 18 : quiet ? 8 : 14) : 44;
     const r = 34;
     g.beginPath();
     g.roundRect(10, 10, cw - 20, ch - 20, r);
     g.fill();
     g.stroke();
     g.restore();
+
+    // Playtest: the verdict plate fills with its own colour — a translucent
+    // accent wash under the glyphs, so right/wrong reads at a glance from
+    // any distance. The word still paints solid on top; legibility first.
+    if (state === 'right' || state === 'wrong') {
+      g.save();
+      g.globalAlpha = 0.2;
+      g.fillStyle = accent;
+      g.beginPath();
+      g.roundRect(10, 10, cw - 20, ch - 20, r);
+      g.fill();
+      g.restore();
+    }
 
     // The plate is the surface the entire game is read from, and it used to
     // render in whatever `ui-monospace` resolved to — SF Mono on iOS, Consolas

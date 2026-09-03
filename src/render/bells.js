@@ -35,26 +35,38 @@ export class BellRenderer {
     // the standing rule. Brighter emissive so it pops off the navy track.
     const bright = new THREE.MeshStandardMaterial({
       color: 0xcaff4a, roughness: 0.38, metalness: 0.35, flatShading: true,
-      emissive: 0x51720f, emissiveIntensity: 0.85,
+      emissive: 0x6d9a14, emissiveIntensity: 1.5,
     });
     const dark = new THREE.MeshStandardMaterial({
       color: 0x74901f, roughness: 0.5, metalness: 0.25, flatShading: true,
       emissive: 0x243506, emissiveIntensity: 0.35,
     });
+    // Playtest round two: brighter still, and each bell wears a soft
+    // additive halo — the classic pickup glow, one extra instanced draw
+    // call, lighting-independent so it survives the darkest bands.
+    const glow = new THREE.MeshBasicMaterial({
+      color: 0xcaff4a, transparent: true, opacity: 0.28, depthWrite: false,
+      blending: THREE.AdditiveBlending, fog: true,
+    });
     this.body = new THREE.InstancedMesh(
-      new THREE.ConeGeometry(0.34, 0.52, 6, 1, false), bright, this.max
+      new THREE.ConeGeometry(0.40, 0.60, 6, 1, false), bright, this.max
     );
     this.clapper = new THREE.InstancedMesh(
-      new THREE.SphereGeometry(0.09, 5, 3), dark, this.max
+      new THREE.SphereGeometry(0.10, 5, 3), dark, this.max
+    );
+    this.halo = new THREE.InstancedMesh(
+      new THREE.SphereGeometry(0.72, 10, 7), glow, this.max
     );
     this.body.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.clapper.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.halo.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     // These 56 tiny instances are rebuilt around the player every frame, but
     // an InstancedMesh keeps its bounds near its construction origin, so at
     // long distances the default cull would drop every bell. Always submit.
     this.body.frustumCulled = false;
     this.clapper.frustumCulled = false;
-    scene.add(this.body, this.clapper);
+    this.halo.frustumCulled = false;
+    scene.add(this.body, this.clapper, this.halo);
   }
 
   reset(terrain = this.terrain) {
@@ -62,6 +74,7 @@ export class BellRenderer {
     this.field.setTerrain(terrain);
     this.body.count = 0;
     this.clapper.count = 0;
+    this.halo.count = 0;
     this.lastT = -Infinity;
     this.lastD = -Infinity;
   }
@@ -81,6 +94,7 @@ export class BellRenderer {
       this.dummy.scale.setScalar(1);
       this.dummy.updateMatrix();
       this.body.setMatrixAt(n, this.dummy.matrix);
+      this.halo.setMatrixAt(n, this.dummy.matrix);
       this.dummy.position.y = y - 0.31;
       this.dummy.updateMatrix();
       this.clapper.setMatrixAt(n, this.dummy.matrix);
@@ -88,8 +102,10 @@ export class BellRenderer {
     }
     this.body.count = n;
     this.clapper.count = n;
+    this.halo.count = n;
     this.body.instanceMatrix.needsUpdate = true;
     this.clapper.instanceMatrix.needsUpdate = true;
+    this.halo.instanceMatrix.needsUpdate = true;
   }
 }
 

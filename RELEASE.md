@@ -1727,3 +1727,17 @@ Slice history:
   to 1.9 s (playtest: too short), audio re-timed to the longer reveal,
   REDUCED FLASH fade lengthened to match. Four new checks under
   gate:words.
+- Visibility pass (playtest). THE BELLS: bigger (0.40 cone), a hotter
+  emissive (1.5), and every bell now wears a soft additive halo — one
+  extra instanced draw call, lighting-independent, so the pickup glows
+  identically in the darkest band and at full noon. THE VERDICT: the
+  right/wrong feedback got authority at every distance. The resolved
+  plate fills with a translucent wash of its own semantic colour under
+  the glyphs (word still solid on top — legibility first), its rim
+  thickened and its glow deepened, and it lingers 0.85 s instead of
+  0.65. And because the eye is already on the NEXT word at speed, the
+  verdict now also arrives peripherally: one brief screen-edge wash in
+  the semantic right/wrong pair — the same pair the colour-vision modes
+  remap, so it survives every mode — for acted answers and both wrong
+  reads, never for a passive pass (the ownership ruling holds), and
+  REDUCED FLASH skips it entirely. Four checks under gate:v1.

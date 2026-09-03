@@ -55,6 +55,19 @@ export class UI {
     this.drainDimEl = $('drainDim');
     this._drainT = 0;
 
+    // The answer vignette (playtest: "the visual for correct/incorrect
+    // selection needs to be more visible"). At speed the eye is already on
+    // the NEXT word, so the verdict has to arrive peripherally: one brief
+    // screen-edge wash in the semantic right/wrong colour — the same pair
+    // the colour-vision modes remap, so the verdict survives every mode.
+    // Acted answers only (a passive pass stays quiet), REDUCED FLASH skips.
+    this.answerGlow = document.createElement('div');
+    this.answerGlow.id = 'answerGlow';
+    this.answerGlow.style.cssText =
+      'position:fixed;inset:0;z-index:5;pointer-events:none;opacity:0;';
+    document.body.appendChild(this.answerGlow);
+    this._ansT = 0;
+
     // Hearts — the fail state (Phase 0: folded in from the deleted rc5.js's
     // second HUD). One pip per life in the HUD column's vitals slot, so they
     // stack under the score instead of racing its clamped height. The pips are
@@ -400,6 +413,21 @@ export class UI {
       if (this.drainEl) this.drainEl.style.opacity = (k * 0.85).toFixed(3);
       if (this.drainDimEl) this.drainDimEl.style.opacity = (k * 0.42).toFixed(3);
     }
+
+    // The answer vignette: sharp onset, fast decay — a verdict, not a glow.
+    if (this._ansT > 0) {
+      this._ansT = Math.max(0, this._ansT - dt * 4.5);
+      this.answerGlow.style.opacity = (this._ansT * this._ansT).toFixed(3);
+    }
+  }
+
+  /** One peripheral wash of the verdict's own colour. Acted answers only. */
+  answerFlash(ok) {
+    if (ACCESS.reducedFlash) return;
+    const c = ok ? ACCESS.right : ACCESS.wrong;
+    this.answerGlow.style.background =
+      `radial-gradient(130% 100% at 50% 52%, transparent 58%, ${c}${ok ? '30' : '3d'} 100%)`;
+    this._ansT = 1;
   }
 
   /** Phase Q: step the results headline up the count-up curve. Beats come

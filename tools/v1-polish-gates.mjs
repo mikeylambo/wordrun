@@ -612,5 +612,24 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     'both bookend sounds exist in the one audio system');
 }
 
+// ── Visibility pass: the bells' halo and the answer vignette ─────────────
+{
+  const bells = read('src/render/bells.js');
+  const uiCode = read('src/ui/ui.js');
+  const mainCode = read('src/main.js');
+  const plate = read('src/render/word-gates.js');
+  check(bells.includes('AdditiveBlending') && bells.includes('this.halo = new THREE.InstancedMesh'),
+    'every bell wears an additive halo — visible in the darkest band');
+  check(uiCode.includes('answerFlash(ok)') &&
+    uiCode.includes('if (ACCESS.reducedFlash) return;') &&
+    uiCode.includes('ok ? ACCESS.right : ACCESS.wrong'),
+    'the answer vignette is RF-skipped and wears the semantic pair, colour-vision aware');
+  check(/if \(e\.answered\) \{[\s\S]{0,700}ui\.answerFlash\(true\)/.test(mainCode) &&
+    mainCode.includes('ui.answerFlash(false);'),
+    'the verdict wash fires for acted answers and both wrong reads — never a passive pass');
+  check(/state === 'right' \|\| state === 'wrong'[\s\S]{0,400}globalAlpha = 0\.2/.test(plate),
+    'the verdict plate fills with its own colour under the glyphs');
+}
+
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);
