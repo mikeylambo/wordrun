@@ -1660,3 +1660,21 @@ Slice history:
   the dash drop, the dread crouch, the stumble) and the ghost pose
   byte-identically on the new body. Four checks under gate:v1 keep the
   box primitive from ever creeping back.
+- Phase N4 — the bookends. The game's fantasy is abstract, so the opening
+  presentation now works as hard as Temple Run's first five seconds:
+  every run begins with a ~1.2 s authored beat that TEACHES the premise
+  with no lore — darkness in which the first word typesets (the plate's
+  glow bleeding through the near-opaque veil), the road revealing itself
+  forward from under the runner to the horizon, and one slash of the
+  Redline's own red arriving behind, in the live danger accent so every
+  colour-vision mode keeps the arrival as its one hue. Presentation
+  only: the sim runs underneath from the first frame, the veil never
+  blocks input (a buffered answer lands straight through it, verified
+  live), and the opening flat means the launch costs zero reading time;
+  REDUCED FLASH gets one smooth fade. Three scheduled sounds carry the
+  same beat. At the other end, the hundredth gate is now an ARRIVAL the
+  moment it happens: one full rising breath bigger than the release, a
+  swell of ink, and the camera going still — then the endgame's coast
+  and choice follow on their own clock as before. Six checks under
+  gate:v1; explicit integration throughout (startRun begins it, the
+  frame loop drives it, quitToTitle clears it).

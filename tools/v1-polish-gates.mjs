@@ -493,7 +493,7 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     'the shop quiet-freezes a live run, through the same hooks as settings');
   check(mainSrc.includes("accessUI?.panel.classList.remove('on')") &&
     mainSrc.includes("shopUI?.panel.classList.remove('on')") &&
-    mainSrc.indexOf('panelFroze = false;\n  accessUI') > mainSrc.indexOf('function quitToTitle'),
+    mainSrc.indexOf('panelFroze = false;\n  launch.cancel();\n  accessUI') > mainSrc.indexOf('function quitToTitle'),
     'quitting to the title closes every overlay panel and clears the freeze');
 }
 
@@ -587,6 +587,29 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   check(actors.includes('function poseRunner(r, phase, speedN, airborne, dt, style = {})') &&
     actors.includes('hips, chest, head, halo, pool, tail'),
     'the rig contract is untouched — every E3 posture and the ghost pose identically');
+}
+
+// ── N4: the bookends — the authored launch and the FINISH arrival ─────────
+{
+  const launch = read('src/render/launch-sequence.js');
+  const mainCode = read('src/main.js');
+  const audioCode = read('src/audio/audio.js');
+  check(!/\bsim\.|__SIM/.test(launch),
+    'the launch is presentation only — it cannot read or write the sim');
+  check(launch.includes('pointer-events:none') &&
+    launch.includes('ACCESS.reducedFlash'),
+    'the launch never blocks input, and REDUCED FLASH gets one smooth fade');
+  check(launch.includes('ACCESS.dangerCss'),
+    'the slash wears the LIVE danger accent — colour-vision modes carry through');
+  check(mainCode.includes('launch.begin()') &&
+    mainCode.includes('launch.update(dt)') &&
+    mainCode.includes('launch.cancel()'),
+    'explicit integration: startRun begins it, the frame loop drives it, quitToTitle clears it');
+  check(mainCode.includes("case 'route_finished':") &&
+    /route_finished':[\s\S]{0,300}finishArrival\(\);[\s\S]{0,200}pulseInk\(\);[\s\S]{0,200}settle\(\);/.test(mainCode),
+    'the hundredth gate is an arrival: breath, ink swell, camera stillness');
+  check(audioCode.includes('launch()') && audioCode.includes('finishArrival()'),
+    'both bookend sounds exist in the one audio system');
 }
 
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);

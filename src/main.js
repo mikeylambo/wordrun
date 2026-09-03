@@ -19,6 +19,7 @@ import { DataworldPass } from './render/dataworld.js';
 import { StreakBurst } from './render/streak-burst.js';
 import { WindStreaks, TrackPylons } from './render/speed-fantasy.js';
 import { EditorialWorld } from './render/editorial-world.js';
+import { LaunchSequence } from './render/launch-sequence.js';
 import { BellRenderer } from './render/bells.js';
 import { HEARTS } from './design/bells.js';
 import { flowFactor, flowGlow, flowLevel } from './render/flow-curve.js';
@@ -85,6 +86,7 @@ const trackPylons = new TrackPylons(stage.scene, sim.terrain);
 // Phase M: the Editorial World — the page geometry beside the track, set
 // denser as the run's band rises and struck through as the Redline closes.
 const editorialWorld = new EditorialWorld(stage.scene, sim.terrain);
+const launch = new LaunchSequence();
 // The bells the runner collects. The sim owns the field and the pickup
 // (sim.bells); this only draws it. Created after the material pass so its
 // baked-in gold emissive is left alone by the pass's material sweep.
@@ -375,6 +377,10 @@ function startRun() {
   flowChain = 0;
   endedFlowLevel = 0;
   editorialWorld.reset(); // the manuscript starts sparse each run
+  // N4: the authored launch — darkness, the word typesets, the road draws
+  // forward, the Redline slashes in. Presentation only; input never blocks.
+  launch.begin();
+  audio.launch();
   worldBand = 0;
   inScream = false;
   burstWindow = [];
@@ -725,6 +731,7 @@ function quitToTitle() {
   // No overlay panel survives the trip to the title — the overlap bug was
   // the settings sheet still open over a freshly shown title screen.
   panelFroze = false;
+  launch.cancel();
   accessUI?.panel.classList.remove('on');
   shopUI?.panel.classList.remove('on');
   onboarding?.hide();
@@ -1093,6 +1100,14 @@ function drainSimEvents() {
       // N1: a pre-arm answer was buffered — the plate shows the side-bar,
       // this is only the sound of it. Acknowledgment, not payoff.
       case 'word_held': audio.wordHeld(e.said === 'real'); break;
+      // N4: the hundredth gate is an ARRIVAL — one rising breath, a swell
+      // of ink, and the camera going still. The endgame layer's coast and
+      // choice follow on their own clock; this is the moment itself.
+      case 'route_finished':
+        audio.finishArrival();
+        editorialWorld.pulseInk();
+        rig.settle();
+        break;
       case 'word_correct': {
         {
           const t = tierTally[e.tier] || (tierTally[e.tier] = { a: 0, c: 0 });
@@ -1247,6 +1262,7 @@ function tick(dt) {
   trackPylons.terrain = sim.terrain;
   trackPylons.update(pv.d);
   editorialWorld.terrain = sim.terrain;
+  launch.update(dt);
   const bandNow = editorialWorld.update(pv.d, p.chain, bv.gap, dt);
   // E2: crossing a band threshold is an ARRIVAL — one note rising with the
   // band, one swell of ink (the swell yields to REDUCED FLASH; the note

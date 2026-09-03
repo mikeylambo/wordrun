@@ -521,6 +521,28 @@ export class Audio {
     this._burst(0.5, 0.09, 3200, 'highpass', 0, this.bus.ambience);
   }
 
+  // ── Bookends (Phase N4): the run's opening beat and the route's arrival.
+
+  /** The launch: the first word typesets in the dark, the road draws
+   *  forward, the Redline arrives. Three scheduled sounds, one beat. */
+  launch() {
+    this._burst(0.04, 0.07, 5200, 'highpass', 0, this.bus.ui, 0.8);
+    this._tone({ type: 'sine', f0: 88, f1: 132, dur: 0.7, vol: 0.055,
+      bus: this.bus.cinematic, delay: 0.28 });
+    this._tone({ type: 'square', f0: 320, f1: 90, dur: 0.26, vol: 0.06,
+      bus: this.bus.threat, delay: 0.85,
+      filter: { type: 'bandpass', freq: 1100, q: 3 } });
+  }
+
+  /** The hundredth gate: reaching the route's end is an ARRIVAL — one
+   *  full rising breath and a floor thump, bigger than the release. */
+  finishArrival() {
+    this._tone({ type: 'sine', f0: 233, f1: 466, dur: 0.95, vol: 0.09, bus: this.bus.cinematic });
+    this._tone({ type: 'triangle', f0: 466, f1: 932, dur: 0.6, vol: 0.04,
+      bus: this.bus.cinematic, delay: 0.12 });
+    this._thump(0.24, 0, this.bus.score);
+  }
+
   /** A dash ends on a climbed ladder: the endpoint hit, sized to the rung. */
   dashClimax(rung = 0) {
     const e = Math.min(1, rung / 4);
