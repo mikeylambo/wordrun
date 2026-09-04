@@ -358,14 +358,34 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
   Promise.race([plateFontReady, new Promise((r) => setTimeout(r, 700))]).then(go, go);
 }));
 
+// RC-4: an arrival is covering a run that has not been built yet. A second
+// tap during the fade must not start a second run.
+let launchPending = false;
+
 function startRun() {
   // PD-2: the full arrival plays from the MENU; a retry (AGAIN, the pause
-  // menu's restart, a finish-card rerun) gets the one-second cut. Read the
-  // phase before sim.start() overwrites it.
+  // menu's restart, a finish-card rerun) gets the one-second cut. The phase
+  // is read HERE, while it is still the phase the player tapped from — the
+  // run that overwrites it is not built until the black frame.
+  //
+  // RC-4 — THE ORDER, fixed properly: menu → fade to black → the storm →
+  // gameplay. This function now does nothing but start the fade over
+  // whatever is on screen; the run itself is BUILT IN THE DARK, on the
+  // first solid-black frame (buildRunInTheDark below). Previously the world
+  // was swapped here and the veil faded in on top of it, so the player
+  // watched ~0.8s of gameplay before the black — the menu had already gone.
+  if (launchPending) return;
   const fromTitle = sim.phase === PHASE.TITLE;
+  launchPending = true;
   audio.start();
   music.attach(audio);
   music.play();
+  launch.begin({ quick: !fromTitle, onBlack: buildRunInTheDark });
+  audio.launch(!fromTitle);
+}
+
+function buildRunInTheDark() {
+  launchPending = false;
   const ghostData = ghostEnabled ? Storage.loadGhost(SEED) : null;
   const runs = Storage.runsToday(SEED);
 
@@ -420,10 +440,8 @@ function startRun() {
   flowChain = 0;
   endedFlowLevel = 0;
   editorialWorld.reset(); // the manuscript starts sparse each run
-  // N4: the authored launch — darkness, the storm, the road draws the
-  // world in. Presentation only; input never blocks. PD-2: quick on retry.
-  launch.begin({ quick: !fromTitle });
-  audio.launch(!fromTitle);
+  // N4: the authored launch is ALREADY playing — startRun began it, and this
+  // function is its black frame. Presentation only; input never blocks.
   worldBand = 0;
   inScream = false;
   burstWindow = [];
@@ -782,6 +800,7 @@ function quitToTitle() {
   // No overlay panel survives the trip to the title — the overlap bug was
   // the settings sheet still open over a freshly shown title screen.
   panelFroze = false;
+  launchPending = false;
   launch.cancel();
   accessUI?.panel.classList.remove('on');
   shopUI?.panel.classList.remove('on');
@@ -866,7 +885,7 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
 }));
 
 function onAdvance() {
-  if (running || paused || onboarding?.visible || offerActive) return;
+  if (running || paused || onboarding?.visible || offerActive || launchPending) return;
   // PD-2: ONE modal rule for every overlay — a tap on or around ANY open
   // sheet (settings, shop, profile) can never start a run underneath it.
   // The pause menu and the continue offer are covered by the flags above.
@@ -1507,7 +1526,7 @@ if (new URLSearchParams(location.search).get('dev') === '1') {
 }
 
 window.__INPUT = input;
-window.__START = () => { startRun(); return sim.state(); };
+window.__START = () => { startRun(); launch.snapToBlack(); return sim.state(); };
 window.__QUIT = () => { quitToTitle(); return { phase: sim.phase }; };
 window.__FINISH_RUN = () => { onFinishRun(); return { phase: sim.phase }; };
 window.__GHOST = (on = ghostEnabled) => { setGhostEnabled(on); return { enabled: ghostEnabled }; };

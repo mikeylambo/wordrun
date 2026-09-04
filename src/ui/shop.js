@@ -21,7 +21,7 @@ export function buildShopPanel({ stats, onEquip, onOpen, onClose }) {
     /* z 90: above the pause button (81) and mute (80), so nothing behind an
        open panel is tappable — the overlap bug was the pause button living
        on top of this sheet. */
-    #shopPanel{position:absolute;inset:0;z-index:90;display:none;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:rgba(4,7,10,.82);pointer-events:auto}
+    #shopPanel{position:absolute;inset:0;z-index:90;display:none;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:#05080c;background-image:linear-gradient(180deg,#070c11,#04070a);pointer-events:auto}
     #shopPanel.on{display:flex}
     #shopPanel h3{margin:0;font:700 12px/1 var(--face);letter-spacing:.3em;color:rgba(244,250,253,.8)}
     #shopBalance{font:600 10px/1 var(--face);letter-spacing:.2em;color:#a8ecff}

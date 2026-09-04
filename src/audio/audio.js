@@ -264,7 +264,10 @@ export class Audio {
     const stand = this.standActive ? 0.06 : 1;
     this._set(this.bus.ambience.gain, (run ? (kill ? 0.20 : 0.92) : 0) * stand, 0.11);
     this._set(this.bus.surface.gain, (run ? (kill ? 0.03 : 0.95) : 0) * stand, 0.08);
-    this._set(this.bus.threat.gain, run ? (kill ? 0.30 : 0.92) : 0, 0.08);
+    // RC-4: the Redline family (roar, scream, crackle, footfalls, the
+    // arrival strikes) sits well under the mix — see v1-final-mix.js,
+    // which owns the live level and must agree with this base.
+    this._set(this.bus.threat.gain, run ? (kill ? 0.20 : 0.55) : 0, 0.08);
 
     const beastPan = this._panFor(sim?.beast?.x ?? p.x);
     if (this.roar.pan) this._set(this.roar.pan.pan, beastPan, 0.05);
@@ -541,18 +544,18 @@ export class Audio {
     // PD-2: a retry's quick cut gets the tick and ONE strike, nothing more.
     this._burst(0.04, 0.05, 5200, 'highpass', 0, this.bus.ui, 0.8);
     if (quick) {
-      this._tone({ type: 'square', f0: 320, f1: 90, dur: 0.2, vol: 0.028,
+      this._tone({ type: 'square', f0: 320, f1: 90, dur: 0.2, vol: 0.018,
         bus: this.bus.threat, delay: 0.26,
         filter: { type: 'bandpass', freq: 1100, q: 3 } });
       return;
     }
-    this._tone({ type: 'square', f0: 320, f1: 90, dur: 0.26, vol: 0.032,
+    this._tone({ type: 'square', f0: 320, f1: 90, dur: 0.26, vol: 0.020,
       bus: this.bus.threat, delay: 0.9,
       filter: { type: 'bandpass', freq: 1100, q: 3 } });
-    this._tone({ type: 'square', f0: 420, f1: 140, dur: 0.14, vol: 0.018,
+    this._tone({ type: 'square', f0: 420, f1: 140, dur: 0.14, vol: 0.011,
       bus: this.bus.threat, delay: 1.0,
       filter: { type: 'bandpass', freq: 1400, q: 3 } });
-    this._tone({ type: 'square', f0: 520, f1: 180, dur: 0.12, vol: 0.014,
+    this._tone({ type: 'square', f0: 520, f1: 180, dur: 0.12, vol: 0.009,
       bus: this.bus.threat, delay: 1.1,
       filter: { type: 'bandpass', freq: 1700, q: 3 } });
     this._tone({ type: 'sine', f0: 88, f1: 132, dur: 0.9, vol: 0.055,

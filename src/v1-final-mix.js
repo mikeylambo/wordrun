@@ -7,7 +7,12 @@ const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
 // continuous surface bed down; Phase 27 removed that bed outright, so what is
 // left here is the threat level and the ducking. These are presentation-only
 // values; the hidden ?mix=1 calibration panel can trim them live in dB.
-TUNING.AUDIO.ROAR_MAX = 0.35;
+// Playtest, three times running: "the Redline sound is still loud". This
+// override was LIFTING the tuning value (0.30 -> 0.35), and the per-frame
+// threat-bus lift below was re-writing audio.js's own level every frame —
+// which is why turning it down anywhere else never took. Both come down
+// here, together, and this is the one place that owns the level.
+TUNING.AUDIO.ROAR_MAX = 0.20;
 
 function requestBedDuck(audio, depth = 0.08, hold = 0.22) {
   audio.__v1BedDuck = Math.max(audio.__v1BedDuck || 0, depth);
@@ -49,10 +54,11 @@ if (!Audio.prototype.__v1FinalPriorityMix) {
       this._set(this.bus.surface.gain, 0.95 * (1 - priorityDuck), 0.035);
     }
 
-    // Slight threat-bus lift, rising with actual roar proximity rather than
-    // permanently boosting every danger sound.
+    // The threat bus TRACKS proximity rather than sitting hot: quiet at
+    // distance, and still rising as the pursuit closes so the approach keeps
+    // its meaning. It no longer lifts above the mix — it sits under it.
     if (live && this.bus?.threat) {
-      this._set(this.bus.threat.gain, 0.94 + roar * 0.055, 0.045);
+      this._set(this.bus.threat.gain, 0.55 + roar * 0.05, 0.045);
     }
 
     return out;

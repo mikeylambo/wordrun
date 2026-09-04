@@ -199,8 +199,13 @@ check(!/this\.wind|this\.air\b|WIND_MAX|AIR_WIND/.test(audioSrc) &&
   'the wind bed is gone everywhere — voice, trim bus, tuning and fader');
 check(approvedMix.includes('mixerZeroIsApprovedBaseline: true') && approvedMix.includes('__DASH_MIX?.reset?.()'),
   'hidden mixer resets to zero around the approved release baseline');
-check(finalMix.includes('TUNING.AUDIO.ROAR_MAX = 0.35') && finalMix.includes('roar * 0.055'),
-  'final mix gives Beast roar more foreground presence');
+// Playtest x3 ("the Redline is still loud"): this layer owns the live level —
+// it re-writes the threat bus every frame, so the cut has to live HERE or it
+// is silently overwritten. Both layers must agree, and neither may creep back.
+check(finalMix.includes('TUNING.AUDIO.ROAR_MAX = 0.20') &&
+  finalMix.includes('this.bus.threat.gain, 0.55 + roar * 0.05') &&
+  audioSrc.includes('run ? (kill ? 0.20 : 0.55) : 0'),
+  'the Redline sits under the mix at both layers, still rising as it closes');
 check(finalMix.includes('bellV1FinalMix') && finalMix.includes('huntPulseV1FinalMix'),
   'final mix lifts bells and Hunt heartbeat');
 check(finalMix.includes('priorityDuck') && finalMix.includes('requestBedDuck'),
@@ -493,7 +498,7 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     'the shop quiet-freezes a live run, through the same hooks as settings');
   check(mainSrc.includes("accessUI?.panel.classList.remove('on')") &&
     mainSrc.includes("shopUI?.panel.classList.remove('on')") &&
-    mainSrc.indexOf('panelFroze = false;\n  launch.cancel();\n  accessUI') > mainSrc.indexOf('function quitToTitle'),
+    mainSrc.indexOf('panelFroze = false;\n  launchPending = false;\n  launch.cancel();\n  accessUI') > mainSrc.indexOf('function quitToTitle'),
     'quitting to the title closes every overlay panel and clears the freeze');
 }
 
@@ -687,12 +692,12 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   const uiCode = read('src/ui/ui.js');
   const htmlCode = read('index.html');
   const audioCode = read('src/audio/audio.js');
-  check(launchSrc.includes('begin({ quick = false } = {})') &&
+  check(launchSrc.includes('begin({ quick = false, onBlack = null } = {})') &&
     launchSrc.includes("const dur = q ? 1.0 : DUR") &&
     launchSrc.includes('if (q && !s.main) continue;'),
     'a retry gets the one-second cut — dip, one slash, reveal; the menu keeps the full arrival');
   check(mainCode.includes('const fromTitle = sim.phase === PHASE.TITLE;') &&
-    mainCode.includes('launch.begin({ quick: !fromTitle })') &&
+    mainCode.includes('launch.begin({ quick: !fromTitle, onBlack: buildRunInTheDark })') &&
     mainCode.includes('audio.launch(!fromTitle)') &&
     audioCode.includes('launch(quick = false)'),
     'the retry cut is chosen from the phase the run started from, audio matched');
@@ -833,6 +838,45 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   for (let i = 0; i < 60 * 60; i++) { plain.step(idle); if (plain.studyHold) anyHold = true; }
   check(!anyHold && plain.wordGates.next > 0,
     'plain ENDLESS never stops — the study gates belong to the guided chart alone');
+}
+
+// ── RC-4: THE ORDER — menu, black, the storm, then gameplay ──────────────
+// Reported three times. The world used to be swapped at begin() with the veil
+// fading in ON TOP, so a player watched ~0.8s of gameplay before the black and
+// the menu was already gone. The run is now BUILT IN THE DARK.
+{
+  const mainCode = read('src/main.js');
+  const launchSrc = read('src/render/launch-sequence.js');
+  const accessCode = read('src/ui/access.js');
+  const shopCode = read('src/ui/shop.js');
+
+  const startBody = mainCode.slice(
+    mainCode.indexOf('function startRun() {'),
+    mainCode.indexOf('function buildRunInTheDark()'));
+  check(startBody.includes('launch.begin(') &&
+    !/sim\.start\(|ui\.showTitle\(false\)|ui\.showHud\(true\)|running = true/.test(startBody),
+    'startRun only starts the fade — it never swaps the world or the screens');
+  check(/function buildRunInTheDark\(\)[\s\S]{0,4000}ui\.showTitle\(false\);[\s\S]{0,200}ui\.showHud\(true\);/.test(mainCode) &&
+    /function buildRunInTheDark\(\)[\s\S]{0,3000}sim\.start\(/.test(mainCode),
+    'the run — sim, world, HUD, the title going out — is built inside the black frame');
+  check(launchSrc.includes('this.el.style.background = `${VEIL}1)`;\n      this._black();') &&
+    launchSrc.includes('_black() {') && launchSrc.includes('if (this._blackFired) return;'),
+    'the swap fires exactly once, on the first SOLID frame — never before');
+  check(launchSrc.includes('this._onBlack = null;\n    this._blackFired = false;\n  }') &&
+    mainCode.includes('launchPending = false;\n  launch.cancel();'),
+    'quitting drops the pending run with the veil — a cancelled arrival starts nothing');
+  check(mainCode.includes('if (launchPending) return;') &&
+    mainCode.includes('offerActive || launchPending) return;'),
+    'no second run can start during the fade');
+  check(/ACCESS\.reducedFlash\) \{[\s\S]{0,400}this\._black\(\);/.test(launchSrc),
+    'REDUCED FLASH takes the world at once — it never stages a dip to black');
+  check(mainCode.includes('launch.snapToBlack()') && launchSrc.includes('snapToBlack() { this._black(); }'),
+    'the scripted harness still starts a run synchronously');
+
+  // The sheets the playtest could read gameplay through.
+  const opaque = (css) => css.includes('background:#05080c;') && !/background:rgba\(4,7,10,\.82\)/.test(css);
+  check(opaque(accessCode) && opaque(shopCode),
+    'SETTINGS and the SHOP are opaque — no gameplay reads through a menu');
 }
 
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);

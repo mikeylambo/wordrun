@@ -77,11 +77,21 @@ export class LaunchSequence {
     this.t = -1;
   }
 
-  begin({ quick = false } = {}) {
+  begin({ quick = false, onBlack = null } = {}) {
     // PD-2: the full arrival belongs to the menu; a RETRY gets a condensed
     // ~1s cut — dip, ONE slash, reveal — because the twentieth AGAIN wants
     // the track back, not the ceremony.
+    //
+    // RC-4 — THE ORDER. `onBlack` fires exactly once, on the first frame the
+    // veil is solid, and the caller swaps the world under it. Before this the
+    // world was swapped at begin() and the veil faded in on top, so the
+    // sequence a player actually saw was gameplay → black → storm → gameplay:
+    // the menu was gone before the fade even started. The fade now happens
+    // over whatever is on screen (the menu, or the results card on a retry),
+    // and the run appears only in the dark.
     this._quick = quick;
+    this._onBlack = onBlack;
+    this._blackFired = false;
     this.t = 0;
     this.el.style.display = 'block';
     // Every stroke wears the LIVE danger accent, so every colour-vision
@@ -109,6 +119,23 @@ export class LaunchSequence {
   cancel() {
     this.t = -1;
     this.el.style.display = 'none';
+    // A cancelled arrival never starts the run it was covering (quitToTitle
+    // takes this path): the pending swap is dropped, not deferred.
+    this._onBlack = null;
+    this._blackFired = false;
+  }
+
+  /** Scripted harness only: take the world at once, with no ceremony
+   *  frames in between, so __START stays synchronous. */
+  snapToBlack() { this._black(); }
+
+  /** The world-swap, once, in the dark. */
+  _black() {
+    if (this._blackFired) return;
+    this._blackFired = true;
+    const cb = this._onBlack;
+    this._onBlack = null;
+    cb?.();
   }
 
   update(dt) {
@@ -120,7 +147,10 @@ export class LaunchSequence {
     if (t >= dur) { this.cancel(); return; }
 
     if (ACCESS.reducedFlash) {
-      // One smooth fade — no staged reveal, no slash.
+      // One smooth fade — no staged reveal, no slash. REDUCED FLASH takes the
+      // world immediately and eases the veil off it: a staged dip to black
+      // would be the very motion this mode exists to remove.
+      this._black();
       const rf = q ? 0.5 : 1.6;
       const a = Math.max(0, 0.9 * (1 - t / rf));
       this.el.style.background = `${VEIL}${a.toFixed(3)})`;
@@ -145,7 +175,9 @@ export class LaunchSequence {
       this.el.style.background = `${VEIL}${(f * f * (3 - 2 * f)).toFixed(3)})`;
     } else if (t < holdEnd) {
       this.el.style.background = `${VEIL}1)`;
+      this._black();   // solid: the run is built here, unseen
     } else {
+      this._black();   // a dropped frame must never skip the swap
       const w = Math.min(1, (t - holdEnd) / revealLen);
       const e = w * w * (3 - 2 * w);
       const front = 100 - e * 130;           // sweeps bottom→top, then past

@@ -100,7 +100,7 @@ export function buildAccessPanel(hooks = {}) {
        button floated ON TOP of the open panel — a player could pause under
        it, hit MENU, and land the title screen beneath this sheet with every
        layer's text overlapping. Nothing behind an open panel is tappable. */
-    #accessPanel{position:absolute;inset:0;z-index:90;display:none;flex-direction:column;gap:12px;align-items:center;justify-content:center;background:rgba(4,7,10,.82);pointer-events:auto;overflow-y:auto;padding:28px 0}
+    #accessPanel{position:absolute;inset:0;z-index:90;display:none;flex-direction:column;gap:12px;align-items:center;justify-content:center;background:#05080c;background-image:linear-gradient(180deg,#070c11,#04070a);pointer-events:auto;overflow-y:auto;padding:28px 0}
     .accessSection{font:800 9px/1 var(--face,system-ui);letter-spacing:.34em;color:#8be4ff;margin:6px 0 -4px;opacity:.85}
     #accessPanel.on{display:flex}
     #accessPanel h3{margin:0;font:700 12px/1 var(--face);letter-spacing:.3em;color:rgba(244,250,253,.8)}

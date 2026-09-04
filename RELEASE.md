@@ -1930,3 +1930,31 @@ condensed card and the doubled tips beside it, both fixed above.
   never modified, only position holds), and GUIDED TIPS switches the
   whole thing off live — the accessibility toggle it was asked to be.
   Never on the DAILY; plain ENDLESS never stops.
+
+## 1.0-RC4 — the order, the sheets, and the Redline level
+
+Three notes, each raised more than once. Each is now pinned by a gate so it
+cannot come back.
+
+- **The arrival, in the right order at last.** The previous two passes fixed
+  real bugs (stacking, then layering) but never the ORDER, because the run
+  was built at the moment the fade *started* — the menu was swapped out for
+  gameplay, and the veil then faded in on top of it. What a player saw was
+  gameplay → black → storm → gameplay. The world is now **built in the
+  dark**: the fade plays over the menu (or the results card on a retry),
+  and the run — the sim, the world, the HUD, the title going out — is
+  assembled on the first solid-black frame, unseen. Verified frame by
+  frame on the built game: menu → fade → black → storm → gameplay, with
+  the run not even started until the black. REDUCED FLASH keeps its
+  straight cut, and the scripted harness still starts synchronously.
+- **The sheets are opaque.** SETTINGS and the SHOP sat at 82% over live
+  gameplay, so the track read straight through the words. Both are solid
+  now.
+- **The Redline, turned down where it actually lives.** Earlier passes
+  trimmed the arrival strikes and the tuning value, but the final-mix
+  layer was *lifting* the roar ceiling (0.30 → 0.35) and re-writing the
+  threat bus every single frame (0.94 + roar), which overwrote every
+  other trim — which is why it kept coming back loud. The ceiling and the
+  per-frame bus level are both cut at that layer (roar 0.20, bus 0.55),
+  the base level agrees, and the strikes come down again. The pursuit
+  still rises as it closes; it no longer sits on top of the mix.
