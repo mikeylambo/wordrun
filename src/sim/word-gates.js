@@ -231,6 +231,10 @@ export class WordGates {
     this.heldIndex = -1;
     this._prevIn = false;   // last step's raw answer input, for edge capture
     this.lastResolveT = -9; // sim time of the last resolution (refractory)
+    // PD-4: the study stop (guided chart only). Live-toggleable via GUIDED
+    // TIPS — main.js mirrors the chip here each frame; headless tools never
+    // touch it and the guided chart is opt-in, so nothing else changes.
+    this.studyEnabled = true;
   }
 
   /** The gate the player is currently approaching (always exists). */
@@ -245,6 +249,25 @@ export class WordGates {
   armed(playerD) {
     const g = this.current();
     return !g.resolved && g.d - playerD <= W.ARM_DISTANCE_M && g.d - playerD > 0;
+  }
+
+  /**
+   * PD-4 — the study stop, the SIGNAL lesson: teach by letting the player
+   * STOP. On the guided chart the first gate of each verb (index 0, a real;
+   * index 2, the first fake) is a study gate: the run halts just short of
+   * the plate — inside the arm window, so both answers land — and the world
+   * waits, without limit, for an active LEFT or RIGHT. No timer, no
+   * pursuit, no thrusting a first-timer into the word bank at pace.
+   * Returns the pin distance when the hold applies, else 0. The pinning
+   * itself (position, Redline gap) lives in sim.step — this only owns the
+   * rule. Never fires on 'daily' or 'endless': those charts read normally.
+   */
+  studyStop(playerD) {
+    if (this.profile.CHART !== 'guided' || this.studyEnabled === false) return 0;
+    const g = this.current();
+    if (g.resolved || (g.index !== 0 && g.index !== 2)) return 0;
+    const stopD = g.d - W.STUDY_STOP_M;
+    return playerD >= stopD ? stopD : 0;
   }
 
   /**

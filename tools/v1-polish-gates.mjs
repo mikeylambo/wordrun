@@ -766,5 +766,74 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     'the fold closes between runs — MORE STATS is a per-card choice');
 }
 
+// ── PD-4: the study stop — the world waits for the first answers ─────────
+// The SIGNAL lesson: teach by letting the player STOP. On the guided chart
+// the first gate of each verb pins the run just short of the plate and
+// waits, without limit, for an active LEFT or RIGHT. Toggleable (GUIDED
+// TIPS); never on 'daily' or 'endless'; the Redline is pinned with it.
+{
+  const wgCode = read('src/sim/word-gates.js');
+  const simCode = read('src/sim/sim.js');
+  const guidedSrc = read('src/ui/guided.js');
+  const mainCode = read('src/main.js');
+  const tuning = read('src/TUNING.js');
+  const launchSrc = read('src/render/launch-sequence.js');
+
+  check(/STUDY_STOP_M: 24,/.test(tuning) &&
+    wgCode.includes("if (this.profile.CHART !== 'guided' || this.studyEnabled === false) return 0;"),
+    "the study stop exists ONLY on the guided chart, inside the arm window, behind the GUIDED TIPS switch");
+  check(simCode.includes('this.player.d = Math.min(this.player.d, studyD);') &&
+    simCode.indexOf('studyStop(') < simCode.indexOf('this.wordGates.step('),
+    'the pin lands before the gate step — the line is never crossed, the plate stays armed');
+  check(/if \(this\.studyHold\) \{\s*\n\s*this\.beast\.gap = this\._studyGap;/.test(simCode) &&
+    simCode.includes("this.events.push({ t: 'study_stop', index: this.wordGates.next });"),
+    'the Redline is pinned for the lesson, and the stop announces itself as an event');
+  check(guidedSrc.includes("this._show('hold', 'READ THE WORD'") &&
+    mainCode.includes('hold: !!sim.studyHold,') &&
+    mainCode.includes('sim.wordGates.studyEnabled = !!ACCESS.guidedTips;'),
+    'the held frame teaches BOTH verbs and never the truth, and the chip releases a hold live');
+  check(launchSrc.includes('z-index:70'),
+    'black means black: the arrival veil covers every piece of in-run chrome');
+  check(index.includes('#coach{top:57%'),
+    'all tutorial text speaks from the one mid-screen teach band');
+
+  // Behavioural: on the guided chart the run stops at gate 0 and WAITS —
+  // forever if need be — then an answer releases it; on plain ENDLESS the
+  // same drive sails through with no hold. Deterministic, headless.
+  const { Sim, emptyInput } = await import('../src/sim/sim.js');
+  const sim = new Sim(4242);
+  sim.start(4242, null, { mode: 'endless', difficulty: 'normal', wordSalt: 1, chart: 'guided' });
+  const idle = emptyInput();
+  for (let i = 0; i < 60 * 60; i++) sim.step(idle); // a full minute, no input
+  const g0 = sim.wordGates.current();
+  check(sim.studyHold === true && g0.index === 0 && !g0.resolved &&
+    sim.player.d < g0.d && sim.wordGates.armed(sim.player.d),
+    `the guided run stops at the first plate and waits a full minute unresolved — pinned ${(g0.d - sim.player.d).toFixed(1)}m out, armed`);
+  const heartsBefore = sim.hearts;
+  const tap = emptyInput(); tap.confirm = true;
+  sim.step(tap);
+  const heartsHeld = sim.hearts === heartsBefore; // judged AT the plate, before later gates
+  for (let i = 0; i < 60 * 5; i++) sim.step(idle);
+  check(g0.resolved && g0.correct === true && sim.studyHold === false &&
+    sim.player.d > g0.d && heartsHeld,
+    'one RIGHT answers the study gate — full credit, hold released, the run moves again');
+  // Drive on to the second study gate (index 2, the chart's first fake).
+  let held2 = false;
+  for (let i = 0; i < 60 * 90 && !held2; i++) { sim.step(idle); held2 = sim.studyHold && sim.wordGates.next === 2; }
+  const g2 = sim.wordGates.current();
+  check(held2 && g2.index === 2 && !g2.resolved,
+    'the first fake is the second study gate — the run stops again to teach the other verb');
+  const rej = emptyInput(); rej.reject = true;
+  sim.step(rej);
+  check(g2.resolved && g2.correct === true,
+    'one LEFT calls the fake — the second verb demonstrated at rest');
+  const plain = new Sim(4242);
+  plain.start(4242, null, { mode: 'endless', difficulty: 'normal', wordSalt: 1 });
+  let anyHold = false;
+  for (let i = 0; i < 60 * 60; i++) { plain.step(idle); if (plain.studyHold) anyHold = true; }
+  check(!anyHold && plain.wordGates.next > 0,
+    'plain ENDLESS never stops — the study gates belong to the guided chart alone');
+}
+
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

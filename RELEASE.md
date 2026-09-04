@@ -1905,3 +1905,28 @@ reversed.
 The menu arrival was reported out of sequence; the full launch path was
 diffed byte-identical to the approved build — the felt regression was the
 condensed card and the doubled tips beside it, both fixed above.
+
+## 1.0-RC3 — the arrival made airtight, and the world learns to wait
+
+- **The arrival, actually fixed**: the felt "out of sequence" from the menu
+  was a stacking bug, not a timing one — the veil sat at z-index 4, under
+  the body-level touch chrome, so on a phone the FAKE / REAL / DASH
+  buttons and the touch guide glowed over the fade and the storm. The
+  veil now covers every piece of in-run chrome (input still never
+  blocks); black means black, and the chrome emerges with the reveal.
+  The timeline itself was diffed byte-identical to the approved build.
+- **All tutorial text speaks from one place**: the coach line ("ANSWERING
+  EARLY IS WORTH MORE", the bar lessons) left the bottom edge for the
+  same mid-screen teach band the TEACH surface uses — below the plates,
+  above the runner. The two never speak at once, so the band is never
+  contested.
+- **The study stop** (the lesson borrowed from the memory game's tutorial:
+  stop, look, act): on the guided chart, the first
+  gate of each verb now pins the run just short of the plate — inside
+  the arm window, the pursuit pinned with it — and the world waits,
+  without limit, for an active LEFT or RIGHT. No timer, no thrusting a
+  first-timer into the word bank at pace. The answer resolves through
+  the exact same step as every read, pacing survives untouched (speed is
+  never modified, only position holds), and GUIDED TIPS switches the
+  whole thing off live — the accessibility toggle it was asked to be.
+  Never on the DAILY; plain ENDLESS never stops.

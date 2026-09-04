@@ -184,6 +184,10 @@ export const TUNING = {
     LOOKAHEAD_GATES: 3,
     LOOKAHEAD_OPACITY: [0.55, 0.32, 0.18, 0.11, 0.07, 0.05],
     ARM_DISTANCE_M: 55,
+    // PD-4: where the guided chart's two study gates pin the runner —
+    // inside the arm window (so both answers land) with the plate at its
+    // most legible. Guided chart only; never read on 'daily' or 'endless'.
+    STUDY_STOP_M: 24,
     FAKE_CHANCE: 0.5,          // fair coin: spamming confirm buys nothing
     // Tier ramps with distance, sharing the run's own ramp architecture.
     TIER_EVERY_M: 700,         // +1 tier per this many metres, clamped

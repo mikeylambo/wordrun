@@ -28,8 +28,16 @@ export class LaunchSequence {
   constructor() {
     this.el = document.createElement('div');
     this.el.id = 'launchVeil';
+    // RC-2 playtest ("the arrival is out of sequence from the menu"): the
+    // veil sat at z-index 4 — above the world (#app is isolated), but UNDER
+    // the body-level touch chrome (FAKE/REAL/DASH at 67, the touch guide at
+    // 61) and the TEACH surface (6), so on a phone the buttons glowed over
+    // the fade and the storm. Black must mean BLACK: the veil now covers
+    // every piece of in-run chrome, and the chrome emerges with the reveal.
+    // Input still never blocks (pointer-events: none) — a tap lands on the
+    // buttons straight through the ceremony, exactly as before.
     this.el.style.cssText =
-      'position:fixed;inset:0;z-index:4;pointer-events:none;display:none;';
+      'position:fixed;inset:0;z-index:70;pointer-events:none;display:none;';
     // The Redline's arrival as a FULL-FRAME slash storm (art direction:
     // the playtest's slash-VFX reference, aiming at the FFX battle-intro
     // energy): nine long strokes covering the whole screen top to bottom,

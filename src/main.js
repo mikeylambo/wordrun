@@ -1426,6 +1426,9 @@ function tick(dt) {
   // takes the fundamentals, centered and loud; the coach keeps the rest.
   const guidedActive = ACCESS.guidedTips && !fundamentalsDone();
   ui.setGuidedActive(guidedActive);
+  // PD-4: GUIDED TIPS is the accessibility switch for the study stop too —
+  // flipping it OFF releases a hold mid-run, the same frame.
+  sim.wordGates.studyEnabled = !!ACCESS.guidedTips;
   guided.update({
     running,
     enabled: guidedActive,
@@ -1436,6 +1439,7 @@ function tick(dt) {
     veilUp: launch.t >= 0,
     hintUp: !!ui.powerHint?.classList.contains('on'),
     touch: ui.touch,
+    hold: !!sim.studyHold,
   });
   ui.update(dt, sim, dreadLive, clock);
   // Phase L HUD pass: while the run is live the only chrome is PAUSE — the

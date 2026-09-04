@@ -118,6 +118,8 @@ export class Sim {
     this.events.length = 0;
     this._lastStuntId = null;
     this.stuntsCleared = 0;
+    this.studyHold = false;   // PD-4: the guided chart's study stop
+    this._studyGap = 0;
 
     // Fresh vitals per run, and the bell field re-seeded onto this run's
     // terrain (a new run may have rebuilt it above).
@@ -191,6 +193,26 @@ export class Sim {
     // past is re-dealt ahead instead, so KEEP GOING never resumes into a
     // word that was already lost. Headless tools never set `escaped`, so
     // every golden and every suite drives the exact same sim as before.
+    // PD-4 — the study stop (guided chart only). The first gate of each
+    // verb pins the runner just short of the plate: position holds (speed
+    // is left alone, so pacing survives the lesson untouched), the Redline
+    // gap is pinned below like the last stand's, and the world waits —
+    // without limit — for an active answer. The pin lands BEFORE the gate
+    // step so the line is never crossed and the plate stays armed; the
+    // answer resolves through the exact same step as every other read.
+    const studyD = this.escaped ? 0 : this.wordGates.studyStop(this.player.d);
+    if (studyD > 0) {
+      if (!this.studyHold) {
+        this.studyHold = true;
+        this._studyGap = this.beast.gap;
+        this.events.push({ t: 'study_stop', index: this.wordGates.next });
+      }
+      this.player.d = Math.min(this.player.d, studyD);
+    } else if (this.studyHold) {
+      this.studyHold = false;
+      this.events.push({ t: 'study_go' });
+    }
+
     if (!this.escaped) {
       this.wordGates.step(this.player, input.confirm, this.events, proxMult, this.time,
         input.reject);
@@ -213,6 +235,14 @@ export class Sim {
 
 
     this.beast.step(dt, this.player);
+    // The study stop pins the pursuit too — a lesson the Redline interrupts
+    // is not a lesson. Same shape as the last stand's pin below.
+    if (this.studyHold) {
+      this.beast.gap = this._studyGap;
+      this.beast.desired = this._studyGap;
+      this.beast.killed = false;
+      this.beast.killT = 0;
+    }
 
     this.recorder.step(dt, this.player);
     this.ghost.step(dt);

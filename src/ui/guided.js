@@ -61,9 +61,18 @@ export class GuidedTeach {
    * One frame's verdict. `lessons` are the persisted demonstrated-action
    * flags; `enabled` is the GUIDED TIPS chip; `veilUp`/`hintUp` silence
    * this surface while the launch or the dash hint owns the frame.
+   * `hold` is the study stop (PD-4): the run is pinned at a plate and the
+   * world is waiting — the instruction names both verbs and never the
+   * truth, because reading the word IS the lesson.
    */
-  update({ running, enabled, lessons, veilUp, hintUp, touch }) {
+  update({ running, enabled, lessons, veilUp, hintUp, touch, hold }) {
     if (!running || !enabled || veilUp || hintUp) { this.hide(); return; }
+    if (hold) {
+      this._show('hold', 'READ THE WORD',
+        touch ? 'SPELLED RIGHT? TAP RIGHT · MISSPELLED? TAP LEFT'
+          : 'SPELLED RIGHT? PRESS → · MISSPELLED? PRESS ←');
+      return;
+    }
     if (!lessons.confirm) {
       this._show('confirm', 'IS IT SPELLED RIGHT?',
         touch ? 'TAP RIGHT' : 'PRESS →');
