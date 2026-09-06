@@ -2027,3 +2027,32 @@ vertical screen in an arcade? No new gameplay systems.
 `dev/shoot-rc-stills.mjs` is committed with this pass: the audit stills are
 re-shot by a script rather than by whatever driver existed that day, and it
 now fails loudly rather than filing a still that shows the wrong screen.
+
+## 1.0-RC6.2 — the cabinet: the HUD as one instrument
+
+The top-left corner was three separate things that had grown up beside each
+other: the score, a row of hearts set in whatever `♥` the platform's symbol
+font happened to draw, a second row of five diamonds counting the clean
+streak, and the reward-bar marks. It is one instrument now.
+
+- **The hearts are drawn.** One path, stroked and filled at a fixed 22px, so
+  the piece of HUD that says whether you are alive has the same silhouette
+  on every device instead of inheriting a different glyph from each one.
+  The rose is unchanged and still clears every reserved hue by ≥ 25° — the
+  gate that proves it now reads the shape's fill rather than a glyph's text
+  colour, which is where the colour actually lives.
+- **The streak is drawn inside the heart it wins.** The separate five-pip
+  widget is deleted, not hidden. The NEXT empty heart fills from its base as
+  the clean run climbs toward the reads that win one back, clipped to the
+  heart's own outline, reading the same repair ladder the sim repairs from.
+  A full row shows nothing extra at all. The screen-reader line the widget
+  carried moved onto the hearts with it — the widget went, the information
+  did not.
+- **The bar marks sit with the DASH meter**, the other thing the player
+  sets, and are invisible until a bar is actually set. Where the charge bar
+  is hidden (touch, where the DASH ring is the tell) the marks stay: they
+  are not the charge.
+
+The four gates that protected the retired widget were retired with it rather
+than repointed at a rewritten target; what they protected is now held by
+five checks on the hearts themselves.

@@ -199,64 +199,11 @@ function pollControllerUi() {
   controllerUi.navDown = down;
 }
 
-function ensureBellChargeHud() {
-  const sim = globalThis.__SIM;
-  const vitals = globalThis.__UI?.vitals;
-  if (!vitals || !sim) return;
-
-  let root = document.getElementById('v1BellCharge');
-  if (!root) {
-    const style = document.createElement('style');
-    style.id = 'v1-bell-charge-style';
-    style.textContent = `
-      #v1BellCharge{display:flex;align-items:center;gap:4px;margin-left:7px;height:30px;transform:translateY(1px)}
-      .v1-bell-pip{width:7px;height:7px;box-sizing:border-box;border:1px solid rgba(139,228,255,.55);background:rgba(103,216,255,.10);transform:rotate(45deg);transition:background .12s ease,box-shadow .12s ease,transform .12s ease}
-      .v1-bell-pip.on{background:#8be4ff;box-shadow:0 0 7px rgba(139,228,255,.6);transform:rotate(45deg) scale(1.08)}
-      #v1BellCharge.complete{animation:v1BellComplete .36s ease}
-      @keyframes v1BellComplete{0%{filter:brightness(1)}35%{filter:brightness(1.85)}100%{filter:brightness(1)}}
-      #v1BellCharge:focus{outline:none}
-    `;
-    document.head.appendChild(style);
-    root = document.createElement('div');
-    root.id = 'v1BellCharge';
-    root.setAttribute('role', 'img');
-    for (let i = 0; i < 5; i++) {
-      const pip = document.createElement('span');
-      pip.className = 'v1-bell-pip';
-      root.appendChild(pip);
-    }
-    vitals.appendChild(root);
-    root.__lastCharge = -1;
-    root.__lastBells = sim.bellsCollected || 0;
-  }
-
-  // Phase 23: these pips counted bells toward the old automatic heart repair.
-  // Hearts now come back for a CLEAN READING STREAK, so the same widget shows
-  // that instead — the playtest note was that a run gave no indication of the
-  // streak at all, and it is now the thing standing between you and a heart.
-  // The ladder shortens under pressure, so the pip count follows it.
-  const need = HEARTS.STREAK_REPAIR_BY_HEARTS[sim.hearts] ?? HEARTS.STREAK_REPAIR_DEFAULT;
-  const streak = sim.wordGates?.streak || 0;
-  const full = sim.hearts >= (sim.maxHearts ?? HEARTS.MAX);
-  const charge = full ? 0 : clamp(streak % need, 0, need);
-  const bells = streak;
-  [...root.children].forEach((p, i) => {
-    p.classList.toggle('on', !full && i < charge);
-    p.style.display = i < need ? '' : 'none';
-  });
-  root.style.opacity = full ? '0.25' : '1';
-  root.setAttribute('aria-label', full
-    ? 'Hearts full'
-    : `Clean streak ${charge} of ${need} to the next heart`);
-
-  if (root.__lastCharge >= 0 && charge === 0 && bells > root.__lastBells && root.__lastCharge >= need - 1) {
-    root.classList.remove('complete');
-    void root.offsetWidth;
-    root.classList.add('complete');
-  }
-  root.__lastCharge = charge;
-  root.__lastBells = bells;
-}
+// RC6.2: the streak-to-heart widget is GONE. It was a second row of five
+// diamonds beside the hearts, saying "you are n reads from a heart" in a
+// shape that had nothing to do with hearts. The next empty heart now fills
+// as the streak climbs (src/ui/ui.js), so the answer is drawn inside the
+// thing it is about, and a full row shows nothing extra at all.
 
 function destructionSnapshot(sim, player) {
   if (!sim || !player || sim.escaped || (sim.phase !== 'running' && sim.phase !== 'kill')) return null;
@@ -324,7 +271,6 @@ if (!Audio.prototype.__v1ShipPolish) {
   const baseUpdate = Audio.prototype.update;
   Audio.prototype.update = function updateShipPolish(dt, player, ...rest) {
     pollControllerUi();
-    ensureBellChargeHud();
 
     const sim = globalThis.__SIM;
     const before = destructionSnapshot(sim, player);

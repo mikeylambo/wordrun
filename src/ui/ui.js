@@ -14,6 +14,9 @@ import { COUNT_BEATS, FALLBACK_BPS, countValue } from './results-motion.js';
 
 const $ = (id) => document.getElementById(id);
 
+/** The heart, drawn once and shared by all three layers of every pip. */
+const HEART_PATH = 'M12 21.2 3.6 12.6a5.6 5.6 0 0 1 0-7.9 5.4 5.4 0 0 1 7.7 0l.7.7.7-.7a5.4 5.4 0 0 1 7.7 0 5.6 5.6 0 0 1 0 7.9Z';
+
 /** One labelled recap row: a short key, then the words it describes. */
 const row = (k, v) => `<div class="recapRow"><span class="k">${k}</span><span class="v">${v}</span></div>`;
 
@@ -77,11 +80,30 @@ export class UI {
     this.vitals = document.createElement('div');
     this.vitals.id = 'vitals';
     this.vitals.setAttribute('aria-label', 'Health');
+    // RC6.2: drawn hearts, not a font glyph. '♥' rendered at whatever weight
+    // and shape each platform's emoji or symbol font happened to have — a
+    // different silhouette on every device, for the piece of HUD that says
+    // whether you are alive. These are one path, stroked and filled by us.
+    //
+    // The fill is also the streak: the NEXT empty heart fills from the
+    // bottom as the clean run climbs toward the reads that win one back
+    // (HEARTS.STREAK_REPAIR_*). "Five in a row wins a heart" is drawn inside
+    // the heart it wins, so the run needs no second widget to say it, and a
+    // full row says nothing extra at all.
     this.heartPips = [];
     for (let i = 0; i < HEARTS.MAX; i++) {
-      const h = document.createElement('span');
-      h.className = 'heartPip';
-      h.textContent = '♥';
+      const h = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      h.setAttribute('class', 'heartPip');
+      h.setAttribute('viewBox', '0 0 24 22');
+      h.setAttribute('aria-hidden', 'true');
+      // One clip per heart, so a partial fill is clipped to the heart's own
+      // shape rather than drawn as a rectangle over it.
+      const uid = `heartClip${i}`;
+      h.innerHTML =
+        `<defs><clipPath id="${uid}"><path d="${HEART_PATH}"/></clipPath></defs>` +
+        `<path class="hFill" d="${HEART_PATH}"/>` +
+        `<rect class="hStreak" x="0" y="22" width="24" height="22" clip-path="url(#${uid})"/>` +
+        `<path class="hLine" d="${HEART_PATH}"/>`;
       this.vitals.appendChild(h);
       this.heartPips.push(h);
     }
@@ -227,9 +249,23 @@ export class UI {
     } else this.coach.classList.remove('on');
   }
 
-  /** Paint the heart pips for a life count; `restored` pulses the survivors. */
-  setHearts(n, restored = false) {
-    this.heartPips.forEach((h, i) => h.classList.toggle('empty', i >= n));
+  /**
+   * Paint the heart pips for a life count; `restored` pulses the survivors.
+   * `streakFrac` (0..1) fills the NEXT empty heart — the clean run climbing
+   * toward the one that wins it back. Nothing fills when the row is full.
+   */
+  setHearts(n, restored = false, streakFrac = 0) {
+    this.heartPips.forEach((h, i) => {
+      h.classList.toggle('empty', i >= n);
+      // The next empty heart is the one being earned; the rest stay empty.
+      const filling = i === n ? Math.max(0, Math.min(1, streakFrac)) : 0;
+      const rect = h.querySelector('.hStreak');
+      // The rect grows upward from the heart's base, clipped to its outline.
+      if (rect) {
+        rect.setAttribute('y', (22 - filling * 22).toFixed(2));
+        rect.setAttribute('height', (filling * 22).toFixed(2));
+      }
+    });
     if (restored) {
       this.vitals.classList.remove('pulse');
       void this.vitals.offsetWidth;
@@ -243,8 +279,17 @@ export class UI {
     const live = sim.phase === 'running';
     this.vitals.style.opacity = live ? '1' : '0';
     const n = sim.hearts ?? HEARTS.MAX;
-    this.setHearts(n, live && n > this._lastHearts);
+    // The streak-to-heart ladder shortens as hearts are lost — the same
+    // table the sim repairs from, read here so the two can never disagree.
+    const full = n >= (sim.maxHearts ?? HEARTS.MAX);
+    const need = HEARTS.STREAK_REPAIR_BY_HEARTS[n] ?? HEARTS.STREAK_REPAIR_DEFAULT;
+    const streak = sim.wordGates?.streak || 0;
+    const frac = !live || full || need <= 0 ? 0 : (streak % need) / need;
+    this.setHearts(n, live && n > this._lastHearts, frac);
     this._lastHearts = n;
+    this.vitals.setAttribute('aria-label', full
+      ? `Hearts ${n} of ${sim.maxHearts ?? HEARTS.MAX}, full`
+      : `Hearts ${n}, clean streak ${streak % need} of ${need} to the next`);
   }
 
   update(dt, sim, running, clock = null) {

@@ -29,20 +29,13 @@ check(contact.includes('this.__v1TerrainGrace = TERRAIN_GRACE') && contact.inclu
 check(contact.includes('baseReset') && contact.includes('__v1AllPhysicalLocks?.clear?.()'),
   'contact locks and recovery grace reset cleanly between runs');
 
-check(polish.includes("id = 'v1BellCharge'") || polish.includes("root.id = 'v1BellCharge'"),
-  'HUD exposes a persistent charge widget beside the hearts');
-// Phase 23: these pips counted bells toward the automatic heart repair that
-// no longer exists. They now show the CLEAN READING STREAK — the thing that
-// actually stands between a player and their next heart, and the one the
-// playtest said a run gave no indication of at all.
-check(polish.includes('sim.wordGates?.streak') &&
-  polish.includes('STREAK_REPAIR_BY_HEARTS') && !polish.includes('sim.bellCharge'),
-  'the charge widget reads the clean streak, not the retired bell charge');
-check(polish.includes('Clean streak ${charge} of ${need} to the next heart') &&
-  polish.includes('.v1-bell-pip.on'),
-  'it names the streak and the target it is counting to, for a screen reader');
-check(polish.includes("root.style.opacity = full ? '0.25' : '1'"),
-  'and stands down when hearts are already full');
+// RC6.2: the streak widget is DELETED, and its four checks retire with it
+// rather than being kept alive against a rewritten target. What they were
+// protecting — that a run says how close the next heart is, and says nothing
+// when the row is full — is now protected where the answer is drawn: inside
+// the hearts themselves (see the RC6.2 block at the end of this file).
+check(!polish.includes('v1BellCharge') && !polish.includes('v1-bell-pip'),
+  'the separate streak widget is gone from the ship-polish layer, not merely hidden');
 check(polish.includes('bellShipPolish') && polish.includes('vol: 0.038'),
   'bell gets an additional bright upper-partial presence lift');
 
@@ -935,12 +928,14 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     'the control lessons remain, each still retiring on the action it teaches');
 
   // One tell per mechanic, one row of controls.
-  check(html.includes('@media (pointer:coarse){.meter-zone{display:none}}') &&
+  check(/@media \(pointer:coarse\)\{[\s\S]{0,220}#meterWrap,#meterLabel \.mLabel,#meterLabel i\{display:none\}/.test(html) &&
     mobileCode.includes('--dash-angle'),
-    "the bottom meter is gone where the DASH ring exists — one tell per mechanic");
-  check(html.includes('<div id="chain"></div><b id="barLevel"></b>') &&
-    !/#meterLabel">DASH<i><\/i><b id="barLevel">/.test(html),
-    'the reward-bar readout left the meter it was nested in, so it survives on touch');
+    "the bottom charge bar is gone where the DASH ring exists — one tell per mechanic");
+  // RC6.2: the marks sit with the meter (the two things the player SETS) and
+  // survive where the bar itself is hidden, because they are not the charge.
+  check(html.includes('<span class="mLabel">DASH</span><i></i><b id="barLevel"></b>') &&
+    html.includes('#barLevel{') && html.includes('#barLevel.set{opacity:1}'),
+    'the bar marks ride with the DASH meter and show only once a bar is set');
   check(/#v1MobileDash\{left:50%;margin-left:-38px/.test(mobileCode) &&
     /#v1MobileDash\{width:66px;height:66px;left:50%;right:auto;margin-left:-33px/.test(mobileCode),
     'DASH is centred between the answers in both orientations, and stays centred when it shrinks');
@@ -993,6 +988,34 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     accessCode.includes("actionRow('◆ 0'") &&
     shopCode.includes("document.addEventListener('dictiondash:show-shop'"),
     'the title carries one ⚙ and PROFILE — sound, type and the bank all live inside it');
+}
+
+// ── RC6.2: the HUD as one instrument ─────────────────────────────────────
+{
+  const uiCode = read('src/ui/ui.js');
+  const html = read('index.html');
+  const polishSrc = read('src/v1-ship-polish.js');
+
+  check(uiCode.includes("createElementNS('http://www.w3.org/2000/svg', 'svg')") &&
+    uiCode.includes('const HEART_PATH =') && !uiCode.includes("h.textContent = '♥'"),
+    'the hearts are drawn shapes, not a font glyph that changes per platform');
+  check(html.includes('.heartPip{width:22px;height:22px') &&
+    html.includes('.heartPip .hFill{fill:#ec98d7') &&
+    html.includes('.heartPip .hLine{fill:none;stroke:'),
+    'stroke and fill, at a fixed 22px, in the rose that clears the reserved hues');
+  // The rule the retired widget existed to serve, now held where it is drawn.
+  check(uiCode.includes('setHearts(n, restored = false, streakFrac = 0)') &&
+    /const filling = i === n \? Math\.max\(0, Math\.min\(1, streakFrac\)\) : 0;/.test(uiCode) &&
+    uiCode.includes("rect.setAttribute('height'"),
+    'the NEXT empty heart fills as the clean streak climbs — nowhere else, and no rectangle outside its outline');
+  check(uiCode.includes('HEARTS.STREAK_REPAIR_BY_HEARTS[n] ?? HEARTS.STREAK_REPAIR_DEFAULT') &&
+    /const frac = !live \|\| full \|\| need <= 0 \? 0/.test(uiCode),
+    'it reads the same repair ladder the sim repairs from, and a full row shows nothing');
+  check(uiCode.includes("this.vitals.setAttribute('aria-label'") &&
+    uiCode.includes('clean streak ${streak % need} of ${need}'),
+    'the streak still has a screen-reader line — the widget went, the information did not');
+  check(!polishSrc.includes('ensureBellChargeHud'),
+    'nothing calls the retired widget');
 }
 
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);

@@ -57,13 +57,23 @@
   /* Hearts — the fail state, one pip per life. Built and driven by ui.js
      (Phase 0: relocated here from the deleted rc5.js style injection). The
      danger colour is overridden per colour-vision palette in ui/access.js. */
-  #vitals{display:flex;align-items:center;gap:9px;pointer-events:none;transition:opacity .18s ease}
+  #vitals{display:flex;align-items:center;gap:7px;pointer-events:none;transition:opacity .18s ease}
   /* Phase L HUD pass: hearts leave saturated red — that hue is the
      Redline's alarm, and two reds on one screen taught the wrong lesson.
      Soft rose (hue 315°) clears every RESERVED_HUES entry by ≥ 35° and
      still reads as vitality by shape; the gate holds the separation. */
-  .heartPip{font:600 30px/1 var(--face);color:#ec98d7;text-shadow:0 1px 0 rgba(255,255,255,.35),0 2px 8px rgba(70,20,60,.22);opacity:.97;transition:opacity .18s ease,transform .18s ease}
-  .heartPip.empty{opacity:.14;transform:scale(.82)}
+  /* RC6.2: drawn, not typeset. Stroke + fill at a fixed 22px, so the shape
+     is identical on every platform instead of whatever '♥' each symbol font
+     happens to draw. The rose (hue ~322) clears every RESERVED_HUES entry —
+     the gate holds that separation, as it did for the glyph. */
+  .heartPip{width:22px;height:22px;overflow:visible;opacity:.97;transition:opacity .18s ease,transform .18s ease}
+  .heartPip .hFill{fill:#ec98d7;filter:drop-shadow(0 2px 6px rgba(70,20,60,.35))}
+  .heartPip .hLine{fill:none;stroke:#ffd9f1;stroke-width:1.4;opacity:.5}
+  /* The clean streak, filling the next empty heart from its base. */
+  .heartPip .hStreak{fill:#ec98d7;opacity:.42}
+  .heartPip.empty .hFill{fill:rgba(236,152,215,.13)}
+  .heartPip.empty .hLine{stroke:rgba(255,217,241,.34);opacity:1}
+  .heartPip.empty{transform:scale(.9)}
   #vitals.pulse .heartPip:not(.empty){animation:heartPulse .38s ease}
   @keyframes heartPulse{0%{transform:scale(1)}35%{transform:scale(1.26)}100%{transform:scale(1)}}
   /* RC-5: the run HUD does not carry a second score. BEST lives in
@@ -85,8 +95,12 @@
   #meterLabel i{flex:1;height:1px;background:currentColor;opacity:.3;font-style:normal}
   /* The bar the player set for themselves. Marks, never a word — the naming
      cap is four and this is not one of them. */
-  #barLevel{font-weight:700;letter-spacing:.22em;color:rgba(190,238,255,.55);font-size:9px}
-  #barLevel.set{color:#8be4ff}
+  /* RC6.2: the player's own bar sits with the DASH meter — the two things
+     the player SETS, together — and is invisible until it is actually set.
+     An unset row of marks was three characters of noise beside the hearts
+     explaining nothing. Marks, never a word: the naming cap is four. */
+  #barLevel{font-weight:700;letter-spacing:.22em;color:#8be4ff;font-size:9px;opacity:0;transition:opacity .18s ease}
+  #barLevel.set{opacity:1}
   .meter-zone.armed #meterLabel{color:rgba(190,238,255,.85)}
   .meter-zone.spending #meterLabel{color:#fff}
   /* The one-shot flourish when the dash reaches full charge. */
@@ -313,7 +327,15 @@
      button overlapping the bar. The bar is hidden wherever the ring exists;
      a mouse/keyboard player has no ring, so there it stays exactly as it was.
      The reward-bar readout moves out of the meter's label so it survives. */
-  @media (pointer:coarse){.meter-zone{display:none}}
+  /* RC5: the charge bar is hidden wherever the DASH button's ring is the
+     tell. RC6.2: the bar MARKS are not the charge, so they stay — the row
+     keeps its place above the button and holds nothing but them, which is
+     nothing at all until the player sets a bar. */
+  @media (pointer:coarse){
+    #meterWrap,#meterLabel .mLabel,#meterLabel i{display:none}
+    .meter-zone{gap:0;min-height:14px}
+    #meterLabel{justify-content:center}
+  }
   #barLevel{align-self:flex-end}
   @media(min-width:760px) and (orientation:landscape){#hud{padding-left:28px;padding-right:28px}#meterWrap{max-width:560px;margin:0 auto}.title-lockup{margin-top:8vh}}
 </style>
@@ -326,8 +348,8 @@
   <div id="bandName"></div><div id="coach"></div><div id="powerHint"></div>
 
   <div id="hud">
-    <div><div class="row"><div><div id="dist">0</div><div id="distSub">0 M</div><div id="vitalsSlot"></div></div><div id="best" hidden><span>BEST TODAY</span><b id="bestVal">—</b></div></div><div id="chain"></div><b id="barLevel"></b></div>
-    <div class="meter-zone"><div id="meterLabel">DASH<i></i></div><div id="meterWrap"><div id="meter"></div></div></div>
+    <div><div class="row"><div><div id="dist">0</div><div id="distSub">0 M</div><div id="vitalsSlot"></div></div><div id="best" hidden><span>BEST TODAY</span><b id="bestVal">—</b></div></div><div id="chain"></div></div>
+    <div class="meter-zone"><div id="meterLabel"><span class="mLabel">DASH</span><i></i><b id="barLevel"></b></div><div id="meterWrap"><div id="meter"></div></div></div>
   </div>
 
   <button id="mute" aria-label="Toggle sound">♪</button>

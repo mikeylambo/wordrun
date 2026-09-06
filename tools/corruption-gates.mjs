@@ -909,7 +909,10 @@ head('HUD — one alarm colour, one instruction, pause-only chrome');
   // the shipped heart hue from the stylesheet and hold it ≥ the reserved
   // separation from EVERY semantic hue, the check the constraints demand
   // BEFORE a colour is chosen, kept live so it cannot rot.
-  const hex = /\.heartPip\{[^}]*color:#([0-9a-f]{6})/.exec(html)?.[1];
+  // RC6.2: the hearts are drawn shapes now, so the shipped hue is the FILL
+  // of the heart path rather than the text colour of a glyph. Same rule,
+  // read from where the colour actually lives.
+  const hex = /\.heartPip \.hFill\{fill:#([0-9a-f]{6})/.exec(html)?.[1];
   let sepOk = false, hue = -1;
   if (hex) {
     const r = parseInt(hex.slice(0, 2), 16) / 255;
@@ -955,7 +958,7 @@ head('HUD — one alarm colour, one instruction, pause-only chrome');
   check('the bell cleared the reserved-hue check — a pickup never wears an earned signal',
     bellSep, `bell hue ${bellHue.toFixed(0)}° vs every reserved hue at ≥ ${TUNING.META.RESERVED_HUES.MIN_SEPARATION_DEG}°`);
   check('the colour-vision override no longer repaints the hearts as danger',
-    !access.includes('.heartPip{color:rgb'));
+    !access.includes('.heartPip{color:rgb') && !/\.heartPip[^{]*\{[^}]*fill:rgb/.test(access));
 
   check('while the run is live the only chrome is PAUSE',
     html.includes('#app.chromeless #mute,#app.chromeless #accessBtn,#app.chromeless #shopBtn{display:none}') &&
