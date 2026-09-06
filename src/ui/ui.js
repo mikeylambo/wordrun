@@ -629,15 +629,11 @@ export class UI {
     // ordinary run shows nothing here, and that is the point.
     if (extras.standout) core.push(row(extras.standout.k, extras.standout.v));
 
-    // Today's goals as a checklist a player can read at arm's length: a big
-    // ✓/○ per goal and one headline count — not nine grey chips.
-    if (daily?.goals?.length) {
-      const done = daily.goals.filter((g) => g.done).length;
-      core.push(`<div class="goalHead">${done} OF ${daily.goals.length} GOALS TODAY</div>`);
-      core.push(`<div class="goalList">${daily.goals.map((g) =>
-        `<div class="goalCheck${g.done ? ' done' : ''}"><i>${g.done ? '✓' : '○'}</i>`
-        + `<span class="goalChip${g.done ? ' done' : ''}">${g.label}</span></div>`).join('')}</div>`);
-    }
+    // RC6: today's goals, the objective queue and the ◆ takings all moved to
+    // PROFILE. This card is the high-score moment — the number, whether it
+    // beat the best, the shape of the run and the one standout. Progression
+    // is a thing a player goes to look at between runs, not a ledger served
+    // over the score they just set.
 
     // Phase 19: this used to be one full sentence per wrong read — four
     // lines of the same slipped-by sentence stacked under a seven-word
@@ -658,13 +654,6 @@ export class UI {
       core.push('<div class="clean">PERFECT RUN</div>');
     }
 
-    // ONE reward figure. The bells and the objectives used to report their
-    // takings separately, in different corners, in 9px type — a player could
-    // not have said what the run paid.
-    if ((this._reward || 0) > 0) {
-      core.push(`<div class="rewardLine">+${this._reward.toLocaleString('en-US')} ◆</div>`);
-    }
-
     // ── Everything below lives behind MORE STATS ─────────────────────────
 
     // The run itself, as a shape (Phase 21). The speed curve recovered from
@@ -680,8 +669,8 @@ export class UI {
         const x = (m.x * 100).toFixed(2);
         return `<line class="rm ${m.kind}" x1="${x}" y1="0" x2="${x}" y2="${H}"/>`;
       }).join('');
-      deep.push('<div class="recapHead">THE RUN</div>');
-      deep.push(
+      core.push('<div class="recapHead">THE RUN</div>');
+      core.push(
         `<svg class="runPlot" viewBox="0 0 100 ${H}" preserveAspectRatio="none" aria-hidden="true">`
         + `<polygon class="rf" points="0,${H} ${pts} 100,${H}"/>`
         + `<polyline class="rl" points="${pts}"/>${marks}</svg>`
@@ -689,31 +678,8 @@ export class UI {
       if (review.worst) {
         // The count is already on the REVIEW button on the card; this line
         // exists to say WHERE, which is the thing the button cannot say.
-        deep.push(`<div class="runNote">WORST STRETCH ${review.worst.from}–${review.worst.to} M</div>`);
+        core.push(`<div class="runNote">WORST STRETCH ${review.worst.from}–${review.worst.to} M</div>`);
       }
-    }
-
-    // The rotating queue (Phase 21). Cleared first — that is the payoff —
-    // then the three now live with the progress this run actually made
-    // against them. A freshly drawn objective reports zero by construction:
-    // showing it part-filled would draw the retroactive credit the queue
-    // exists to refuse. (The daily chips left this block for the core
-    // checklist above — the queue keeps its own heading, the goals theirs.)
-    if (objectives?.live?.length || objectives?.cleared?.length) {
-      const bits = [];
-      for (const c of objectives?.cleared || []) {
-        bits.push(`<div class="objRow done"><span class="ol">${c.label}</span>`
-          + '<span class="ob"><i style="width:100%"></i></span>'
-          + `<span class="ov">◆${c.reward}</span></div>`);
-      }
-      for (const o of objectives.live || []) {
-        const pct = Math.round(Math.max(0, Math.min(1, o.progress || 0)) * 100);
-        bits.push(`<div class="objRow"><span class="ol">${o.label}</span>`
-          + `<span class="ob"><i style="width:${pct}%"></i></span>`
-          + `<span class="ov">◆${o.reward}</span></div>`);
-      }
-      deep.push('<div class="recapHead">OBJECTIVES</div>');
-      if (bits.length) deep.push(`<div class="objList">${bits.join('')}</div>`);
     }
 
     // The run's numbers as a broadcast stat bar: figure over label.

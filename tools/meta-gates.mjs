@@ -356,8 +356,11 @@ head('META — wiring and independence');
   check('an omission is explained without crash language',
     ui.includes("<div class=\"mHead\">UNCAUGHT</div>") &&
     !/\b(FAILED|WRONG|BAD|MISTAKE)\b/.test(ui));
-  check('the title shows the goal card and the streak',
-    ui.includes('setDaily(') && ui.includes('goalChip') && ui.includes('DAY ${card.streak}'));
+  // RC6: the goals themselves are a checklist in PROFILE; the title keeps
+  // only the streak line, which is the one thing a player loses by not playing.
+  check('the streak is on the title and the goals are in PROFILE',
+    ui.includes('setDaily(') && ui.includes('DAY ${card.streak}') &&
+    fs.readFileSync('src/ui/curve-screen.js', 'utf8').includes('goalChip'));
 
   // The streak used to be appended to the seed line by the finalize layer.
   // It has its own line now, so what matters is that the finalize layer no
@@ -656,8 +659,10 @@ head('OBJECTIVES — three live, drawn from a pool, no retroactive credit');
     mainSrc.includes("metaStats.increment('currency', objectives.reward)"));
   check('the objectives are judged on the run that just ended, once',
     (mainSrc.match(/metaObjectives\.recordRun\(/g) || []).length === 1);
-  check('the results card shows the queue',
-    fs.readFileSync('src/ui/ui.js', 'utf8').includes("'<div class=\"recapHead\">OBJECTIVES</div>'") &&
+  // RC6: the queue is read in PROFILE now, between runs — the results card
+  // is the high-score moment and carries no progression ledger.
+  check('PROFILE shows the queue',
+    fs.readFileSync('src/ui/curve-screen.js', 'utf8').includes("'<div class=\"cHead\">OBJECTIVES</div>'") &&
     fs.readFileSync('index.html', 'utf8').includes('.objRow'));
 
   // Standalone, like the word list: liftable into the next game whole.

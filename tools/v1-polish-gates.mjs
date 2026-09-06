@@ -733,9 +733,10 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     mainCode.includes('getGhost: () => ghostEnabled') &&
     mainCode.includes('getMuted: () => audio.muted'),
     'the ghost and the audio mix reach the sheet through hooks — state stays where it lives');
-  check(mainCode.includes("how.textContent = 'HOW TO PLAY'") &&
-    !/chipRow\('HOW TO/.test(accessCode),
-    'HOW TO PLAY is a title action, never a settings hunt');
+  check(accessCode.includes("actionRow('HOW TO PLAY'") &&
+    !/chipRow\('HOW TO/.test(accessCode) &&
+    accessCode.indexOf("actionRow('HOW TO PLAY'") < accessCode.indexOf("chipRow('GUIDED TIPS'"),
+    'HOW TO PLAY is an action at the head of the sheet, never buried among the toggles');
   check(accessCode.includes('overflow-y:auto'),
     'the grown sheet scrolls instead of clipping on a short phone');
 }
@@ -751,16 +752,20 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   const htmlCode = read('index.html');
   check(uiCode.includes('<div id="deepStats" hidden>'),
     'every card opens folded — the deep stats render hidden');
-  check(uiCode.includes('deep.push(\'<div class="recapHead">THE RUN</div>\')') &&
-    uiCode.includes('deep.push(\'<div class="recapHead">OBJECTIVES</div>\')') &&
+  // RC6: THE RUN was promoted onto the card (it is one of the five things a
+  // high-score moment shows) and the queue left for PROFILE. The stat bar —
+  // the analysis — is still a fold, which is the rule this check exists for.
+  check(uiCode.includes('core.push(\'<div class="recapHead">THE RUN</div>\')') &&
+    !uiCode.includes('recapHead">OBJECTIVES') &&
     /deep\.push\(`<div class="statBar four">/.test(uiCode),
-    'the run shape, the queue and the stat bar all live under the fold, none on the default card');
-  check(uiCode.includes('goalCheck') && uiCode.includes('GOALS TODAY') &&
-    htmlCode.includes('.goalCheck i{'),
-    "today's goals are a big ✓/○ checklist with one headline count");
-  check(mainCode.includes('reward: banked + (objectives.reward || 0)') &&
-    uiCode.includes('class="rewardLine"'),
-    'ONE reward figure on the card — bells plus objectives, a single ◆ total');
+    'the analysis stays behind the fold; THE RUN is on the card and the queue is not');
+  const curveCode = read('src/ui/curve-screen.js');
+  check(curveCode.includes('goalCheck') && curveCode.includes('GOALS TODAY') &&
+    curveCode.includes('#curveScreen .goalCheck i{') && !uiCode.includes('goalCheck'),
+    "today's goals are a big ✓/○ checklist — in PROFILE, where progression is read");
+  check(!uiCode.includes('class="rewardLine"') &&
+    curveCode.includes('cBank') && mainCode.includes("currency: metaStats.get('currency', 0)"),
+    'the ◆ takings are banked in PROFILE, not tallied over the score just set');
   check(mainCode.includes("e.target.closest('#moreStats')") &&
     uiCode.includes('id="moreStats"'),
     'MORE STATS is a real fold: the card renders the button, main.js works the hinge');
@@ -939,6 +944,55 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   check(/#v1MobileDash\{left:50%;margin-left:-38px/.test(mobileCode) &&
     /#v1MobileDash\{width:66px;height:66px;left:50%;right:auto;margin-left:-33px/.test(mobileCode),
     'DASH is centred between the answers in both orientations, and stays centred when it shrinks');
+}
+
+// ── RC6: the cabinet loop ────────────────────────────────────────────────
+{
+  const mainCode = read('src/main.js');
+  const attractSrc = read('src/render/attract.js');
+  const accessCode = read('src/ui/access.js');
+  const shopCode = read('src/ui/shop.js');
+  const html = read('index.html');
+  const storageSrc = read('src/storage/storage.js');
+
+  // 1. The DASH READY hint speaks from the teach band, with the other two.
+  check(html.includes('#powerHint{top:57%;') && html.includes('#coach{top:57%'),
+    'all three in-run tutorial surfaces speak from the one teach band');
+
+  // 2. BEGIN RUN starts the run — no card between a first-timer and the game.
+  check(!/loadOnboarding\(\)\.then\(\(o\) => o\.show\(\)\)/.test(mainCode) &&
+    !storageSrc.includes('onboardingSeen') &&
+    read('src/ui/onboarding.js').includes('showHelp()'),
+    'the first tap starts the run; the six-rule sheet is a reference, never pushed');
+
+  // 3. Attract mode — presentation over the existing pieces, and reversible.
+  check(attractSrc.includes('IDLE_SECONDS = 10') &&
+    !/sim\.step\(|sim\.advance\(|wordGates|beast/.test(attractSrc),
+    'attract is presentation: ten idle seconds, and it never steps the sim');
+  check(attractSrc.includes('this._rest = { d: p.d, x: p.x, y: p.y, score: p.score };') &&
+    /exit\(\) \{[\s\S]{0,600}p\.d = this\._rest\.d/.test(attractSrc),
+    'attract restores the resting pose it found — the title it returns to is the one it left');
+  check(attractSrc.includes('if (g.yanking || g.done)') &&
+    attractSrc.includes('MIN_REPLAY_SECONDS'),
+    'the replay never plays the death yank backwards, and a too-short ghost shows the empty road');
+  check(mainCode.includes('if (attract.active) { attract.exit(); return; }') &&
+    (mainCode.match(/attract\.exit\(\); return;/g) || []).length === 2,
+    'any touch AND any key end the attract loop, and neither starts a run by surprise');
+  check(/attract\.update\([\s\S]{0,400}sim\.phase === PHASE\.TITLE && !running[\s\S]{0,300}accessPanel\.on/.test(mainCode),
+    'attract only ever runs on a title with nothing else on it');
+
+  // 4. The card is the high-score moment; progression is read in PROFILE.
+  check(mainCode.includes('daily: metaDaily.status(DAILY_SEED)') &&
+    mainCode.includes('objectives: metaObjectives.status()'),
+    'PROFILE is fed the goals and the queue that left the card');
+
+  // 5. One ⚙ and PROFILE. Everything else is inside it.
+  check(accessCode.includes("btn.textContent = '⚙'") &&
+    html.includes('#mute{display:none!important') &&
+    shopCode.includes('#shopBtn{display:none!important') &&
+    accessCode.includes("actionRow('◆ 0'") &&
+    shopCode.includes("document.addEventListener('dictiondash:show-shop'"),
+    'the title carries one ⚙ and PROFILE — sound, type and the bank all live inside it');
 }
 
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);

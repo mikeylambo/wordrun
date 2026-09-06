@@ -17,7 +17,10 @@ const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
 export function buildShopPanel({ stats, onEquip, onOpen, onClose }) {
   const style = document.createElement('style');
   style.textContent = `
-    #shopBtn{position:absolute;top:calc(var(--safe-t) + 160px);right:14px;z-index:41;min-width:34px;height:34px;padding:0 8px;border-radius:17px;border:1px solid rgba(255,255,255,.2);background:rgba(14,22,28,.6);color:#dff2fc;font:700 11px/1 var(--face);pointer-events:auto;cursor:pointer}
+    /* RC6: the ◆ balance is no longer a third corner button — it is a row
+       inside the one ⚙ sheet, which opens this panel through the event
+       below. The node stays as the panel's owner and sync target. */
+    #shopBtn{display:none!important;position:absolute;top:calc(var(--safe-t) + 160px);right:14px;z-index:41;min-width:34px;height:34px;padding:0 8px;border-radius:17px;border:1px solid rgba(255,255,255,.2);background:rgba(14,22,28,.6);color:#dff2fc;font:700 11px/1 var(--face);pointer-events:auto;cursor:pointer}
     /* z 90: above the pause button (81) and mute (80), so nothing behind an
        open panel is tappable — the overlap bug was the pause button living
        on top of this sheet. */
@@ -105,6 +108,11 @@ export function buildShopPanel({ stats, onEquip, onOpen, onClose }) {
   }
   sync();
 
+  document.addEventListener('dictiondash:show-shop', () => {
+    sync();
+    onOpen?.();
+    panel.classList.add('on');
+  });
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     panel.classList.add('on');

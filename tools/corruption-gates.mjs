@@ -777,9 +777,12 @@ head('BROADCAST — few words, one type system, numbers first');
   //    rows rather than one sentence per wrong read.
   check('the score is the largest thing on the results card',
     /\.big\{[^}]*font-size:clamp\(72px/.test(html));
+  // RC6: the objective queue moved to PROFILE with the rest of progression —
+  // the card is the high-score moment. The rule is unchanged: whatever each
+  // surface shows, it shows as figures and labelled rows, not sentences.
   check('the results card is figures and rows, not sentences',
-    /class="statBar( four)?"/.test(uiSrc) && uiSrc.includes('class="objRow"') &&
-    uiSrc.includes("row('TARGET'"));
+    /class="statBar( four)?"/.test(uiSrc) && uiSrc.includes("row('TARGET'") &&
+    fs.readFileSync('src/ui/curve-screen.js', 'utf8').includes('class="objRow'));
   check('the review still teaches the true spelling of a tapped fake',
     uiSrc.includes('_missedRow(x.answer, x.shown,') &&
     uiSrc.includes('<s>${wrongSpelling}</s>') && uiSrc.includes('<b>${word}</b>'));

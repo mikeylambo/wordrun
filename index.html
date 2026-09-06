@@ -123,7 +123,12 @@
      The `teaching` state — held while the dash is still unlearned — is
      deliberately loud: bigger, boxed, pulsing. REDUCED FLASH omits the
      class, so the instruction stays and only the pulse goes. */
-  #powerHint{bottom:calc(var(--safe-b) + 42px);opacity:0;font-size:9px;font-weight:900;letter-spacing:.28em;color:#dff9ff;text-shadow:0 0 16px rgba(103,216,255,.52);transition:opacity .2s ease}
+  /* RC6.1: the third tutorial element. RC3 moved the coach to the teach
+     band and RC5 centred the DASH button over this hint's old spot at the
+     bottom edge — so it read as a caption on the button it was telling you
+     to press. It joins the band the other two speak from; the coach
+     already yields to it, so they still never share a frame. */
+  #powerHint{top:57%;opacity:0;font-size:9px;font-weight:900;letter-spacing:.28em;color:#dff9ff;text-shadow:0 0 16px rgba(103,216,255,.52);transition:opacity .2s ease}
   #powerHint.on{opacity:.84}#powerHint.spending{opacity:1}
   #powerHint.teaching{opacity:1;font-size:11px;letter-spacing:.22em;padding:8px 14px;border:1px solid rgba(103,216,255,.55);background:rgba(8,20,28,.62);color:#eafcff;box-shadow:0 0 26px rgba(103,216,255,.34);animation:dashReady 1.15s ease-in-out infinite}
   @keyframes dashReady{0%,100%{box-shadow:0 0 18px rgba(103,216,255,.24);border-color:rgba(103,216,255,.4)}50%{box-shadow:0 0 34px rgba(103,216,255,.62);border-color:rgba(160,236,255,.9)}}
@@ -293,7 +298,11 @@
   #continueTimer i{display:block;height:100%;width:100%;background:#8be4ff;transform-origin:left}
   #continueBalance{font-size:8px;font-weight:800;letter-spacing:.2em;color:rgba(235,247,252,.55)}
 
-  #mute{position:absolute;z-index:80;top:calc(var(--safe-t) + 9px);right:9px;width:38px;height:38px;border:0;border-radius:50%;background:rgba(159,216,255,.1);color:#cfe9f7;font-size:14px;cursor:pointer;pointer-events:auto;display:grid;place-items:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+  /* RC6: the corner sound button retires — MUSIC and SFX are two rows in the
+     one ⚙ sheet (RC5), so this was a third control for a setting that already
+     had a home. The node stays: main and the sheet both keep its label in
+     sync, and nothing has to learn a new owner. */
+  #mute{display:none!important;position:absolute;z-index:80;top:calc(var(--safe-t) + 9px);right:9px;width:38px;height:38px;border:0;border-radius:50%;background:rgba(159,216,255,.1);color:#cfe9f7;font-size:14px;cursor:pointer;pointer-events:auto;display:grid;place-items:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
   /* Phase L HUD pass: while the run is LIVE the only chrome is PAUSE — the
      sound, settings and shop buttons return the moment the game stops
      (pause menu, title, results), so nothing is lost, only deferred. The

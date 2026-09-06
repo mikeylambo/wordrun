@@ -6,7 +6,6 @@
 
 const NS = 'dictiondash.v1';
 const LEGACY_NS = 'wordrun.v1'; // pre-rename namespace, migrated once below
-const ONBOARDING_VERSION = 'rc9';
 const key = (k) => `${NS}.${k}`;
 
 // One-time migration (Phase 12 rename): copy every legacy-namespace key to
@@ -127,15 +126,10 @@ export const Storage = {
     return n;
   },
 
-  // Onboarding is remembered per release instead of forever. A player who saw
-  // RC7 instructions will see the RC9 card once, then returning runs skip it.
-  onboardingSeen(version = ONBOARDING_VERSION) {
-    return safeGet(`pref.onboarding.${version}`) === '1';
-  },
-
-  setOnboardingSeen(seen = true, version = ONBOARDING_VERSION) {
-    return safeSet(`pref.onboarding.${version}`, seen ? '1' : '0');
-  },
+  // RC6: the per-release "has this player seen the card" flag is gone with the
+  // card that was pushed at them. BEGIN RUN starts the run for everyone; the
+  // six-rule sheet is a reference the player opens, so there is nothing to
+  // remember about having shown it.
 
   ghostEnabled() {
     const raw = safeGet('pref.ghost');

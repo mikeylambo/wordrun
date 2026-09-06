@@ -101,7 +101,7 @@ export function initAccess() {
 export function buildAccessPanel(hooks = {}) {
   const style = document.createElement('style');
   style.textContent = `
-    #accessBtn{position:absolute;top:calc(var(--safe-t) + 118px);right:14px;z-index:41;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(14,22,28,.6);color:#dff2fc;font:700 12px/1 var(--face);pointer-events:auto;cursor:pointer}
+    #accessBtn{position:absolute;top:calc(var(--safe-t) + 9px);right:9px;z-index:81;width:38px;height:38px;font-size:15px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(14,22,28,.6);color:#dff2fc;font:700 12px/1 var(--face);pointer-events:auto;cursor:pointer}
     /* z 90: above the pause button (81) and mute (80). At 70 the pause
        button floated ON TOP of the open panel — a player could pause under
        it, hit MENU, and land the title screen beneath this sheet with every
@@ -109,6 +109,8 @@ export function buildAccessPanel(hooks = {}) {
     #accessPanel{position:absolute;inset:0;z-index:90;display:none;flex-direction:column;gap:12px;align-items:center;justify-content:center;background:#05080c;background-image:linear-gradient(180deg,#070c11,#04070a);pointer-events:auto;overflow-y:auto;padding:28px 0}
     .accessSection{font:800 9px/1 var(--face,system-ui);letter-spacing:.34em;color:#8be4ff;margin:6px 0 -4px;opacity:.85}
     #accessPanel.on{display:flex}
+    #accessPanel .accessAction{margin:2px 0 4px;padding:11px 18px;border:1px solid rgba(255,255,255,.18);border-radius:2px;background:transparent;color:#eef7fb;font:700 9px/1 var(--face);letter-spacing:.24em;cursor:pointer;pointer-events:auto}
+    #accessPanel .accessAction:active{background:rgba(255,255,255,.1)}
     #accessPanel h3{margin:0;font:700 12px/1 var(--face);letter-spacing:.3em;color:rgba(244,250,253,.8)}
     .accessRow{display:flex;flex-direction:column;gap:6px;align-items:center}
     .accessLabel{font:600 8px/1 var(--face);letter-spacing:.24em;color:rgba(235,247,252,.5)}
@@ -120,8 +122,11 @@ export function buildAccessPanel(hooks = {}) {
   const btn = document.createElement('button');
   btn.id = 'accessBtn';
   btn.type = 'button';
-  btn.textContent = 'AA';
-  btn.setAttribute('aria-label', 'Accessibility options');
+  // RC6: the one piece of chrome on the title. It was 'AA' sitting third in
+  // a stack of three corner buttons (sound, AA, the ◆ balance); a cabinet
+  // shows the game and one way in to everything else.
+  btn.textContent = '⚙';
+  btn.setAttribute('aria-label', 'Settings');
   document.getElementById('app').appendChild(btn);
 
   const panel = document.createElement('div');
@@ -165,8 +170,33 @@ export function buildAccessPanel(hooks = {}) {
     h.textContent = label;
     panel.appendChild(h);
   };
+  // RC6: two ACTIONS at the head of the sheet — the reference card and the
+  // bank. Both used to be their own corner button or title chip; the sheet
+  // is where everything that is not the game itself now lives.
+  const actionRow = (label, run) => {
+    const r = document.createElement('button');
+    r.type = 'button';
+    r.className = 'accessAction';
+    r.dataset.rc2Ui = '1';
+    r.textContent = label;
+    r.addEventListener('click', (e) => { e.stopPropagation(); run(r); });
+    panel.appendChild(r);
+    return r;
+  };
+
   const syncs = [];
   section('GAME');
+  actionRow('HOW TO PLAY', () => {
+    panel.classList.remove('on');
+    hooks.onClose?.();
+    document.dispatchEvent(new CustomEvent('dictiondash:show-how'));
+  });
+  const bankRow = actionRow('◆ 0', () => {
+    panel.classList.remove('on');
+    hooks.onClose?.();
+    document.dispatchEvent(new CustomEvent('dictiondash:show-shop'));
+  });
+  syncs.push(() => { bankRow.textContent = `◆ ${Math.floor(hooks.getBank?.() || 0)}`; });
   syncs.push(
     chipRow('GUIDED TIPS', [[true, 'ON'], [false, 'OFF']],
       () => ACCESS.guidedTips, (v) => { ACCESS.guidedTips = v === 'true' || v === true; }),

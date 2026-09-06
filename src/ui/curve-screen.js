@@ -10,6 +10,14 @@
  */
 
 const CSS = `
+#curveScreen .cTop .cV{font-size:19px;font-weight:800;letter-spacing:-.02em;color:#eaf6fc}
+#curveScreen .cBank{display:inline-block;margin-left:10px;font-style:normal;font-size:11px;font-weight:700;letter-spacing:.12em;color:#8be4ff}
+#curveScreen .goalList{display:flex;flex-direction:column;gap:8px;margin:2px 0 4px}
+#curveScreen .goalCheck{display:flex;gap:11px;align-items:center;text-align:left}
+#curveScreen .goalCheck i{font-style:normal;flex:0 0 20px;width:20px;height:20px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.16);border-radius:50%;font-size:10px;color:var(--dimmer)}
+#curveScreen .goalCheck.done i{border-color:rgba(139,228,255,.7);background:rgba(18,42,54,.55);color:#8be4ff;font-weight:800}
+#curveScreen .goalCheck .goalChip{font-size:11px;letter-spacing:.14em;color:rgba(232,244,251,.5)}
+#curveScreen .goalCheck .goalChip.done{color:#bff0ff;font-weight:700}
 #curveScreen{position:absolute;inset:0;z-index:78;display:none;align-items:center;justify-content:center;
   padding:24px;background:rgba(6,11,16,.94);backdrop-filter:blur(8px);color:#eaf6fc}
 #curveScreen.on{display:flex}
@@ -108,12 +116,49 @@ export function buildCurveScreen(getData) {
   };
 
   const render = () => {
-    const { series, beaten } = getData() || {};
+    const { series, beaten, daily, objectives, currency, best } = getData() || {};
     const rows = [];
     const hasTrend = series && series.tiers.length > 0;
 
+    // RC6: progression lives here now, not over the score a player just set.
+    // The results card is the high-score moment; this is where someone comes
+    // between runs to see what they are chasing and what they have banked.
+    if (best > 0 || currency > 0) {
+      rows.push('<div class="cRow cTop"><span class="cK">BEST</span>' +
+        `<span class="cV">${Math.floor(best || 0).toLocaleString('en-US')}` +
+        (currency > 0 ? `<i class="cBank">◆ ${Math.floor(currency)}</i>` : '') +
+        '</span></div>');
+    }
+    if (daily?.goals?.length) {
+      const done = daily.goals.filter((g) => g.done).length;
+      rows.push(`<div class="cHead">${done} OF ${daily.goals.length} GOALS TODAY</div>`);
+      rows.push(`<div class="goalList">${daily.goals.map((g) =>
+        `<div class="goalCheck${g.done ? ' done' : ''}"><i>${g.done ? '✓' : '○'}</i>`
+        + `<span class="goalChip${g.done ? ' done' : ''}">${g.label}</span></div>`).join('')}</div>`);
+    }
+    // The rotating queue (Phase 21): cleared first — that is the payoff —
+    // then the three live now. A freshly drawn objective reports zero by
+    // construction; showing it part-filled would be the retroactive credit
+    // the queue exists to refuse.
+    if (objectives?.live?.length || objectives?.cleared?.length) {
+      const bits = [];
+      for (const c of objectives.cleared || []) {
+        bits.push(`<div class="objRow done"><span class="ol">${c.label}</span>`
+          + '<span class="ob"><i style="width:100%"></i></span>'
+          + `<span class="ov">◆${c.reward}</span></div>`);
+      }
+      for (const o of objectives.live || []) {
+        const pct = Math.round(Math.max(0, Math.min(1, o.progress || 0)) * 100);
+        bits.push(`<div class="objRow"><span class="ol">${o.label}</span>`
+          + `<span class="ob"><i style="width:${pct}%"></i></span>`
+          + `<span class="ov">◆${o.reward}</span></div>`);
+      }
+      rows.push('<div class="cHead">OBJECTIVES</div>');
+      rows.push(`<div class="objList">${bits.join('')}</div>`);
+    }
+
     if (!hasTrend && (!beaten || beaten.length === 0)) {
-      rows.push('<p class="note">Play a few runs and this fills in.</p>');
+      if (!rows.length) rows.push('<p class="note">Play a few runs and this fills in.</p>');
       body.innerHTML = rows.join('');
       return;
     }

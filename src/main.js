@@ -20,6 +20,7 @@ import { StreakBurst } from './render/streak-burst.js';
 import { WindStreaks, TrackPylons } from './render/speed-fantasy.js';
 import { EditorialWorld } from './render/editorial-world.js';
 import { LaunchSequence } from './render/launch-sequence.js';
+import { AttractMode } from './render/attract.js';
 import { GuidedTeach } from './ui/guided.js';
 import { BellRenderer } from './render/bells.js';
 import { HEARTS } from './design/bells.js';
@@ -88,6 +89,18 @@ const trackPylons = new TrackPylons(stage.scene, sim.terrain);
 // denser as the run's band rises and struck through as the Redline closes.
 const editorialWorld = new EditorialWorld(stage.scene, sim.terrain);
 const launch = new LaunchSequence();
+// RC6: a cabinet is never idle. Ten quiet seconds on the title and the best
+// run replays itself down the road behind the wordmark; any touch takes the
+// machine back. Presentation only — it drives the same pose the camera has
+// always followed and restores what it found (see render/attract.js).
+const attract = new AttractMode({
+  sim,
+  playerActor,
+  loadGhost: () => Storage.loadGhost(SEED),
+  bestScore: () => Storage.bestFor(SEED),
+  onEnter: () => { ui.showHud(true); },
+  onExit: () => { ui.showHud(false); },
+});
 const guided = new GuidedTeach();
 
 // PD-1: the fundamentals — has this player EVER confirmed and rejected?
@@ -174,7 +187,15 @@ const metaStats = new StatsManager(metaAdapter);
 // The per-word ledger rides the same adapter seam as the stats.
 const nemesis = new NemesisLedger(metaAdapter);
 const curve = new CurveLog(metaAdapter);
-buildCurveScreen(() => ({ series: curve.series(14), beaten: nemesis.beatenWords() }));
+buildCurveScreen(() => ({
+  series: curve.series(14),
+  beaten: nemesis.beatenWords(),
+  // RC6: what left the results card. PROFILE is where progression is read.
+  daily: metaDaily.status(DAILY_SEED),
+  objectives: metaObjectives.status(),
+  currency: metaStats.get('currency', 0),
+  best: Storage.bestFor(SEED),
+}));
 const metaDaily = new DailyManager(metaAdapter);
 
 // Which controls this player has ever used. The in-run coach teaches a control
@@ -235,6 +256,8 @@ const accessUI = buildAccessPanel({
   // RC-5: the AUDIO group is a two-line mix now. Both apply live.
   setMusicMuted: (m) => { audio.start(); audio.setMusicMuted(m); },
   setSfxMuted: (m) => { audio.start(); audio.setSfxMuted(m); },
+  // RC6: the ◆ balance is a row in the sheet now, not a corner button.
+  getBank: () => metaStats.get('currency', 0),
 });
 // The saved mix applies to the graph as soon as it exists, so a player who
 // turned the score off last session does not hear it come back on launch.
@@ -242,6 +265,11 @@ audio.setMusicMuted(ACCESS.musicOff);
 audio.setSfxMuted(ACCESS.sfxOff);
 
 document.addEventListener('dictiondash:dash-ready', () => audio.dashReady());
+// RC6: HOW TO PLAY is asked for by event now (the ⚙ sheet, the pause menu).
+// Force the chunk in, so an early ask cannot land before the listener does.
+document.addEventListener('dictiondash:show-how', () => {
+  loadOnboarding().then((o) => o.showHelp());
+});
 
 // The DASH teaching beat (Phase 16) runs until the player has used the
 // mechanic once — ever, not per run. __DASH_LEARNED lets the mobile
@@ -303,19 +331,11 @@ if (CHALLENGE) {
     document.dispatchEvent(new CustomEvent('dictiondash:show-curve'));
   });
   document.getElementById('titleGoals')?.appendChild(btn);
-  // PD-3: HOW TO PLAY is a first-class title action beside PROFILE — the
-  // reference card is never a settings hunt.
-  const how = document.createElement('button');
-  how.type = 'button';
-  how.className = 'modeChip';
-  how.id = 'openHow';
-  how.textContent = 'HOW TO PLAY';
-  how.addEventListener('click', (e) => {
-    e.stopPropagation();
-    audio.uiTap();
-    loadOnboarding().then((o) => o.showHelp());
-  });
-  document.getElementById('titleGoals')?.appendChild(how);
+  // RC6: the title carries the wordmark, BEGIN RUN, the modes and PROFILE.
+  // HOW TO PLAY moved inside the one ⚙ sheet (PD-3 put it on the title to
+  // keep it out of a settings hunt; the sheet is no longer a hunt — it is
+  // two actions and three short groups, and the cabinet wants one way in).
+  // The pause menu's entry is unchanged, and both reach the same card.
   updateCurveBadge();
 }
 
@@ -902,21 +922,27 @@ function onAdvance() {
   // DEAD) and a finished route (phase still RUNNING, sim.escaped set).
   if ((sim.phase === PHASE.DEAD || sim.escaped) && performance.now() - deathShownAt < 350) return;
   audio.uiTap();
-  if (sim.phase === PHASE.TITLE && !Storage.onboardingSeen()) {
-    // First run ever: show the how-to. It is preloaded, but await the chunk if
-    // the tap somehow beats the preload so the screen never silently no-ops.
-    loadOnboarding().then((o) => o.show());
-    return;
-  }
+  // RC6: BEGIN RUN starts the run — for everyone, on the first tap of the
+  // first session included. A card between the player and the game is the
+  // wrong first beat for a cabinet, and the teaching is already in the run:
+  // TEACH carries the fundamentals and the study stop waits for the first
+  // answer of each verb. The six-rule sheet is a REFERENCE now, reachable
+  // whenever it is wanted (HOW TO PLAY, and the pause menu) and never
   startRun();
 }
 
 window.addEventListener('pointerup', (e) => {
+  // RC6: the first touch of an attract loop belongs to ending it — it puts
+  // the machine back in the player's hands and starts nothing by surprise.
+  // A tap on a button still reaches that button's own handler.
+  if (attract.active) { attract.exit(); return; }
   if (e.target.closest?.('[data-rc2-ui],[data-rc7-ui],button')) return;
   onAdvance();
 });
 window.addEventListener('keydown', (e) => {
   if (onboarding?.visible) return;
+  // Any key ends the attract loop, exactly as any touch does.
+  if (attract.active) { attract.exit(); return; }
   if (e.code === 'Escape' || e.code === 'KeyP') {
     if (sim.phase === PHASE.RUNNING) {
       e.preventDefault();
@@ -1373,6 +1399,12 @@ function tick(dt) {
   trackPylons.update(pv.d);
   editorialWorld.terrain = sim.terrain;
   launch.update(dt);
+  // RC6 attract: a title with nothing on it and nobody in it. Any sheet, the
+  // how-to, a pending or playing arrival, or a live run all count as busy.
+  attract.update(paused ? 0 : dt,
+    sim.phase === PHASE.TITLE && !running && !paused && !launchPending &&
+    launch.t < 0 && !onboarding?.visible && !offerActive &&
+    !document.querySelector('#accessPanel.on, #shopPanel.on, #curveScreen.on'));
   const bandNow = editorialWorld.update(pv.d, p.chain, bv.gap, dt);
   // E2: crossing a band threshold is an ARRIVAL — one note rising with the
   // band, one swell of ink (the swell yields to REDUCED FLASH; the note
@@ -1535,6 +1567,8 @@ if (new URLSearchParams(location.search).get('dev') === '1') {
 window.__INPUT = input;
 window.__START = () => { startRun(); launch.snapToBlack(); return sim.state(); };
 window.__QUIT = () => { quitToTitle(); return { phase: sim.phase }; };
+// RC6: the attract loop is a real state the audits have to be able to read.
+window.__ATTRACT_ACTIVE = () => attract.active;
 window.__FINISH_RUN = () => { onFinishRun(); return { phase: sim.phase }; };
 window.__GHOST = (on = ghostEnabled) => { setGhostEnabled(on); return { enabled: ghostEnabled }; };
 window.__PAUSE = (on = true) => { on ? pauseGame() : resumeGame(); return { paused }; };

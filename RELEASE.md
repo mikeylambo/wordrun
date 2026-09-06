@@ -1990,3 +1990,40 @@ A reduction pass. Five things came off or split apart; nothing new was added.
   single low row — FAKE, DASH, REAL — with the answer buttons lifted so
   all three centres align. The reward-bar readout moved out of the meter's
   label so it survives the meter's removal.
+
+## 1.0-RC6 — the cabinet: the loop
+
+Judged against one question: would this look and feel right on a large
+vertical screen in an arcade? No new gameplay systems.
+
+- **The DASH READY hint joins the teach band.** It was the third tutorial
+  surface still pinned to the bottom edge after the coach moved, and RC5
+  centred the DASH button on top of it — so it read as a caption on the
+  button it was telling you to press. All three in-run surfaces now speak
+  from the same 57% line, and the coach already yields to it.
+- **BEGIN RUN starts the run.** A fresh profile used to meet a six-rule
+  card on its first tap; a card between a player and the game is the wrong
+  first beat for a cabinet. The teaching is already in the run — TEACH
+  carries the fundamentals and the study stop waits for the first answer
+  of each verb. The sheet is a REFERENCE now, opened when wanted, and the
+  per-release "has this player seen it" flag went with the push.
+- **Attract mode.** Ten quiet seconds on the title and the road starts
+  running behind the wordmark: the player's own BEST RUN ghost replays its
+  line with the HUD score climbing the way it climbed the night it was
+  set. Any touch or key ends it and starts nothing by surprise. It is
+  presentation over the existing pieces — no second sim, no second game —
+  and it restores the resting pose it found. With no ghost on record (or
+  one too short to be worth watching) the road simply runs empty.
+- **The results card is the high-score moment.** Score, whether it beat
+  the best, THE RUN, the standout, AGAIN / MENU. Today's goals, the
+  objective queue and the ◆ takings moved to PROFILE, which is where a
+  player goes between runs to see what they are chasing and what they have
+  banked. The analysis stays one fold deeper.
+- **One ⚙ and PROFILE.** The title carried three corner buttons and two
+  chips; it now carries the wordmark, BEGIN RUN, the modes, PROFILE and a
+  single gear. Sound, word type, HOW TO PLAY and the ◆ bank all live
+  inside it.
+
+`dev/shoot-rc-stills.mjs` is committed with this pass: the audit stills are
+re-shot by a script rather than by whatever driver existed that day, and it
+now fails loudly rather than filing a still that shows the wrong screen.
