@@ -839,7 +839,7 @@ head('ZONES — the reject is optional, and never worse than silence');
   check('the dash still has three ways in and no gesture',
     /case 'Space': case 'KeyF': case 'ShiftLeft': case 'ShiftRight':/.test(inputSrc) &&
     /this\._dashDown\(performance\.now\(\)\)/.test(inputSrc) &&
-    /this\.__v1DashButtonHeld && !this\._btnDown/.test(inputSrc) &&
+    /input\.dashPress\?\.\(\)/.test(fs.readFileSync('src/v1-mobile-ui.js', 'utf8')) &&
     /get boostHeld\(\) \{ return this\.dashEdge \|\| this\._scriptBoost; \}/.test(inputSrc),
     'Space, the F key and the on-screen button — one machine, one meaning');
   check('the hold that used to arm the dash is gone',

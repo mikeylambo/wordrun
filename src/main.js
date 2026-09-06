@@ -605,6 +605,7 @@ function buildRunInTheDark() {
   burst10 = 0;
   frozenRank = 0;
   learnedWords = 0;
+  ui.resetCoach();   // RC10.8: the bar lesson gets one showing per run
   moments.begin(ACCESS);
   momentClip.hide();
   earlyStreak = 0;
@@ -1684,6 +1685,7 @@ function tick(dt) {
   // reach RESUME and AGAIN. It used to be polled from inside a runtime patch
   // of the audio bridge, purely because that ran once a frame.
   controllerNav.update(sim.phase);
+  profileOverlay?.update(sim.player.d, dt);
   // RC7: the three stops own the fundamentals. The sim reads which of them
   // this player has already been SHOWN (persisted beside the other learned
   // lessons, so each fires once for a life, whatever the player did with
@@ -1836,6 +1838,18 @@ window.__RENDER = {
 // import so it lands in its own chunk: a normal load never fetches it.
 if (new URLSearchParams(location.search).get('dev') === '1') {
   import('./dev-panel.js').then((m) => m.mountDevPanel()).catch(() => {});
+}
+
+// RC10.8 — `?profile=1`: the road's own numbers under the runner. A player
+// reported dips and there was no way to look; this names the segment, the
+// grade, the roll AND the cross-slope the mesh actually renders, marking
+// anything over the RC8.2 ceiling. Dev only, dynamic import, draws into its
+// own corner and takes no input.
+let profileOverlay = null;
+if (new URLSearchParams(location.search).get('profile') === '1') {
+  import('./dev/profile-overlay.js')
+    .then((m) => { profileOverlay = new m.ProfileOverlay(sim.terrain); })
+    .catch(() => {});
 }
 
 // RC9.8: the capture and the clip, for the audits and the phone matrix run.

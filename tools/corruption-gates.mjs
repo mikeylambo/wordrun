@@ -1015,6 +1015,189 @@ head('BEATS — discrete arrivals, no labels, no new controls');
     audio.split('chainBreak')[1].includes('bus.cinematic'));
 }
 
+
+
+// ── RC10.8 verdict: the dash keeps its stop ──────────────────────────────
+{
+  const stops = fs.readFileSync('src/sim/teach-stops.js', 'utf8');
+  head('VERDICTS — what the playtest decided, written where it applies');
+  check('the dash is still one of the three stops, and still lets go on its own',
+    /STOP = Object\.freeze\(\{ REAL: 'real', FAKE: 'fake', DASH: 'dash' \}\)/.test(stops) &&
+    /THE DASH STOP STAYS A STOP/.test(stops) &&
+    /DASH_AUTO_SECONDS = 5/.test(stops) && /DASH_OTHER_INPUTS = 3/.test(stops),
+    'a power nobody presses is a power that does not exist — and it is the one stop with no plate to read afterwards');
+  const ui2 = fs.readFileSync('src/ui/ui.js', 'utf8');
+  check('the DAILY line says what the route offers, not how often you may take it',
+    ui2.includes('SAME FOR EVERYONE · NEW EACH DAY') && !ui2.includes('· ONCE A DAY`'),
+    'ONCE A DAY read as a restriction on the player; the route is what is new');
+}
+
+// ── RC10.8: the three regressions, and the shapes that let them in ───────
+head('REGRESSIONS — a hold that was timed late, a line that strobed, a look');
+{
+  const inputSrc = fs.readFileSync('src/input/input.js', 'utf8');
+  const mobileSrc = fs.readFileSync('src/v1-mobile-ui.js', 'utf8');
+  const uiSrc2 = fs.readFileSync('src/ui/ui.js', 'utf8');
+  const html2 = fs.readFileSync('index.html', 'utf8');
+
+  // (2a) THE HOLD. Every dash control must PUSH its edges. RC9.9 polled the
+  // touch button once a frame and called it "one frame of latency"; measured
+  // on a real touch the press arrived 455 ms late, so a 900 ms hold was timed
+  // as 445 ms and raised nothing. A hold window may not be measured from a
+  // timestamp that is itself a frame or more old.
+  check('every dash control pushes its press edge — none is polled for it',
+    mobileSrc.includes('input.dashPress?.()') && mobileSrc.includes('input.dashRelease?.()') &&
+    !/if \(this\.__v1DashButtonHeld && !this\._btnDown\) this\._dashDown/.test(inputSrc) &&
+    /_dashDown\(performance\.now\(\)\)/.test(inputSrc),
+    'touch, Space and RT now start the same clock at the same instant');
+  check('and the polled flag survives only as a safety net for a lost release',
+    /if \(!this\.__v1DashButtonHeld && this\._dashT != null && this\._btnDown\) this\._dashUp\(now\)/
+      .test(inputSrc),
+    'a capture stolen by a system gesture cannot leave a press hanging');
+  check('capture failing can no longer cost the press',
+    /try \{ go\.setPointerCapture\?\.\(e\.pointerId\); \} catch/.test(mobileSrc) &&
+    mobileSrc.indexOf('input.__v1DashButtonHeld = true;')
+      > mobileSrc.indexOf('try { go.setPointerCapture'),
+    'setPointerCapture threw BEFORE the flag was set, and the button wedged silently');
+
+  // And the machine itself, driven: a press timed from the press INSTANT
+  // gives the same answer at any frame rate. This is the check the browser
+  // could not honestly provide — headless software GL runs the page at a
+  // couple of frames a second, so a 150 ms tap arrives at the handler 650 ms
+  // after it was dispatched and every touch measurement there is the
+  // renderer's, not the game's. Driven here against a stubbed clock, the
+  // boundary is exact.
+  {
+    const realWindow = globalThis.window;
+    const realPerf = globalThis.performance;
+    let clock = 1000;
+    globalThis.window = { addEventListener() {}, innerWidth: 390, innerHeight: 844 };
+    globalThis.performance = { now: () => clock };
+    const { Input, HOLD_MS } = await import('../src/input/input.js');
+    const press = (ms) => {
+      const inp = new Input({ addEventListener() {}, clientWidth: 390, clientHeight: 844 });
+      inp.dashPress();                 // the button's pointerdown
+      clock += ms;
+      inp.update(1 / 60, true);        // a frame lands mid-press, as it does
+      inp.dashRelease();               // the button's pointerup
+      return { dash: inp.boostHeld, raise: inp.raiseBar };
+    };
+    const short = [80, 150, 300, HOLD_MS - 1].map(press);
+    const long = [HOLD_MS, 900, 3000].map(press);
+    check('a press under the hold window dashes, and raises nothing',
+      short.every((r) => r.dash && !r.raise),
+      `80, 150, 300 and ${HOLD_MS - 1} ms all dash — a tap is an answer, at any frame rate`);
+    check('a press that outlives it raises the bar, and cannot then dash',
+      long.every((r) => r.raise && !r.dash),
+      `${HOLD_MS}, 900 and 3000 ms all raise — one press, one verb, decided by its own clock`);
+    globalThis.window = realWindow;
+    globalThis.performance = realPerf;
+  }
+
+  // (2b) THE LINE. RC9.9 gated the bar lesson on a per-frame "nothing is
+  // armed", and gaps open and close several times a second — so it strobed.
+  check('the bar lesson begins in a gap and then HOLDS for its duration',
+    uiSrc2.includes('_barLineOk(sim, p)') &&
+    /if \(this\._barLineAt\) return \(now - this\._barLineAt\) < UI\.BAR_LINE_S \* 1000;/.test(uiSrc2) &&
+    !/p\.chain >= 4 &&\s*\n?\s*!sim\.wordGates\.armed/.test(uiSrc2),
+    'same rule, latched once, instead of a flicker driven by the road');
+  check('and it shows at most once a run, retiring on the first raise',
+    /if \(this\._lessons\.bar\) \{ this\._barLineDone = true;/.test(uiSrc2) &&
+    /resetCoach\(\) \{ this\._barLineAt = 0; this\._barLineDone = !!this\._lessons\?\.bar; \}/.test(uiSrc2) &&
+    fs.readFileSync('src/main.js', 'utf8').includes('ui.resetCoach();'),
+    'a lesson that reappears is a lesson nobody believes');
+
+  // (3) THE LOOK. BROADCAST is a post pass on the WebGL canvas and cannot
+  // reach the DOM; the controls sit above the canvas in every look because
+  // the canvas takes no z-index at all. Held here so a future look cannot
+  // quietly acquire one.
+  check('the canvas claims no stacking order, so the controls sit above every look',
+    /canvas\{display:block;width:100%;height:100%;touch-action:none\}/.test(html2) &&
+    !/#gl\s*\{[^}]*z-index/.test(html2) &&
+    /\.v1MobileAction\{[^}]*z-index:67/.test(fs.readFileSync('src/v1-mobile-ui.js', 'utf8')) &&
+    /#barMarks\{[^}]*z-index:24/.test(html2),
+    'the buttons are 67 and the marks 24 against a canvas with none');
+  check('and the look toggle reaches only the renderer, never the page',
+    !/broadcastLook/.test(html2) &&
+    !/classList[^\n]*broadcast/i.test(fs.readFileSync('src/ui/access.js', 'utf8')),
+    'nothing about BROADCAST can move, hide or cover a control');
+}
+
+// ── RC10.8: every performance cue on one ladder ──────────────────────────
+head('CUES — excellent play crests in ONE band, and a wrong read drops it');
+{
+  const L = await import('./cue-ladder.mjs');
+  const { BAND_CHAINS, stepBand } = await import('../src/render/editorial-layout.js');
+
+  // The table, printed. It did not exist before RC10.8, which is exactly
+  // where eight systems tuned separately managed to disagree unnoticed.
+  const keys = L.CUES.map((c) => c.key);
+  out.push('\n  every cue against the reading chain, normalised 0..1');
+  out.push('  chain'.padEnd(8) + keys.map((k) => k.slice(0, 9).padStart(11)).join(''));
+  for (const r of L.ladderTable()) {
+    out.push(`  ${String(r.chain).padStart(5)} ` + keys.map((k) => r[k].toFixed(2).padStart(11)).join(''));
+  }
+  out.push('  crest chain: ' + L.CUES.map((c) => `${c.key.split(' ')[0]} ${L.crestChain(c)}`).join(', ') + '\n');
+
+  // Every cue rises with the chain and never falls back on its own.
+  {
+    let monotonic = true, offender = '';
+    for (const c of L.CUES) {
+      let prev = -1;
+      for (let ch = 0; ch <= 160; ch++) {
+        const v = c.at(ch);
+        if (v < prev - 1e-9) { monotonic = false; offender = `${c.key} at ${ch}`; }
+        prev = v;
+      }
+    }
+    check('every cue climbs with the chain and never dips on its own', monotonic, offender || 'eight cues, 0..160');
+  }
+
+  // THE ALIGNMENT. The continuous world cues must crest together, on a band,
+  // with the music — not each at its own private number.
+  {
+    const CONTINUOUS = ['flow brilliance', 'runner tail', 'runner economy', 'music layer'];
+    const crests = CONTINUOUS.map((k) => L.crestChain(L.CUES.find((c) => c.key === k)));
+    const same = crests.every((c) => c === crests[0]);
+    check('the continuous cues crest at ONE chain, and it is an editorial band',
+      same && BAND_CHAINS.includes(crests[0]) && crests[0] === L.CONTINUOUS_CREST,
+      `${CONTINUOUS.join(', ')} all crest at ${crests[0]} — band ` +
+      `${BAND_CHAINS.indexOf(crests[0])} of ${BAND_CHAINS.length - 1}, the one the world calls blooming`);
+    check('and nothing is finished before the player has read a band\'s worth',
+      crests[0] >= BAND_CHAINS[1],
+      `they used to be full at ${TUNING.BOOST.CHAIN_CAP} — a sixth of the range, then silence`);
+  }
+
+  // The discrete ladders are allowed to be short, but must SAY so: they are
+  // steps a player counts, not a world state, and each has its own reason.
+  {
+    const chime = L.crestChain(L.CUES.find((c) => c.key === 'chime rung'));
+    const surge = L.crestChain(L.CUES.find((c) => c.key === 'surge'));
+    const score = L.crestChain(L.CUES.find((c) => c.key === 'score multiplier'));
+    check('the counted ladders keep their own shorter reach, deliberately',
+      chime <= 20 && surge <= 20 && score === TUNING.BOOST.CHAIN_CAP,
+      `chime ${chime} (the ear stops hearing new rungs), surge ${surge} ` +
+      `(${TUNING.BOOST.SURGE_READS} reads past the cap), score ${score} (a calibrated dial)`);
+  }
+
+  // A WRONG READ DROPS THEM IN ONE FRAME. The chain is zeroed by the sim, so
+  // every cue that reads the chain is at its floor on the very next frame.
+  {
+    const atZero = L.ladderAt(0);
+    const allFloor = L.CUES.filter((c) => c.key !== 'editorial band')
+      .every((c) => atZero[c.key] === 0);
+    check('a wrong read zeroes the chain, so every cue is at its floor next frame',
+      allFloor, 'one frame, not a fade — the loss is the point');
+    // The world is the ONE exception, and it is deliberate: it falls a layer.
+    let b = stepBand(0, 150, false);
+    const top = b;
+    b = stepBand(b, 0, true);
+    check('the Editorial world alone falls ONE layer instead of to nothing',
+      top === BAND_CHAINS.length - 1 && b === top - 1,
+      'the world remembers what still stands; every other cue does not');
+  }
+}
+
 // ── The standout line (Phase E4) ─────────────────────────────────────────
 head('STANDOUT — one line, chosen by rarity, or nothing at all');
 

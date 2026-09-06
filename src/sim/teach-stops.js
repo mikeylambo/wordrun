@@ -49,6 +49,21 @@ const FAKE_AUTO_SECONDS = 2;
 const DASH_AUTO_SECONDS = 5;
 const DASH_OTHER_INPUTS = 3;
 
+// RC10.8 verdict — THE DASH STOP STAYS A STOP.
+//
+// The question put to the playtest was whether the dash still earns a freeze
+// or whether the coach line alone could carry it, now that RC7.1 lets the line
+// outlive the stop and follow the player through the run. The answer is that
+// it earns it. The other two stops teach an ANSWER, which a player will meet
+// again within seconds whether or not they understood it; the dash is a POWER,
+// and a power nobody presses is a power that does not exist. It is also the
+// only one of the three with no plate to look at, so a player who misses the
+// moment has nothing to read afterwards.
+//
+// What keeps it honest is already here: it fires once per life, it releases on
+// five seconds or on the third non-dash input rather than holding the world
+// hostage, and the ring and the line stay after it lets go. Kept as a stop.
+
 export class TeachStops {
   constructor() { this.reset(); }
 

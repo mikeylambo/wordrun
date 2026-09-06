@@ -64,7 +64,24 @@ export const TUNING = {
       // gradient is 1.5x a line's, so the sharpest join in the vocabulary
       // (a crest's own apex, 0.190 of grade) changes at 0.0110 per metre
       // instead of 0.0073, and the gate asserts exactly that bound.
-      TRANS_M: 26,          // metres a grade/roll change is eased over
+      //
+      // RC10.8 — 26 -> 48, because that bound fenced the WRONG QUANTITY. It
+      // bounded `rollAt`, the segment bank, and the surface a player actually
+      // sees is `crossSlopeAt` = rollAt MINUS the ribbon's turn-lean
+      // (corridorSlope x EDGE_BANK x 0.5). The lean is a second, unbudgeted
+      // contribution, and at 26 the bank alone already spent 5.766e-3 of the
+      // 5.769e-3 ceiling — so the rendered cross-slope ran to 8.29e-3 on the
+      // DAILY seed, 1.44x the number every gate and every note claimed. That
+      // is the dip a playtester felt: a road changing its cross-fall half
+      // again as fast as the design allowed, on the one seed everybody plays.
+      //
+      // 48 is the shortest ramp that fits BOTH terms inside the published
+      // 5.769e-3 (measured 5.658e-3 across seven seeds) while staying under
+      // MIN_SEG_M so two windows still never overlap. The bank keeps its
+      // magnitude and the lean keeps EDGE_BANK — nothing about the road's
+      // character is given up, the joins simply take the length they always
+      // needed. Grade joins gentle from 1.096e-2 to 5.94e-3 as a bonus.
+      TRANS_M: 48,
       // No segment may be shorter than this. Two things need it: a segment
       // under TRANS_M would have its two ramp windows OVERLAP, which no
       // closed form covers and which reads as a step in the slope; and two

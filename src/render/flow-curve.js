@@ -13,7 +13,22 @@
  * and multiply the returned factors into their own intensities.
  */
 
-const FLOW_CHAIN_CAP = 8;      // matches BOOST.CHAIN_CAP: full flow at 8 links
+// RC10.8 — 8 -> 50, the third editorial band (BAND_CHAINS[2], the one the
+// world calls blooming, and the chain the music layer arrives on).
+//
+// It used to match BOOST.CHAIN_CAP, and the note said so as though scoring and
+// brilliance had to agree. They do not: CHAIN_CAP is where the SCORE stops
+// paying per link, and it is a calibrated dial with golden tables behind it.
+// Brilliance is presentation. Matching them meant the world reached maximum
+// glow, maximum tail and maximum posture economy at chain 8 and then had
+// nothing left to say for the next hundred and forty-two reads — every cue
+// crested in the first sixth of the range and went flat, which is what
+// cue-ladder.js was written to make visible.
+//
+// At 50 the continuous cues crest WITH the music layer and the blooming band,
+// so excellent play arrives somewhere rather than everywhere at once. The
+// scoring model is untouched.
+const FLOW_CHAIN_CAP = 50;
 const FLOW_PEAK_START = 0.6;   // pulsing begins above this flow level
 const GLOW_MIN = 0.78;         // the idle world: dimmed, never dead
 const GLOW_MAX = 1.75;         // the earned world: bright, never blinding

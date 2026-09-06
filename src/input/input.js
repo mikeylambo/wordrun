@@ -423,13 +423,19 @@ export class Input {
     // Pointer wins when present, otherwise the keyboard drives.
     this.carve = this.primaryId !== null ? dragX : this.keyX;
     this.flip = this.primaryId !== null ? dragY : this.keyY;
-    // RC9.9: the touch button reports itself as a held flag (v1-mobile-ui.js
-    // owns that element), so its edges are read here rather than pushed —
-    // one frame of latency against a 520 ms window, and no second owner of
-    // the button's state.
+    // RC10.8: the touch button PUSHES its edges now (v1-mobile-ui.js calls
+    // dashPress/dashRelease), so all three modalities start the same clock at
+    // the same instant. RC9.9 polled this flag once a frame and called the
+    // latency "one frame against a 520 ms window"; measured on a real touch it
+    // arrived 455 ms late, so a 900 ms press was timed as 445 ms and raised
+    // nothing. A hold window may not be measured from a timestamp that is
+    // itself a frame or more old.
+    //
+    // The flag is still read, but only as a SAFETY NET: if the element's
+    // release event never lands (a capture lost to a system gesture), a press
+    // cannot hang here waiting for it.
     const now = performance.now();
-    if (this.__v1DashButtonHeld && !this._btnDown) this._dashDown(now);
-    else if (!this.__v1DashButtonHeld && this._btnDown) this._dashUp(now);
+    if (!this.__v1DashButtonHeld && this._dashT != null && this._btnDown) this._dashUp(now);
     this._btnDown = !!this.__v1DashButtonHeld;
     this._pollDashHold(now);
     // The dash is the EDGE and nothing else. A press being held is not a dash

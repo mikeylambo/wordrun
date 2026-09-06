@@ -196,14 +196,18 @@ function ensureMobileUi() {
   const hold = (e) => {
     if (heldPointer !== null) return;
     heldPointer = e.pointerId;
-    go.setPointerCapture?.(e.pointerId);
+    // Capture is a nicety; losing it must never cost the press (RC10.8).
+    try { go.setPointerCapture?.(e.pointerId); } catch { /* not a live pointer */ }
     const input = globalThis.__INPUT;
     if (input) {
+      // RC10.8: set the display flag BEFORE anything that can throw, and push
+      // the edge rather than leaving it to be polled. setPointerCapture above
+      // can fail (a pointer already released, a system gesture stealing it),
+      // and when it did the assignment below never ran while `heldPointer`
+      // stayed set — the button wedged, silently, until the next release.
       input.__v1DashButtonHeld = true;
-      if (!input._firedFirst) {
-        input._firedFirst = true;
-        input.onFirstGesture?.();
-      }
+      input.fireFirstGesture?.();
+      input.dashPress?.();
     }
     e.preventDefault();
     e.stopPropagation();
@@ -212,7 +216,10 @@ function ensureMobileUi() {
     if (heldPointer !== null && e.pointerId !== heldPointer) return;
     heldPointer = null;
     const input = globalThis.__INPUT;
-    if (input) input.__v1DashButtonHeld = false;
+    if (input) {
+      input.__v1DashButtonHeld = false;
+      input.dashRelease?.();
+    }
     e?.preventDefault?.();
     e?.stopPropagation?.();
   };
@@ -225,7 +232,10 @@ function ensureMobileUi() {
     heldPointer = null;
     jump.classList.remove('held');
     const input = globalThis.__INPUT;
-    if (input) input.__v1DashButtonHeld = false;
+    if (input) {
+      input.__v1DashButtonHeld = false;
+      input.dashRelease?.();
+    }
   });
 
   ui = {

@@ -936,7 +936,7 @@ head('CHALLENGE — the run as a URL, pure and validated');
 
   // ── RC9.4: the DAILY explained, and a demo with something to say ───────
   check('the DAILY RUN says what it is, once, in three facts',
-    /\$\{gates\} WORDS · SAME FOR EVERYONE · ONCE A DAY/.test(uiSrc) &&
+    /\$\{gates\} WORDS · SAME FOR EVERYONE · NEW EACH DAY/.test(uiSrc) &&
     /gates: TUNING\.MODES\.RULES\.standard\.GATES/.test(main),
     `${TUNING.MODES.RULES.standard.GATES} WORDS — read from the rules, so a route of another length cannot leave the copy lying`);
   check('and only while the chip is selected, and only until one is finished',

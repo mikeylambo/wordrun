@@ -17,11 +17,12 @@
  *   npm run gates
  */
 
+import fs from 'node:fs';
 import TUNING from '../src/TUNING.js';
 import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
 import { Terrain } from '../src/sim/terrain.js';
 import { GhostPlayer } from '../src/sim/ghost.js';
-import { hashString, dailySeedString } from '../src/sim/rng.js';
+import { hashString, dailySeedString, dailySeed } from '../src/sim/rng.js';
 
 // ── tiny test harness ─────────────────────────────────────────────────────
 let PASS = 0, FAIL = 0;
@@ -215,6 +216,73 @@ head('TRACK — routed, winding, auto-followed (Phase L)');
 }
 
 // ── SPEED — a pure function of reading ────────────────────────────────────
+
+// ── RC10.8: the road a player SEES, against a fixed ceiling ──────────────
+// The RC8.2 bounds above are derived from TRANS_M, so they move with the dial
+// and can only ever say "the ramp is a smoothstep" — never "the road is gentle
+// enough to read over". And they walk `rollAt`, the segment bank, while the
+// mesh is built from `heightAt`, which uses `crossSlopeAt`: the bank MINUS the
+// ribbon's turn-lean. That second term was never in anyone's budget, and at
+// TRANS_M 26 it carried the rendered cross-slope to 8.29e-3 per metre on the
+// DAILY seed against a 5.769e-3 promise. A playtester felt it as dips.
+//
+// So this walks what is RENDERED and holds it to the number the design has
+// always published, written down here rather than computed from a dial.
+{
+  const RENDERED_CEIL = 5.769e-3;   // (ROLL 0.1 x 1.5) / 26, the RC8.2 promise
+  const STEP = 0.25, SPAN = 6000;
+  let worstCross = 0, worstAt = 0, worstSeed = 0, worstGrade = 0;
+  const walkSeeds = [...SEEDS, dailySeed()];
+  for (const seed of walkSeeds) {
+    const tt = new Terrain(seed >>> 0);
+    let pc = tt.crossSlopeAt(0), pg = tt.gradeAt(0);
+    for (let d = STEP; d < SPAN; d += STEP) {
+      const c = tt.crossSlopeAt(d), g = tt.gradeAt(d);
+      const dc = Math.abs(c - pc) / STEP;
+      if (dc > worstCross) { worstCross = dc; worstAt = d; worstSeed = seed; }
+      worstGrade = Math.max(worstGrade, Math.abs(g - pg) / STEP);
+      pc = c; pg = g;
+    }
+  }
+  check('the CROSS-SLOPE a player actually sees stays inside the published ceiling',
+    worstCross <= RENDERED_CEIL,
+    `${worstCross.toExponential(3)} per m worst over ${walkSeeds.length} seeds ` +
+    `(seed ${worstSeed >>> 0} at ${worstAt.toFixed(0)}m) vs ${RENDERED_CEIL.toExponential(3)}`);
+  check('and the grade it renders is gentler still',
+    worstGrade <= RENDERED_CEIL * 1.75,
+    `${worstGrade.toExponential(3)} per m`);
+  // And the MESH, which is what the eye receives: rows every CHUNK_LEN/SEGS_Z
+  // metres with a flat quad between them. If that spacing were coarse against
+  // an eased join, the join would alias into a visible step — a dip. Measured
+  // as the gap between the true surface at a row midpoint and the flat quad
+  // that spans it. The row count is read out of the renderer rather than
+  // copied, so a coarser mesh fails here instead of in someone's eyes.
+  {
+    const mesh = fs.readFileSync('src/render/terrain-mesh.js', 'utf8');
+    const segsZ = Number(/const SEGS_Z = (\d+);/.exec(mesh)?.[1]);
+    const rowM = TUNING.TERRAIN.CHUNK_LEN / segsZ;
+    let worstSag = 0, sagAt = 0;
+    for (const seed of walkSeeds) {
+      const tt = new Terrain(seed >>> 0);
+      const y = (dd) => tt.heightAt(tt.corridorX(dd), dd);
+      for (let r = 0; r * rowM < SPAN; r++) {
+        const a = r * rowM, b = a + rowM;
+        const e = Math.abs(y(a + rowM / 2) - (y(a) + y(b)) / 2);
+        if (e > worstSag) { worstSag = e; sagAt = a; }
+      }
+    }
+    check('the mesh resolves the eased joins — no join aliases into a step',
+      Number.isFinite(segsZ) && worstSag < 0.01,
+      `${segsZ} rows per chunk (${rowM.toFixed(2)}m), worst mesh-vs-surface ` +
+      `${(worstSag * 100).toFixed(2)}cm at ${sagAt.toFixed(0)}m — a crest's own curvature, not a join`);
+  }
+
+  // The bound must not be quietly satisfiable by moving the dial it came from.
+  check('the ceiling is a written-down number, not one derived from TRANS_M',
+    /const RENDERED_CEIL = 5\.769e-3;/.test(fs.readFileSync('tools/gates.mjs', 'utf8')),
+    'a self-derived bound can only say the ramp is smooth, never that the road is readable');
+}
+
 head('SPEED — deterministic consequence, floored and ceilinged');
 
 {

@@ -28,6 +28,9 @@ const HEART_PATH = 'M12 21.2 3.6 12.6a5.6 5.6 0 0 1 0-7.9 5.4 5.4 0 0 1 7.7 0l.7
 const row = (k, v) => `<div class="recapRow"><span class="k">${k}</span><span class="v">${v}</span></div>`;
 
 export class UI {
+  /** RC10.8: how long the bar lesson holds once it has begun, in seconds. */
+  static BAR_LINE_S = 4.5;
+
   constructor() {
     this.hud = $('hud');
     this.dist = $('dist');
@@ -223,7 +226,11 @@ export class UI {
     const show = selected && !learned && gates > 0;
     if (show === this._noteOn) return;
     this._noteOn = show;
-    if (show) this.dailyNote.textContent = `${gates} WORDS · SAME FOR EVERYONE · ONCE A DAY`;
+    // RC10.8 verdict: ONCE A DAY read as a restriction on the player — you
+    // get one go — when the point is that the ROUTE is new every day and the
+    // same for everyone on it. NEW EACH DAY says the offer instead of the
+    // limit, and nothing about the rules changed.
+    if (show) this.dailyNote.textContent = `${gates} WORDS · SAME FOR EVERYONE · NEW EACH DAY`;
     this.dailyNote.classList.toggle('on', show);
   }
 
@@ -252,7 +259,15 @@ export class UI {
 
   /** Which controls this player has ever actually used. Persisted, so the
    *  teaching follows the player rather than the calendar. */
-  setLessons(learned) { this._lessons = learned || {}; }
+  setLessons(learned) {
+    this._lessons = learned || {};
+    // RC10.8: the raise retires the lesson for good — the latch goes with it,
+    // so nothing can re-open a line the player has answered.
+    if (this._lessons.bar) { this._barLineDone = true; this._barLineAt = 0; }
+  }
+
+  /** A run is starting: the bar lesson may begin once, in a gap, and hold. */
+  resetCoach() { this._barLineAt = 0; this._barLineDone = !!this._lessons?.bar; }
 
   /** RC7: while the three stops own the fundamentals, the coach skips those
    *  rungs; with GUIDED TIPS off there are no stops, so it teaches them as
@@ -270,6 +285,23 @@ export class UI {
    *  drift apart or name a control this player does not have. */
   setModality(m) { this._modality = m || (this.touch ? MODALITY.TOUCH : MODALITY.KEY); }
   get modality() { return this._modality || (this.touch ? MODALITY.TOUCH : MODALITY.KEY); }
+
+  /**
+   * RC10.8 — the bar line begins in a gap and then HOLDS.
+   *
+   * Once shown it stays for BAR_LINE_S regardless of what arms next, and it
+   * cannot begin again in the same run: a lesson that reappears is a lesson
+   * nobody believes. Cleared by `setLessons` when the raise retires it, and by
+   * a new run through the same path every other lesson takes.
+   */
+  _barLineOk(sim, p) {
+    const now = performance.now();
+    if (this._barLineAt) return (now - this._barLineAt) < UI.BAR_LINE_S * 1000;
+    if (this._barLineDone) return false;
+    if (sim.wordGates.armed(p.d)) return false;   // begin in the clear
+    this._barLineAt = now;
+    return true;
+  }
 
   _updateCoach(sim, running) {
     if (!this.coach) return;
@@ -321,19 +353,21 @@ export class UI {
       // phrase, read from teach-copy.js — the same bytes the stop and the
       // HUD hint show, so a player never meets two names for one press.
       text = dashReadyLine(m);
-    } else if (!L.bar && p.compressionLevel === 0 && p.chain >= 4 &&
-      !sim.wordGates.armed(p.d)) {
+    } else if (!L.bar && p.compressionLevel === 0 && p.chain >= 4 && this._barLineOk(sim, p)) {
       // Phase R: the compression hold joins the lesson set. Taught only to a
       // player already reading cleanly (a four-link chain) — the bar is the
       // reward knob for someone who has stopped needing the other lessons —
       // and retired for good the first time they actually raise it. RC8.1
       // says what it buys as well as what to hold: it is a bargain, not a
       // button, and a line that only named the button taught half of it.
-      // RC9.9: and ONLY in the gap. The control it names is the dash control,
-      // so a player who follows this line while a word is up is holding
-      // instead of answering — the sim would buffer the raise and the word
-      // would go by unread. The instruction may only appear where obeying it
-      // is free, which is the same rule the sim itself applies to the raise.
+      // RC9.9 wanted this only in the gap, because the control it names is the
+      // dash control and a player obeying it mid-word is holding instead of
+      // answering. It made that a PER-FRAME condition, and RC10.8 is the bug
+      // report: gaps open and close several times a second, so the line
+      // strobed — six frames on, then off, while its own text stayed put.
+      // `_barLineOk` latches instead: it waits for a gap to START the line and
+      // then holds it for its full duration whatever arms afterwards. Same
+      // rule, once per line, rather than a flicker driven by the road.
       text = barLesson(m);
     }
     // RC-5: the value and charge asides are gone. "ANSWERING EARLY IS WORTH

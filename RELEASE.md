@@ -3356,3 +3356,153 @@ zero import the transport statically.
 Supabase project, load the blocklist into `blocked_words`, expose the schema,
 and hand `new Boards({ endpoint, key })` the two values. Nothing else in the
 game changes.
+
+## 1.0-RC10.8 — the road that was measured wrong, and the hold that was timed late
+
+Three bugs from the playtest, each with a driven repro, a root cause, and a
+check that would have failed before the fix. Then four verdicts.
+
+### 1. The dips were real, and every gate said they were not
+
+A player felt the track changing its cross-fall too fast. The route gates
+disagreed — and they were fencing **the wrong quantity**. RC8.2's bound walks
+`rollAt`, the segment's own bank. The mesh is built from `heightAt`, which uses
+`crossSlopeAt` — the bank **minus** the ribbon's turn-lean
+(`corridorSlope × EDGE_BANK × 0.5`). That second term was in nobody's budget,
+and at `TRANS_M: 26` the bank alone already spent 5.766e-3 of the published
+5.769e-3 ceiling, so the lean had nowhere to go but over it.
+
+Walked at 0.25 m over 30 km, the DAILY and three ENDLESS seeds, before:
+
+```
+                worst cross-slope        points over ceiling
+DAILY           8.291e-3  @2951m   1.44x        830
+ENDLESS a       8.216e-3   @341m   1.42x       1242
+ENDLESS b       8.152e-3  @9243m   1.41x       1083
+ENDLESS c       7.787e-3 @12799m   1.35x        977
+```
+
+Not one rogue join: roughly a thousand points per seed, on every seed,
+including the one everybody plays. The fix is `TRANS_M: 26 → 48` — the
+shortest ramp that fits **both** terms inside 5.769e-3 while staying under
+`MIN_SEG_M`, so two ramp windows still never overlap. The bank keeps its
+magnitude, `EDGE_BANK` is untouched, and the road keeps its character; the
+joins simply take the length they always needed. After: worst 5.658e-3, zero
+points over ceiling on all four seeds, and the grade joins gentle from
+1.096e-2 to 5.937e-3 as a side effect.
+
+**The mesh is not the problem, and now that is measured too.** Rows are
+2.5 m (`CHUNK_LEN / 24`); the largest disagreement between the flat quad and
+the true surface at a row midpoint is **0.46 cm**, identical on every seed —
+that is a crest's own curvature sampled at 2.5 m, not an eased join aliasing.
+The negative-space drop is by design and stays.
+
+**The check that would have failed.** The old bounds are derived from
+`TRANS_M`, so they move with the dial and can only ever assert *the ramp is a
+smoothstep* — never *the road is gentle enough to read over*. The new one walks
+`crossSlopeAt`, what the renderer uses, against `RENDERED_CEIL = 5.769e-3`
+written out as a literal, plus a third check that reads this file back and
+fails if that number ever becomes an expression again.
+
+`?profile=1` is the instrument that found it: a dev-only corner overlay naming
+the segment, grade, roll, **cross-slope** and the mesh's own row reading, with
+anything over the ceiling marked in red. Dynamic import, no boot cost, takes no
+input.
+
+### 2. The bar line strobed; the marks never came up
+
+Two independent faults behind one report.
+
+**The hold was timed from a stale clock.** RC9.9 moved the raise onto the DASH
+control and had `input.js` poll `__v1DashButtonHeld` once a frame, calling that
+"one frame of latency against a 520 ms window". That is the defect stated as a
+virtue: the error is not one frame, it is *however long a frame takes*, and it
+is subtracted from a window the player is trying to hit. Driven with real touch
+events through CDP, the button's own handler ran at 4043 ms and the dash timer
+started at 4498 — **455 ms later**, on the same page clock. A 900 ms hold was
+measured as 445, `dashVerb` returned `dash`, and the level never rose because
+the press was never long enough *as the game saw it*.
+
+Root cause in one line: a hold window may not be measured from a timestamp that
+is itself a frame or more old. The button now **pushes** its edges
+(`dashPress` / `dashRelease`), so touch, Space and RT all start the same clock
+at the same instant, and the polled flag survives only as a safety net for a
+release event that never lands. Two smaller faults went with it:
+`setPointerCapture` could throw before `__v1DashButtonHeld = true` ran, wedging
+the button silently, and the first-gesture hook was open-coded here instead of
+calling `fireFirstGesture`. Same repro after: handler and timer in the same
+millisecond, level 0 → 1, marks lit, no dash fired.
+
+**The boundary itself is gated in node, not in the browser, and that is on
+purpose.** Headless software GL renders this game at about two frames a second,
+so a 150 ms tap dispatched through CDP reaches the page's handler 650 ms after
+it was sent — every touch *duration* measured there is the renderer's number
+rather than the game's. So the check drives `Input` directly against a stubbed
+clock: 80, 150, 300 and 519 ms all dash and raise nothing; 520, 900 and 3000 ms
+all raise and can no longer dash. One press, one verb, decided by its own
+clock, at any frame rate.
+
+**The line strobed because its condition was per-frame.** The bar lesson was
+gated on "nothing is armed right now", and gaps open and close several times a
+second — six frames on, off, on again, while the text under it never changed.
+`_barLineOk` latches instead: a gap *starts* the line, and it then holds for
+`BAR_LINE_S` whatever arms afterwards, at most once per run, retiring for good
+on the first raise. The rule RC9.9 wanted is unchanged; only its shape is.
+Measured over 200 frames: 0 flips, 200 frames on, against 2 flips and 6 frames
+before.
+
+Both are held by checks: every dash control must push its press edge and none
+may be polled for it; the flag may appear only in the safety-net form; the
+lesson must latch, must reset once per run, and must retire on the raise.
+
+### 3. BROADCAST does not hide the controls — and now it cannot
+
+Driven in all four looks: the FAKE / DASH / REAL buttons, the bar marks and the
+teach band stay present, on-screen and hit-testable in every one. BROADCAST is
+a post pass on the WebGL canvas and cannot reach the DOM at all. The reason it
+works is worth writing down, because it is one line away from not working: the
+canvas claims **no** stacking order, so the buttons at `z-index:67` and the
+marks at `24` sit above it by default. A check now holds that — the canvas rule
+may not acquire a `z-index`, and the look toggle may not touch a class on the
+page — so a future look cannot quietly cover a control.
+
+### 4–5. The verdicts
+
+**The DAILY line is now `100 WORDS · SAME FOR EVERYONE · NEW EACH DAY`.**
+"ONCE A DAY" read as a restriction on the player — *you get one go* — when the
+point is the opposite: the route is new every day and identical for everyone
+running it. Nothing about the rules changed, only which half of the fact the
+line says out loud.
+
+**The DASH keeps its stop.** The other two stops teach an *answer*, which a
+player meets again within seconds whether or not they understood it. The dash
+is a *power*, and a power nobody presses does not exist. It is also the only
+one of the three with no plate to read afterwards, so a player who misses the
+moment has nothing to go back to. What keeps it honest is already in place: it
+fires once per life, it releases on five seconds or the third non-dash input,
+and the ring and the line outlive it.
+
+### 6. Every performance cue on one ladder
+
+The table did not exist before now, which is exactly how eight systems tuned in
+eight files managed to disagree without anyone noticing. `tools/cue-ladder.mjs`
+evaluates all of them against the reading chain and prints the result inside
+`gate:corruption`. What it showed: **five of the eight were finished at chain
+8** — a sixth of the range — and then had nothing further to say for a hundred
+and forty-two reads.
+
+`FLOW_CHAIN_CAP` was the culprit, at 8 "to match `BOOST.CHAIN_CAP`". They are
+not the same thing: `CHAIN_CAP` is where the *score* stops paying per link, a
+calibrated dial with golden tables behind it. Brilliance is presentation.
+Matching them meant maximum glow, maximum trail and maximum posture economy all
+arrived together at chain 8 and stayed there. It is now **50** — the third
+editorial band, the chain the high music layer arrives on — so the four
+continuous cues crest as one event, with the music, on a band the world already
+names. The scoring model is untouched.
+
+The counted ladders keep their shorter reach on purpose and the checks say why:
+the chime tops out where the ear stops hearing new rungs, the surge a few reads
+past the cap, the score multiplier at the calibrated dial. And the drop is held
+too — a wrong read zeroes the chain, so every cue is at its floor on the very
+next frame, with the Editorial world the one deliberate exception: it falls one
+layer rather than to nothing, because the world remembers what still stands.
