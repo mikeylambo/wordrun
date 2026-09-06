@@ -2549,3 +2549,36 @@ The teach band also learned that a line with only ONE clause has no separator
 to break at, so holding it unbreakable only made it overflow — which the
 cabinet's clipped stage then cut in half. Eight new checks in `route-gates`;
 the portrait stills re-shot and unchanged.
+
+## 1.0-RC9.4 — the DAILY explained, and a demo with something to say
+
+Two screens were saying less than they knew. The DAILY RUN chip named a mode
+and nothing anywhere said why a player would pick it over ENDLESS; the attract
+loop ran a beautiful road and captioned it with nothing at all.
+
+- **`100 WORDS · SAME FOR EVERYONE · ONCE A DAY`,** under the chip, the moment
+  it is selected. Three facts, and they are the three that make the mode worth
+  choosing: it is finite, it is comparable, and it is today's. The count comes
+  from `MODES.RULES.standard.GATES` rather than a literal, so a route of
+  another length cannot leave the copy lying. It retires the first time the
+  player FINISHES a daily run — written where `metaDaily.recordRun` is, not
+  where a run starts, because a run abandoned on the title has not taught
+  anybody what the mode is — and it retires on the same write-once ledger and
+  the same `learn()` call every other lesson in this game uses.
+- **`DAILY · YOUR BEST 404,815 · DAY 4`**, under the wordmark, while the ghost
+  runs — or `DAILY · NOT YET RUN` for a route this player has not touched. Two
+  states and no third. A cabinet running its demo says what the game is
+  offering; this says what today's route is worth to the person standing in
+  front of it, which is the one thing an attract loop can say that a trailer
+  cannot. Both figures already existed: the streak is the daily card's own,
+  and the best is the score best for the DAILY variant.
+- Reading that best needed one small piece of care worth naming. Bests are
+  stored per variant, so the daily's best is not readable while the title is
+  sitting on ENDLESS — `dailyBest()` borrows the DAILY variant for the length
+  of the read and puts the player's back. It is the only new function in the
+  pass.
+
+Any touch and any key still end the loop, exactly as before; the caption is up
+only while the demo is. Six new checks in `meta-gates`, including that the
+retirement is wired to a finished run rather than a started one — the kind of
+thing that is invisible in a screenshot and obvious in a diff.

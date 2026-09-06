@@ -57,6 +57,8 @@ export class UI {
     this.shot = $('shot');
     this.saveShot = $('saveShot');
     this.titleStreak = $('titleStreak');
+    this.dailyNote = $('dailyNote');
+    this.attractLine = $('attractLine');
     this.titleGoalRow = $('titleGoalRow');
     this.deathRecap = $('deathRecap');
     this.drainEl = $('drain');
@@ -182,6 +184,44 @@ export class UI {
       ? `DAY ${card.streak}${card.playedToday ? '' : ' · KEEP IT'}`
       : '';
     this.titleGoalRow.innerHTML = '';
+  }
+
+  /**
+   * RC9.4 — what the DAILY RUN is, said once.
+   *
+   * The chip named a mode and nothing explained why anyone would pick it. The
+   * three facts that make it worth choosing are the three this line carries,
+   * and the gate count comes from the rules rather than from a literal, so a
+   * route of a different length cannot leave the copy lying. It shows only
+   * while the chip is selected and only until the player has finished one —
+   * the same bargain every lesson in this game makes.
+   */
+  setDailyNote({ selected = false, learned = true, gates = 0 } = {}) {
+    if (!this.dailyNote) return;
+    const show = selected && !learned && gates > 0;
+    if (show === this._noteOn) return;
+    this._noteOn = show;
+    if (show) this.dailyNote.textContent = `${gates} WORDS · SAME FOR EVERYONE · ONCE A DAY`;
+    this.dailyNote.classList.toggle('on', show);
+  }
+
+  /**
+   * The attract loop's caption. A cabinet running its demo says what the game
+   * is offering; this says what today's route is worth to THIS player, from
+   * the figures the daily card already keeps. Two states and no third: a
+   * route they have a best on, and one they have not run.
+   */
+  setAttractLine({ on = false, best = 0, streak = 0 } = {}) {
+    if (!this.attractLine) return;
+    const text = !on ? ''
+      : best > 0
+        ? `DAILY · YOUR BEST ${Math.floor(best).toLocaleString('en-US')}${streak > 0 ? ` · DAY ${streak}` : ''}`
+        : 'DAILY · NOT YET RUN';
+    if (text !== this._attractText) {
+      this._attractText = text;
+      if (text) this.attractLine.textContent = text;
+    }
+    this.attractLine.classList.toggle('on', on);
   }
 
   showTitle(on) { this.titleScreen.classList.toggle('on', on); }

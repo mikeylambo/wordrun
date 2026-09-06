@@ -521,6 +521,37 @@ head('CHALLENGE — the run as a URL, pure and validated');
   check('and no file patches UI.prototype.setSeed at runtime to re-assert it',
     !fs.readFileSync('src/rc97-endgame.js', 'utf8').includes('UI.prototype.setSeed ='),
     'the patch existed only to overwrite the line it was fighting');
+
+  // ── RC9.4: the DAILY explained, and a demo with something to say ───────
+  check('the DAILY RUN says what it is, once, in three facts',
+    /\$\{gates\} WORDS · SAME FOR EVERYONE · ONCE A DAY/.test(uiSrc) &&
+    /gates: TUNING\.MODES\.RULES\.standard\.GATES/.test(main),
+    `${TUNING.MODES.RULES.standard.GATES} WORDS — read from the rules, so a route of another length cannot leave the copy lying`);
+  check('and only while the chip is selected, and only until one is finished',
+    /const show = selected && !learned && gates > 0;/.test(uiSrc) &&
+    /selected: runMode === 'standard'/.test(main) &&
+    /learned: metaStats\.get\('usedDaily', 0\) > 0/.test(main) &&
+    /if \(runMode === 'standard'\) learn\('Daily'\);/.test(main),
+    'persisted on the same ledger as every other lesson, and retired by the action it describes');
+  check('the note is retired by a FINISHED daily run, not by starting one',
+    main.indexOf("if (runMode === 'standard') learn('Daily');") >
+      main.indexOf('metaDaily.recordRun(DAILY_SEED'),
+    'a run abandoned on the title has not taught anybody what the mode is');
+
+  // The attract caption: two states, and every figure already on the card.
+  check('the attract loop says what today\'s route is worth, or that it is unrun',
+    /DAILY · YOUR BEST \$\{Math\.floor\(best\)\.toLocaleString\('en-US'\)\}/.test(uiSrc) &&
+    uiSrc.includes("'DAILY · NOT YET RUN'") &&
+    /· DAY \$\{streak\}/.test(uiSrc),
+    'DAILY · YOUR BEST 404,815 · DAY 4, or DAILY · NOT YET RUN — no third state');
+  check('and both figures come from the daily card, not from new bookkeeping',
+    /best: dailyBest\(\), streak: metaDaily\.status\(DAILY_SEED\)\.streak/.test(main) &&
+    /function dailyBest\(\)[\s\S]{0,420}Storage\.setVariant\(held\)/.test(main),
+    'and dailyBest borrows the DAILY variant for the read and puts the player\'s back');
+  check('the caption is only up while the demo is',
+    /ui\.setAttractLine\(attract\.active/.test(main) &&
+    main.includes('if (attract.active) { attract.exit(); return; }'),
+    'any touch and any key still end the loop, exactly as before');
 }
 
 // ── Phase 14: the two ◆ sinks ────────────────────────────────────────────

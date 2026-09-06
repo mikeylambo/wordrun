@@ -232,6 +232,21 @@
   #openCurve.hasNews::after{content:'';position:absolute;top:5px;right:6px;width:5px;height:5px;border-radius:50%;background:var(--ice);box-shadow:0 0 6px rgba(103,216,255,.8)}
   #titleGoals{display:flex;flex-direction:column;gap:9px;align-items:center}
   #titleStreak{font-size:8px;font-weight:600;letter-spacing:.28em;color:var(--dim)}
+  /* RC9.4 — what the DAILY RUN actually is, once. The chip names the mode;
+     this says the three facts that make it worth choosing, and it retires
+     the first time the player finishes one. */
+  #dailyNote{display:none;font-size:8px;font-weight:700;letter-spacing:.2em;
+    color:rgba(139,228,255,.62);margin-top:-2px}
+  #dailyNote.on{display:block}
+  /* The attract loop's caption. A cabinet running its demo says what the game
+     is offering today; this is that line, and it is the only text on screen
+     while the ghost runs. */
+  #attractLine{position:absolute;left:50%;transform:translateX(-50%);
+    top:22%;z-index:25;pointer-events:none;
+    font-size:9px;font-weight:700;letter-spacing:.26em;color:rgba(214,240,252,.55);
+    text-shadow:0 2px 12px rgba(6,10,14,.8);white-space:nowrap;
+    opacity:0;transition:opacity .5s ease}
+  #attractLine.on{opacity:1}
   .goalRow{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
   /* Goals are three targets, not three sentences: no chrome, just numbers. */
   .goalChip{font-size:9px;font-weight:600;letter-spacing:.16em;color:var(--dim)}
@@ -482,6 +497,7 @@
   <div id="bandName"></div><div id="coach"></div><div id="powerHint"></div>
   <div id="barMarks" role="img" aria-label="Reward bar 0 of 3"><i></i><i></i><i></i></div>
   <div id="keyLegend" aria-hidden="true"></div>
+  <div id="attractLine" aria-hidden="true"></div>
 
   <div id="hud">
     <div><div class="row"><div><div id="dist">0</div><div id="distSub">0 M</div><div id="distTarget"></div><div id="vitalsSlot"></div></div><div id="best" hidden><span>BEST TODAY</span><b id="bestVal">—</b></div></div><div id="chain"></div></div>
@@ -505,7 +521,7 @@
           <text x="774" y="206" fill="#f4fbff">DICTION DASH</text>
         </g>
       </svg><div id="titleHint"></div></div>
-    <div class="drop-lockup"><div class="drop">BEGIN RUN</div><div id="modeRows"><div class="modeRow" id="modeRow"><button class="modeChip" type="button" data-mode="endless">ENDLESS</button><button class="modeChip" type="button" data-mode="standard">DAILY RUN</button></div><div class="modeRow" id="difficultyRow"><button class="modeChip" type="button" data-difficulty="easy">EASY</button><button class="modeChip" type="button" data-difficulty="normal">NORMAL</button><button class="modeChip" type="button" data-difficulty="hard">HARD</button></div></div><div id="titleGoals"><div class="goalRow" id="titleGoalRow"></div><div id="titleStreak"></div></div><div class="seed" id="seedLine"></div></div>
+    <div class="drop-lockup"><div class="drop">BEGIN RUN</div><div id="modeRows"><div class="modeRow" id="modeRow"><button class="modeChip" type="button" data-mode="endless">ENDLESS</button><button class="modeChip" type="button" data-mode="standard">DAILY RUN</button></div><div class="modeRow" id="difficultyRow"><button class="modeChip" type="button" data-difficulty="easy">EASY</button><button class="modeChip" type="button" data-difficulty="normal">NORMAL</button><button class="modeChip" type="button" data-difficulty="hard">HARD</button></div></div><div id="titleGoals"><div id="dailyNote"></div><div class="goalRow" id="titleGoalRow"></div><div id="titleStreak"></div></div><div class="seed" id="seedLine"></div></div>
   </div>
 
   <div class="screen" id="deathScreen">

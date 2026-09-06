@@ -196,6 +196,21 @@ function syncVariant() {
 }
 syncVariant();
 
+/**
+ * RC9.4: the DAILY RUN's own best, whatever the title's chips currently say.
+ * Bests are stored per variant, so reading one for a mode you are not in means
+ * borrowing that mode's variant for the length of the read and putting the
+ * player's back. The attract loop needs exactly this — it says what today's
+ * route is worth while the title may be sitting on ENDLESS.
+ */
+function dailyBest() {
+  const held = Storage.variant();
+  Storage.setVariant(`standard.${BOARD.DAILY_DIFFICULTY}`);
+  const best = Storage.bestFor(DAILY_SEED);
+  Storage.setVariant(held);
+  return best;
+}
+
 // Meta layer (ported from the SLU shell's Layer-1 managers): lifetime
 // stats, daily goals and the play streak, over one storage adapter.
 const metaAdapter = localStorageAdapter();
@@ -229,6 +244,13 @@ function pushLessons() {
     bar: metaStats.get('usedBar', 0) > 0,
   };
   ui.setLessons(learnedNow);
+  // RC9.4: the DAILY RUN's one-line explanation is a lesson like any other —
+  // same ledger, same write-once flag, retired by the action it describes.
+  ui.setDailyNote({
+    selected: runMode === 'standard',
+    learned: metaStats.get('usedDaily', 0) > 0,
+    gates: TUNING.MODES.RULES.standard.GATES,
+  });
 }
 function learn(which) {
   const key = `used${which}`;
@@ -737,6 +759,10 @@ function finalizeRun() {
   const dailyCard = metaDaily.recordRun(DAILY_SEED, {
     distance, bestChain: sim.player.bestChain, correct: wg.correctCount,
   });
+  // RC9.4: a finished DAILY RUN retires its own explanation. It is written
+  // here rather than at the start of one, because a run abandoned on the
+  // title has not taught anybody what the mode is.
+  if (runMode === 'standard') learn('Daily');
   // The rotating queue (Phase 21). Only the three LIVE objectives are judged
   // against this run — anything still in the queue gets no credit for a run
   // that would have satisfied it, so one exceptional run cannot front-load
@@ -1436,6 +1462,11 @@ function tick(dt) {
   launch.update(dt);
   // RC6 attract: a title with nothing on it and nobody in it. Any sheet, the
   // how-to, a pending or playing arrival, or a live run all count as busy.
+  // RC9.4: while the demo runs, the caption says what today's route is worth
+  // to this player — the daily card's own figures, and no other words.
+  ui.setAttractLine(attract.active
+    ? { on: true, best: dailyBest(), streak: metaDaily.status(DAILY_SEED).streak }
+    : { on: false });
   attract.update(paused ? 0 : dt,
     sim.phase === PHASE.TITLE && !running && !paused && !launchPending &&
     launch.t < 0 && !onboarding?.visible && !offerActive &&
