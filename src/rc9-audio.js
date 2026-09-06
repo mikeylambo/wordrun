@@ -3,7 +3,6 @@ import './rc9-feedback.js';
 import './v1-finalize.js';
 import './v1-contact.js';
 import './v1-chase.js';
-import './v1-ship-polish.js';
 import './v1-viewport.js';
 import './v1-final-mix.js';
 import './v1-house-pad.js';
@@ -17,8 +16,15 @@ import './v1-approved-mix.js';
 // Phase 0: the old per-frame poll that mirrored sim state into sounds is gone.
 // Hearts and bells were dissolved out of the deleted rc5.js into the sim, and
 // their sounds now fire from sim events in main.js's drainSimEvents; the bell
-// mesh's night-readability emissive moved into render/bells.js. Nothing here
-// reaches into a runtime-patched game object any more.
+// mesh's night-readability emissive moved into render/bells.js.
+//
+// RC10.1 made the claim this comment used to make actually true. The chain
+// above still imported `v1-ship-polish.js`, which reassigned TWO prototypes at
+// import time — Input.prototype.update for the gamepad, Audio.prototype.update
+// for the menu navigation, Audio.prototype.bell for two partials — and hid
+// three unrelated systems behind an audio-shaped filename. They are three
+// files you can find now: input/gamepad.js, ui/controller-nav.js, and the
+// bell's own method.
 
 function installSharedAudioContext() {
   if (typeof window === 'undefined' || window.__DASH_SHARED_AUDIO_CONTEXT__) return;

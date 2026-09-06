@@ -81,7 +81,7 @@ export class Input {
     this._dashT = null;
     this._dashRaised = false;
     this._padDashDown = false;
-    this.boostHeld = false;
+    this._scriptBoost = false;  // the headless driver's dash, see `boostHeld`
     this.dragging = false;
 
     this.enabled = true;
@@ -115,6 +115,16 @@ export class Input {
 
     this._bind();
   }
+
+  /**
+   * The dash, as the sim reads it. A GETTER rather than a field copied once a
+   * frame, because RC10.1 moved the gamepad out of a runtime patch and into a
+   * reader that runs AFTER `update()`: a copy taken mid-frame was already
+   * stale by the time the pad set the edge, and `consumeJump()` then destroyed
+   * the edge before the sim ever saw it. Derived, the order of the writers
+   * stops mattering — which is the only way this class of bug stays fixed.
+   */
+  get boostHeld() { return this.dashEdge || this._scriptBoost; }
 
   get dragRange() {
     return Math.min(window.innerWidth, window.innerHeight) * DESKTOP_DRAG_RANGE_FRAC;
@@ -274,6 +284,21 @@ export class Input {
     this._dashRaised = false;
   }
 
+  /**
+   * The dash control's edges, as PUBLIC verbs. RC10.1: the gamepad reader
+   * calls these instead of a runtime patch reaching into private state — one
+   * machine, one decision about what a press means, and every device arriving
+   * at it through a door rather than a window.
+   */
+  dashPress() { this._dashDown(performance.now()); }
+  dashRelease() { this._dashUp(performance.now()); }
+  /** The first-gesture unlock, for a device that is not the screen or a key. */
+  fireFirstGesture() {
+    if (this._firedFirst) return;
+    this._firedFirst = true;
+    this.onFirstGesture?.();
+  }
+
   /** Called once a frame: the moment a live press crosses the hold window. */
   _pollDashHold(now) {
     if (this._dashT == null || this._dashRaised) return;
@@ -322,14 +347,14 @@ export class Input {
     this._lastGrounded = null;
     this.carve = 0; this.flip = 0; this.jump = false; this.reject = false;
     this.raiseBar = false;
-    this.boostHeld = false; this.dashEdge = false;
+    this._scriptBoost = false; this.dashEdge = false;
   }
 
   /** Fold pointer + keyboard into the axes the sim reads. Call once per frame. */
   update(dt, grounded) {
     if (!this.enabled) {
       this.carve = 0; this.flip = 0; this.jump = false; this.reject = false;
-      this.boostHeld = false;
+      this.dashEdge = false; this._scriptBoost = false;
       return;
     }
 
@@ -339,7 +364,7 @@ export class Input {
       this.carve = this.script.carve ?? 0;
       this.flip = this.script.flip ?? 0;
       if (this.script.jump) { this.jump = true; this.script.jump = false; }
-      this.boostHeld = !!this.script.boostHeld;
+      this._scriptBoost = !!this.script.boostHeld;
       return;
     }
 
@@ -410,8 +435,8 @@ export class Input {
     // The dash is the EDGE and nothing else. A press being held is not a dash
     // being held — it is a bar being raised — and `Player._overdrive` has fired
     // on the rising edge and run itself out on DRAIN_RATE since the debugging
-    // pass, so one frame is the whole signal it ever needed.
-    this.boostHeld = this.dashEdge;
+    // pass, so one frame is the whole signal it ever needed. `boostHeld` reads
+    // that edge directly (see the getter), so nothing is copied here.
   }
 
   /** The sim consumes these as edges; call after stepping. */

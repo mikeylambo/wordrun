@@ -3,7 +3,12 @@ import { viewPlayer, viewBeast } from '../src/render/view-pose.js';
 
 const read = (p) => fs.readFileSync(p, 'utf8');
 const contact = read('src/v1-contact.js');
-const polish = read('src/v1-ship-polish.js');
+// RC10.1: the ship-polish layer is GONE. It reassigned two prototypes at
+// import time and hid three unrelated systems behind an audio-shaped filename;
+// each is a file of its own now, and these gates read those instead.
+const padSrc = read('src/input/gamepad.js');
+const navSrc = read('src/ui/controller-nav.js');
+const bellSrc = read('src/audio/audio.js');
 const mobile = read('src/v1-mobile-ui.js');
 const input = read('src/input/input.js');
 const onboarding = read('src/ui/onboarding.js');
@@ -34,25 +39,38 @@ check(contact.includes('baseReset') && contact.includes('__v1AllPhysicalLocks?.c
 // protecting — that a run says how close the next heart is, and says nothing
 // when the row is full — is now protected where the answer is drawn: inside
 // the hearts themselves (see the RC6.2 block at the end of this file).
-check(!polish.includes('v1BellCharge') && !polish.includes('v1-bell-pip'),
-  'the separate streak widget is gone from the ship-polish layer, not merely hidden');
-check(polish.includes('bellShipPolish') && polish.includes('vol: 0.038'),
-  'bell gets an additional bright upper-partial presence lift');
+check(!fs.existsSync('src/v1-ship-polish.js') &&
+  !/^import .*v1-ship-polish/m.test(read('src/rc9-audio.js')),
+  'the ship-polish layer is deleted, not merely unimported — no prototype is reassigned at boot');
+check(bellSrc.includes('f * 2.02, f1: f * 2.015') && bellSrc.includes('vol: 0.038') &&
+  (bellSrc.match(/const intervals = \[0, 4, 7, 11, 14\]/g) || []).length === 1,
+  'the bell\'s bright upper partials are part of the bell, from ONE interval table');
 
-// Phase 15/16: the tree and rock recordings are gone with the rest of the
-// unreachable inherited Foley, so what has to hold now is that this path
-// needs no assets at all.
-check(!polish.includes("assets?.has?.('tree_hit')") && !polish.includes("assets?.has?.('rock_hit')"),
-  'destruction audio reaches for no retired recording');
-check(polish.includes("c.type === FEATURE.GATE") && polish.includes("'highpass'") && polish.includes("'bandpass'"),
-  'gate destruction keeps a noise-first multi-impact metal fallback');
+// Phase 15/16 retired the tree and rock recordings; RC10.1 retired the code
+// that reached for them. It could never sound — nothing solid spawns — so the
+// gate now holds the fact that made it dead rather than the dead code's shape.
+{
+  const T = (await import('../src/TUNING.js')).default;
+  const F = T.FEATURES;
+  const zero = (v) => (Array.isArray(v) ? v.every((n) => n === 0) : v === 0);
+  check(zero(F.TREE_COUNT) && zero(F.ROCK_COUNT) && zero(F.GATE_CHANCE) &&
+    !fs.readdirSync('src').some((f) => f.includes('ship-polish')),
+    'nothing solid spawns, so the destruction-audio path that could never fire is deleted');
+}
 
-check(polish.includes('Input.prototype.__v1GamepadSupport') && polish.includes('navigator.getGamepads'),
-  'standard browser gamepad polling is installed on the existing Input path');
-check(polish.includes('button(pad, 0)') && polish.includes('button(pad, 7)') && polish.includes('button(pad, 9)'),
+check(padSrc.includes('navigator.getGamepads') && padSrc.includes('export class PadReader') &&
+  read('src/main.js').includes('pad.update(input)'),
+  'the gamepad is a file main.js owns and calls, not a patch installed onto Input.prototype');
+check(padSrc.includes('button(pad, 0)') && padSrc.includes('button(pad, 7)') &&
+  navSrc.includes('button(gp, 9)'),
   'controller maps A/Cross jump, RT/R2 DASH and Start pause');
-check(polish.includes('visibleControllerRoot') && polish.includes('focusControllerButton') && polish.includes('PointerEvent'),
-  'controller can navigate and activate core game overlays');
+check(navSrc.includes('_visible()') && navSrc.includes('_focus(root') && navSrc.includes('PointerEvent') &&
+  read('src/main.js').includes('controllerNav.update(sim.phase)'),
+  'controller can navigate and activate core game overlays, ticked from the frame loop');
+// RC9.9's one dash rule survives the move: the pad reaches the SAME machine.
+check(padSrc.includes('input.dashPress()') && padSrc.includes('input.dashRelease()') &&
+  !/_dashT|_dashRaised/.test(padSrc),
+  'RT is a press and a release through Input\'s own door — no second dash decision anywhere');
 
 // ── Phase 8: run-start warm-up (the profiled stutter stays fixed) ────────
 const mainSrc = read('src/main.js');
@@ -106,7 +124,7 @@ check(input.includes('_lastGrounded') && input.includes('_reanchorTouch') && inp
 // the one press/release machine — a tap dashes on release, a hold buys a bar
 // level and can no longer dash. `boostHeld` is the edge and nothing else.
 check(input.includes('__v1DashButtonHeld') &&
-  input.includes('this.boostHeld = this.dashEdge;') &&
+  input.includes('get boostHeld() { return this.dashEdge || this._scriptBoost; }') &&
   input.includes('_dashDown(now)') && input.includes('_dashUp(now)') &&
   !input.includes('keyBoost'),
   'the on-screen button, the key and the pad share one dash machine and one flag');
@@ -231,10 +249,12 @@ check(fs.existsSync('public/apple-touch-icon.png') && fs.existsSync('public/icon
 check(sw.includes("const CACHE = 'dictiondash-v1-shell-1'") && sw.includes("request.mode === 'navigate'"),
   'PWA service worker provides refreshed offline shell and network-first navigation');
 
-check(!polish.includes('requestAnimationFrame'), 'ship-polish layer adds no second RAF');
+check(!padSrc.includes('requestAnimationFrame') && !navSrc.includes('requestAnimationFrame'),
+  'the pad and the menu navigation add no second RAF');
 check(!mobile.includes('requestAnimationFrame'), 'mobile control presentation adds no second RAF');
 check(!sw.includes('requestAnimationFrame'), 'PWA layer adds no animation loop');
-check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer is loaded by the release runtime');
+check(!/^import .*v1-ship-polish/m.test(audioBridge),
+  'the audio bridge no longer smuggles the gamepad and the menu navigation in behind an audio import');
 
 
 // ── Speed feel (Phase 22) ───────────────────────────────────────────────────
@@ -868,7 +888,7 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   // The pad genuinely has no reject binding (input.js binds button 0 and the
   // triggers only), so its fake line names the pass and nothing else.
   check(stopLine('fake', MODALITY.PAD) === 'MISSPELLED · LET IT PASS' &&
-    !read('src/v1-ship-polish.js').includes('this.reject = true'),
+    !read('src/input/gamepad.js').includes('reject'),
     'the pad line invents no button: the gamepad layer binds no reject, so it names the pass');
 
   // ── RC8.1: one vocabulary per device, one phrase per state ──────────────
@@ -1276,7 +1296,6 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
 {
   const uiCode = read('src/ui/ui.js');
   const html = read('index.html');
-  const polishSrc = read('src/v1-ship-polish.js');
 
   check(uiCode.includes("createElementNS('http://www.w3.org/2000/svg', 'svg')") &&
     uiCode.includes('const HEART_PATH =') && !uiCode.includes("h.textContent = '♥'"),
@@ -1296,7 +1315,8 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   check(uiCode.includes("this.vitals.setAttribute('aria-label'") &&
     uiCode.includes('clean streak ${streak % need} of ${need}'),
     'the streak still has a screen-reader line — the widget went, the information did not');
-  check(!polishSrc.includes('ensureBellChargeHud'),
+  check(!fs.readdirSync('src').some((f) => /ship-polish/.test(f)) &&
+    !read('src/ui/ui.js').includes('ensureBellChargeHud'),
     'nothing calls the retired widget');
 }
 

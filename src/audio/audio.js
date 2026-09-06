@@ -515,6 +515,13 @@ export class Audio {
     this._tone({ type: 'sine', f0: f, f1: f * 1.004, dur: 0.34, vol: 0.075, bus: this.bus.ui });
     this._tone({ type: 'triangle', f0: f * 2.01, f1: f * 2.02, dur: 0.18, vol: 0.025, bus: this.bus.ui, delay: 0.006 });
     if (step === 4) this._tone({ type: 'sine', f0: f * 0.5, f1: f * 0.5, dur: 0.44, vol: 0.035, bus: this.bus.ui, delay: 0.025 });
+    // RC10.1: the bright acoustic-looking partials that let a bell carry over
+    // the beds. They lived in a runtime patch of this method — the patch and
+    // the method disagreed about the interval table, which is exactly the
+    // drift a wrapper invites — so they are simply part of the bell now, and
+    // the one table above is the only one.
+    this._tone({ type: 'sine', f0: f * 2.02, f1: f * 2.015, dur: 0.21, vol: 0.038, bus: this.bus.ui });
+    this._tone({ type: 'triangle', f0: f * 3.01, f1: f * 2.98, dur: 0.105, vol: 0.014, bus: this.bus.ui, delay: 0.006 });
   }
 
   heartLost() {

@@ -25,6 +25,8 @@ import { GuidedTeach } from './ui/guided.js';
 import { KeyLegend, isFramed } from './ui/cabinet.js';
 import { modalityFor, stopLine } from './ui/teach-copy.js';
 import { breathAt } from './ui/breath.js';
+import { PadReader, padConnected } from './input/gamepad.js';
+import { ControllerNav } from './ui/controller-nav.js';
 import { BellRenderer } from './render/bells.js';
 import { HEARTS } from './design/bells.js';
 import { flowFactor, flowGlow, flowLevel } from './render/flow-curve.js';
@@ -134,11 +136,11 @@ function chartForRun() {
   if (runMode === 'standard') return 'daily';
   return ACCESS.guidedTips && !stopsDone() ? 'guided' : 'endless';
 }
-/** A pad the player is actually holding — the modality the stops teach in. */
-function padConnected() {
-  try { return [...(navigator.getGamepads?.() || [])].some((p) => p && p.connected); }
-  catch { return false; }
-}
+// RC10.1 — the pad, owned here rather than patched into Input at import time.
+// One reader writing the same flags a thumb writes, and one navigator driving
+// the menus by focusing and activating the real buttons.
+const pad = new PadReader();
+const controllerNav = new ControllerNav(pad);
 // The bells the runner collects. The sim owns the field and the pickup
 // (sim.bells); this only draws it. Created after the material pass so its
 // baked-in gold emissive is left alone by the pass's material sweep.
@@ -1425,6 +1427,7 @@ function tick(dt) {
 
   if (!paused && (running || sim.phase === PHASE.KILL)) {
     input.update(dt, !p.airborne);
+    pad.update(input);
     simInput.carve = input.carve;
     simInput.flip = input.flip;
     // Phase C: two zones, one primitive. The right half (or the right arrow,
@@ -1575,6 +1578,10 @@ function tick(dt) {
     bv.x, sim.beast.side);
   stage.followLight(pv.x, pv.y, -pv.d);
   audio.update(dt, p, bands, dreadLive);
+  // RC10.1: every frame, including paused and dead — a pad has to be able to
+  // reach RESUME and AGAIN. It used to be polled from inside a runtime patch
+  // of the audio bridge, purely because that ran once a frame.
+  controllerNav.update(sim.phase);
   // RC7: the three stops own the fundamentals. The sim reads which of them
   // this player has already been SHOWN (persisted beside the other learned
   // lessons, so each fires once for a life, whatever the player did with

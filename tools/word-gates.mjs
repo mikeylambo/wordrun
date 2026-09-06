@@ -840,7 +840,7 @@ head('ZONES — the reject is optional, and never worse than silence');
     /case 'Space': case 'KeyF': case 'ShiftLeft': case 'ShiftRight':/.test(inputSrc) &&
     /this\._dashDown\(performance\.now\(\)\)/.test(inputSrc) &&
     /this\.__v1DashButtonHeld && !this\._btnDown/.test(inputSrc) &&
-    /this\.boostHeld = this\.dashEdge;/.test(inputSrc),
+    /get boostHeld\(\) \{ return this\.dashEdge \|\| this\._scriptBoost; \}/.test(inputSrc),
     'Space, the F key and the on-screen button — one machine, one meaning');
   check('the hold that used to arm the dash is gone',
     !/GO_HOLD_MS/.test(inputSrc) && /dashEdge/.test(inputSrc),

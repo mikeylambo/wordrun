@@ -2923,3 +2923,65 @@ behaviour snapshot is unchanged on all five scripts. The Phase F tables are
 re-driven and printed: L0 472,126 through L3 755,402 clearing the bar, and the
 same collapse to 137,580 for a bar set and not cleared. What the bar PAYS is
 exactly what it paid; only how you raise it has changed.
+
+## 1.0-RC10.1 — the layer that patched the game at boot is gone
+
+`v1-ship-polish.js` reassigned two prototypes at import time. It reached
+`Input.prototype.update` to fold in the gamepad, `Audio.prototype.update` to
+poll the controller's menu navigation, and `Audio.prototype.bell` to add two
+partials — three unrelated systems behind one audio-shaped filename, loaded
+through a side-effect import six levels down an audio chain. It is the exact
+pattern CLAUDE.md forbids, and it had every symptom that rule was written
+about: nothing named `input` led to the gamepad, nothing named `ui` led to the
+menu navigation, and after RC9.9 it was the only thing on the planet reaching
+into the dash machine from outside `input.js` — a place nobody would look when
+the dash changed. `rc9-audio.js` even carried a comment claiming nothing
+reached into a runtime-patched object any more, one line above the import that
+did.
+
+Three files you can find from the import graph now:
+
+- **`src/input/gamepad.js`** — a READER. It polls the pad, decides what the
+  buttons mean, and writes the same flags a thumb writes. Pointer and keyboard
+  keep priority when they are actively in use, because a pad on a desk reports
+  a steady zero and a zero that overwrites a live thumb is a stuck stick.
+- **`src/ui/controller-nav.js`** — which surface is on top, which of its
+  buttons has focus, and what A / B / START mean there. It reaches the game the
+  way a player does: focusing and activating real buttons, dispatching the same
+  keys a keyboard sends. Ticked from the frame loop, where a per-frame thing
+  belongs — it used to ride the audio bridge purely because that ran once a
+  frame, so a player pressing A on the results card went through the mixer.
+- **The bell's own method.** The two bright upper partials are part of `bell()`
+  now. The patch and the method each carried their own copy of the interval
+  table, which is precisely the drift a wrapper invites; there is one table.
+
+**And a whole system was deleted rather than moved.** The destruction-audio
+path — a per-frame snapshot of nearby colliders, diffed to play breakage — could
+never fire: `TREE_COUNT` and `ROCK_COUNT` are `[0, 0]` and `GATE_CHANCE` is 0,
+so the snapshot is always empty. Its own comment admitted this and kept it
+anyway "because it costs nothing". It cost a per-frame allocation and a
+paragraph of reading. The gate that guarded its shape now guards the fact that
+made it dead.
+
+**RC9.9's one dash rule survived the move by going through a door.** The pad
+calls `input.dashPress()` and `input.dashRelease()` — the same machine the
+button and Space use — so RT taps to dash and holds to raise the bar with no
+second implementation of that decision anywhere.
+
+**One real bug found and fixed on the way, and it was mine.** Moving the pad
+out of the wrapper meant it now runs AFTER `input.update()`, and `boostHeld`
+was a field copied once a frame: the pad set the dash edge after the copy was
+taken, and `consumeJump()` destroyed the edge before the sim ever read it. RT
+did nothing. Shuffling the call order would have fixed the symptom and left the
+trap; `boostHeld` is a GETTER over the edge now, so the order of its writers
+cannot matter again. Measured before and after on a synthetic pad: A answering
+a word went from 0 resolutions to 1, and a 400 ms RT tap from no dash to a
+dash. Two further zeros chased in the same session turned out to be the probe's
+fault, not the game's — a runner left unanswered misses real words, and every
+missed real resets the bar the hold had just raised.
+
+Verified on a synthetic pad through the real build: RT tap dashes on release
+and not on press; a 1.2 s hold raises exactly one level with no dash and no
+wrong read; A answers; START pauses and A activates the focused button; zero
+console errors through the lot. All suites green, every calibrated table
+reproduces, and the behaviour snapshot is unchanged — nothing here is sim.
