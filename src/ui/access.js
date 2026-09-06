@@ -42,6 +42,8 @@ export const ACCESS = {
   // chip serves the two edge cases (an expert on a fresh profile who wants
   // silence, and a returner who wants the teaching back).
   guidedTips: true,
+  musicOff: false,   // RC-5: the score, on its own switch
+  sfxOff: false,     // RC-5: everything that is not the score
   palette: 'off',
   epoch: 0, // bumped on every change so canvas caches (plates) re-paint
   ...PALETTES.off,
@@ -53,6 +55,8 @@ function persist() {
     readableType: ACCESS.readableType,
     broadcastLook: ACCESS.broadcastLook,
     guidedTips: ACCESS.guidedTips,
+    musicOff: ACCESS.musicOff,
+    sfxOff: ACCESS.sfxOff,
     palette: ACCESS.palette,
   });
 }
@@ -87,6 +91,8 @@ export function initAccess() {
   ACCESS.readableType = !!saved.readableType;
   ACCESS.broadcastLook = !!saved.broadcastLook;
   ACCESS.guidedTips = saved.guidedTips !== false; // unset = ON
+  ACCESS.musicOff = saved.musicOff === true;      // unset = music ON
+  ACCESS.sfxOff = saved.sfxOff === true;          // unset = sfx ON
   ACCESS.palette = PALETTES[saved.palette] ? saved.palette : 'off';
   apply();
 }
@@ -185,8 +191,19 @@ export function buildAccessPanel(hooks = {}) {
   syncs.push(
     // The mute button's state, reachable as a setting too. Hooks again —
     // the audio system belongs to main.
-    chipRow('SOUND', [[true, 'ON'], [false, 'OFF']],
-      () => !hooks.getMuted?.(), (v) => hooks.setMuted?.(!(v === 'true' || v === true))),
+    // RC-5: one SOUND switch could not answer "keep the game, lose the
+    // score" — the commonest thing a player wants from a runner they play
+    // with their own music on. Two lines, each persisted.
+    chipRow('MUSIC', [[true, 'ON'], [false, 'OFF']],
+      () => !ACCESS.musicOff, (v) => {
+        ACCESS.musicOff = !(v === 'true' || v === true);
+        hooks.setMusicMuted?.(ACCESS.musicOff);
+      }),
+    chipRow('SFX', [[true, 'ON'], [false, 'OFF']],
+      () => !ACCESS.sfxOff, (v) => {
+        ACCESS.sfxOff = !(v === 'true' || v === true);
+        hooks.setSfxMuted?.(ACCESS.sfxOff);
+      }),
   );
   const done = document.createElement('button');
   done.type = 'button';

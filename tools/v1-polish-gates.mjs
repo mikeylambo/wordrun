@@ -470,12 +470,14 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   // REAL and FAKE are one pair of verbs, and they sit level: same height,
   // mirrored sides, in portrait and landscape both. (Playtest: FAKE sat at
   // DASH's height and read as a different kind of button.)
-  const portraitJump = mobile.match(/#v1MobileJump\{[^}]*bottom:max\(104px/);
-  const portraitFake = mobile.match(/#v1MobileFake\{[^}]*bottom:max\(104px/);
+  // RC-5: the pair is still level, on the single low row they now share
+  // with DASH between them.
+  const portraitJump = mobile.match(/#v1MobileJump\{[^}]*bottom:max\(22px/);
+  const portraitFake = mobile.match(/#v1MobileFake\{[^}]*bottom:max\(22px/);
   const landscape = mobile.slice(mobile.indexOf('max-height:500px'));
   check(!!portraitJump && !!portraitFake &&
-    /#v1MobileJump\{[^}]*bottom:max\(88px/.test(landscape) &&
-    /#v1MobileFake\{[^}]*bottom:max\(88px/.test(landscape),
+    /#v1MobileJump\{[^}]*bottom:max\(17px/.test(landscape) &&
+    /#v1MobileFake\{[^}]*bottom:max\(17px/.test(landscape),
     'REAL and FAKE sit level — one answer pair, both orientations');
 
   // An open overlay panel owns the whole screen: both sheets sit above the
@@ -727,10 +729,10 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     accessCode.includes("section('AUDIO')"),
     'the sheet is three plain groups — GAME, VISUAL, AUDIO — not a junk drawer');
   check(accessCode.includes("chipRow('BEST RUN'") &&
-    accessCode.includes("chipRow('SOUND'") &&
+    accessCode.includes("chipRow('MUSIC'") && accessCode.includes("chipRow('SFX'") &&
     mainCode.includes('getGhost: () => ghostEnabled') &&
     mainCode.includes('getMuted: () => audio.muted'),
-    'the ghost and the sound reach the sheet through hooks — state stays where it lives');
+    'the ghost and the audio mix reach the sheet through hooks — state stays where it lives');
   check(mainCode.includes("how.textContent = 'HOW TO PLAY'") &&
     !/chipRow\('HOW TO/.test(accessCode),
     'HOW TO PLAY is a title action, never a settings hunt');
@@ -877,6 +879,66 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   const opaque = (css) => css.includes('background:#05080c;') && !/background:rgba\(4,7,10,\.82\)/.test(css);
   check(opaque(accessCode) && opaque(shopCode),
     'SETTINGS and the SHOP are opaque — no gameplay reads through a menu');
+}
+
+// ── RC-5: the run screen carries the run, and nothing else ───────────────
+{
+  const html = read('index.html');
+  const uiCode = read('src/ui/ui.js');
+  const audioCode = read('src/audio/audio.js');
+  const accessCode = read('src/ui/access.js');
+  const mainCode = read('src/main.js');
+  const mobileCode = read('src/v1-mobile-ui.js');
+  const musicCode = read('src/music-track.js');
+
+  check(html.includes('<div id="best" hidden>') && html.includes('#best[hidden]{display:none}'),
+    'the run HUD carries ONE score — BEST lives in PROFILE and the card');
+  // Three legacy layers each re-asserted this caption after ui.js cleared
+  // it, which is why it survived the first removal. None of them may again.
+  const captionWriters = ['src/ui/ui.js', 'src/rc97-endgame.js', 'src/v1-finalize.js',
+    'src/render/endgame-sky.js'].map(read).join('\n');
+  check(!/titleHint[^\n]*'DAILY RUN'/.test(captionWriters) &&
+    !/title\.textContent = [^\n]*'DAILY RUN'/.test(captionWriters) &&
+    !/const want = [^\n]*'DAILY RUN'/.test(captionWriters) &&
+    html.includes('data-mode="standard">DAILY RUN<'),
+    'no caption under the wordmark, from ANY layer — the chip that selects the mode names it');
+
+  // The score and the rest of the mix part company.
+  check(audioCode.includes('music: this._bus(1)') &&
+    musicCode.includes('connect(audio.bus.music)'),
+    'the score rides its own bus, so it can be silenced without the world');
+  check(audioCode.includes('setMusicMuted(m)') && audioCode.includes('setSfxMuted(m)') &&
+    audioCode.includes('this.muted || this.sfxMuted') &&
+    /threat\.gain, this\.sfxMuted \? 0/.test(audioCode),
+    'SFX OFF silences the one-shots AND the continuous beds — no sound survives in one place');
+  check(accessCode.includes('musicOff: ACCESS.musicOff') &&
+    accessCode.includes('saved.musicOff === true') &&
+    accessCode.includes('saved.sfxOff === true') &&
+    mainCode.includes('audio.setMusicMuted(ACCESS.musicOff)'),
+    'the mix is persisted and applied at boot, not just while the sheet is open');
+
+  // The coach keeps only what a player cannot proceed without.
+  // Live code only — the comment above the change still quotes the retired
+  // lines, which is the record of what was removed and why.
+  const liveUi = uiCode.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+  check(!/text = .*ANSWERING EARLY/.test(liveUi) &&
+    !/text = .*CLEAN READS CHARGE/.test(liveUi) &&
+    !liveUi.includes('_showedChargeLesson') && !liveUi.includes('_firstRun'),
+    'the economy asides are gone — the coach teaches controls, never commentary');
+  check(uiCode.includes('TAP RIGHT IF THE WORD IS REAL') &&
+    uiCode.includes('THE BAR IS FULL'),
+    'the control lessons remain, each still retiring on the action it teaches');
+
+  // One tell per mechanic, one row of controls.
+  check(html.includes('@media (pointer:coarse){.meter-zone{display:none}}') &&
+    mobileCode.includes('--dash-angle'),
+    "the bottom meter is gone where the DASH ring exists — one tell per mechanic");
+  check(html.includes('<div id="chain"></div><b id="barLevel"></b>') &&
+    !/#meterLabel">DASH<i><\/i><b id="barLevel">/.test(html),
+    'the reward-bar readout left the meter it was nested in, so it survives on touch');
+  check(/#v1MobileDash\{left:50%;margin-left:-38px/.test(mobileCode) &&
+    /#v1MobileDash\{width:66px;height:66px;left:50%;right:auto;margin-left:-33px/.test(mobileCode),
+    'DASH is centred between the answers in both orientations, and stays centred when it shrinks');
 }
 
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);

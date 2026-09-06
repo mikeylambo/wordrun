@@ -386,7 +386,7 @@ function installUiConsolidation() {
   // Eliminate the remaining player-facing contradictions from older RC source
   // layers without adding another screen or changing the mystery contract.
   const title = document.getElementById('titleHint');
-  if (title) title.textContent = globalThis.__CHALLENGE ? 'CHALLENGE' : 'DAILY RUN';
+  if (title) title.textContent = globalThis.__CHALLENGE ? 'CHALLENGE' : '';
   document.querySelector('#rc7Onboarding .lead')?.remove();
   syncAllTimeTitle();
 }

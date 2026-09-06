@@ -45,7 +45,13 @@ function ensureMobileUi() {
     .v1MobileAction.running{display:grid}
     .v1MobileAction:focus{outline:none}
 
-    #v1MobileDash{right:max(18px,calc(env(safe-area-inset-right,0px) + 12px));bottom:max(20px,calc(env(safe-area-inset-bottom,0px) + 16px));width:76px;height:76px;background:conic-gradient(rgba(103,216,255,.92) var(--dash-angle,0deg),rgba(238,248,252,.14) var(--dash-angle,0deg));box-shadow:0 4px 20px rgba(4,9,13,.18)}
+    /* RC-5: DASH moves to the CENTRE of a single row. It used to sit in the
+       right corner beneath REAL, overlapping the bottom charge meter — and
+       that meter is now gone on touch, because this button's own ring is the
+       charge. Centred, it is equidistant from both thumbs and belongs to
+       neither answer. Positioned with a margin rather than a transform so the
+       held/ready scale animations still work. */
+    #v1MobileDash{left:50%;margin-left:-38px;bottom:max(16px,calc(env(safe-area-inset-bottom,0px) + 12px));width:76px;height:76px;background:conic-gradient(rgba(103,216,255,.92) var(--dash-angle,0deg),rgba(238,248,252,.14) var(--dash-angle,0deg));box-shadow:0 4px 20px rgba(4,9,13,.18)}
     #v1MobileDash span{font-size:11px;letter-spacing:.10em;margin-right:-.10em}
     #v1MobileDash.empty{opacity:.30}
     /* Charged is the state that has to carry the whole mechanic. The old
@@ -59,14 +65,13 @@ function ensureMobileUi() {
     @keyframes dashButtonReady{0%,100%{box-shadow:0 0 22px rgba(103,216,255,.32),0 4px 20px rgba(4,9,13,.18);transform:scale(1)}50%{box-shadow:0 0 44px rgba(103,216,255,.78),0 4px 20px rgba(4,9,13,.22);transform:scale(1.045)}}
     #v1MobileDash.held{opacity:1;transform:scale(.95);animation:none;box-shadow:0 0 40px rgba(103,216,255,.72),0 4px 20px rgba(4,9,13,.22)}
 
-    /* Playtest: REAL sat beside DASH and the pair crowded one thumb. They
-       stack now — DASH lowest, where the thumb rests, REAL directly above.
-       FAKE mirrors REAL across the screen at the same height (playtest: it
-       sat at DASH's height, so the two answer buttons read as two different
-       verbs; level with each other they read as the pair they are), and the
-       left/right placement still teaches the same mapping as the zones. */
-    #v1MobileJump{right:max(18px,calc(env(safe-area-inset-right,0px) + 12px));bottom:max(104px,calc(env(safe-area-inset-bottom,0px) + 100px));width:64px;height:64px;background:rgba(238,248,252,.16);box-shadow:0 4px 18px rgba(4,9,13,.14);opacity:.74}
-    #v1MobileFake{left:max(18px,calc(env(safe-area-inset-left,0px) + 12px));bottom:max(104px,calc(env(safe-area-inset-bottom,0px) + 100px));width:64px;height:64px;background:rgba(238,248,252,.12);box-shadow:0 4px 18px rgba(4,9,13,.14);opacity:.62}
+    /* RC-5: all three controls on ONE line — FAKE, DASH, REAL, left to
+       right — sitting low together instead of stacked in a corner. The
+       answers keep the left/right mapping the tap zones teach; the two 64px
+       answer buttons are lifted 6px so their centres align with the 76px
+       DASH between them, which is what makes the row read as a row. */
+    #v1MobileJump{right:max(18px,calc(env(safe-area-inset-right,0px) + 12px));bottom:max(22px,calc(env(safe-area-inset-bottom,0px) + 18px));width:64px;height:64px;background:rgba(238,248,252,.16);box-shadow:0 4px 18px rgba(4,9,13,.14);opacity:.74}
+    #v1MobileFake{left:max(18px,calc(env(safe-area-inset-left,0px) + 12px));bottom:max(22px,calc(env(safe-area-inset-bottom,0px) + 18px));width:64px;height:64px;background:rgba(238,248,252,.12);box-shadow:0 4px 18px rgba(4,9,13,.14);opacity:.62}
     #v1MobileFake::before{background:rgba(17,26,33,.58)}
     #v1MobileFake.held{opacity:1;transform:scale(.93);box-shadow:0 0 24px rgba(255,255,255,.16),0 4px 18px rgba(4,9,13,.18)}
     #v1MobileJump::before{background:rgba(17,26,33,.58)}
@@ -77,10 +82,12 @@ function ensureMobileUi() {
       .v1MobileVitals{translate:0 12px}
     }
     @media (orientation:landscape) and (max-height:500px){
-      #v1MobileDash{width:66px;height:66px;right:max(15px,calc(env(safe-area-inset-right,0px) + 10px));bottom:max(14px,calc(env(safe-area-inset-bottom,0px) + 10px))}
+      /* The same single row on a short landscape screen, at reduced size —
+         the centring margin has to track the width or the row is off-axis. */
+      #v1MobileDash{width:66px;height:66px;left:50%;right:auto;margin-left:-33px;bottom:max(12px,calc(env(safe-area-inset-bottom,0px) + 8px))}
       #v1MobileDash span{font-size:10px;letter-spacing:.06em}
-      #v1MobileJump{width:56px;height:56px;right:max(15px,calc(env(safe-area-inset-right,0px) + 10px));bottom:max(88px,calc(env(safe-area-inset-bottom,0px) + 84px))}
-      #v1MobileFake{width:56px;height:56px;left:max(15px,calc(env(safe-area-inset-left,0px) + 10px));bottom:max(88px,calc(env(safe-area-inset-bottom,0px) + 84px))}
+      #v1MobileJump{width:56px;height:56px;right:max(15px,calc(env(safe-area-inset-right,0px) + 10px));bottom:max(17px,calc(env(safe-area-inset-bottom,0px) + 13px))}
+      #v1MobileFake{width:56px;height:56px;left:max(15px,calc(env(safe-area-inset-left,0px) + 10px));bottom:max(17px,calc(env(safe-area-inset-bottom,0px) + 13px))}
       #v1MobileJump span{font-size:10px}
       #v1TouchFrame{width:76px;height:76px}
     }

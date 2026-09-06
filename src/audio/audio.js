@@ -39,6 +39,8 @@ export class Audio {
     this.ready = false;
     this.ctx = null;
     this.muted = false;
+    this.musicMuted = false;   // RC-5: the score
+    this.sfxMuted = false;     // RC-5: everything else
     this._footT = 0;
     this._huntBeatT = 0;
     this._huntBeat = 0;
@@ -93,6 +95,10 @@ export class Audio {
       score: this._bus(0),
       ui: this._bus(0.82),
       cinematic: this._bus(1),
+      // RC-5: the score rides its OWN bus so MUSIC and SFX are separable.
+      // It used to share `ambience` with the world bed, which made "music
+      // off" impossible without silencing the world with it.
+      music: this._bus(1),
     };
 
     this.noise = noiseBuffer(ctx, 2, 0.72);
@@ -242,6 +248,17 @@ export class Audio {
     return clamp((x - p.x) / 8, -1, 1);
   }
 
+  /** MUSIC — the score alone. */
+  setMusicMuted(m) {
+    this.musicMuted = !!m;
+    if (this.ready) this.bus.music.gain.setTargetAtTime(this.musicMuted ? 0 : 1, this.ctx.currentTime, 0.05);
+  }
+
+  /** SFX — everything that is not the score. The per-sound emitters below
+   *  check `sfxMuted` beside `muted`; the continuous beds are scaled in
+   *  update(), so nothing has to be muted in two places. */
+  setSfxMuted(m) { this.sfxMuted = !!m; }
+
   setMuted(m) {
     this.muted = !!m;
     if (this.ready) this.master.gain.setTargetAtTime(this.muted ? 0 : A.MASTER, this.ctx.currentTime, 0.025);
@@ -261,13 +278,13 @@ export class Audio {
     // Phase E: during the last stand the mix stands down to almost nothing.
     // Silence is the tell — no label announces the moment, so the sudden
     // absence of everything has to carry it.
-    const stand = this.standActive ? 0.06 : 1;
+    const stand = (this.standActive ? 0.06 : 1) * (this.sfxMuted ? 0 : 1);
     this._set(this.bus.ambience.gain, (run ? (kill ? 0.20 : 0.92) : 0) * stand, 0.11);
     this._set(this.bus.surface.gain, (run ? (kill ? 0.03 : 0.95) : 0) * stand, 0.08);
     // RC-4: the Redline family (roar, scream, crackle, footfalls, the
     // arrival strikes) sits well under the mix — see v1-final-mix.js,
     // which owns the live level and must agree with this base.
-    this._set(this.bus.threat.gain, run ? (kill ? 0.20 : 0.55) : 0, 0.08);
+    this._set(this.bus.threat.gain, this.sfxMuted ? 0 : (run ? (kill ? 0.20 : 0.55) : 0), 0.08);
 
     const beastPan = this._panFor(sim?.beast?.x ?? p.x);
     if (this.roar.pan) this._set(this.roar.pan.pan, beastPan, 0.05);
@@ -302,7 +319,7 @@ export class Audio {
     const hunting = !!(sim && sim.beast?.mode === 'hunt' && phase === 'running');
     const target = hunting ? 1 : 0;
     this._huntMix += (target - this._huntMix) * (1 - Math.exp(-dt * (hunting ? 4.8 : 2.8)));
-    this._set(this.bus.score.gain, kill ? 0.02 : this._huntMix, 0.06);
+    this._set(this.bus.score.gain, this.sfxMuted ? 0 : (kill ? 0.02 : this._huntMix), 0.06);
 
     if (hunting && run && !kill) {
       const depth = clamp(p.d / 18000);
@@ -321,7 +338,7 @@ export class Audio {
   }
 
   _tone({ type = 'sine', f0, f1 = f0, dur = 0.2, vol = 0.1, pan = 0, bus = this.bus.ui, delay = 0, filter = null }) {
-    if (!this.ready || this.muted) return;
+    if (!this.ready || this.muted || this.sfxMuted) return;
     const t = this.ctx.currentTime + delay;
     const o = this.ctx.createOscillator();
     o.type = type;
@@ -347,7 +364,7 @@ export class Audio {
   }
 
   _burst(dur, vol, freq, type = 'bandpass', pan = 0, bus = this.bus.surface, q = 1.1) {
-    if (!this.ready || this.muted) return;
+    if (!this.ready || this.muted || this.sfxMuted) return;
     const t = this.ctx.currentTime;
     const s = this.ctx.createBufferSource();
     s.buffer = type === 'highpass' ? this.white : this.noise;
@@ -457,7 +474,7 @@ export class Audio {
    */
   lastStand() {
     this.standActive = true;
-    if (!this.ready || this.muted) return;
+    if (!this.ready || this.muted || this.sfxMuted) return;
     this._tone({ type: 'sine', f0: 116, f1: 116, dur: 6.0, vol: 0.085, bus: this.bus.cinematic });
     this._tone({ type: 'sine', f0: 232.5, f1: 232.5, dur: 6.0, vol: 0.030, bus: this.bus.cinematic, delay: 0.02 });
   }
@@ -465,7 +482,7 @@ export class Audio {
   /** The stand resolves. Held, the world comes back up with it. */
   lastStandEnd(held) {
     this.standActive = false;
-    if (!this.ready || this.muted) return;
+    if (!this.ready || this.muted || this.sfxMuted) return;
     if (held) {
       this._tone({ type: 'triangle', f0: 232, f1: 928, dur: 0.5, vol: 0.11, bus: this.bus.cinematic });
       this._burst(0.45, 0.16, 2600, 'bandpass', 0, this.bus.ambience);
@@ -605,7 +622,7 @@ export class Audio {
    * sawtooth that read as "something changed" rather than "you launched".
    */
   dash() {
-    if (!this.ready || this.muted) return;
+    if (!this.ready || this.muted || this.sfxMuted) return;
     const bus = this.bus.ambience;
     this._thump(0.34, 0, bus);
     this._tone({ type: 'sawtooth', f0: 180, f1: 1450, dur: 0.46, vol: 0.15, bus,
@@ -622,7 +639,7 @@ export class Audio {
 
   /** The dash reaching full charge — the one moment the meter earns a sound. */
   dashReady() {
-    if (!this.ready || this.muted) return;
+    if (!this.ready || this.muted || this.sfxMuted) return;
     this._tone({ type: 'triangle', f0: 740, f1: 1480, dur: 0.16, vol: 0.075, bus: this.bus.ui });
     this._tone({ type: 'sine', f0: 1480, f1: 1490, dur: 0.30, vol: 0.045, bus: this.bus.ui, delay: 0.05 });
     this._burst(0.16, 0.055, 5200, 'highpass', 0, this.bus.ui);
@@ -634,7 +651,7 @@ export class Audio {
   // live here went with the character it belonged to; `killSource` has only
   // ever been 'main' since.
   kill() {
-    if (!this.ready || this.muted) return;
+    if (!this.ready || this.muted || this.sfxMuted) return;
     {
       // Signal death: a full-band static crush collapsing into a power-down.
       this._burst(0.85, 0.5, 2400, 'bandpass', 0, this.bus.cinematic, 0.8);
@@ -649,7 +666,7 @@ export class Audio {
 
 
   courageBank(mult) {
-    if (!this.ready || this.muted) return;
+    if (!this.ready || this.muted || this.sfxMuted) return;
     const k = clamp((mult - 1) / Math.max(0.01, TUNING.BOOST.PROX_MAX_MULT - 1));
     this._tone({ type: 'triangle', f0: 520, f1: 1180, dur: 0.30, vol: 0.055 + 0.07 * k, bus: this.bus.ui });
     this._tone({ type: 'triangle', f0: 780, f1: 1770, dur: 0.27, vol: 0.045 + 0.055 * k, bus: this.bus.ui, delay: 0.012 });
@@ -672,7 +689,7 @@ export class Audio {
    * rising blips (different intervals, a held chord, and the shimmer tail).
    */
   wordRetired() {
-    if (!this.ready || this.muted) return;
+    if (!this.ready || this.muted || this.sfxMuted) return;
     const root = 523.25; // C5
     // I – III – V – VIII, climbing, each landing a beat after the last.
     const arp = [[1, 0], [1.26, 0.05], [1.5, 0.10], [2, 0.16]];

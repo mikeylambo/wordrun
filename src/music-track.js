@@ -54,7 +54,7 @@ export class MusicTrack {
       const src = audio.ctx.createMediaElementSource(this.el);
       this.gain = audio.ctx.createGain();
       this.gain.gain.value = 0.62;
-      src.connect(this.gain).connect(audio.bus.ambience);
+      src.connect(this.gain).connect(audio.bus.music);
       this._wired = true;
     } catch { /* a second attach on the same element throws; harmless */ }
   }

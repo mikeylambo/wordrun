@@ -98,23 +98,23 @@ export class UI {
     this._bandT = 0;
     this._powerT = 0;
     this._wasArmed = false;
-    this._firstRun = true;
-    this._showedChargeLesson = false;
 
     this.touch = (navigator.maxTouchPoints || 0) > 0 ||
       'ontouchstart' in window || window.matchMedia('(pointer: coarse)').matches;
     // Phase 19: the tagline is gone. A title screen that has to ask the
     // player a rhetorical question is a title screen that does not trust
     // its own wordmark. This line now carries the day's identity instead.
-    this.titleHint.textContent = 'DAILY RUN';
+    // RC-5: no caption under the wordmark — the mode chips below already
+    // say which run this is, and a label under the title read as a
+    // subtitle for the GAME rather than a name for the mode.
+    this.titleHint.textContent = '';
   }
 
   setSeed(seedString, best, runs) {
-    this._firstRun = runs === 0;
     // A challenge link re-titles the line: the track is someone's dare,
     // not today's shared draft (functional label, not a sixth name).
     // Two tiny lines, not one long one: WHAT this run is, then the numbers.
-    this.titleHint.textContent = this._challenge ? 'CHALLENGE' : 'DAILY RUN';
+    this.titleHint.textContent = this._challenge ? 'CHALLENGE' : '';
     // Playtest: the date-seed line came off the title — DAILY RUN already
     // says what today's course is; the string was inventory, not identity.
     // A challenge keeps its line: the dare's target is the whole point.
@@ -124,6 +124,12 @@ export class UI {
     this.deathSeed.textContent = '';
     this.bestVal.textContent = best > 0 ? Math.floor(best).toLocaleString('en-US') : '—';
   }
+
+  /** The approved name for the day's course. It labels the MODE (the chip
+   *  that selects it, and any copy that has to say which run this is) — it
+   *  is no longer printed under the wordmark, where it read as a subtitle
+   *  for the game itself. One of the four names; there is no fifth. */
+  static get DAILY_NAME() { return 'DAILY RUN'; }
 
   /** Challenge context (Phase 14), or null to clear. */
   setChallenge(challenge) { this._challenge = challenge || null; }
@@ -201,13 +207,14 @@ export class UI {
       // reward knob for someone who has stopped needing the other lessons —
       // and retired for good the first time they actually raise it.
       text = this.touch ? 'HOLD RIGHT TO RAISE THE BAR' : 'UP ARROW TO RAISE THE BAR';
-    } else if (this._firstRun) {
-      if (d < 720) text = 'ANSWERING EARLY IS WORTH MORE';
-      else if (p.gatesThreaded > 0 && !this._showedChargeLesson) {
-        text = 'CLEAN READS CHARGE THE DASH';
-        this._showedChargeLesson = true;
-      }
     }
+    // RC-5: the value and charge asides are gone. "ANSWERING EARLY IS WORTH
+    // MORE" and "CLEAN READS CHARGE THE DASH" described the economy at a
+    // player who was busy reading a word — commentary, not instruction, and
+    // it fired on every first run of a day forever. What remains is only the
+    // teaching a player cannot proceed without: the two verbs, the dash when
+    // the charge is actually full, and the bar for someone already chaining.
+    // Each still retires for good the moment its action is performed.
 
     // Phase L HUD pass: one instruction at a time. The dash hint is the
     // louder, more contextual line — while it is up, the coach yields, so
@@ -810,7 +817,6 @@ export class UI {
     this._wasArmed = false;
     this._bandT = 0;
     this._powerT = 0;
-    this._showedChargeLesson = false;
     this._lastHearts = HEARTS.MAX;
     this.vitals?.classList.remove('pulse');
     this.deathScreen.classList.remove('rc2Poster');

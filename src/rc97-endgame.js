@@ -146,8 +146,9 @@ if (!UI.prototype.__rc97MysteryPatched) {
     const out = baseSetSeed.apply(this, args);
     if (this.titleHint) {
       // Phase 19: the retired tagline used to be re-asserted here after a
-      // finish. The title line carries the day's identity now.
-      this.titleHint.textContent = globalThis.__CHALLENGE ? 'CHALLENGE' : 'DAILY RUN';
+      // finish. RC-5: and the day's name came off the wordmark entirely —
+      // the mode chip names it. Only a challenge still captions itself.
+      this.titleHint.textContent = globalThis.__CHALLENGE ? 'CHALLENGE' : '';
     }
     return out;
   };

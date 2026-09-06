@@ -232,7 +232,14 @@ const accessUI = buildAccessPanel({
     audio.setMuted(m);
     ui.mute.textContent = m ? '×' : '♪';
   },
+  // RC-5: the AUDIO group is a two-line mix now. Both apply live.
+  setMusicMuted: (m) => { audio.start(); audio.setMusicMuted(m); },
+  setSfxMuted: (m) => { audio.start(); audio.setSfxMuted(m); },
 });
+// The saved mix applies to the graph as soon as it exists, so a player who
+// turned the score off last session does not hear it come back on launch.
+audio.setMusicMuted(ACCESS.musicOff);
+audio.setSfxMuted(ACCESS.sfxOff);
 
 document.addEventListener('dictiondash:dash-ready', () => audio.dashReady());
 

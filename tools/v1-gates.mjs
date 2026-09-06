@@ -141,13 +141,15 @@ check(audioBridge.includes("import './v1-finalize.js'") && audioBridge.includes(
   'V1 finalization, contact guard and retired-director stub load after RC9 feedback');
 check(!onboarding.includes('READ THE MOUNTAIN. COMMIT TO THE LINE.') && !onboarding.includes('class="lead"'),
   'onboarding tagline is removed at source, not only hidden at runtime');
-// Phase 19 retired the tagline. A title screen that asks the player a
-// rhetorical question does not trust its own wordmark; the line carries
-// the day's identity instead, and three later layers that used to
-// re-assert the tagline now write the same thing.
-check(ui.includes("this.titleHint.textContent = 'DAILY RUN'") &&
+// Phase 19 retired the tagline: a title screen that asks the player a
+// rhetorical question does not trust its own wordmark. RC-5 went further —
+// the day's name went with it, to the chip that selects the mode, because a
+// label under the wordmark reads as a subtitle for the GAME. What must hold
+// is the invariant, not the replacement text: the caption is empty for an
+// ordinary day (a CHALLENGE still names its dare), and no tagline anywhere.
+check(/titleHint\.textContent = this\._challenge \? 'CHALLENGE' : '';/.test(ui) &&
   !/HOW FAR CAN YOU GO/.test(ui),
-  'the title line names the day, not a tagline');
+  'the wordmark stands alone — no tagline, and no caption for an ordinary day');
 
 console.log(`\nV1 release gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

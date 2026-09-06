@@ -1958,3 +1958,35 @@ cannot come back.
   per-frame bus level are both cut at that layer (roar 0.20, bus 0.55),
   the base level agrees, and the strikes come down again. The pursuit
   still rises as it closes; it no longer sits on top of the mix.
+
+## 1.0-RC5 — the run screen carries the run
+
+A reduction pass. Five things came off or split apart; nothing new was added.
+
+- **One score in the run.** BEST TODAY left the HUD for PROFILE and the
+  results card. A second score over the word being read was competing with
+  the only number that matters mid-run.
+- **The wordmark stands alone.** The caption under the title is gone; the
+  approved name now labels the chip that selects that mode, which is where
+  a mode name belongs. Three legacy layers were each re-asserting that
+  caption after the UI cleared it — which is why it had survived earlier
+  removals — and all of them are now silent. A challenge still names its
+  dare.
+- **MUSIC and SFX are separate.** One SOUND switch could not answer "keep
+  the game, lose the score", which is the commonest thing a player wants
+  from a runner they play with their own music on. The score now rides its
+  own bus; SFX OFF silences the one-shots and the continuous beds alike.
+  Both are persisted and applied at launch.
+- **The coach stops commentating.** "ANSWERING EARLY IS WORTH MORE" and
+  "CLEAN READS CHARGE THE DASH" described the economy at a player who was
+  busy reading a word. What remains is only teaching a player cannot
+  proceed without — the two verbs, the dash when the charge is actually
+  full, the bar for someone already chaining — each still retiring for
+  good the moment its action is performed. The retired lessons' state went
+  with them.
+- **One tell per mechanic, one row of controls.** The bottom charge bar is
+  hidden wherever the DASH button's own ring exists (a mouse-and-keyboard
+  player has no ring, so there it stays). DASH moved to the centre of a
+  single low row — FAKE, DASH, REAL — with the answer buttons lifted so
+  all three centres align. The reward-bar readout moved out of the meter's
+  label so it survives the meter's removal.
