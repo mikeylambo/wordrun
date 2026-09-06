@@ -84,10 +84,15 @@ export class Player {
   }
 
   /** Metres from the gate inside which the early bonus stops paying. */
-  compressionThreshold() {
+  /** The bar, in metres of remaining window. RC9.5: the thresholds are
+   *  FRACTIONS of the arm window (their own tuning comment says so), so on a
+   *  profile whose window is scaled the bar scales with it — otherwise HARD
+   *  would compound its shorter window with a relatively higher bar, and the
+   *  two difficulty levers would stop being separable. */
+  compressionThreshold(armM = TUNING.WORDS.ARM_DISTANCE_M) {
     const t = TUNING.WORDS.COMPRESSION_THRESHOLD;
     const f = t[Math.max(0, Math.min(t.length - 1, this.compressionLevel | 0))];
-    return f * TUNING.WORDS.ARM_DISTANCE_M;
+    return f * armM;
   }
 
   chainMult() {

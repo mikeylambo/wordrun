@@ -541,10 +541,37 @@ export const TUNING = {
     // the frame's new-player grace, which Phase 7's pure-differential
     // rewrite left as a dead knob (beast.grace is inert): easing now comes
     // from choosing EASY, visibly, instead of a hidden fading curve.
+    //
+    // RC9.5 — WINDOW_SCALE, and why HARD is the only profile that has one.
+    //
+    // The ladder instrument said it plainly: pace 24/27/30 barely separates a
+    // competent reader, because pace only decides how fast a COLLAPSED run is
+    // ended, and a reader who is not collapsing never meets it. Tiers make the
+    // words longer; nothing made the READ harder. So HARD gets the one lever
+    // that does: less road to read the word on.
+    //
+    // It scales the ARM WINDOW, never ARM_DISTANCE_M itself — the constant is
+    // fixed at 55 and may not grow, and every legibility measurement in the
+    // build is taken against it. What moves is the fraction of that window
+    // this profile gives you to answer in, which is a rule of the difficulty
+    // rather than a property of the plate: the word is drawn identically, at
+    // the same size, for the same distance. It simply stops counting sooner.
+    //
+    // The two-tier reading standard travels WITH the scale. HARD's floors are
+    // the shipped floors times WINDOW_SCALE — 1.15 s becomes 1.01 s at cruise
+    // and 0.75 s becomes 0.66 s at the ceiling — so the same standard is
+    // applied to the same curve, at this profile's own window. Deriving them
+    // rather than declaring them is what stops HARD's difficulty and HARD's
+    // legibility drifting apart.
+    //
+    // 0.88 IS PROVISIONAL. It is the value the tables below were generated
+    // from and it is not a decision: the decision is a phone in a hand, and
+    // it has not happened yet. The instruments are built so that changing
+    // this one number reprints every table that depends on it.
     DIFFICULTY: {
-      easy: { TIER_MIN: 0, TIER_MAX: 2, TIER_EVERY_M: 1100, REDLINE_PACE: 24 },
-      normal: { TIER_MIN: 0, TIER_MAX: 4, TIER_EVERY_M: 700, REDLINE_PACE: 27 },
-      hard: { TIER_MIN: 1, TIER_MAX: 4, TIER_EVERY_M: 500, REDLINE_PACE: 30 },
+      easy: { TIER_MIN: 0, TIER_MAX: 2, TIER_EVERY_M: 1100, REDLINE_PACE: 24, WINDOW_SCALE: 1 },
+      normal: { TIER_MIN: 0, TIER_MAX: 4, TIER_EVERY_M: 700, REDLINE_PACE: 27, WINDOW_SCALE: 1 },
+      hard: { TIER_MIN: 1, TIER_MAX: 4, TIER_EVERY_M: 500, REDLINE_PACE: 30, WINDOW_SCALE: 0.88 },
     },
   },
 

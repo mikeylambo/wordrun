@@ -43,7 +43,25 @@ export const DEFAULT_PROFILE = Object.freeze({
   TIER_MAX: tierCount() - 1,
   TIER_EVERY_M: W.TIER_EVERY_M,
   CHART: 'endless',
+  // RC9.5: the fraction of the arm window this profile answers in. 1 for
+  // every profile but HARD; see TUNING.MODES.DIFFICULTY for why HARD has one.
+  WINDOW_SCALE: 1,
 });
+
+/**
+ * The arm window this profile actually plays in, in metres.
+ *
+ * ARM_DISTANCE_M is a constant and stays one — it is the distance the plate
+ * is legible over and every legibility measurement in the build is taken
+ * against it. WINDOW_SCALE is a rule of the difficulty laid over the top:
+ * the word is drawn identically for the same distance, and simply stops
+ * being answerable sooner. Nothing here can make the window LONGER, which
+ * is the constraint ARM_DISTANCE_M exists to hold.
+ */
+export function armWindowFor(prof = DEFAULT_PROFILE) {
+  const scale = Math.max(0.5, Math.min(1, prof?.WINDOW_SCALE ?? 1));
+  return W.ARM_DISTANCE_M * scale;
+}
 
 export function tierAt(d, prof = DEFAULT_PROFILE) {
   const t = prof.TIER_MIN + Math.floor(Math.max(0, d) / prof.TIER_EVERY_M);
@@ -140,8 +158,8 @@ export function isRealGate(seed, index, prof = DEFAULT_PROFILE) {
  * answering the instant the word arms pays EARLY_MULT, answering at the line
  * pays LATE_MULT. Pure in the distance, so it is reproducible from a replay.
  */
-export function latencyMultFor(answerDistance) {
-  const t = Math.max(0, Math.min(1, answerDistance / W.ARM_DISTANCE_M));
+export function latencyMultFor(answerDistance, armM = W.ARM_DISTANCE_M) {
+  const t = Math.max(0, Math.min(1, answerDistance / Math.max(1e-6, armM)));
   return W.LATE_MULT + (W.EARLY_MULT - W.LATE_MULT) * t;
 }
 
@@ -241,10 +259,13 @@ export class WordGates {
     return this.gate;
   }
 
+  /** This profile's arm window, in metres. */
+  armDistance() { return armWindowFor(this.profile); }
+
   /** True while the current gate is close enough to read and answer. */
   armed(playerD) {
     const g = this.current();
-    return !g.resolved && g.d - playerD <= W.ARM_DISTANCE_M && g.d - playerD > 0;
+    return !g.resolved && g.d - playerD <= this.armDistance() && g.d - playerD > 0;
   }
 
   /**
@@ -289,7 +310,7 @@ export class WordGates {
     // banked: only a tap made clear of the previous word can pre-lock the
     // next one, so a word the player has not consciously chosen can never
     // "select itself" off a stray gesture.
-    if (inEdge && !armed && !g.resolved && g.d - player.d > W.ARM_DISTANCE_M &&
+    if (inEdge && !armed && !g.resolved && g.d - player.d > this.armDistance() &&
         now - this.lastResolveT > 0.3) {
       this.held = confirm ? 1 : -1;
       this.heldIndex = g.index;
@@ -316,16 +337,16 @@ export class WordGates {
     const answering = (confirm || reject) && armed && !g.confirmed && !g.rejected;
     if (answering) {
       if (confirm) g.confirmed = true; else g.rejected = true;
-      g.answerDistance = Math.max(0, Math.min(W.ARM_DISTANCE_M, g.d - (priceAt?.d ?? player.d)));
+      g.answerDistance = Math.max(0, Math.min(this.armDistance(), g.d - (priceAt?.d ?? player.d)));
       g.answerLatency = Math.max(0, (priceAt?.t ?? now) - (g.armedAt ?? now));
       // Phase F: the player's own bar. Beyond it the early multiplier pays
       // and the compression bonus rides on top; inside it the answer is worth
       // the late rate and nothing more. The word was legible the whole way —
       // what a late answer costs here is money, never the run.
       g.compressionLevel = player.compressionLevel | 0;
-      const bar = player.compressionThreshold ? player.compressionThreshold() : 0;
+      const bar = player.compressionThreshold ? player.compressionThreshold(this.armDistance()) : 0;
       g.qualified = g.answerDistance >= bar;
-      g.latencyMult = g.qualified ? latencyMultFor(g.answerDistance) : W.LATE_MULT;
+      g.latencyMult = g.qualified ? latencyMultFor(g.answerDistance, this.armDistance()) : W.LATE_MULT;
       g.compressionMult = g.qualified && player.compressionMult ? player.compressionMult() : 1;
       events?.push({
         t: 'word_confirm', index: g.index, word: g.shown,
@@ -410,7 +431,7 @@ export class WordGates {
       // landed early. Anything less empties it — it measures holding a peak,
       // not reaching one.
       const capped = player.chain >= B.CHAIN_CAP;
-      const early = g.answerDistance >= W.ARM_DISTANCE_M * B.SURGE_EARLY_FRAC;
+      const early = g.answerDistance >= this.armDistance() * B.SURGE_EARLY_FRAC;
       player.surgeReads = capped && early ? player.surgeReads + 1 : 0;
       player.gatesThreaded++; // the frame's "threaded a gate" ledger carries over
       player.lastCourage = proxMult;

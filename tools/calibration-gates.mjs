@@ -74,6 +74,9 @@ function dials() {
     'DIFFICULTY.easy.REDLINE_PACE': M.DIFFICULTY.easy.REDLINE_PACE,
     'DIFFICULTY.normal.REDLINE_PACE': M.DIFFICULTY.normal.REDLINE_PACE,
     'DIFFICULTY.hard.REDLINE_PACE': M.DIFFICULTY.hard.REDLINE_PACE,
+    'DIFFICULTY.easy.WINDOW_SCALE': M.DIFFICULTY.easy.WINDOW_SCALE,
+    'DIFFICULTY.normal.WINDOW_SCALE': M.DIFFICULTY.normal.WINDOW_SCALE,
+    'DIFFICULTY.hard.WINDOW_SCALE': M.DIFFICULTY.hard.WINDOW_SCALE,
   };
 }
 
@@ -110,8 +113,17 @@ function speedTable() {
  * `level` re-sets the compression bar in every gap; `earlyMult` overrides
  * the dial for the sweep and is restored after.
  */
+/**
+ * `reactS` (RC9.5) drives a reader with a READING TIME instead of a reading
+ * distance: they answer `reactS` seconds after the word arms, whatever the
+ * profile's window happens to be. That is the only reader who can feel
+ * WINDOW_SCALE at all — one who answers the instant a word arms is untouched
+ * by a shorter window, which is exactly why the ladder above shows almost
+ * nothing and this instrument shows the change.
+ */
 function drive({ seed = 777, mode = 'standard', difficulty = 'normal', accuracy = 1,
-  answerAt = 1.0, level = 0, gateLimit = Infinity, maxSteps = 60 * 900, earlyMult = null }) {
+  answerAt = 1.0, reactS = null, level = 0, gateLimit = Infinity, maxSteps = 60 * 900,
+  earlyMult = null }) {
   const saved = W.EARLY_MULT;
   if (earlyMult != null) W.EARLY_MULT = earlyMult;
   const sim = new Sim(seed);
@@ -125,7 +137,9 @@ function drive({ seed = 777, mode = 'standard', difficulty = 'normal', accuracy 
     if (!armed) sim.player.compressionLevel = level;
     if (armed && g.index !== decidedIndex) { decidedIndex = g.index; decidedCorrect = coin() < accuracy; }
     const rem = g.d - sim.player.d;
-    const act = armed && rem <= W.ARM_DISTANCE_M * answerAt;
+    const act = armed && (reactS == null
+      ? rem <= W.ARM_DISTANCE_M * answerAt
+      : (sim.time - (g.armedAt ?? sim.time)) >= reactS);
     // Correct = confirm a real / reject a fake. Wrong = the inverse action, so
     // a wrong read on a fake is a commission (heart) and on a real a slip.
     const sayReal = decidedCorrect ? !!g.real : !g.real;
@@ -137,6 +151,9 @@ function drive({ seed = 777, mode = 'standard', difficulty = 'normal', accuracy 
     d: Math.round(sim.player.d), score: sim.score,
     peak: f2(sim.player.peakSpeed), hearts: sim.hearts, death: sim.deathCause,
     correct: sim.wordGates.correctCount, wrong: sim.wordGates.wrongCount,
+    // RC9.5: a real word that slipped past is the direct cost of a window
+    // too short for this reader — they knew the answer and ran out of road.
+    slipped: sim.wordGates.missedReals, tapped: sim.wordGates.falseTaps,
   };
 }
 
@@ -249,8 +266,40 @@ function dashRun({ accuracy, mode = 'standard', maxSteps = 60 * 900 }) {
 }
 function dashTable() { return [0.85, 0.95, 1.0].map((accuracy) => dashRun({ accuracy })); }
 
+// ── 7. WINDOW — the per-profile reading standard (RC9.5) ────────────────────
+// HARD answers in WINDOW_SCALE of the arm window, so the two-tier standard is
+// applied to HARD at HARD's window: the shipped floors times the same scale.
+// Deriving them rather than declaring them is what stops a profile's
+// difficulty and its legibility drifting apart — one number moves both.
+//
+// The plate is NOT scaled and must not be: the word is drawn identically, at
+// the same size, over the same 55 m. What changes is how much of that road
+// still counts as an answer, which is why the plate column below is the same
+// on every row and the window column is not.
+function windowTable() {
+  const cruise = speedAfter(W.CRUISE_READS, R.CEILING);
+  return Object.entries(M.DIFFICULTY).map(([name, d]) => {
+    const scale = d.WINDOW_SCALE ?? 1;
+    const armM = W.ARM_DISTANCE_M * scale;
+    const cruiseWin = armM / cruise;
+    const ceilWin = armM / R.CEILING;
+    const dashWin = armM / (cruise * B.SPEED_MULT);
+    const comfort = W.READ_WINDOW_MIN_S * scale;
+    const hard = W.READ_WINDOW_HARD_MIN_S * scale;
+    return {
+      name, scale, armM: f2(armM),
+      cruise: f2(cruise), cruiseWin: f2(cruiseWin), ceilWin: f2(ceilWin), dashWin: f2(dashWin),
+      comfort: f2(comfort), hardFloor: f2(hard),
+      // The plate at the read moment is a property of the WORLD, not of the
+      // profile: same 55 m of legible approach on every difficulty.
+      plateM: W.ARM_DISTANCE_M,
+      holds: cruiseWin >= comfort - 1e-9 && ceilWin >= hard - 1e-9 && dashWin >= hard - 1e-9,
+    };
+  });
+}
+
 // ── Run every instrument ────────────────────────────────────────────────────
-const tables = { speed: speedTable(), ladder: ladderTable(), early: earlyTable(), bar: barTable(), fov: fovStack(), dash: dashTable() };
+const tables = { speed: speedTable(), ladder: ladderTable(), early: earlyTable(), bar: barTable(), fov: fovStack(), dash: dashTable(), window: windowTable() };
 const current = { dials: dials(), tables };
 
 if (EMIT) {
@@ -367,6 +416,78 @@ check('a dash is spent whole: even a clean reader has finite dashes (no fill whi
 check('the ceiling score on the daily route stays under seven digits (headline width)',
   tables.dash.every((r) => r.score < 1000000), `max ${Math.max(...tables.dash.map((r) => r.score)).toLocaleString()}`);
 
+head('WINDOW — the two-tier standard, per profile, at that profile\'s own window');
+say('  profile | scale  arm m | cruise  window  OD-win | ceil window | floors comfort/hard | plate m | standard');
+for (const r of tables.window) {
+  say(`  ${r.name.padEnd(7)} | ${String(r.scale).padStart(5)} ${String(r.armM).padStart(6)} | ` +
+    `${String(r.cruise).padStart(6)} ${String(r.cruiseWin).padStart(7)} ${String(r.dashWin).padStart(7)} | ` +
+    `${String(r.ceilWin).padStart(11)} | ${String(r.comfort).padStart(7)} ${String(r.hardFloor).padStart(4)} | ` +
+    `${String(r.plateM).padStart(7)} | ${r.holds ? 'holds' : 'BREAKS'}`);
+}
+check('every profile holds the two-tier standard at its own window',
+  tables.window.every((r) => r.holds),
+  tables.window.map((r) => `${r.name} ${r.cruiseWin}s/${r.ceilWin}s vs ${r.comfort}s/${r.hardFloor}s`).join(' · '));
+check('and the plate is untouched by the scale — the word is drawn the same on every profile',
+  tables.window.every((r) => r.plateM === W.ARM_DISTANCE_M) && W.ARM_DISTANCE_M === 55,
+  `${W.ARM_DISTANCE_M} m of legible approach everywhere; only the answer window differs`);
+check('EASY and NORMAL are untouched, and the scale can never lengthen a window',
+  (M.DIFFICULTY.easy.WINDOW_SCALE ?? 1) === 1 && (M.DIFFICULTY.normal.WINDOW_SCALE ?? 1) === 1 &&
+  tables.window.every((r) => r.scale <= 1) && M.DIFFICULTY.hard.WINDOW_SCALE < 1,
+  `HARD alone at ${M.DIFFICULTY.hard.WINDOW_SCALE} — PROVISIONAL until it is played on a phone`);
+check('HARD at 85 % still clears the daily route, and 70 % still does not',
+  row('hard', 0.85).dailyCleared && !row('hard', 0.70).dailyCleared,
+  `85 % ${row('hard', 0.85).dailyGates} gates ${row('hard', 0.85).dailyDeath || 'finish'} · ` +
+  `70 % ${row('hard', 0.70).dailyGates} gates ${row('hard', 0.70).dailyDeath}`);
+
+// THE reader who can feel it. The ladder's reader answers the instant a word
+// arms and a shorter window costs them nothing — which is the honest reason
+// the ladder barely moved. This one takes a fixed number of seconds to READ,
+// and that is what a window is for.
+say('\n  a reader who takes N seconds to read, on the daily route (100 gates)');
+say('  read s | easy  slipped  score | normal slipped score | hard  slipped  score');
+const readers = [0.60, 0.75, 0.90, 1.05, 1.20].map((reactS) => {
+  const r = {};
+  for (const d of DIFFS) r[d] = drive({ mode: 'standard', difficulty: d, reactS });
+  return { reactS, ...r };
+});
+for (const r of readers) {
+  say(`  ${r.reactS.toFixed(2)} | ` + DIFFS.map((d) => {
+    const x = r[d];
+    return `${(x.cleared ? 'CLEARS' : `${x.gates}g`).padEnd(6)} ${String(x.slipped).padStart(7)} ` +
+      `${String(x.score.toLocaleString()).padStart(7)}`;
+  }).join(' | '));
+}
+const at = (t) => readers.find((r) => r.reactS === t);
+check('a shorter window is a shorter READ, and that is what HARD now costs',
+  readers.every((r) => r.hard.slipped >= r.normal.slipped) &&
+  readers.filter((r) => r.hard.slipped > r.normal.slipped).length >= 4,
+  `HARD costs ${readers.map((r) => r.hard.slipped - r.normal.slipped).join('/')} more slipped reals ` +
+  `at ${readers.map((r) => r.reactS.toFixed(2)).join('/')} s — the pace never separated these readers at all`);
+check('and a reader inside HARD\'s own floor loses nothing to the window',
+  at(0.60).hard.slipped === 0 && 0.60 < W.READ_WINDOW_HARD_MIN_S,
+  `0.60 s is under HARD's ${f2(W.READ_WINDOW_HARD_MIN_S * M.DIFFICULTY.hard.WINDOW_SCALE)} s ceiling floor: ` +
+  'the window punishes hesitation, never a reader who is inside the standard');
+// Isolation, through the real sim rather than by reading the table: the
+// window a run actually plays in, on every profile and on the DAILY route.
+{
+  const armOf = (mode, difficulty) => {
+    const sim = new Sim(777);
+    sim.start(777, null, { mode, difficulty, wordSalt: 0 });
+    return +sim.wordGates.armDistance().toFixed(4);
+  };
+  const full = W.ARM_DISTANCE_M;
+  check('EASY, NORMAL and the DAILY play the full 55 m window, unchanged',
+    armOf('endless', 'easy') === full && armOf('endless', 'normal') === full &&
+    armOf('standard', M.BOARD_POLICY?.DAILY_DIFFICULTY ?? 'normal') === full,
+    `${full} m on every profile but HARD, which plays ${armOf('endless', 'hard')} m`);
+  check('and the DAILY can never inherit a scaled window, whatever chip is lit',
+    armOf('standard', 'normal') === full,
+    'the route is pinned to NORMAL by BOARD_POLICY, so its window is NORMAL\'s');
+}
+check('and EASY and NORMAL are identical to each other at every reading speed',
+  readers.every((r) => r.easy.gates === r.normal.gates || r.easy.cleared === r.normal.cleared),
+  'the scale is HARD\'s alone, so the other two differ only by tiers and pace');
+
 // ── The freeze ──────────────────────────────────────────────────────────────
 head('FREEZE — dials and tables match calibration.golden.json');
 if (!fs.existsSync(GOLDEN)) {
@@ -378,7 +499,7 @@ if (!fs.existsSync(GOLDEN)) {
     moved.length ? moved.map((k) => `${k}: ${JSON.stringify(golden.dials?.[k])} → ${JSON.stringify(current.dials[k])}`).join('; ') : `${Object.keys(current.dials).length} dials frozen`);
   const drifted = Object.keys(tables).filter((k) => JSON.stringify(tables[k]) !== JSON.stringify(golden.tables?.[k]));
   check('every decision table reproduces byte-for-byte', drifted.length === 0,
-    drifted.length ? `drifted: ${drifted.join(', ')}` : 'speed, ladder, early, bar, fov, dash');
+    drifted.length ? `drifted: ${drifted.join(', ')}` : 'speed, ladder, early, bar, fov, dash, window');
 }
 
 console.log(lines.join('\n'));

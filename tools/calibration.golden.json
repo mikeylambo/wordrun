@@ -55,7 +55,10 @@
     ],
     "DIFFICULTY.easy.REDLINE_PACE": 24,
     "DIFFICULTY.normal.REDLINE_PACE": 27,
-    "DIFFICULTY.hard.REDLINE_PACE": 30
+    "DIFFICULTY.hard.REDLINE_PACE": 30,
+    "DIFFICULTY.easy.WINDOW_SCALE": 1,
+    "DIFFICULTY.normal.WINDOW_SCALE": 1,
+    "DIFFICULTY.hard.WINDOW_SCALE": 0.88
   },
   "tables": {
     "speed": [
@@ -228,7 +231,7 @@
         "dailyGates": 3,
         "dailyDeath": "redlined",
         "dailyScore": 0,
-        "endlessM": 205,
+        "endlessM": 212,
         "endlessDeath": "redlined"
       },
       {
@@ -237,8 +240,8 @@
         "dailyCleared": false,
         "dailyGates": 25,
         "dailyDeath": "redlined",
-        "dailyScore": 29847,
-        "endlessM": 1749,
+        "dailyScore": 29842,
+        "endlessM": 1756,
         "endlessDeath": "wipeout"
       },
       {
@@ -247,8 +250,8 @@
         "dailyCleared": true,
         "dailyGates": 100,
         "dailyDeath": null,
-        "dailyScore": 283887,
-        "endlessM": 4207,
+        "dailyScore": 283169,
+        "endlessM": 4213,
         "endlessDeath": "wipeout"
       },
       {
@@ -257,8 +260,8 @@
         "dailyCleared": true,
         "dailyGates": 100,
         "dailyDeath": null,
-        "dailyScore": 411282,
-        "endlessM": 35235,
+        "dailyScore": 409709,
+        "endlessM": 35228,
         "endlessDeath": "alive@cap"
       },
       {
@@ -267,8 +270,8 @@
         "dailyCleared": true,
         "dailyGates": 100,
         "dailyDeath": null,
-        "dailyScore": 495227,
-        "endlessM": 37695,
+        "dailyScore": 493187,
+        "endlessM": 37686,
         "endlessDeath": "alive@cap"
       }
     ],
@@ -508,6 +511,47 @@
         "topRung": 4,
         "score": 594266,
         "cleared": true
+      }
+    ],
+    "window": [
+      {
+        "name": "easy",
+        "scale": 1,
+        "armM": 55,
+        "cruise": 47.4,
+        "cruiseWin": 1.16,
+        "ceilWin": 0.86,
+        "dashWin": 0.83,
+        "comfort": 1.15,
+        "hardFloor": 0.75,
+        "plateM": 55,
+        "holds": true
+      },
+      {
+        "name": "normal",
+        "scale": 1,
+        "armM": 55,
+        "cruise": 47.4,
+        "cruiseWin": 1.16,
+        "ceilWin": 0.86,
+        "dashWin": 0.83,
+        "comfort": 1.15,
+        "hardFloor": 0.75,
+        "plateM": 55,
+        "holds": true
+      },
+      {
+        "name": "hard",
+        "scale": 0.88,
+        "armM": 48.4,
+        "cruise": 47.4,
+        "cruiseWin": 1.02,
+        "ceilWin": 0.76,
+        "dashWin": 0.73,
+        "comfort": 1.01,
+        "hardFloor": 0.66,
+        "plateM": 55,
+        "holds": true
       }
     ]
   }

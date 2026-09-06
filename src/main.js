@@ -1298,7 +1298,7 @@ function drainSimEvents() {
         burstWindow.push(e.score || 0);
         if (burstWindow.length > 10) burstWindow.shift();
         burst10 = Math.max(burst10, burstWindow.reduce((a, b) => a + b, 0));
-        if (e.answerDistance >= TUNING.WORDS.ARM_DISTANCE_M * 0.5) {
+        if (e.answerDistance >= sim.wordGates.armDistance() * 0.5) {
           earlyStreak++;
           if (earlyStreak > bestEarlyStreak) bestEarlyStreak = earlyStreak;
         } else earlyStreak = 0;

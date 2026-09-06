@@ -2582,3 +2582,71 @@ Any touch and any key still end the loop, exactly as before; the caption is up
 only while the demo is. Six new checks in `meta-gates`, including that the
 retirement is wired to a finished run rather than a started one — the kind of
 thing that is invisible in a screenshot and obvious in a diff.
+
+## 1.0-RC9.5 — HARD with teeth
+
+The calibration tables said it plainly and had been saying it for phases: pace
+24/27/30 barely separates a competent reader, because pace only decides how
+fast a COLLAPSED run is ended and a reader who is not collapsing never meets
+it. Tiers make the words longer. Nothing made the READ harder. HARD now gets
+the one lever that does — less road to read the word on.
+
+- **`WINDOW_SCALE`, on the HARD profile only, at 0.88.** It scales the ARM
+  WINDOW and never `ARM_DISTANCE_M`, which stays 55 and may not grow: the word
+  is drawn identically, at the same size, over the same 55 m of legible
+  approach on every difficulty. What changes is how much of that road still
+  counts as an answer — 48.4 m on HARD. That is a rule of the difficulty, not
+  a property of the plate, and the WINDOW table prints the plate column
+  unchanged on every row to say so.
+- **The two-tier standard travels with the scale.** HARD's floors are the
+  shipped floors times the same number — 1.15 s becomes 1.01 s at cruise,
+  0.75 s becomes 0.66 s at the ceiling — so the same standard is applied to
+  the same curve at this profile's own window. Deriving them rather than
+  declaring them is what stops a profile's difficulty and its legibility
+  drifting apart: one number moves both, or neither moves.
+
+      profile | scale  arm m | cruise  window  OD-win | ceil window | floors | plate m | standard
+      easy    |     1     55 |   47.4    1.16    0.83 |        0.86 | 1.15 0.75 |    55 | holds
+      normal  |     1     55 |   47.4    1.16    0.83 |        0.86 | 1.15 0.75 |    55 | holds
+      hard    |  0.88   48.4 |   47.4    1.02    0.73 |        0.76 | 1.01 0.66 |    55 | holds
+
+- **The ladder barely moved, and that is the finding, not a failure.** Its
+  reader answers the instant a word arms, and a shorter window costs such a
+  reader nothing at all. HARD at 85 % still clears the route (100 gates) and
+  HARD at 70 % still does not (25 gates, redlined) — unchanged, as intended.
+  So the pass added the instrument that CAN feel it: a reader with a reading
+  TIME rather than a reading distance, driven over the daily route.
+
+      read s | easy  slipped  score | normal slipped score | hard  slipped  score
+      0.60   | CLEARS      0 197,548 | CLEARS      0 234,528 | CLEARS      0 211,870
+      0.75   | CLEARS      0 149,455 | CLEARS      0 176,913 | CLEARS      6 130,595
+      0.90   | CLEARS      8  90,849 | CLEARS      8 106,862 | CLEARS     16  79,434
+      1.05   | CLEARS     18  59,266 | CLEARS     18  69,572 | CLEARS     23  60,728
+      1.20   | CLEARS     23  48,598 | CLEARS     23  57,357 | CLEARS     28  55,117
+
+  HARD costs 0/6/8/5/5 more slipped real words than NORMAL at those five
+  reading speeds. EASY and NORMAL are identical to each other at every one of
+  them, which is the point: the scale is HARD's alone, and the other two
+  differ only by tiers and pace exactly as they always did. A reader inside
+  HARD's own 0.66 s ceiling floor loses nothing — the window punishes
+  hesitation, never a reader who is inside the standard.
+- **Two smaller things had to travel with the window or the model would have
+  lied.** The early-read multiplier normalises by the PROFILE's window, so
+  answering at HARD's arm edge still pays `EARLY_MULT` — a shorter window is
+  less time, not less reward. And the compression bar's thresholds are
+  fractions of the window (their own tuning comment says so), so they scale
+  too; otherwise HARD would have compounded a shorter window with a
+  relatively higher bar and the two difficulty levers would have stopped
+  being separable.
+
+Isolation is checked through the real sim, not read off the table: EASY,
+NORMAL and the DAILY all play the full 55 m, and the DAILY cannot inherit a
+scaled window whatever chip is lit, because `BOARD_POLICY` pins it to NORMAL.
+The behaviour snapshot moved on exactly one of its five scripts —
+`endless/hard/answerTrue` — and `standard/normal`, `endless/normal`,
+`endless/easy` and the repair probe are byte-identical.
+
+**0.88 is PROVISIONAL.** It is the number these tables were generated from and
+it is not a decision; the decision is a phone in a hand and it has not happened
+yet. Every instrument here reprints from that one value, so changing it is one
+edit and `npm run calibrate`.
