@@ -2492,3 +2492,60 @@ answer, tier, deception family and arm distance matching, with a changed seed
 and a changed salt both proving the check measures the route rather than the
 loop. `audit:network` still reads zero: the link is a URL, and building one
 makes no request.
+
+## 1.0-RC9.3 — the cabinet on wide screens
+
+This is a vertical-screen game. Stretched across a landscape window the road
+flattens toward the horizon, the plate shrinks to stay inside the frame, and
+the reading standard — every number of which was measured at 390×844 — stops
+describing what anyone is actually looking at. On any viewport wider than it
+is tall the play area now keeps its portrait proportion and the rest of the
+window becomes a bezel.
+
+- **`#app` IS the stage.** Every overlay in the build is already positioned
+  absolutely against it, so framing that one element frames all of them at
+  once with no DOM surgery — and the translate that centres it makes `#app`
+  the containing block for `position:fixed` descendants too, so the teach band
+  and the touch buttons land inside the frame rather than across the window.
+  The bezel is `<body>`; the only thing in it is the marquee, which is
+  `aria-hidden`, `pointer-events:none`, and lit — a cabinet header, not a
+  control. `--cab-aspect` is 0.4621, which is 390/844 to four places, and the
+  gate checks it against the standard rather than trusting the number.
+- **The camera is sized from the CANVAS, not the window.** That is the one
+  code change the frame needed, and it is more correct in the portrait case
+  too, where the two agree: the canvas is what the projection has to match and
+  the window was only ever a proxy for it. The RC7.1 render-budget governor
+  was sizing the drawing buffer to `window.innerWidth` on every DPR step —
+  which would have re-stretched the buffer across the whole window and left
+  the camera's aspect behind the first time the frame rate dipped. It resizes
+  THROUGH `stage.resize()` now, and `resize()` applies `stage.dpr` instead of
+  re-reading the device, so the governor's choice survives a resize.
+- **Measured, not asserted.** The plate at the read moment, projected through
+  the shipped rig: 39.20% × 4.53% of the frame at 390×844, 39.20% × 4.53%
+  framed in 1280×800, and 39.20% × 4.53% in 1920×720. The same rectangle, to
+  four figures, on all three.
+- **The keyboard legend.** `← FAKE`, `↑ BAR`, `SPACE DASH`, `→ REAL`, standing
+  where the touch buttons stand, in the order they stand in — a phone explains
+  its controls by drawing them and a keyboard draws nothing. Each glyph dims
+  for good once its control has been used, on the SAME persisted flags the
+  coach retires its rungs on, so a player who already knows the game watches
+  the legend disappear over their first run instead of being told anything.
+  Off on touch (the buttons are the legend there) and off in portrait. It
+  reads nothing from the sim and the gate checks that too.
+
+Three things were found by looking at the framed screen and are fixed here
+because the frame is what exposed them. The launch veil, the teach band and
+the answer glow all hung off `<body>` rather than off the stage, so in a
+cabinet they painted across the bezel and the marquee — they hang off `#app`
+now, and the framed stage clips. The shell colour was a hard-coded slate grey
+that only ever showed during a rubber-band overscroll; framed it IS the bezel
+and surrounds the screen the whole time, so both read one `--bezel` token.
+And every `vw` in the stylesheet meant "of the play area" — the two were the
+same rectangle until now, so the widths simply became percentages (identical
+in portrait, by definition) and the font sizes are restated in `cqw` against
+the stage in the framed case only, leaving portrait untouched.
+
+The teach band also learned that a line with only ONE clause has no separator
+to break at, so holding it unbreakable only made it overflow — which the
+cabinet's clipped stage then cut in half. Eight new checks in `route-gates`;
+the portrait stills re-shot and unchanged.

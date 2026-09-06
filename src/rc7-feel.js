@@ -46,8 +46,13 @@ function patchRenderBudget(stage) {
     next = Math.max(floor, Math.min(ceiling, Math.round(next * 20) / 20));
     if (Math.abs(next - stage.dpr) < 0.04) return;
     stage.dpr = next;
-    stage.renderer.setPixelRatio(next);
-    stage.renderer.setSize(window.innerWidth, window.innerHeight, false);
+    // RC9.3: through stage.resize(), not around it. This used to size the
+    // buffer to the WINDOW, which was the same rectangle as the canvas right
+    // up until the cabinet framed the play area — after which every drop in
+    // the render budget would have re-stretched the buffer across the whole
+    // window and left the camera's aspect behind. resize() reads the canvas
+    // and updates the projection; the governor's job is the ratio alone.
+    stage.resize();
   };
 
   stage.render = function renderRC71() {

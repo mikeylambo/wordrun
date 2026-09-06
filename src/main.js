@@ -22,6 +22,7 @@ import { EditorialWorld } from './render/editorial-world.js';
 import { LaunchSequence } from './render/launch-sequence.js';
 import { AttractMode } from './render/attract.js';
 import { GuidedTeach } from './ui/guided.js';
+import { KeyLegend, isFramed } from './ui/cabinet.js';
 import { modalityFor, stopLine } from './ui/teach-copy.js';
 import { BellRenderer } from './render/bells.js';
 import { HEARTS } from './design/bells.js';
@@ -103,6 +104,7 @@ const attract = new AttractMode({
   onExit: () => { ui.showHud(false); },
 });
 const guided = new GuidedTeach();
+const keyLegend = new KeyLegend();
 
 // RC7: the three stops — has this player been SHOWN each of them? Shown, not
 // merely performed: the fake stop's correct answer is to do nothing, so a
@@ -215,13 +217,18 @@ const metaDaily = new DailyManager(metaAdapter);
 // Which controls this player has ever used. The in-run coach teaches a control
 // until it has been used once and then never mentions it again, so these are
 // write-once flags rather than counters — see UI._updateCoach.
+// RC9.3: the same four flags feed the cabinet's keyboard legend, which dims
+// each glyph once its control has been used. One source, so the legend and
+// the coach can never disagree about what this player has learned.
+let learnedNow = {};
 function pushLessons() {
-  ui.setLessons({
+  learnedNow = {
     confirm: metaStats.get('usedConfirm', 0) > 0,
     reject: metaStats.get('usedReject', 0) > 0,
     dash: metaStats.get('usedDash', 0) > 0,
     bar: metaStats.get('usedBar', 0) > 0,
-  });
+  };
+  ui.setLessons(learnedNow);
 }
 function learn(which) {
   const key = `used${which}`;
@@ -1549,6 +1556,12 @@ function tick(dt) {
     hintUp: !!ui.powerHint?.classList.contains('on'),
   });
   ui.update(dt, sim, dreadLive, clock);
+  // RC9.3: the keyboard legend, where the touch buttons would be. Off on a
+  // touch device (the buttons ARE the legend) and off in portrait (there is
+  // no cabinet); each glyph dims for good on the flag its control writes.
+  keyLegend.update({
+    framed: isFramed(), touch: ui.touch, running, learned: learnedNow,
+  });
   // Phase L HUD pass: while the run is live the only chrome is PAUSE — the
   // sound/settings/shop buttons come back whenever the game is stopped.
   appEl.classList.toggle('chromeless', running && !paused && sim.phase === PHASE.RUNNING);

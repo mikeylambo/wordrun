@@ -252,6 +252,113 @@ check('the route never crowds the read beyond what the flat track already did',
   L.overlapMax <= FLAT.overlapMax + 0.03,
   `worst +1-over-armed cover ${(L.overlapMax * 100).toFixed(1)}% vs flat ${(FLAT.overlapMax * 100).toFixed(1)}%`);
 
+// ── RC9.3: the cabinet frames the SAME rectangle ─────────────────────────
+head('CABINET — a framed screen is the portrait screen, measured');
+{
+  const fs = await import('node:fs');
+  const html = fs.readFileSync('index.html', 'utf8');
+
+  // The frame's proportion and the marquee's height, read out of the
+  // stylesheet rather than restated here — if the CSS moves, this moves.
+  const aspect = Number((html.match(/--cab-aspect:([0-9.]+)/) || [])[1]);
+  const marqueeH = (w, h) => Math.max(38, Math.min(64, h * 0.07));
+  /** The stage box the cabinet gives a window of w x h. */
+  const stageBox = (w, h) => {
+    const m = marqueeH(w, h);
+    const sh = h - m;
+    return { w: Math.min(w, sh * aspect), h: sh };
+  };
+
+  check('the frame carries the proportion every reading measurement was taken at',
+    Math.abs(aspect - VIEW_W / VIEW_H) < 5e-4,
+    `--cab-aspect ${aspect} against the ${VIEW_W}x${VIEW_H} standard (${(VIEW_W / VIEW_H).toFixed(4)})`);
+
+  // The plate at the read moment, projected through the shipped rig at the
+  // portrait viewport and at the framed stage a 1280x800 window gives. The
+  // camera is the same camera; only its aspect and the pixel box change.
+  const platePair = (aspectRatio) => {
+    const sim = new Sim(SEEDS[0]);
+    sim.start(SEEDS[0], null, { mode: 'endless', difficulty: 'normal' });
+    const camera = new THREE.PerspectiveCamera(TUNING.CAMERA.FOV, aspectRatio, 0.5, 420);
+    const rig = new CameraRig(camera);
+    const input = emptyInput();
+    let out = null;
+    for (let i = 0; i < 60 * 300 && sim.phase === PHASE.RUNNING && !out; i++) {
+      sim.player.speed = 36;
+      sim.beast.gap = TUNING.BEAST.MAX_GAP;
+      sim.hearts = 3;
+      const g = sim.wordGates.current();
+      const armed = sim.wordGates.armed(sim.player.d) && !g.confirmed &&
+        (g.d - sim.player.d) <= 32;
+      input.confirm = false; input.reject = false;
+      sim.step(input);
+      rig.update(DT, sim.player, sim.beast.gap, 0, 0, sim.terrain, sim.beast.x, 1);
+      const cur = sim.wordGates.current();
+      const range = cur.d - sim.player.d;
+      // THE read moment: the fixed 32 m the reading standard is measured at.
+      if (!cur.resolved && range > 2 && range <= 32 && sim.wordGates.next > 1) {
+        // plateOnScreen reports device px against the 390x844 @2x standard;
+        // divide back out to get the plate as a FRACTION of the frame, which
+        // is the number that has to be identical.
+        const r = plateOnScreen(camera, sim.terrain, cur.d);
+        out = { fw: r.w / (VIEW_W * DPR), fh: r.h / (VIEW_H * DPR), fov: camera.fov };
+      }
+      if (armed) { input.confirm = !!cur.real; input.reject = !cur.real; }
+    }
+    return out;
+  };
+
+  const portrait = platePair(VIEW_W / VIEW_H);
+  const framed = platePair(stageBox(1280, 800).w / stageBox(1280, 800).h);
+  const ultra = platePair(stageBox(1920, 720).w / stageBox(1920, 720).h);
+  const same = (a, b) => Math.abs(a - b) <= 1e-3;
+  check('the plate at the read moment is identical portrait and framed',
+    !!portrait && !!framed && !!ultra &&
+    same(portrait.fw, framed.fw) && same(portrait.fh, framed.fh) &&
+    same(portrait.fw, ultra.fw) && same(portrait.fh, ultra.fh) &&
+    same(portrait.fov, framed.fov),
+    portrait ? `${(portrait.fw * 100).toFixed(2)}% x ${(portrait.fh * 100).toFixed(2)}% of the frame ` +
+      `at 390x844, ${(framed.fw * 100).toFixed(2)}% x ${(framed.fh * 100).toFixed(2)}% framed in 1280x800, ` +
+      `${(ultra.fw * 100).toFixed(2)}% x ${(ultra.fh * 100).toFixed(2)}% in 1920x720 — same rectangle` : 'no read moment sampled');
+
+  // And it is identical because the CAMERA is told about the canvas, not the
+  // window. That was the one code change the cabinet needed.
+  check('the camera is sized from the canvas, never from the window',
+    /const el = this\.renderer\.domElement;/.test(fs.readFileSync('src/render/scene.js', 'utf8')) &&
+    !/setSize\(window\.innerWidth/.test(fs.readFileSync('src/render/scene.js', 'utf8')) &&
+    !/setSize\(window\.innerWidth/.test(fs.readFileSync('src/rc7-feel.js', 'utf8')),
+    'and the RC7.1 render-budget governor resizes THROUGH stage.resize(), not around it');
+
+  // Nothing in the bezel is interactive, and nothing paints into it.
+  const bodyChildren = [...(html.match(/^  <(?:div|canvas|button|script)[^>]*id="([^"]+)"/gm) || [])];
+  check('the bezel holds one element and it takes no input',
+    /#marquee\{[^}]*pointer-events:none/.test(html) &&
+    /<div id="marquee" aria-hidden="true">/.test(html) &&
+    !/id="marquee"[\s\S]{0,200}<button/.test(html),
+    'the marquee is a lit name, aria-hidden and pointer-events:none — a cabinet header, not a control');
+  check('and nothing paints outside the screen',
+    /@media \(min-aspect-ratio: 1\/1\)\{[\s\S]{0,900}#app\{overflow:hidden;container-type:size\}/.test(html) &&
+    !/document\.body\.appendChild/.test(fs.readFileSync('src/ui/guided.js', 'utf8')) &&
+    !/document\.body\.appendChild/.test(fs.readFileSync('src/render/launch-sequence.js', 'utf8')) &&
+    !/document\.body\.appendChild\(this\.answerGlow\)/.test(fs.readFileSync('src/ui/ui.js', 'utf8')),
+    'the three overlays that hung off <body> hang off the stage, and the stage clips');
+
+  // The keyboard legend: where the buttons would be, dimming on the same
+  // flags the coach retires its lessons on.
+  const cab = fs.readFileSync('src/ui/cabinet.js', 'utf8');
+  check('the keyboard legend names the four controls a keyboard has',
+    /glyph: '←', label: 'FAKE'/.test(cab) && /glyph: '↑', label: 'BAR'/.test(cab) &&
+    /glyph: 'SPACE', label: 'DASH'/.test(cab) && /glyph: '→', label: 'REAL'/.test(cab),
+    'FAKE / BAR / DASH / REAL, in the order the touch buttons sit in');
+  check('it is off on touch and off in portrait, and dims on the lessons the coach uses',
+    /const on = framed && !touch && running;/.test(cab) &&
+    /classList\.toggle\('used', !!L\[k\.id\]\)/.test(cab) &&
+    /learned: learnedNow/.test(fs.readFileSync('src/main.js', 'utf8')),
+    'usedConfirm / usedReject / usedDash / usedBar — no new state, and no second opinion');
+  check('and it reads nothing from the sim',
+    !/__SIM|sim\.|player\./.test(cab), 'layout only, as the pass promised');
+}
+
 console.log(out.join('\n'));
 console.log(`\nRoute gates: ${PASS} passed, ${FAIL} failed`);
 if (FAIL) process.exit(1);

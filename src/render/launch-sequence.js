@@ -73,7 +73,7 @@ export class LaunchSequence {
     this.bloom.style.cssText =
       'position:absolute;inset:0;opacity:0;';
     this.el.insertBefore(this.bloom, this.strokes[0].el);
-    document.body.appendChild(this.el);
+    (document.getElementById('app') || document.body).appendChild(this.el);
     this.t = -1;
   }
 

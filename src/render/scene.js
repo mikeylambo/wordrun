@@ -73,9 +73,26 @@ export class Stage {
     window.addEventListener('orientationchange', () => setTimeout(() => this.resize(), 120));
   }
 
+  /**
+   * RC9.3: the drawing buffer follows the CANVAS's own box, not the window's.
+   *
+   * On a screen wider than it is tall the play area is framed as a vertical
+   * cabinet and the canvas is a portrait column inside a bezel — so the window
+   * and the frame stopped being the same rectangle. Reading the element is
+   * also simply more correct in the portrait case, where the two agree: the
+   * canvas is what the projection has to match, and the window was only ever
+   * a proxy for it. `updateStyle` stays false because CSS owns the box.
+   */
   resize() {
-    const w = window.innerWidth, h = window.innerHeight;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    const el = this.renderer.domElement;
+    const w = Math.max(1, el.clientWidth || window.innerWidth);
+    const h = Math.max(1, el.clientHeight || window.innerHeight);
+    // `this.dpr` is the single source for the pixel ratio: the constructor
+    // seeds it from the device and the RC7.1 render-budget governor lowers
+    // and raises it. Re-reading devicePixelRatio here would have thrown the
+    // governor's choice away on every resize.
+    this.dpr = Math.max(0.5, Math.min(this.dpr || window.devicePixelRatio || 1, 2));
+    this.renderer.setPixelRatio(this.dpr);
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();

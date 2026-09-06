@@ -57,13 +57,18 @@ export class GuidedTeach {
         letter-spacing:.22em;color:#eefaff;
         text-shadow:0 0 18px rgba(103,216,255,.65),0 2px 10px rgba(0,0,0,.8)}
       .bandClause{display:inline-block;white-space:nowrap}
+      /* A line with only ONE clause has no separator to break at, so holding
+         it unbreakable only makes it overflow — which the cabinet's clipped
+         stage then cuts in half. It wraps normally; the nowrap rule exists to
+         keep the two halves of a PAIR whole, and there is no pair here. */
+      #coach .bandClause:only-child,#powerHint .bandClause:only-child{white-space:normal}
       #guidedTeach.on{opacity:1}
     `;
     document.head.appendChild(style);
     this.el = document.createElement('div');
     this.el.id = 'guidedTeach';
     this.el.innerHTML = '<div class="gtMain"></div>';
-    document.body.appendChild(this.el);
+    (document.getElementById('app') || document.body).appendChild(this.el);
     this.main = this.el.querySelector('.gtMain');
     this._key = '';
   }

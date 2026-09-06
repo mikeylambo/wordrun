@@ -73,7 +73,7 @@ export class UI {
     this.answerGlow.id = 'answerGlow';
     this.answerGlow.style.cssText =
       'position:fixed;inset:0;z-index:5;pointer-events:none;opacity:0;';
-    document.body.appendChild(this.answerGlow);
+    (document.getElementById('app') || document.body).appendChild(this.answerGlow);
     this._ansT = 0;
 
     // Hearts — the fail state (Phase 0: folded in from the deleted rc5.js's
