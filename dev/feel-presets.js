@@ -7,10 +7,19 @@
  * reports what a run actually feels like in numbers.
  *
  * The question being explored: the shipped tuning has a wide DESIGN range
- * (16..64, 4x) but a narrow LIVED one. At a steady accuracy the speed sits at
- * an equilibrium and a miss moves it 6 m/s — about an eighth — so moment to
- * moment the run is nearly flat. Sonic's feel is the opposite: a mistake dumps
- * you, and climbing back out is the whole sensation.
+ * (21..64, 3x) but a narrower LIVED one. At a steady accuracy the speed sits
+ * at an equilibrium and a miss moves it 6 m/s, so moment to moment the run is
+ * nearly flat. Sonic's feel is the opposite: a mistake dumps you, and climbing
+ * back out is the whole sensation.
+ *
+ * RC8.3 SHIPPED part of what SONIC was proposing — the camera block below was
+ * the lab's, and the run now carries it (and a little more) as baseline, with
+ * the floor raised 16 → 21 and the dash lengthened. So the presets that follow
+ * are re-pointed: they propose steps BEYOND the shipped tuning, never behind
+ * it, because a preset that quietly lowers a dial the game already ships
+ * measures the opposite of what its label claims. The cue dials
+ * (TUNING.CUES — stanchions, wind streaks, ground frequency) are reachable
+ * from here now too; they were literals inside the render files.
  */
 
 /** Deep-assign only keys the preset names, so nothing else drifts. */
@@ -46,8 +55,10 @@ export const PRESETS = {
   },
 
   // The obvious Sonic lever — make a mistake DUMP you — turns out to be
-  // fatal on its own, because the Redline's pace (27) sits 11 m/s above the
-  // speed floor (16). Anything below pace means the gap is closing, so a
+  // fatal on its own, because the Redline's pace (27) sits above the speed
+  // floor (16 when this was written, 21 since RC8.3 — which is that same
+  // finding, taken as far as the gated reading window allows). Anything
+  // below pace means the gap is closing, so a
   // big loss is not drama, it is death: SPEED_LOSS 14 alone ends a run at
   // 181 m. Falling only becomes survivable drama if there is room BELOW to
   // fall into, so this drops the pace and the floor with the bigger loss.
@@ -73,12 +84,13 @@ export const PRESETS = {
     },
   },
 
-  // Both, plus the camera actually selling the top end: the rig closes in
-  // and drops low as you accelerate instead of pulling back, and the lens
-  // stretches far harder across the range.
+  // Both, plus the camera pushed a step PAST what RC8.3 shipped: the rig
+  // closes in and drops lower still, and the lens stretches further across
+  // the range. The old numbers here (-0.16 / 3.2 / 1.05 / 16 / 9) are the
+  // shipped baseline now, so proposing them would have measured nothing.
   sonic: {
     label: 'SONIC',
-    note: 'DROP + DASH GEAR + the camera sells it',
+    note: 'DROP + DASH GEAR + the camera pushed past the shipped tuning',
     set: {
       RUN: { SPEED_GAIN_MAX: 6.5, SPEED_LOSS: 12, FLOOR: 11 },
       'MODES.DIFFICULTY.easy': { REDLINE_PACE: 17 },
@@ -86,13 +98,34 @@ export const PRESETS = {
       'MODES.DIFFICULTY.hard': { REDLINE_PACE: 23 },
       BOOST: { MIN_ACTIVATE: 34, SPEED_MULT: 1.75, ACCEL_MULT: 2.6 },
       CAMERA: {
-        BACK_SPEED_GAIN: -0.16,   // close in at speed instead of pulling back
-        HEIGHT_SPEED_DROP: 3.2,   // and drop low
-        FOV_SPEED_GAIN: 1.05,     // lens stretch across the range
-        FOV_BOOST: 16,            // held while dashing
-        LOOK_SPEED_AHEAD: 9,
+        BACK_SPEED_GAIN: -0.24,   // close in harder at speed
+        HEIGHT_SPEED_DROP: 4.4,   // and drop lower
+        FOV_SPEED_GAIN: 1.35,     // lens stretch across the range
+        FOV_BOOST: 28,            // held while dashing
+        LOOK_SPEED_AHEAD: 13,
       },
-      'BOOST.DASH': { KICK_FOV: 13, KICK_DECAY: 3.0, STREAK_BURST: 1.25 },
+      'BOOST.DASH': { KICK_FOV: 18, KICK_DECAY: 3.0, STREAK_BURST: 1.6 },
+    },
+  },
+
+  // RC8.3's own question, kept as a preset because the answer was a judgement
+  // and the next person deserves the dial. The three FREQUENCY cues — posts,
+  // rungs, streaks — are the ones that read as speed rather than as
+  // intensity, and this is what "louder still" costs: at the ceiling it is
+  // 4.6 posts and 16 rungs a second against the shipped 3.6 and 12.8.
+  //
+  // This one is a LOOK, not a curve: the cues are presentation and the sim
+  // never reads them, so `npm run feel` reports it identical to BASELINE by
+  // construction. Judge it in the browser with __FEEL('cues') and read the
+  // numbers with __CUES().
+  cues: {
+    label: 'CUES LOUD',
+    note: 'the frequency cues pushed past the shipped re-tune',
+    set: {
+      CUES: {
+        STREAK_START: 0.22, STREAK_OPACITY: 0.66,
+        PYLON_SPACING_M: 14, PYLON_PER_SIDE: 38, GRID_CELL_M: 4.0,
+      },
     },
   },
 

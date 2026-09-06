@@ -2256,3 +2256,126 @@ across 20,505 armed frames, and a crest still hides a lookahead plate on 1,176
 frames — the L3 payoff survives the easing. The Phase 0 behaviour snapshot is
 byte-identical, which is the proof that none of this reached the run: the
 speed model, the gates and the Redline still never read the road.
+
+## 1.0-RC8.3 — the rush
+
+The ceiling stays at 64 and both reading floors — 1.15 s at cruise, 0.75 s at
+the ceiling — do not move. Everything below is what is left once those are
+fixed, and every dial that moved brought its table with it.
+
+- **The floor, 16 → 21, and the gain 4.5 → 4.1 with it.** The two cannot be
+  chosen apart: a read closes `SPEED_GAIN_MAX / (CEILING − FLOOR)` of the
+  remaining headroom, so raising the floor steepens the whole curve, and the
+  comfort window at cruise is what stops it. `npm run calibrate:speed` prints
+  the new sweep, and it says something worth stating plainly — at the largest
+  gain each floor allows, every floor produces the SAME cruise speed and the
+  same ~9.8 % of headroom per read. The comfort window pins where cruise
+  lands. **A higher floor buys the bottom of the run, not the top.**
+
+      floor | max gain  headroom/read | cruise8  window | floor window | deficit vs pace 24/27/30
+         16 |     4.71          9.81% |   47.81   1.15s |        3.44s |  8 / 11 / 14
+         20 |     4.32          9.82% |   47.81   1.15s |        2.75s |  4 /  7 / 10
+         21 |     4.22          9.81% |   47.81   1.15s |        2.62s |  3 /  6 /  9  <- shipped
+         22 |     4.12          9.81% |   47.80   1.15s |        2.50s |  2 /  5 /  8
+
+  Shipped at 4.1 rather than the 4.22 cap, for the same 10 ms of window margin
+  the old tuning carried: cruise 47.40 m/s, window 1.16 s, 9.53 % of headroom
+  per read against the old 9.38 %. 21 is the HIGHEST floor that works, and the
+  thing that caps it is not arithmetic — at 22 a 55 % reader on EASY stops
+  being run down by the Redline and dies to hearts instead, which would take
+  the pursuit out of its own job on that difficulty. The LADDER instrument
+  holds that verdict; the floor's own reading window (2.62 s, against the
+  1.15 s comfort floor) and its clearance under the slowest pace are now
+  gated together, because a recovery pace you cannot read at is not a
+  recovery.
+- **The dash is longer, and that is the lever.** `DRAIN_RATE` 34 → 28: a dash
+  is 3.57 s against 2.94 s. `SPEED_MULT` stays at 1.40 and was never a
+  candidate — the reading window is `ARM_DISTANCE_M / (speed × SPEED_MULT)`
+  and ×1.4 already puts it at 0.86 s at the ceiling.
+- **`OVERDRIVE_PUSH` is deleted, not retuned.** It and its tail were the
+  retired director's, from when a dash reached the gap through a 2.5 s
+  smoothed average. Phase 7 replaced that machine with one line — the gap is
+  the clamped integral of (effSpeed − pace), and `tools/gates.mjs` asserts it
+  step for step — and from that moment the two dials named a mechanic no code
+  read. Going looking for the shove is how they were found; a dial that reads
+  like a lever and moves nothing is worse than either value it could hold, so
+  a new gate keeps them gone rather than merely unused. The shove is
+  `SPEED_MULT` against the pace, and the longer dash is what extends it:
+
+      speed  |  gap closing/opening plain  |  dashing  |  daylight one dash buys
+        21   |          −6.0 m/s           |  +2.4 m/s |   25 m → 30 m
+        27   |           0.0 m/s           | +10.8 m/s |   32 m → 39 m
+        47.4 |          +20.4 m/s          | +39.4 m/s |   56 m → 68 m
+
+  The row that matters is the first: at the floor a dash is the difference
+  between a gap that is closing and one that is opening, and it now holds that
+  for a fifth longer.
+- **The lens, and where the clamp already was.** `FOV_BOOST` 16 → 22. At
+  cruise and above the dash stack has been past `FOV_MAX` since before it
+  moved, so the SURGE table gained a START row to show what raising it
+  actually bought: a dash at the speed a run begins reads 95.1° of unclamped
+  stack against 90.8°, and reaches the clamp where it used to fall 5° short.
+  The early dash — the one a player takes when they are still slow — is the
+  one that got wider.
+- **A sixth rung.** A 3.57 s dash lands five reads at the 95 % reader's p90
+  where a 2.94 s dash landed four, and the ladder is sized to p90 + 1:
+  `DASH_CHAIN_MULT` gains 2.25× at the same 0.25 step, every rung below it
+  unchanged. `CHAIN_HUES` is RE-SPACED rather than extended — continuing the
+  22° walk would have put rung six at 83°, five degrees off the bell's own
+  gold-green, so it is six steps of 18° across the same 195 → 105 span,
+  keeping both endpoints and clearing every reserved hue by ≥ 25° and the bell
+  by ≥ 27°. The chime's pentatonic cap and the comet tail's brightness cap now
+  read the LADDER's length instead of a literal 4, so a rung the score pays
+  for is a rung the ear and the eye are shown.
+- **The speed cues, re-tuned to the curve they hang off.** Every cue is keyed
+  to `speedN = (v − FLOOR) / (CEILING − FLOOR)`, so raising the floor
+  re-tuned all of them at once — the lived band narrowed from 48 m/s to 43, so
+  every cue moves 11.6 % more per m/s and reads lower at the same speed below
+  the ceiling. The stanchion spacing, the wind-streak threshold and the etched
+  ground's cell size were literals inside `speed-fantasy.js` and the surface
+  shader — the one set of dials the feel lab could not reach was the set the
+  player is actually looking at. They are `TUNING.CUES` now, `dev/feel-lab.js`
+  gained `__CUES()` to print them, and `feel-presets.js` gained a CUES LOUD
+  preset for the next person to argue with:
+
+      speed | fov    boom  height  look   streak  posts/s  rungs/s
+      before (floor 16)
+         27 | 72.81  9.77   8.27   14.06  0.000   1.29     4.50
+      47.17 | 81.64  8.42   6.92   17.84  0.208   2.25     7.86
+         64 | 89.00  7.30   5.80   21.00  0.500   3.05    10.67
+      after  (floor 21)
+         27 | 71.13  10.03  8.53   13.34  0.000   1.50     5.40
+       47.4 | 81.75  8.41   6.91   17.89  0.247   2.63     9.48
+         64 | 90.40  7.10   5.60   21.60  0.550   3.56    12.80
+
+  The camera at cruise is held to within a tenth of a degree and a centimetre
+  of boom (`BACK_SPEED_GAIN` −0.16 → −0.17, `HEIGHT_SPEED_DROP` 3.2 → 3.4,
+  `LOOK_SPEED_AHEAD` 9 → 9.6, `FOV_SPEED_GAIN` 1.05 → 1.12), which is exactly
+  what the narrower band took out of it. The two FREQUENCY cues are
+  deliberately louder — posts every 18 m instead of 21, a 5 m ground cell
+  instead of 6 — because frequency is the channel that reads as speed rather
+  than as intensity: 2.63 posts and 9.48 rungs a second at cruise against 2.25
+  and 7.86. The wind streaks come in at 33.9 m/s instead of 35.2 and peak a
+  little brighter. Read-moment plate legibility went UP, not down, as a side
+  effect: the narrower band puts less lens on the shot at the 36 m/s standard
+  speed, and the route gates measure 231×58 px against 227×57 before, on a
+  220×55 floor.
+
+`npm run feel`, before and after, on the shipped baseline:
+
+      acc |  slow p10   mean   fast p90 | swing | dashing | window | dist
+      before
+      70% |     26.6   32.4      36.4   | 1.37x |     13% | 1.51s  |  2552m
+      85% |     41.5   50.0      55.0   | 1.33x |     33% | 1.00s  |  8159m
+      95% |     51.0   58.0      62.5   | 1.23x |     46% | 0.88s  |  9854m
+      after
+      70% |     26.7   32.7      37.6   | 1.41x |     15% | 1.46s  |  2551m
+      85% |     41.9   50.3      55.5   | 1.33x |     37% | 0.99s  |  8334m
+      95% |     51.4   58.2      62.6   | 1.22x |     53% | 0.88s  | 10118m
+
+The column that must not move is `window`, and it does not: 0.88 s at 95 %
+either way, because nothing here touched reading speed. What moved is time
+spent dashing — 46 % to 53 % for a strong reader — and how far a run gets.
+
+Both goldens regenerated with `npm run calibrate`; the behaviour snapshot moved
+deliberately, which is what a tuning pass is. Every suite green.

@@ -97,7 +97,7 @@ function terrainMaterial() {
       .replace('#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
         float p4Across = vP4Lane * uP4HalfW;
-        vec2 p4Cell = vec2(p4Across, vP4World.z) / 6.0;
+        vec2 p4Cell = vec2(p4Across, vP4World.z) / uP4Cell;
         vec2 p4F = abs(fract(p4Cell) - 0.5);
         float p4Line = smoothstep(0.44, 0.5, max(p4F.x, p4F.y));
         float p4Rail = smoothstep(0.8, 0.97, abs(vP4Lane));
@@ -118,11 +118,16 @@ function terrainMaterial() {
         totalEmissiveRadiance += p4GridCol * p4Line * 0.62 * uP9Flow;
         totalEmissiveRadiance += p4RailCol * p4Rail * 1.15 * uP9Flow;`)
       .replace('#include <common>\nvarying float vP4Lane;',
-        '#include <common>\nuniform float uP9Flow;\nuniform float uP4HalfW;\nvarying float vP4Lane;');
+        '#include <common>\nuniform float uP9Flow;\nuniform float uP4HalfW;\nuniform float uP4Cell;\nvarying float vP4Lane;');
     shader.uniforms.uP4HalfW = terrain.userData.uP4HalfW;
+    shader.uniforms.uP4Cell = terrain.userData.uP4Cell;
   };
   terrain.userData.uP9Flow = { value: 1 };
   terrain.userData.uP4HalfW = { value: TUNING.RUN.TRACK_HALF_W };
+  // RC8.3: the grid cell IS the ground frequency — how often a rung sweeps
+  // under the runner — so it is a speed cue and lives with the others in
+  // TUNING.CUES rather than as a 6.0 buried in a shader string.
+  terrain.userData.uP4Cell = { value: TUNING.CUES.GRID_CELL_M };
   terrain.customProgramCacheKey = () => 'dictiondash-p30-track-space-grid-v2';
   return terrain;
 }

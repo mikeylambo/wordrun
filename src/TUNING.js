@@ -103,7 +103,16 @@ export const TUNING = {
     // 64 -> 0.86s/0.61s · 72 -> 0.76s/0.55s. Where "legible" ends and
     // "fun" ends are different lines; this one gets picked by feel.
     CEILING: 64,
-    SPEED_GAIN_MAX: 4.5,       // m/s gained per correct read AT THE FLOOR
+    // RC8.3: 4.5 -> 4.1, and it did not move for its own sake. The gain is
+    // scaled by (CEILING - FLOOR), so raising the floor steepens the whole
+    // curve: at floor 21 with 4.5 a run reached 48.7 m/s after CRUISE_READS
+    // and the reading window fell to 1.13 s, under the 1.15 s comfort floor
+    // that does not move. 4.1 puts cruise back at 47.44 (window 1.16 s) and
+    // still closes 9.53 % of the remaining headroom per read against the old
+    // 9.38 % — the comfort floor pins where cruise LANDS, so a higher floor
+    // buys the bottom of the run, not the top, and buys the climb a little
+    // of its steepness. `npm run calibrate:speed` prints both sweeps.
+    SPEED_GAIN_MAX: 4.1,       // m/s gained per correct read AT THE FLOOR
     // Both wrong reads lose this much speed, but only tapping a fake
     // (commission) also costs a heart + stagger + meter. Letting a real
     // word slip (omission) is speed-only: the Redline is its punisher.
@@ -111,10 +120,22 @@ export const TUNING = {
     // MORE reads to win back (each is worth less up there) — mistakes at
     // speed are automatically the expensive ones.
     SPEED_LOSS: 6,
-    // FLOOR: repeated misses slow you, never stall you — reading window at
-    // the floor is ARM_DISTANCE_M/16 ≈ 3.4s, an easy recovery pace. Its
-    // job (recovery) is unchanged by the higher ceiling, so it stays.
-    FLOOR: 16,
+    // FLOOR: repeated misses slow you, never stall you.
+    //
+    // RC8.3 raises it 16 -> 21. At 16 a run in trouble sat 11 m/s under
+    // REDLINE_PACE and 8 under EASY's — the gap closed faster than any
+    // recovery could open it, so the floor was a floor you died on rather
+    // than one you climbed off. At 21 the deficit is 6 m/s on NORMAL and 3
+    // on EASY: still fatal if the misses keep coming, and 21 is the HIGHEST
+    // floor at which that stays true — the ladder instrument shows a 55 %
+    // reader still run down by the Redline on all three difficulties at 21
+    // and dying to hearts on EASY at 22, which would make the pursuit stop
+    // being the fail state there. The sweep is in `npm run calibrate:speed`
+    // and the verdict in tools/calibration-gates.mjs.
+    // Reading window at the floor is ARM_DISTANCE_M/21 = 2.62 s, still more
+    // than double the 1.15 s comfort floor — and gated, because a recovery
+    // pace you cannot read at is not a recovery.
+    FLOOR: 21,
     REDLINE_PACE: 27,          // the Redline's steady baseline, m/s
 
     // The authored winding (Sonic-tradition S-curves, no player steering):
@@ -218,6 +239,37 @@ export const TUNING = {
     READ_WINDOW_MIN_S: 1.15,
     READ_WINDOW_HARD_MIN_S: 0.75,
     CRUISE_READS: 8,
+  },
+
+  // ── Speed cues (Phase 8.5; lifted out of the render files RC8.3) ────────
+  // Everything in the world that says FAST, keyed the same way the camera is:
+  // speedN = (speed − RUN.FLOOR) / (RUN.CEILING − RUN.FLOOR), 0 at the bottom
+  // of the lived band and 1 at the ceiling.
+  //
+  // They lived as literals inside speed-fantasy.js and the ground shader,
+  // which meant the one dial the feel lab could not reach was the one the
+  // player actually looks at. RC8.3 raised RUN.FLOOR to 21, which narrows
+  // that band from 48 m/s to 43 — every cue now moves 11.6 % more per m/s
+  // than it did, and every cue reads a little lower at the same speed below
+  // the ceiling. These values are re-tuned to that: the response at cruise is
+  // held where it was, the top end is unchanged (speedN is 1 either way), and
+  // the two frequency cues are tightened because frequency is the one channel
+  // that reads as speed rather than as intensity.
+  CUES: {
+    // Wind streaks. Silent below START, a torrent at the ceiling.
+    STREAK_START: 0.30,        // speedN the streaks fade in from (was 0.40)
+    STREAK_OPACITY: 0.55,      // peak opacity of the streak lines (was 0.50)
+    STREAK_LEN_M: 8,           // streak length added across the range
+    STREAK_RUSH: 1.35,         // world m/s past the camera, per m/s of speed
+    STREAK_DASH: 0.35,         // sustained bump to speedN while dashing
+    // Stanchions — nearby verticals sweeping the frame, the classic parallax
+    // cue. 21 → 18 m is +17 % posts per second at cruise; the pool grows so
+    // the run of them still reaches the same distance down-track.
+    PYLON_SPACING_M: 18,
+    PYLON_PER_SIDE: 30,
+    // The etched ground grid. Its cell size IS the ground frequency: at
+    // cruise 6 m gave 7.9 rungs a second and 5 m gives 9.5.
+    GRID_CELL_M: 5.0,
   },
 
   // ── Features / obstacles (per chunk, seeded) ────────────────────────────
@@ -418,9 +470,17 @@ export const TUNING = {
     // ever in play. At the ceiling the shipped x1.4 already puts the window
     // at 0.63s, under the 0.75s floor below; x1.6 would make it 0.55s. The
     // event is longer, rarer and louder, not faster.
+    // RC8.3 — the dash hits harder, and NOT through reading speed. The three
+    // levers it may use are DURATION, the lens, and what it does to the
+    // Redline; SPEED_MULT is the one it may not touch, because the reading
+    // window is ARM_DISTANCE_M / (speed × SPEED_MULT) and at the ceiling
+    // ×1.4 already puts it at 0.86 s. Longer, wider and further ahead of the
+    // pursuit is a bigger event at the same legibility.
     MIN_ACTIVATE: 100,         // = METER_MAX: a full charge, spent whole
-    DRAIN_RATE: 34,            // meter units per second while active
-    SPEED_MULT: 1.40,          // +40% (brief)
+    // 34 -> 28: a dash is 3.57 s instead of 2.94 s. The ladder is sized to
+    // the reads that fit in it, so this is the dial that moved it.
+    DRAIN_RATE: 28,            // meter units per second while active
+    SPEED_MULT: 1.40,          // +40% (brief) — NEVER raised: see above
     CARVE_SCALE: 0.55,         // turn radius widens while active
     ACCEL_MULT: 2.0,           // gets you to the higher cap quickly
 
@@ -443,7 +503,14 @@ export const TUNING = {
       // Phase I: the meter rim steps hue per dash-chain rung. Cyan is the
       // resting tone; each rung walks toward green. Every value sits >= 25'
       // from the semantic set (reds 350–28, violet 262, gold 45) — gated.
-      CHAIN_HUES: [195, 172, 150, 128, 105],
+      // RC8.3: six rungs, and the walk is RE-SPACED rather than extended.
+      // Continuing the old 22° step would have put the sixth rung at 83°,
+      // which clears the reserved set but sits 5° from the bell's own gold-
+      // green at 78 — a meter rim wearing a pickup's colour. Six steps of 18°
+      // across the same 195 → 105 span keep both endpoints, keep every rung
+      // ≥ 25° from the semantic set, and keep the whole ladder ≥ 27° off the
+      // bell.
+      CHAIN_HUES: [195, 177, 159, 141, 123, 105],
     },
   },
 
@@ -526,7 +593,12 @@ export const TUNING = {
     // expression, not a rescue. Sized to measured reads-per-dash + 1 (see
     // tools/calibration-gates.mjs, DASH table), so the top rung is rare by
     // construction.
-    DASH_CHAIN_MULT: [1.0, 1.25, 1.5, 1.75, 2.0],
+    // RC8.3: a sixth rung. The ladder is sized to the reads that fit in one
+    // dash (p90 + 1), and a 3.57 s dash lands five where a 2.94 s dash landed
+    // four — see the DASH table in tools/calibration-gates.mjs. The step is
+    // unchanged at 0.25, so the top rung is 2.25x and every rung below it is
+    // exactly where it was.
+    DASH_CHAIN_MULT: [1.0, 1.25, 1.5, 1.75, 2.0, 2.25],
   },
 
   // ── Meta economy ────────────────────────────────────────────────────────
@@ -637,16 +709,24 @@ export const TUNING = {
     OPEN_RATE: 9,              // m/s the gap may grow
     CLOSE_RATE: 14,            // m/s the gap may shrink (tunable max)
 
-    // ── Overdrive push ─────────────────────────────────────────────────────
-    // The whole thesis is "boost outruns the beast", and it was true only
-    // through a six-link chain of which four links were invisible: land trick
-    // -> meter -> speed -> a 2.5s SMOOTHED average -> desired gap -> the gap
-    // creeps open at 9 m/s. Players felt none of it.
+    // ── The Overdrive push, and why it is not here ─────────────────────────
+    // OVERDRIVE_PUSH / OVERDRIVE_PUSH_TAIL are DELETED, not retuned. They
+    // were the retired director's: a shove written on top of a desired-gap
+    // servo, back when a dash reached the gap through a 2.5 s smoothed
+    // average and players felt none of it. Phase 7 replaced that whole
+    // machine with one line — the gap is the clamped integral of
+    // (effSpeed − pace) and NOTHING else writes it, which tools/gates.mjs
+    // asserts step for step — and from that moment the two dials named a
+    // mechanic no code read. RC8.3 went looking for them to make a dash push
+    // harder and found them inert; a dial that reads like a lever and moves
+    // nothing is worse than either value it could hold.
     //
-    // So Overdrive now shoves the gap open directly, outside the desired-gap
-    // system and outside OPEN_RATE. You spend, and you watch it fall away.
-    OVERDRIVE_PUSH: 26,        // m/s the gap opens while Overdrive is lit
-    OVERDRIVE_PUSH_TAIL: 0.7,  // seconds the shove keeps working after you let go
+    // What a dash actually does to the Redline, and it needs no new term:
+    // SPEED_MULT × speed against the pace IS the shove. At cruise that is
+    // 39 m/s of opening, which pins MAX_GAP inside a second. Below the pace,
+    // where it matters, a dash turns a closing gap into an opening one, and
+    // the lever that makes that last longer is DRAIN_RATE — which is the one
+    // RC8.3 moved.
 
     // ── The lunge ──────────────────────────────────────────────────────────
     // A smooth number is a timer, not an opponent. This gives it one move you
@@ -707,7 +787,7 @@ export const TUNING = {
   CAMERA: {
     FOV: 68,
     BACK: 10.5,                // metres behind the runner
-    BACK_SPEED_GAIN: -0.16,    // CLOSES IN as you accelerate (Phase 22)
+    BACK_SPEED_GAIN: -0.17,    // CLOSES IN as you accelerate (Phase 22; RC8.3 -0.16 → -0.17)
     // Phase 7 flat-track retune: the downhill grade used to pitch the view
     // for free. On a flat world the camera rides higher and aims lower —
     // ~21 degrees down — so the winding ribbon lays out ahead instead of
@@ -726,8 +806,12 @@ export const TUNING = {
     // out. Measured against the constraint that outranks all of this: at
     // 62 m/s cruising the word plate is 270x68 px at the read moment, up
     // from 244x61, because a closer camera more than pays back a wider lens.
-    HEIGHT_SPEED_DROP: 3.2,    // rig sinks this much at the ceiling
-    LOOK_SPEED_AHEAD: 9,       // aim drifts this much further down-track
+    // RC8.3: the speed-keyed camera terms are up ~6.5 %, which is exactly
+    // what the narrower lived band (RUN.FLOOR 16 → 21) took out of speedN at
+    // cruise. The shot at the ceiling is unchanged — speedN is 1 either way —
+    // and the shot at cruise is back where it was, moving harder per m/s.
+    HEIGHT_SPEED_DROP: 3.4,    // rig sinks this much at the ceiling
+    LOOK_SPEED_AHEAD: 9.6,     // aim drifts this much further down-track
     SPEED_SHAKE: 0.05,         // barely-in-control tremor near the ceiling
     AIR_HEIGHT_GAIN: 0.55,     // rig rises with you on big airs
     AIR_LOOK_GAIN: 0.62,       // and the aim rises too, or you exit frame
@@ -743,8 +827,8 @@ export const TUNING = {
     KILL_BACK: 8.5,
     KILL_HEIGHT: 5.4,
     KILL_LOOK_PAST: 5.5,       // aim this far upslope of you at the end
-    FOV_SPEED_GAIN: 1.05,      // FOV stretch across the full speed range
-    FOV_BOOST: 16,             // extra FOV held for the length of a DASH
+    FOV_SPEED_GAIN: 1.12,      // FOV stretch across the full speed range (RC8.3: 1.05 → 1.12)
+    FOV_BOOST: 22,             // extra FOV held for the length of a DASH (RC8.3: 16 -> 22)
     // The stretch, the dash boost and the dash punch all stack, and unclamped
     // they reach 106 degrees — a fisheye that shrank the plate to 93x23 px at
     // the far read, worse than anything shipped. The cap costs nothing while

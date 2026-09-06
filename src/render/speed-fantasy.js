@@ -20,6 +20,7 @@ import * as THREE from 'three';
 import TUNING from '../TUNING.js';
 
 const R = TUNING.RUN;
+const CU = TUNING.CUES;
 
 const norm = (speed) =>
   Math.max(0, Math.min(1, (speed - R.FLOOR) / (R.CEILING - R.FLOOR)));
@@ -57,17 +58,17 @@ export class WindStreaks {
     // +0.35 below only says "dashing"; this says "just now".
     this._burst = Math.max(0, (this._burst || 0) *
       Math.exp(-TUNING.BOOST.DASH.STREAK_DECAY * dt));
-    const n = norm(speed) + (overdrive ? 0.35 : 0) + this._burst;
-    // Fade in from 40% of the range; full torrent at the ceiling. A dash
-    // burst can push the streaks up from nothing even at a walking pace —
-    // deliberately: the player must SEE the mechanic the first time.
-    const vis = Math.max(0, (n - 0.4) / 0.6);
-    this.lines.material.opacity = Math.min(1, vis) * 0.5;
+    const n = norm(speed) + (overdrive ? CU.STREAK_DASH : 0) + this._burst;
+    // Fade in from STREAK_START of the range; full torrent at the ceiling. A
+    // dash burst can push the streaks up from nothing even at a walking pace
+    // — deliberately: the player must SEE the mechanic the first time.
+    const vis = Math.max(0, (n - CU.STREAK_START) / (1 - CU.STREAK_START));
+    this.lines.material.opacity = Math.min(1, vis) * CU.STREAK_OPACITY;
     this.lines.visible = vis > 0.001;
     if (!this.lines.visible) return;
 
-    const len = 1.5 + n * 8;      // streak length grows with speed
-    const rush = speed * 1.35;    // world-ish m/s past the camera
+    const len = 1.5 + n * CU.STREAK_LEN_M;   // streak length grows with speed
+    const rush = speed * CU.STREAK_RUSH;     // world-ish m/s past the camera
     const a = this.pos;
     for (let i = 0; i < STREAKS; i++) {
       const s = this.seeds[i];
@@ -87,8 +88,8 @@ export class WindStreaks {
   }
 }
 
-const PYLONS_PER_SIDE = 26;
-const PYLON_SPACING = 21;
+const PYLONS_PER_SIDE = CU.PYLON_PER_SIDE;
+const PYLON_SPACING = CU.PYLON_SPACING_M;
 
 export class TrackPylons {
   constructor(scene, terrain) {

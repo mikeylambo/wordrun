@@ -9,6 +9,18 @@
  * takes effect on a fresh run — __FEEL restarts for you rather than leaving
  * you in a half-applied state, which is exactly the trap that made the first
  * headless measurement of these presets meaningless.
+ *
+ * RC8.3 adds the CUE readout:
+ *
+ *   __CUES()          // every speed cue, at the floor / start / cruise / ceiling
+ *
+ * The speed cues (camera, stanchions, wind streaks, ground frequency) are all
+ * keyed off the SAME normalised speed the sim's curve lives in — speedN =
+ * (v − RUN.FLOOR) / (RUN.CEILING − RUN.FLOOR) — so moving RUN.FLOOR silently
+ * re-tunes every one of them. That is exactly what RC8.3 did, and the reason
+ * the cue dials came out of the render files into TUNING.CUES: what the world
+ * is doing at a given speed has to be readable in a table, not inferred from
+ * three literals in two modules.
  */
 import TUNING from '../src/TUNING.js';
 import { PRESETS, applyPreset, snapshot } from './feel-presets.js';
@@ -58,10 +70,47 @@ export function feel(name = 'baseline', { restart = true } = {}) {
     armAt: TUNING.BOOST.MIN_ACTIVATE, dashMult: TUNING.BOOST.SPEED_MULT,
     fovGain: TUNING.CAMERA.FOV_SPEED_GAIN,
     omissionCostsHeart: !!preset.omissionCostsHeart,
+    cues: cues(),
   };
 }
 
+/**
+ * What every speed cue is doing at a given speed. The four families the world
+ * sells speed with, in the units they are actually drawn in — degrees, metres,
+ * opacity, and things per second, which is the one that reads as speed rather
+ * than as intensity.
+ */
+export function cues(speeds = null) {
+  const R = TUNING.RUN, C = TUNING.CAMERA, CU = TUNING.CUES;
+  const cruise = (() => {
+    let v = R.START_SPEED;
+    for (let i = 0; i < TUNING.WORDS.CRUISE_READS; i++) {
+      v += R.SPEED_GAIN_MAX * (R.CEILING - v) / (R.CEILING - R.FLOOR);
+    }
+    return Math.round(v * 100) / 100;
+  })();
+  const at = speeds || [R.FLOOR, R.START_SPEED, cruise, R.CEILING];
+  const rows = at.map((v) => {
+    const n = Math.max(0, Math.min(1, (v - R.FLOOR) / (R.CEILING - R.FLOOR)));
+    const streak = Math.max(0, Math.min(1, (n - CU.STREAK_START) / (1 - CU.STREAK_START)));
+    return {
+      speed: v,
+      speedN: +n.toFixed(3),
+      fov: +(C.FOV + n * C.FOV_SPEED_GAIN * 20).toFixed(2),
+      boomBack: +(C.BACK + n * C.BACK_SPEED_GAIN * 20).toFixed(2),
+      boomHeight: +(C.HEIGHT - n * C.HEIGHT_SPEED_DROP).toFixed(2),
+      lookAhead: +(C.LOOK_AHEAD + n * C.LOOK_SPEED_AHEAD).toFixed(2),
+      streakOpacity: +(streak * CU.STREAK_OPACITY).toFixed(3),
+      pylonsPerSec: +(v / CU.PYLON_SPACING_M).toFixed(2),
+      rungsPerSec: +(v / CU.GRID_CELL_M).toFixed(2),
+    };
+  });
+  console.table(rows);
+  return rows;
+}
+
 window.__FEEL = feel;
+window.__CUES = cues;
 window.__FEEL_PRESETS = PRESETS;
 
 const fromUrl = new URLSearchParams(location.search).get('feel');

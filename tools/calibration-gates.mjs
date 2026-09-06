@@ -194,7 +194,11 @@ function fovStack() {
   const speedN = (v) => Math.max(0, Math.min(1, (v - R.FLOOR) / (R.CEILING - R.FLOOR)));
   const cruise = speedAfter(W.CRUISE_READS, R.CEILING);
   const rows = [];
-  for (const [where, v] of [['cruise', cruise], ['ceiling', R.CEILING]]) {
+  // RC8.3 adds the START row. FOV_BOOST is a dash's lens, and at cruise and
+  // above the stack has been past FOV_MAX since before it moved — so the row
+  // that shows what raising it actually bought is the one at the speed a run
+  // begins at, where the clamp is not yet binding.
+  for (const [where, v] of [['start', R.START_SPEED], ['cruise', cruise], ['ceiling', R.CEILING]]) {
     for (const dash of [false, true]) {
       for (const reduced of [false, true]) {
         const motion = reduced ? C.ACCESS_MOTION_SCALE : 1;
@@ -215,7 +219,9 @@ function fovStack() {
 // Before Phase I, reads during a dash refilled the meter and at the chain cap
 // out-filled the drain — a clean reader's first dash never ended (97 reads).
 // The fill now pauses while a dash is live, so a dash is 2.94 s and this
-// table is what sizes DASH_CHAIN_MULT (p90 reads-per-dash + 1 rungs).
+// table is what sizes DASH_CHAIN_MULT (p90 reads-per-dash + 1 rungs). RC8.3
+// slowed DRAIN_RATE to 28, so a dash is 3.57 s, p90 went 4 reads to 5, and
+// the ladder grew a sixth rung to match.
 function dashRun({ accuracy, mode = 'standard', maxSteps = 60 * 900 }) {
   const sim = new Sim(777); sim.start(777, null, { mode, difficulty: 'normal', wordSalt: 0 });
   const coin = mulberry32((777 ^ Math.round(accuracy * 1000) * 7919) >>> 0);
@@ -264,6 +270,19 @@ const shipped = tables.speed.find((r) => r.ceiling === R.CEILING);
 check('the shipped ceiling holds comfort at cruise, hard at the ceiling, and hard for a DASH at cruise',
   !!shipped && shipped.standard,
   `${shipped?.cruiseWin}s / ${shipped?.ceilWin}s / ${shipped?.cruiseOD}s against ${W.READ_WINDOW_MIN_S}s / ${W.READ_WINDOW_HARD_MIN_S}s / ${W.READ_WINDOW_HARD_MIN_S}s`);
+// RC8.3 — the FLOOR's own reading window. The floor is where a run bottoms
+// out after repeated misses, so it is the pace a player recovers AT, and a
+// recovery pace you cannot read at is not a recovery: the window there has to
+// clear the comfort floor, not merely the hard one. The floor must also stay
+// under every REDLINE_PACE, or the pursuit could never finish a collapsed run
+// — the LADDER instrument above holds that verdict behaviourally, this states
+// the arithmetic the verdict depends on.
+const floorWin = W.ARM_DISTANCE_M / R.FLOOR;
+const slowestPace = Math.min(...Object.values(M.DIFFICULTY).map((d) => d.REDLINE_PACE));
+check('the floor is a pace you can read at, and one the Redline can still beat',
+  floorWin >= W.READ_WINDOW_MIN_S && R.FLOOR < slowestPace,
+  `${f2(floorWin)}s at ${R.FLOOR} m/s against the ${W.READ_WINDOW_MIN_S}s comfort floor, ` +
+  `${slowestPace - R.FLOOR} m/s under the slowest pace`);
 
 head('LADDER — held-accuracy readers, answering the instant a word arms');
 say('  diff    acc   | DAILY route (100 gates)              | ENDLESS');

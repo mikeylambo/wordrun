@@ -432,7 +432,12 @@ export class Audio {
     const steps = [0, 2, 4, 7, 9];
     // Phase I: each dash-chain rung climbs the pentatonic ladder one more
     // step — the same melody, higher, for exactly as long as the chain holds.
-    const c = Math.max(0, Math.min(14, (chain | 0) + Math.max(0, Math.min(4, dashChain | 0))));
+    // RC8.3: the rung cap is the LADDER's length, not a literal 4. A sixth
+    // rung that sounded identical to the fifth would be a rung the ear could
+    // not hear, which is the one thing this cue exists to do.
+    const topRung = TUNING.SCORE.DASH_CHAIN_MULT.length - 1;
+    const c = Math.max(0, Math.min(TUNING.BOOST.CHAIN_CAP + topRung,
+      (chain | 0) + Math.max(0, Math.min(topRung, dashChain | 0))));
     const e = Math.max(0, Math.min(1, early));
     const semis = steps[c % 5] + 12 * Math.floor(c / 5);
     const f0 = 660 * Math.pow(2, semis / 12);

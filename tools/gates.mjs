@@ -428,6 +428,20 @@ head('PURSUIT — pure speed differential');
   const found = dead.filter((token) => src.includes(token));
   check('no hunt-provoke/pressure machinery in the pursuit source',
     found.length === 0, found.join(', ') || 'clean');
+  // RC8.3 — and no dial NAMING that machinery either. OVERDRIVE_PUSH and its
+  // tail survived the Phase 7 rewrite as tuning with no reader, and read like
+  // the lever for "the dash shoves the Redline away" to anyone tuning the
+  // dash. The shove is SPEED_MULT against the pace, through the one line
+  // above; a second term would break the integral this suite checks.
+  const tuningSrc = fs.readFileSync('src/TUNING.js', 'utf8');
+  const live = (name) => fs.readFileSync('src/sim/beast.js', 'utf8').includes(name) ||
+    fs.readFileSync('src/sim/player.js', 'utf8').includes(name) ||
+    fs.readFileSync('src/sim/sim.js', 'utf8').includes(name);
+  const orphan = ['OVERDRIVE_PUSH', 'OVERDRIVE_PUSH_TAIL']
+    .filter((k) => new RegExp(`^\\s*${k}:`, 'm').test(tuningSrc) && !live(k));
+  check('the retired director leaves no orphan dial behind it',
+    orphan.length === 0,
+    orphan.length ? `${orphan.join(', ')} named in TUNING, read by nothing` : 'OVERDRIVE_PUSH and its tail are gone, not merely unused');
   check('registerMistake is inert: pressure cannot reach the gap',
     /registerMistake\(\)\s*\{\s*\}/.test(src));
 }
