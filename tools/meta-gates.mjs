@@ -323,6 +323,152 @@ head('BOARD POLICY — DAILY on NORMAL only, ENDLESS per difficulty, no continue
     /metaDaily\.recordRun\(DAILY_SEED/.test(main) && !/boardEligible[\s\S]{0,200}metaDaily\.recordRun/.test(main));
 }
 
+// ── RC10.5: the rival travels in the link ────────────────────────────────
+head('RIVAL — a challenge that is an opponent rather than a number');
+{
+  const GL = await import('../src/meta/ghost-link.js');
+  const { GHOST_LINK } = GL;
+  const { parseChallenge, buildChallengeLink, CHALLENGE_GHOST } =
+    await import('../src/meta/challenge.js');
+
+  // The alphabet, written out because btoa is DOM and Buffer is node.
+  {
+    let ok = true;
+    for (let n = 0; n <= 12 && ok; n++) {
+      const bytes = new Uint8Array(n);
+      for (let i = 0; i < n; i++) bytes[i] = (i * 37 + n * 11) & 0xff;
+      const back = GL.decodeBytes(GL.encodeBytes(bytes));
+      ok = back && back.length === n && bytes.every((b, i) => back[i] === b);
+    }
+    // Every byte value, in one pass, so no lane of the 6-bit packing is missed.
+    const all = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) all[i] = i;
+    const rt = GL.decodeBytes(GL.encodeBytes(all));
+    check('base64url round-trips exactly, at every length and every byte',
+      ok && rt.length === 256 && all.every((b, i) => rt[i] === b),
+      'no padding, no DOM, no Buffer — a link is not a MIME body');
+    check('and anything outside the alphabet is refused rather than guessed',
+      GL.decodeBytes('abc!def') === null && GL.decodeBytes('a b') === null);
+  }
+
+  // A synthetic run, from the recorder's own format: 10 Hz quintuples,
+  // accelerating from the floor toward the ceiling.
+  const synth = (seconds) => {
+    const s = [];
+    let d = 0;
+    for (let i = 0; i <= seconds * 10; i++) {
+      const t = i / 10;
+      const v = Math.min(TUNING.RUN.CEILING, TUNING.RUN.FLOOR + t * 0.4);
+      d += v / 10;
+      s.push(Math.round(t * 100), 0, 0, Math.round(d * 10), 0);
+    }
+    return { s, d };
+  };
+  {
+    const { s, d } = synth(100);
+    const bytes = GL.trackFromSamples(s);
+    const chars = GL.encodeBytes(bytes).length;
+    const rebuilt = GL.trackDistance(bytes);
+    check('a 100-second run becomes a few hundred characters',
+      bytes.length === 100 * GL.LINK_HZ && chars <= 280,
+      `${s.length / 5} samples -> ${bytes.length} bytes -> ${chars} characters`);
+    check('and the distance survives the squeeze',
+      Math.abs(rebuilt - d) / d < 0.005,
+      `${d.toFixed(0)}m recorded, ${rebuilt}m rebuilt — ` +
+      `${(100 * Math.abs(rebuilt - d) / d).toFixed(3)}% off`);
+  }
+
+  // The cap. A ten-minute run must not produce a link nobody can send.
+  {
+    const { s } = synth(600);
+    const bytes = GL.trackFromSamples(s);
+    const chars = GL.encodeBytes(bytes).length;
+    check('a very long run is truncated, never dropped and never unbounded',
+      bytes.length === GL.LINK_MAX_SAMPLES && chars <= GHOST_LINK.MAX_CHARS &&
+      chars <= CHALLENGE_GHOST.MAX_CHARS,
+      `600s of running -> ${chars} characters, cap ${CHALLENGE_GHOST.MAX_CHARS} ` +
+      `(the rival simply stops being ahead of you at ${GL.LINK_MAX_SECONDS}s)`);
+    // And the ceiling fits in a byte, which is why one byte is enough.
+    check('the speed byte covers the whole lived band, with room above it',
+      255 * GL.LINK_SPEED_STEP > TUNING.RUN.CEILING &&
+      GL.LINK_SPEED_STEP < 0.5,
+      `0..${(255 * GL.LINK_SPEED_STEP).toFixed(2)} m/s against a ${TUNING.RUN.CEILING} ceiling, ` +
+      `${(GL.LINK_SPEED_STEP * 100 / GL.LINK_HZ).toFixed(0)} cm of position per step`);
+    // A wire format may not be derived from a dial: links outlive tuning.
+    check('and the format is written down, not computed from the tuning',
+      !/LINK_SPEED_STEP\s*=\s*[^;]*TUNING/.test(fs.readFileSync('src/meta/ghost-link.js', 'utf8')),
+      'a moved ceiling would silently re-scale every rival already out in the world');
+  }
+
+  // Rebuilding: the receiver integrates against THEIR road, and the road is
+  // the same road because the seed authored it.
+  {
+    const { s, d } = synth(40);
+    const bytes = GL.trackFromSamples(s);
+    const asked = [];
+    const ghost = GL.expandTrack(bytes, (dd) => { asked.push(dd); return { x: dd * 0.01, y: 3 }; });
+    const STRIDE = 5;
+    const n = ghost.s.length / STRIDE;
+    let monotonic = true, lastD = -1, lastT = -1;
+    for (let i = 0; i < n; i++) {
+      const t = ghost.s[i * STRIDE], dv = ghost.s[i * STRIDE + 3];
+      if (dv < lastD || t <= lastT) monotonic = false;
+      lastD = dv; lastT = t;
+    }
+    check('the rebuilt ghost is a real ghost: rising time, rising distance, no gaps',
+      n === bytes.length + 1 && monotonic && ghost.v === 1 && ghost.hz === GL.LINK_HZ &&
+      Math.abs(ghost.distance - d) / d < 0.01,
+      `${n} samples, ${ghost.distance}m against ${d.toFixed(0)}m run`);
+    check('and x and y come from the RECEIVER\'s terrain, never from the link',
+      asked.length === n && ghost.s[1] === 0 && ghost.s[2] === 30 &&
+      !/[xy]\s*:/.test(GL.encodeBytes(bytes)),
+      'the track is auto-followed, so lateral and height are functions of distance');
+  }
+
+  // The link itself.
+  {
+    const { s } = synth(60);
+    const ghost = GL.encodeBytes(GL.trackFromSamples(s));
+    const link = buildChallengeLink('https://x/', {
+      seedString: 'ABC', mode: 'endless', difficulty: 'hard', salt: 3, goal: 12345, bar: 2, ghost,
+    });
+    const back = parseChallenge(new URL(link).search);
+    check('the rival survives the round trip with the coordinates',
+      back.ghost === ghost && back.goal === 12345 && back.bar === 2 &&
+      back.difficulty === 'hard' && back.salt === 3,
+      `${link.length} characters end to end`);
+    check('a malformed or over-long rival is dropped, and the challenge still opens',
+      parseChallenge(`?draft=A&g=${'x'.repeat(CHALLENGE_GHOST.MAX_CHARS + 1)}`).ghost === null &&
+      parseChallenge('?draft=A&g=has spaces').ghost === null &&
+      parseChallenge('?draft=A&g=%21%21%21').ghost === null &&
+      parseChallenge('?draft=A&score=99').goal === 99,
+      'a link that cannot carry the rival is still a perfectly good challenge');
+    check('and the rival is the LAST key, so a truncated link loses it first',
+      link.indexOf('g=') > link.indexOf('score=') && link.indexOf('g=') > link.indexOf('draft='),
+      'a chat client that cuts the tail takes the opponent, not the road');
+  }
+
+  // Wiring, and the one rule about which ghost a player gets.
+  {
+    const main = fs.readFileSync('src/main.js', 'utf8');
+    const gl = fs.readFileSync('src/meta/ghost-link.js', 'utf8');
+    check('a challenge rival beats the local best, and BEST RUN off beats both',
+      main.includes('function ghostForRun()') &&
+      main.includes('if (!ghostEnabled) return null;') &&
+      main.indexOf('CHALLENGE?.ghost') < main.indexOf('return Storage.loadGhost(SEED);') &&
+      main.includes('const ghostData = ghostForRun();'),
+      'the rival is why the link was opened; the switch is about ghosts, not about whose');
+    check('the run just played travels with the link it builds',
+      main.includes('lastRunGhost = encodeBytes(trackFromSamples(sim.recorder.samples));') &&
+      main.includes('ghost: lastRunGhost,'),
+      'the recorder already had the samples — this only resamples them small');
+    check('nothing about the rival reaches the network',
+      !/\bfetch\(|XMLHttpRequest|WebSocket|sendBeacon/.test(gl) &&
+      !/import .*storage/i.test(gl),
+      'the link IS the data, exactly as it was before a rival rode in it');
+  }
+}
+
 // ── RC10.3: the words you have actually learned ──────────────────────────
 head('MASTERY — the ledger\'s work, finally visible and honestly counted');
 {

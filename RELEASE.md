@@ -3171,3 +3171,64 @@ than assumed: `reachability-gate` walks dynamic imports and still finds all 105
 source files reachable, now from one entry instead of two, and `audit:network`
 drives a full boot, run and death through the new entry with zero external
 requests.
+
+## 1.0-RC10.5 — the challenge is an opponent, not a number
+
+A challenge link has always been coordinates: same seed, same rules, same
+words, same bar, and a score to chase. A score is a poor opponent. What a
+player actually wants to know, second by second, is whether they are AHEAD —
+and that is a question only a second runner on the same road can answer. So
+the link carries one.
+
+**The recorded ghost does not fit, and does not need to.** `sim/ghost.js`
+samples `[t, x, y, d, state]` at 10 Hz — about 4 kB for two minutes, which is
+not a link anyone can send. It does not have to travel: the receiver already
+has the road. This track is auto-followed, so x and y are FUNCTIONS of d, and
+the only thing that is genuinely the challenger's is how far along they were at
+each moment. The link carries SPEED, one byte every half second, and the runner
+is rebuilt by integrating those speeds against the receiver's own terrain —
+the same terrain, because the seed authored it.
+
+That file's own header predicted this in Phase 2: *"swapping localStorage for a
+fetch() is the only change networked ghosts need, because nothing downstream of
+`load()` knows or cares where the array came from."* It was right about the
+seam and wrong only about the fetch. There is no fetch. The link is the data,
+`audit:network` still reads zero, and `GhostPlayer` is untouched.
+
+- **100 seconds of running is 267 characters.** A full end-to-end challenge
+  link with a rival in it measured 218 characters in the gate and 40 in the
+  live test's short run. Distance survives the squeeze to within 0.1 %.
+- **A long run truncates rather than breaking the link.** The cap is 180 s —
+  360 bytes, 480 characters — and past it the rival simply stops being ahead of
+  you, which is exactly what `GhostPlayer` already does at the end of any
+  ghost: it yanks into the fog and goes.
+- **The rival is the LAST key in the query**, deliberately. It is by far the
+  longest, so a chat client that cuts the tail takes the opponent and leaves
+  the road, the rules and the target intact.
+- **A malformed rival is not a rival.** Wrong alphabet, over the cap, spaces —
+  all parse to null, and the link still opens on the right road with the right
+  score. A challenge without a rival is what a challenge was last week.
+
+**Which ghost you get, and why.** A challenge rival beats the local best,
+because the rival is the reason the link was opened; offering someone their own
+Tuesday run in answer to a friend's dare would answer a question nobody asked.
+BEST RUN off beats both, because a player who turned ghosts off has said
+something about ghosts, not about whose. No new copy and no new label: the pale
+runner is already this game's whole vocabulary for "someone else was here", and
+the four-name cap is not worth spending on a word the picture already says.
+
+**One gate found a real edge before it shipped**: the speed byte was scaled at
+0.25 m/s a step, giving a 63.75 m/s top — just *under* the game's own 64 m/s
+ceiling, so a runner at full speed would have been quietly clipped. It is 0.28
+now (71.4 m/s, 14 cm of position per step), and it is a written-down literal
+rather than a value derived from `TUNING.RUN.CEILING`: this is a wire format,
+links live in other people's messages for as long as they keep them, and a dial
+that moved would silently re-scale every rival already out in the world.
+
+Fifteen new checks drive the encoder, the resampler, the rebuild and the link
+in node — including every byte value through the hand-written base64url, since
+`btoa` is DOM and `Buffer` is node and this file has to be both. Verified
+through the real build across two browser profiles: a challenger plays, the
+link carries the run, and a receiver **with no ghost of their own** opens it and
+races a rival that reports `fromLink: true`, rebuilds to 457 m against the
+challenger's 477 m, and advances alongside them down the road.

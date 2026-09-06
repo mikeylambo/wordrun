@@ -7,6 +7,9 @@ import { Sim, PHASE, emptyInput } from './sim/sim.js';
 import { makeGate, wordSeedFor } from './sim/word-gates.js';
 import { dailySeed, dailySeedString, hashString } from './sim/rng.js';
 import { parseChallenge, buildChallengeLink } from './meta/challenge.js';
+import {
+  decodeBytes, encodeBytes, expandTrack, trackFromSamples,
+} from './meta/ghost-link.js';
 import { Stage } from './render/scene.js';
 import { TerrainMesh } from './render/terrain-mesh.js';
 import { Props } from './render/props.js';
@@ -181,6 +184,7 @@ const moments = new MomentCapture(canvas, ACCESS);
 const momentClip = new MomentClip();
 momentClip.mount(document.getElementById('momentSlot'));
 let frozenRank = 0;
+let lastRunGhost = '';   // RC10.5: the run just played, as link-sized speeds
 let learnedWords = 0;    // RC10.3: words mastered for the first time this run
 let breathing = false;   // RC9.9: is the held breath currently being written
 let deathShownAt = 0;
@@ -489,9 +493,34 @@ function startRun() {
   audio.launch(!fromTitle);
 }
 
+/**
+ * RC10.5 — who you are running against.
+ *
+ * A challenge link may carry the challenger's own run (meta/ghost-link.js), and
+ * when it does, THAT is the ghost: it is the reason the link was opened. The
+ * local best is what you race on your own road, and a rival is what you race on
+ * someone else's dare — offering the wrong one would answer a question nobody
+ * asked. The BEST RUN switch still governs both, because a player who has
+ * turned ghosts off has said something about ghosts, not about whose.
+ *
+ * The speeds are integrated against THIS terrain, which is the same terrain
+ * the challenger ran: the seed authors the road, so the rebuilt runner stands
+ * exactly where they stood.
+ */
+function ghostForRun() {
+  if (!ghostEnabled) return null;
+  if (CHALLENGE?.ghost) {
+    const bytes = decodeBytes(CHALLENGE.ghost);
+    const rival = bytes && expandTrack(bytes,
+      (d) => { const x = sim.terrain.corridorX(d); return { x, y: sim.terrain.heightAt(x, d) }; });
+    if (rival) return rival;
+  }
+  return Storage.loadGhost(SEED);
+}
+
 function buildRunInTheDark() {
   launchPending = false;
-  const ghostData = ghostEnabled ? Storage.loadGhost(SEED) : null;
+  const ghostData = ghostForRun();
   const runs = Storage.runsToday(SEED);
 
   // Words are salted per attempt: run N of the day reads fresh vocabulary
@@ -764,6 +793,8 @@ function finalizeRun() {
   if (boardEligible) {
     sim.recorder.finish(sim.player);
     Storage.saveGhostIfBest(SEED, sim.recorder.serialize({ seed: SEED, distance }));
+    // RC10.5: the same run, resampled small enough to travel in a link.
+    lastRunGhost = encodeBytes(trackFromSamples(sim.recorder.samples));
   }
 
   // Meta layer: lifetime ledger, daily goals and the streak, then the
@@ -1137,6 +1168,10 @@ globalThis.__DASH_CHALLENGE_LINK = () => buildChallengeLink(
     salt: currentSalt,
     goal: lastRunScore,
     bar: lastRunBar,
+    // RC10.5: and the run itself, so the link is an opponent rather than a
+    // number. The recorder's samples are already in hand — this only
+    // resamples them down to something a message can carry.
+    ghost: lastRunGhost,
   });
 
 // COPY STATS (Phase 21): the calibration verdicts on the roadmap all want
