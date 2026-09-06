@@ -349,13 +349,16 @@ head('META — wiring and independence');
     shopSrc.includes('`◆ ${balance()}`') && !/\bCOINS?\b|\bCREDITS?\b|\bGEMS?\b/.test(shopSrc));
 
   const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
+  const rowUi = fs.readFileSync('src/ui/review-row.js', 'utf8');
   check('the review panel teaches the real spelling on a tapped fake',
-    ui.includes('_missedRow(x.answer, x.shown,') && ui.includes('<s>${wrongSpelling}</s>'));
-  // Phase 19 compressed the sentence into the row's label. Same teaching,
-  // same gentle framing, one line instead of one line per wrong read.
+    ui.includes('_missedRow(x.answer, x.shown,') && rowUi.includes('<s class="mFake">'));
+  // Phase 19 compressed the sentence into the row's label. RC9.1 removed the
+  // label too: a row with no struck spelling IS the omission, and the panel
+  // no longer needs a heading to say so. The gentle framing is what the gate
+  // was really protecting, and that is what it checks now.
   check('an omission is explained without crash language',
-    ui.includes("<div class=\"mHead\">UNCAUGHT</div>") &&
-    !/\b(FAILED|WRONG|BAD|MISTAKE)\b/.test(ui));
+    rowUi.includes('slipped past has no fake to contrast') &&
+    !/\b(FAILED|WRONG|BAD|MISTAKE)\b/.test(ui + rowUi));
   // RC6: the goals themselves are a checklist in PROFILE; the title keeps
   // only the streak line, which is the one thing a player loses by not playing.
   check('the streak is on the title and the goals are in PROFILE',
@@ -798,7 +801,7 @@ head('DEFINITIONS — what the word actually means');
   // and the panel has room for all of them rather than the card's two.
   check('the review teaches the true word, not the fake',
     uiSrc2.includes('_missedRow(x.answer, x.shown,') &&
-    uiSrc2.includes('defineWord(word)'));
+    fs.readFileSync('src/ui/review-row.js', 'utf8').includes('defineWord(real)'));
   check('and is not capped at two, now that it has a screen of its own',
     uiSrc2.includes('for (const x of m.tapped)') && uiSrc2.includes('for (const x of m.slipped)'));
 }

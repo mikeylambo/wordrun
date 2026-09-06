@@ -1780,12 +1780,14 @@ head('DANGER — how hard a word is to read, from the word itself');
   // anything to do: mid-run it would be a hint, and on the results card it
   // would compete with the score.
   {
-    const uiSrc = fs.readFileSync('src/ui/ui.js', 'utf8');
-    const row = uiSrc.slice(uiSrc.indexOf('_missedRow('), uiSrc.indexOf('clearRun()'));
+    // RC9.1 moved the row's markup into ui/review-row.js, which is pure so
+    // the gate above can build real rows; the rating is read there now.
+    const row = fs.readFileSync('src/ui/review-row.js', 'utf8');
     check('the rating reaches the review panel and nowhere else',
       /dangerBand\(dangerFor\(/.test(row) &&
       /renderMissedPanel\(\(w\) => nemesis\.history\(w\)\)/
-        .test(fs.readFileSync('src/main.js', 'utf8')),
+        .test(fs.readFileSync('src/main.js', 'utf8')) &&
+      !/dangerFor\(/.test(fs.readFileSync('src/ui/ui.js', 'utf8')),
       'drawn per missed word, with that word\'s own ledger row as evidence');
 
     check('and it is shown as marks, never as a name',
@@ -1803,6 +1805,93 @@ head('DANGER — how hard a word is to read, from the word itself');
       return d >= 0 && d <= 1;
     }),
     'a corrupt or impossible evidence row cannot produce an out-of-range band');
+}
+
+// ── RC9.1: the review that teaches ───────────────────────────────────────
+head('REVIEW — the row a stranger reads in one glance');
+{
+  const read = (f) => fs.readFileSync(f, 'utf8');
+  const { diffSpelling } = await import('../src/words/spelling-diff.js');
+  const { reviewRow } = await import('../src/ui/review-row.js');
+  const { DEFINITIONS } = await import('../src/words/definitions.js');
+
+  // Every fake this game can show, diffed against its source. The generator's
+  // four families are all ONE edit, so the difference is always one contiguous
+  // span and the marks can be exact rather than a highlight over the region.
+  const rnd = mulberry32(90211);
+  let pairs = 0, unmarked = 0, lost = 0;
+  const shapes = new Map();
+  for (const w of ALL_WORDS) {
+    for (let k = 0; k < 2; k++) {
+      const fake = makeFake(w, rnd);
+      const d = diffSpelling(fake, w);
+      pairs++;
+      if (!d || d.marks < 1) { unmarked++; continue; }
+      // The spans must REBUILD both spellings exactly: a mark that drifts by
+      // one letter is worse than no mark, because it teaches the wrong shape.
+      if (d.fake.pre + d.fake.mark + d.fake.post !== fake ||
+        d.real.pre + d.real.mark + d.real.post !== w) lost++;
+      const shape = `${d.fake.mark.length}->${d.real.mark.length}`;
+      shapes.set(shape, (shapes.get(shape) || 0) + 1);
+    }
+  }
+  check('every fake the generator can show diffs to at least one marked letter',
+    unmarked === 0, `${pairs} pairs, ${unmarked} unmarked`);
+  check('and both spellings rebuild exactly from their own spans',
+    lost === 0, `${pairs} pairs, ${lost} that would have taught the wrong shape`);
+  check('the marks land in the four shapes the four mutation families make',
+    [...shapes.keys()].sort().join(' ') === '0->1 1->0 1->1 2->2',
+    [...shapes.entries()].sort().map(([k, v]) => `${k}:${v}`).join(' '));
+  check('a word with no fake to contrast diffs to nothing, not to noise',
+    diffSpelling('winter', 'winter') === null && diffSpelling(null, 'winter') === null,
+    'a real word that slipped past has one spelling, and the row shows one');
+
+  // The row itself, built by the shipped renderer over real bank words.
+  const sample = ALL_WORDS.filter((w) => DEFINITIONS[w]).slice(0, 400);
+  let noReal = 0, noMark = 0, noPips = 0, noDef = 0;
+  const rnd2 = mulberry32(4242);
+  for (const w of sample) {
+    const fake = makeFake(w, rnd2);
+    const row = reviewRow({ word: w, shown: fake });
+    if (!row.includes(`class="mReal"`) || !row.replace(/<[^>]*>/g, '').includes(w)) noReal++;
+    // At least one letter actually painted in the semantic pair.
+    const marked = [...row.matchAll(/<i class="[xo]">([^<]*)<\/i>/g)].map((m) => m[1]);
+    if (marked.join('').length < 1) noMark++;
+    if (!/class="mRisk (low|mid|high)"/.test(row)) noPips++;
+    if (!row.includes('class="mDef"')) noDef++;
+  }
+  check('every row carries the real spelling',
+    noReal === 0, `${sample.length} rows built from the shipped bank`);
+  check('and at least one marked letter',
+    noMark === 0, `${sample.length} rows, ${noMark} with nothing painted`);
+  check('the pips and the definition come from the existing modules, not new data',
+    noPips === 0 && noDef === 0 &&
+    /from '..\/words\/danger.js'/.test(read('src/ui/review-row.js')) &&
+    /from '..\/words\/definitions.js'/.test(read('src/ui/review-row.js')) &&
+    !/DEFINITIONS\s*=|DANGER\s*=/.test(read('src/ui/review-row.js')),
+    'danger.js rates it, definitions.js explains it; the row file holds no table of its own');
+
+  // The panel is rows and nothing else. Live code only — the comment above
+  // each removal still quotes what was removed, which is the record of it.
+  const uiSrc = read('src/ui/ui.js');
+  const liveUi = uiSrc.replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
+  check('no headings and no prose between the rows',
+    !liveUi.includes('mHead') && !liveUi.includes('NOT A WORD') &&
+    !liveUi.includes('UNCAUGHT') && !read('index.html').includes('.mHead'),
+    'the struck spelling says the player fell for it; its absence says the word went past');
+  check("the nemesis retirement line rides its own word's row",
+    read('src/ui/review-row.js').includes('BEAT YOU ${retired.misses} TIME') &&
+    /this\._retired[\s\S]{0,60}parts\.push\(this\._missedRow\(r\.word, null, evidenceFor, r\)\)/.test(liveUi) &&
+    !/defRow"><b>BEATEN<\/b>/.test(liveUi),
+    'a beaten word appears where every other thing about a word appears, not under MORE STATS');
+  check('the true spelling is never drawn with a mark inside it',
+    read('index.html').includes('#missedPanel .mReal i:empty{display:none}'),
+    "the gap mark belongs to the misspelling; 'winter' is 'winter', never 'win-ter'");
+  check('the marks read in every colour-vision mode',
+    read('src/ui/access.js').includes('--sem-right:${p.right};--sem-wrong:${p.wrong}') &&
+    read('index.html').includes('var(--sem-wrong') && read('index.html').includes('var(--sem-right'),
+    'the pair is published to CSS by the palette that already remaps the plate');
 }
 
 console.log(out.join('\n'));

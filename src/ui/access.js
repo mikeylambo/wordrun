@@ -80,9 +80,16 @@ function apply() {
     document.head.appendChild(styleEl);
   }
   const c = p.dangerCss;
-  styleEl.textContent = ACCESS.palette === 'off' ? '' : `
+  // RC9.1: the right/wrong pair reaches CSS too. The review panel marks the
+  // letters that moved in exactly these two colours, and a colour-vision mode
+  // has to remap the marks the same way it remaps the plate — a review screen
+  // that teaches with red against green teaches nobody in the modes this
+  // palette exists for. Written for every palette INCLUDING `off`, so the
+  // stylesheet reads one source for the pair rather than a default of its own.
+  styleEl.textContent = `:root{--sem-right:${p.right};--sem-wrong:${p.wrong}}` +
+    (ACCESS.palette === 'off' ? '' : `
     #dreadRed{background:radial-gradient(135% 90% at 50% 118%,rgba(${c},.5) 0%,rgba(${c},0) 58%) !important}
-  `;
+  `);
 }
 
 export function initAccess() {

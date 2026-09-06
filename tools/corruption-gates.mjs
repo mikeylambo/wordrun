@@ -764,12 +764,16 @@ head('BROADCAST — few words, one type system, numbers first');
   // it was the best thing on the screen and it was competing with the score
   // for it. The card keeps one line; the panel keeps the lesson, and has
   // room for the definitions the card never could.
+  const rowSrc = fs.readFileSync('src/ui/review-row.js', 'utf8');
   check('the results card offers the review rather than inlining it',
     uiSrc.includes("id=\"missedOpen\"") && uiSrc.includes('MISSED · REVIEW') &&
     html.includes('id="missedPanel"'));
-  check('the panel is headed MISSED WORDS and labels both mistake kinds',
-    html.includes('MISSED WORDS') && uiSrc.includes("'<div class=\"mHead\">NOT A WORD</div>'") &&
-    uiSrc.includes("'<div class=\"mHead\">UNCAUGHT</div>'"));
+  // RC9.1: the panel keeps its name and loses its two group headings. The
+  // row says which mistake it was without a label over it — a struck spelling
+  // is a fake this player tapped, and its absence is a real word that went
+  // past — and a heading over a two-row list was the panel narrating itself.
+  check('the panel is headed MISSED WORDS and the rows carry no headings',
+    html.includes('MISSED WORDS') && !uiSrc.includes('mHead') && !html.includes('.mHead'));
   check('a clean run reads PERFECT RUN', uiSrc.includes('>PERFECT RUN<'));
   check('the stat bar names the number it shows',
     uiSrc.includes("'TRUE READS'"));
@@ -788,7 +792,8 @@ head('BROADCAST — few words, one type system, numbers first');
     fs.readFileSync('src/ui/curve-screen.js', 'utf8').includes('class="objRow'));
   check('the review still teaches the true spelling of a tapped fake',
     uiSrc.includes('_missedRow(x.answer, x.shown,') &&
-    uiSrc.includes('<s>${wrongSpelling}</s>') && uiSrc.includes('<b>${word}</b>'));
+    rowSrc.includes('<s class="mFake">') && rowSrc.includes('<b class="mReal">'),
+    'and RC9.1 marks the letters that moved — see the REVIEW block in word-gates');
 }
 
 // ── The BROADCAST look (Phase N as decided) ──────────────────────────────

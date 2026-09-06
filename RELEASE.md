@@ -2379,3 +2379,58 @@ spent dashing — 46 % to 53 % for a strong reader — and how far a run gets.
 
 Both goldens regenerated with `npm run calibrate`; the behaviour snapshot moved
 deliberately, which is what a tuning pass is. Every suite green.
+
+## 1.0-RC9.1 — the review that teaches
+
+`3 MISSED · REVIEW` opened a filed list: two headings, and under each a word
+with its meaning. The headings were the panel narrating its own filing system,
+and the pair a player most needs to see — the misspelling they fell for and the
+truth beside it — sat as two whole words with no indication of where they
+differed. This is the one screen in the game that teaches rather than scores,
+and it is now one row per miss, read in a glance.
+
+- **The letters that moved are marked, exactly.** Every fake this game shows is
+  ONE edit from its source — the generator's four families are transpose,
+  double, drop and vowel-substitute, and `makeFake` never composes two — so the
+  difference is always a single contiguous span and finding it needs no
+  edit-distance table: trim the common prefix, trim the common suffix, and
+  what is left in the middle IS the edit. `src/words/spelling-diff.js` is that,
+  in twenty lines and pure. Driven over the whole bank it produces 10,556 pairs
+  that rebuild both spellings byte-exactly, every one with at least one marked
+  letter, in exactly the four span shapes the four families make (`0→1` 2,882,
+  `1→0` 3,607, `1→1` 1,162, `2→2` 2,905 — the census IS the proof that no fifth
+  kind of edit is reaching players).
+- **A mark is never put inside a correct spelling.** A dropped or doubled
+  letter leaves one side of the pair with nothing to paint. On the
+  MISSPELLING that gap is the lesson and gets drawn — a thin rule where the
+  missing letter belongs. On the TRUE spelling it is drawn as nothing at all,
+  deliberately: the player has to leave this panel with the right shape of the
+  word, and `win-ter` teaches the wrong one. Gated.
+- **The pair is the semantic wrong/right pair, and it survives colour vision.**
+  `ui/access.js` already remapped that pair for the plate; it now publishes it
+  to CSS as `--sem-wrong` / `--sem-right` on every palette, `off` included, so
+  the stylesheet reads one source rather than keeping a default of its own.
+  Deuteranopia and protanopia get orange against blue, tritanopia rose against
+  teal. A review screen that teaches with red against green teaches nobody in
+  the modes that palette exists for.
+- **No headings.** A struck spelling IS the statement that this player tapped a
+  fake; its absence is the statement that a real word went past. NOT A WORD and
+  UNCAUGHT are gone, and the column of true spellings runs straight down the
+  panel either way.
+- **The retirement line rides its own word's row.** `BEAT YOU 3 TIMES · GONE`
+  was a sentence under MORE STATS, three taps away, with none of the word's
+  spelling, meaning or danger beside it. It is on that word's row now, in the
+  right-read colour, because this panel is where the game talks about words. A
+  clean run that retired one still reaches the panel — the card reads PERFECT
+  RUN and offers `1 BEATEN · REVIEW`.
+- **Nothing new was collected to do any of it.** The meaning is
+  `words/definitions.js`, built by `build:definitions` from WordNet at build
+  time; the three pips are `words/danger.js`, structural danger blended with
+  this player's own ledger row; the retirement is `meta/nemesis.js`. The row
+  file holds no table of its own, and the gate asserts that too.
+
+The row's markup moved into `src/ui/review-row.js`, pure — four values in, one
+string out — so the gate suite builds real rows over real bank words and checks
+what a player would actually read, rather than pattern-matching a method it
+cannot call. Eleven new checks in `word-gates`; the three older gates that
+asserted the retired shape now point at the new one. Every suite green.

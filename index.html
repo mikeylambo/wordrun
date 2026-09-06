@@ -262,10 +262,34 @@
   #missedPanel.on{display:flex}
   #missedPanel .mCard{width:min(90vw,380px);max-height:78vh;overflow-y:auto;text-align:left}
   #missedPanel .mTitle{font-size:11px;font-weight:800;letter-spacing:.26em;color:#dcecf7;text-align:center;margin-bottom:16px}
-  #missedPanel .mHead{font-size:8px;font-weight:600;letter-spacing:.24em;color:var(--dimmer);margin:14px 0 6px}
-  #missedPanel .mRow{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07)}
-  #missedPanel .mWord{font-size:16px;font-weight:700;letter-spacing:-.01em;color:#eaf6fc}
-  #missedPanel .mWord s{color:rgba(255,150,142,.72);text-decoration-thickness:1.5px;margin-right:8px;font-weight:600}
+  /* RC9.1 — one row per miss, read in one glance. The row is a grid: the
+     spelling pair on the left, the danger pips hard right, and the meaning
+     and any retirement line running full width underneath. No headings: the
+     struck spelling IS the statement that this player fell for it, and its
+     absence is the statement that a real word went past. */
+  #missedPanel .mRow{display:grid;grid-template-columns:1fr auto;align-items:baseline;
+    column-gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+  #missedPanel .mPair{font-size:16px;font-weight:700;letter-spacing:-.01em;color:#eaf6fc;
+    display:flex;flex-wrap:wrap;align-items:baseline;gap:0 14px}
+  #missedPanel .mFake{color:rgba(232,244,251,.42);text-decoration-thickness:1.5px;font-weight:600}
+  #missedPanel .mReal{color:#eaf6fc;font-weight:700}
+  /* The letters that actually moved. Exactly those, in the semantic pair the
+     plate uses — ui/access.js republishes both for every colour-vision mode,
+     so the marks never come down to red against green. */
+  #missedPanel .mPair i{font-style:normal;font-weight:800}
+  #missedPanel .mFake i{color:var(--sem-wrong,#ff2a1f)}
+  #missedPanel .mReal i{color:var(--sem-right,#57e389)}
+  /* A dropped or doubled letter leaves one side of the pair with nothing to
+     paint. On the MISSPELLING that gap is the lesson and gets drawn — a thin
+     rule where the missing letter belongs. On the TRUE spelling it is drawn
+     as nothing at all, deliberately: this panel exists to leave a player with
+     the right shape of the word, and a mark interpolated into a correctly
+     spelled word teaches the wrong one. 'winter' is 'winter', never 'win-ter'. */
+  #missedPanel .mFake i:empty{display:inline-block;width:.42em;height:2px;
+    vertical-align:.12em;margin:0 .04em;background:var(--sem-wrong,#ff2a1f)}
+  #missedPanel .mReal i:empty{display:none}
+  #missedPanel .mBeat{grid-column:1/-1;margin-top:4px;font-size:9px;font-weight:800;
+    letter-spacing:.2em;color:var(--sem-right,#57e389)}
   #hud .row > div:first-child{position:relative}
   #dist.cut{animation:scoreCut .5s ease-out}
   @keyframes scoreCut{0%{color:#ff968e;transform:scale(1)}45%{color:#ff968e;transform:scale(.94)}100%{color:inherit;transform:scale(1)}}
@@ -278,7 +302,8 @@
   #missedPanel .mRisk i.on{background:rgba(139,228,255,.55)}
   #missedPanel .mRisk.mid i.on{background:rgba(255,214,124,.7)}
   #missedPanel .mRisk.high i.on{background:rgba(255,150,142,.8)}
-  #missedPanel .mDef{margin-top:3px;font-size:11px;font-weight:500;line-height:1.42;color:rgba(232,244,251,.5)}
+  #missedPanel .mDef{grid-column:1/-1;margin-top:3px;font-size:11px;font-weight:500;line-height:1.42;color:rgba(232,244,251,.5)}
+  #missedPanel .mRisk{align-self:center}
   #missedPanel .btn{display:block;width:100%;margin-top:20px}
   .defRow{font-size:11px;font-weight:500;line-height:1.42;letter-spacing:.005em;color:rgba(232,244,251,.5);text-align:left;margin-top:2px}
   .defRow b{font-weight:800;letter-spacing:.12em;color:#8be4ff;text-transform:uppercase;margin-right:7px}

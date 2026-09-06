@@ -8,8 +8,7 @@ import { HEARTS } from '../design/bells.js';
 import { corruptionIntensity, veilOpacity } from '../render/corruption-curve.js';
 import { ACCESS } from './access.js';
 import { bandForDistance } from '../render/art-direction.js';
-import { defineWord } from '../words/definitions.js';
-import { dangerFor, dangerBand } from '../words/danger.js';
+import { reviewRow } from './review-row.js';
 import { COUNT_BEATS, FALLBACK_BPS, countValue } from './results-motion.js';
 import {
   MODALITY, confirmLesson, rejectLesson, barLesson, dashReadyLine, PASS_LESSON,
@@ -731,11 +730,12 @@ export class UI {
     // heading. The teaching is unchanged (a slipped word is named; a
     // tapped fake still shows the true spelling beside the misspelling
     // that lost it) but the words carrying it moved into two labels.
+    // Playtest: this cluttered the results card. The teaching is the best
+    // thing on the screen and it was competing with the score for it, so it
+    // moved behind one line you choose to open. Nothing is lost — the panel
+    // holds more than the card ever could, definitions included.
+    const beaten = (this._retired || []).length;
     if (recap?.length) {
-      // Playtest: this cluttered the results card. The teaching is the best
-      // thing on the screen and it was competing with the score for it, so it
-      // moved behind one line you choose to open. Nothing is lost — the panel
-      // holds more than the card ever could, definitions included.
       const slipped = recap.filter((m) => m.reason !== 'picked_fake');
       const tapped = recap.filter((m) => m.reason === 'picked_fake');
       this._missed = { slipped, tapped, recap };
@@ -743,6 +743,13 @@ export class UI {
         + `${recap.length} MISSED · REVIEW</button>`);
     } else if (recap) {
       core.push('<div class="clean">PERFECT RUN</div>');
+      // RC9.1: a clean run that also RETIRED a word still has something to
+      // show, and the retirement's own row is now the only place it is said.
+      if (beaten) {
+        this._missed = { slipped: [], tapped: [], recap: [] };
+        core.push(`<button class="missedOpen" id="missedOpen" data-rc2-ui>`
+          + `${beaten} BEATEN · REVIEW</button>`);
+      }
     }
 
     // ── Everything below lives behind MORE STATS ─────────────────────────
@@ -783,14 +790,10 @@ export class UI {
       // the lifetime kilometres, which said the least of the three now that
       // distance is not a board metric.
       const avgRead = this._avgReadMs > 0 ? `${(this._avgReadMs / 1000).toFixed(2)}s` : '—';
-      // A word the player has beaten. This is the one line on the card that
-      // is about them rather than about the run, and it is the payoff for the
-      // whole per-word ledger: a word missed four times, then read clean three
-      // times running, is gone from the lane for good.
-      for (const r of (this._retired || []).slice(0, 2)) {
-        deep.push(`<div class="defRow"><b>BEATEN</b>${r.word} — ` +
-          `missed ${r.misses} time${r.misses === 1 ? '' : 's'}, now retired</div>`);
-      }
+      // RC9.1: the BEATEN line moved. It is about a WORD, and every other
+      // thing this game says about a word now lives on that word's review
+      // row — with its spelling, its meaning and its danger — instead of as
+      // a sentence under MORE STATS with none of them.
 
       // Four facts, and the first one is whichever the mode makes meaningful.
       // Time is here as a record of the run rather than as live pressure: a
@@ -833,33 +836,32 @@ export class UI {
     const m = this._missed;
     const body = document.getElementById('missedBody');
     if (!body || !m) return;
+    // RC9.1: one row per miss, and nothing else. The NOT A WORD / UNCAUGHT
+    // headings are gone — they were the panel explaining its own filing
+    // system, and the row already says which happened: a struck spelling on
+    // the left is a fake this player fell for, and its absence is a real
+    // word they let pass. The rows keep that order (fakes first) because the
+    // fake rows are the ones with something to compare, and the column of
+    // true spellings runs straight down the panel either way.
     const parts = [];
-    if (m.tapped.length) {
-      parts.push('<div class="mHead">NOT A WORD</div>');
-      for (const x of m.tapped) parts.push(this._missedRow(x.answer, x.shown, evidenceFor));
-    }
-    if (m.slipped.length) {
-      parts.push('<div class="mHead">UNCAUGHT</div>');
-      for (const x of m.slipped) parts.push(this._missedRow(x.shown, null, evidenceFor));
+    for (const x of m.tapped) parts.push(this._missedRow(x.answer, x.shown, evidenceFor));
+    for (const x of m.slipped) parts.push(this._missedRow(x.shown, null, evidenceFor));
+    // A word BEATEN this run belongs on this screen and not three taps away
+    // under MORE STATS: the panel is where the game talks about words, and
+    // the retirement is the payoff for every row above it.
+    for (const r of (this._retired || []).slice(0, 3)) {
+      parts.push(this._missedRow(r.word, null, evidenceFor, r));
     }
     body.innerHTML = parts.join('');
   }
 
-  _missedRow(word, wrongSpelling, evidenceFor = null) {
-    const meaning = defineWord(word);
-    // How hard this word is, as marks rather than a name — the same choice the
-    // compression bar makes, and for the same reason. It answers the question
-    // a review panel always raises: was that one on me, or is it just a
-    // horrible word? Three pips means everybody struggles with it.
-    const band = dangerBand(dangerFor(word, evidenceFor?.(word) || null));
-    const pips = { low: 1, mid: 2, high: 3 }[band];
-    const risk = `<span class="mRisk ${band}">${
-      [0, 1, 2].map((i) => `<i${i < pips ? ' class="on"' : ''}></i>`).join('')}</span>`;
-    return `<div class="mRow"><div class="mWord">`
-      + (wrongSpelling ? `<s>${wrongSpelling}</s>` : '')
-      + `<b>${word}</b>${risk}</div>`
-      + (meaning ? `<div class="mDef">${meaning}</div>` : '')
-      + '</div>';
+  /** One review row. The markup itself lives in ui/review-row.js, which is
+   *  pure so the gate suite can build rows from the real word bank and check
+   *  what a player would actually read. */
+  _missedRow(word, wrongSpelling, evidenceFor = null, retired = null) {
+    return reviewRow({
+      word, shown: wrongSpelling, evidence: evidenceFor?.(word) || null, retired,
+    });
   }
 
   clearRun() {
