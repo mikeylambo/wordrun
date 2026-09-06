@@ -11,6 +11,10 @@ import { bandForDistance } from '../render/art-direction.js';
 import { defineWord } from '../words/definitions.js';
 import { dangerFor, dangerBand } from '../words/danger.js';
 import { COUNT_BEATS, FALLBACK_BPS, countValue } from './results-motion.js';
+import {
+  MODALITY, confirmLesson, rejectLesson, barLesson, dashReadyLine, PASS_LESSON,
+} from './teach-copy.js';
+import { setBandLine } from './guided.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -28,7 +32,8 @@ export class UI {
     this.distSub = $('distSub');
     this.meterWrap = $('meterWrap');
     this.meterZone = this.meterWrap?.closest('.meter-zone');
-    this.barLevel = document.getElementById('barLevel');
+    this.barMarks = $('barMarks');
+    this.barPips = this.barMarks ? [...this.barMarks.querySelectorAll('i')] : [];
     this.meter = $('meter');
     this.dread = $('dread');
     this.dreadRed = $('dreadRed');
@@ -188,6 +193,12 @@ export class UI {
    *  still unlearned — the ring stays lit on the control beside it. */
   setDashLine(line) { this._dashLine = line || ''; }
 
+  /** RC8.1: the device the copy speaks to. One source (ui/teach-copy.js)
+   *  feeds the coach, the charged hint and the stops, so the three cannot
+   *  drift apart or name a control this player does not have. */
+  setModality(m) { this._modality = m || (this.touch ? MODALITY.TOUCH : MODALITY.KEY); }
+  get modality() { return this._modality || (this.touch ? MODALITY.TOUCH : MODALITY.KEY); }
+
   _updateCoach(sim, running) {
     if (!this.coach) return;
     if (!running) {
@@ -224,25 +235,28 @@ export class UI {
     // covers it, because it is not a fundamental.
     const stopsTeach = !!this._guidedActive;
     // The dash stop's line outlives the freeze: it moves here.
+    const m = this.modality;
     if (this._dashLine) {
       text = this._dashLine;
     } else if (!stopsTeach && !L.confirm) {
-      text = this.touch ? 'TAP RIGHT IF THE WORD IS REAL' : 'RIGHT ARROW IF THE WORD IS REAL';
+      text = confirmLesson(m);
     } else if (!stopsTeach && !L.reject) {
-      text = d < 300
-        ? 'A MISSPELLED WORD CAN SIMPLY PASS'
-        : (this.touch ? 'OR TAP LEFT TO CALL IT OUT SOONER' : 'OR LEFT ARROW TO CALL IT OUT SOONER');
+      text = d < 300 ? PASS_LESSON : rejectLesson(m);
     } else if (!stopsTeach && !L.dash && p.boostMeter >= TUNING.BOOST.MIN_ACTIVATE && !p.overdrive) {
       // The line the game never had. "CLEAN READS CHARGE THE DASH" said where
       // the charge comes from and then left the player holding a full meter
-      // with nothing telling them what to press.
-      text = this.touch ? 'TAP DASH — THE BAR IS FULL' : 'SPACE TO DASH — THE BAR IS FULL';
+      // with nothing telling them what to press. RC8.1: it is THE charged
+      // phrase, read from teach-copy.js — the same bytes the stop and the
+      // HUD hint show, so a player never meets two names for one press.
+      text = dashReadyLine(m);
     } else if (!L.bar && p.compressionLevel === 0 && p.chain >= 4) {
       // Phase R: the compression hold joins the lesson set. Taught only to a
       // player already reading cleanly (a four-link chain) — the bar is the
       // reward knob for someone who has stopped needing the other lessons —
-      // and retired for good the first time they actually raise it.
-      text = this.touch ? 'HOLD RIGHT TO RAISE THE BAR' : 'UP ARROW TO RAISE THE BAR';
+      // and retired for good the first time they actually raise it. RC8.1
+      // says what it buys as well as what to hold: it is a bargain, not a
+      // button, and a line that only named the button taught half of it.
+      text = barLesson(m);
     }
     // RC-5: the value and charge asides are gone. "ANSWERING EARLY IS WORTH
     // MORE" and "CLEAN READS CHARGE THE DASH" described the economy at a
@@ -258,7 +272,7 @@ export class UI {
     if (this.powerHint?.classList.contains('on')) text = '';
 
     if (text) {
-      this.coach.textContent = text;
+      if (text !== this._lastCoach) { this._lastCoach = text; setBandLine(this.coach, text); }
       this.coach.classList.add('on');
     } else this.coach.classList.remove('on');
   }
@@ -339,13 +353,19 @@ export class UI {
     this.meter.style.width = `${pct.toFixed(1)}%`;
     // The compression level, as marks. No label: it is the player's own bar,
     // and naming it would spend the fifth name the game does not have.
+    // RC8.1: the marks left the HUD column. Riding with the DASH meter put
+    // them at the very bottom of a column the touch build then hides, so on
+    // the device most people play on they sat behind the DASH button — a
+    // readout for a mechanic the same pass is teaching, invisible exactly
+    // where it is taught. They are their own row now, three marks directly
+    // above the DASH button, centred, and they appear on the first raise.
     const lvl = p.compressionLevel | 0;
-    if (lvl !== this._lastBar && this.barLevel) {
+    if (lvl !== this._lastBar && this.barMarks) {
       this._lastBar = lvl;
-      const max = TUNING.WORDS.COMPRESSION_MULT.length - 1;
-      this.barLevel.textContent = '▰'.repeat(lvl) + '▱'.repeat(Math.max(0, max - lvl));
-      this.barLevel.classList.toggle('set', lvl > 0);
-      this.barLevel.setAttribute('aria-label', `Reward bar ${lvl} of ${max}`);
+      const max = this.barPips.length;
+      this.barPips.forEach((pip, i) => pip.classList.toggle('lit', i < lvl));
+      this.barMarks.classList.toggle('set', lvl > 0);
+      this.barMarks.setAttribute('aria-label', `Reward bar ${lvl} of ${max}`);
     }
 
     const armed = p.boostMeter >= TUNING.BOOST.MIN_ACTIVATE;
@@ -388,13 +408,19 @@ export class UI {
       this._powerT = 0;
     } else if (running && this.powerHint) {
       const teaching = !this._dashLearned;
+      // RC8.1: ONE phrase for the charged state. The rising-edge flash used
+      // to say 'DASH READY' and the teaching hold said 'DASH READY · HOLD F'
+      // — two strings for one state, and the louder of them named a control
+      // the dash stopped needing when it became a press. Both are the phrase
+      // now, and the phrase is built from the control token.
+      const charged = dashReadyLine(this.modality);
       if (armed && !this._wasArmed) {
-        this.powerHint.textContent = 'DASH READY';
+        setBandLine(this.powerHint, charged);
         this.powerHint.classList.add('on');
         this._powerT = teaching ? Infinity : 1.25;
       }
       if (teaching && armed) {
-        this.powerHint.textContent = `DASH READY · ${this.touch ? 'HOLD DASH' : 'HOLD F'}`;
+        setBandLine(this.powerHint, charged);
         this.powerHint.classList.add('on');
         this.powerHint.classList.toggle('teaching', !ACCESS.reducedFlash);
         this._powerT = Infinity;
@@ -406,7 +432,7 @@ export class UI {
     }
     this._wasArmed = armed;
     if (p.overdrive && this.powerHint) {
-      this.powerHint.textContent = 'DASH';
+      setBandLine(this.powerHint, 'DASH');
       this.powerHint.classList.add('on', 'spending');
       this.powerHint.classList.remove('teaching');
       this._powerT = 0.25;

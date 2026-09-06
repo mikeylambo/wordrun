@@ -124,7 +124,7 @@ function ensureMobileUi() {
   go.id = 'v1MobileDash';
   go.className = 'v1MobileAction';
   go.type = 'button';
-  go.setAttribute('aria-label', 'Hold DASH for a burst of speed');
+  go.setAttribute('aria-label', 'Tap DASH for a burst of speed');
   go.innerHTML = '<span>DASH</span>';
   app.appendChild(go);
 

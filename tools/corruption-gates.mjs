@@ -625,7 +625,7 @@ head('DASH — the second verb, finally legible');
     goHits.length === 0, goHits.slice(0, 3).join(' | ') || 'no GO label survives');
   check('the button, its label and its aria name all say DASH',
     files.mobile.includes('<span>DASH</span>') &&
-    files.mobile.includes("'Hold DASH for a burst of speed'") &&
+    files.mobile.includes("'Tap DASH for a burst of speed'") &&
     files.mobile.includes('percent dash charge'));
 
   // 2. Charged reads louder than it did, and the teaching state is real.
@@ -633,7 +633,8 @@ head('DASH — the second verb, finally legible');
     files.index.includes('#powerHint.teaching') && files.index.includes('@keyframes dashReady') &&
     files.mobile.includes('#v1MobileDash.ready') && files.mobile.includes('@keyframes dashButtonReady'));
   check('the charged hint names the actual input',
-    files.ui.includes("this.touch ? 'HOLD DASH' : 'HOLD F'"));
+    files.ui.includes('const charged = dashReadyLine(this.modality);') &&
+    !/textContent = 'DASH READY'/.test(files.ui));
   check('REDUCED FLASH keeps the instruction and drops only the pulse',
     files.ui.includes("classList.toggle('teaching', !ACCESS.reducedFlash)") &&
     files.mobile.includes('!ACCESS.reducedFlash'));
@@ -659,9 +660,11 @@ head('DASH — the second verb, finally legible');
   // Phase C: the dash stopped being a hold, so the line stopped saying Hold.
   // What must survive is that the mechanic is still taught by name, with its
   // control set inside the sentence.
+  // RC8.1: the sentence names the moment, not the spend — "spends a full
+  // DASH charge" described the economy at someone who has not yet dashed.
   check('the dash gets its own onboarding rule line, by name',
     files.onboard.includes('<b>${dash}</b>') &&
-    files.onboard.includes('spends a full DASH charge'));
+    files.onboard.includes('when the ${charge} is full to tear down the track'));
   check('the coach explains where the charge comes from',
     files.ui.includes('CLEAN READS CHARGE THE DASH'));
   check('the teaching beat holds until the player dashes, then retires for good',

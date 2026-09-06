@@ -1,4 +1,5 @@
 import { HEARTS } from '../design/bells.js';
+import { control, barControl, chargeNoun, modalityFor } from './teach-copy.js';
 
 // RC7 first-run clarity: one screen, then get out of the player's way.
 // V1: the threat is discovered in play, never explained on title/help screens.
@@ -64,11 +65,18 @@ export class OnboardingUI {
     this.root.id = 'rc7Onboarding';
     this.root.dataset.rc7Ui = '1';
     const touch = (navigator.maxTouchPoints || 0) > 0 || matchMedia('(pointer:coarse)').matches;
-    const yes = touch ? 'TAP RIGHT' : '→';
-    const no = touch ? 'TAP LEFT' : '←';
-    // The mobile build has a literal DASH button, so name the button there
-    // and the key only on a keyboard. Same for the confirm verb.
-    const dash = touch ? 'DASH' : 'SPACE';
+    // RC8.1: every control token on this card is the one the in-run coach and
+    // the stops use, read from ui/teach-copy.js. The card used to name its
+    // own — TAP RIGHT / TAP LEFT for the buttons the game labels REAL and
+    // FAKE, and a bare DASH for a press it called a hold — so a player who
+    // read the card met different words for the same three controls the
+    // moment they started running.
+    const m = modalityFor({ touch });
+    const yes = control('real', m);
+    const no = control('fake', m);
+    const dash = control('dash', m);
+    const charge = chargeNoun(m);
+    const bar = barControl(m);
     const HEART_STREAK = HEARTS.STREAK_REPAIR_DEFAULT;
     this.root.innerHTML = `
       <div class="card">
@@ -80,11 +88,11 @@ export class OnboardingUI {
             Every one you get wrong slows you down.</div>
           <div class="rule">You have <i>three hearts</i>, and any wrong read costs one.
             Read <i>${HEART_STREAK} in a row</i> to win one back.</div>
-          <div class="rule"><b>${dash}</b> spends a full DASH charge and tears down the track.</div>
-          <div class="rule">The sooner you answer, the more the read is worth —
-            up to <i>three times</i> for calling it the moment it appears.</div>
-          <div class="rule">Fakes look almost right — one letter out of place.
-            Take your time early; you will not have it later.</div>
+          <div class="rule"><b>${dash}</b> when the ${charge} is full to tear down the track.</div>
+          <div class="rule">The sooner you answer, the more the read is worth.</div>
+          <div class="rule">Fakes look almost right — one letter out of place.</div>
+          <div class="rule">${bar.verb} <b>${bar.control}</b> to raise the bar —
+            a stricter window, a bigger multiplier.</div>
         </div>
         <div class="ghost"><span>BEST RUN</span><button class="toggle" data-act="ghost"></button></div>
         <button class="start" data-act="start">BEGIN RUN</button>

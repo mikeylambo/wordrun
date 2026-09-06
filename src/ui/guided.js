@@ -20,6 +20,31 @@
 
 import { stopLine, stopRing } from './teach-copy.js';
 
+/**
+ * RC8.1 — how a teach-band line breaks.
+ *
+ * Every line on this band is `SITUATION · WHAT TO PRESS`, and the widest of
+ * them no longer fits one line of a 390px phone. Left to itself the browser
+ * broke at whichever space ran out first — "SPELLED CORRECTLY · TAP / REAL",
+ * which splits the instruction in half and reads as two fragments. The clause
+ * is the unit: each side of the separator is set unbreakable, so the only
+ * place a line can wrap is the separator itself, and a wrapped line is still
+ * two whole thoughts. Exported because the coach and the charged hint speak
+ * from this same band and must break the same way.
+ */
+export function setBandLine(el, text) {
+  if (!el) return;
+  el.textContent = '';
+  const parts = String(text).split(' · ');
+  parts.forEach((part, i) => {
+    if (i) el.append(document.createTextNode(' '));
+    const span = document.createElement('span');
+    span.className = 'bandClause';
+    span.textContent = i ? `· ${part}` : part;
+    el.append(span);
+  });
+}
+
 export class GuidedTeach {
   constructor() {
     const style = document.createElement('style');
@@ -27,9 +52,11 @@ export class GuidedTeach {
       #guidedTeach{position:fixed;left:0;right:0;top:57%;z-index:6;
         text-align:center;pointer-events:none;opacity:0;
         transition:opacity .28s ease;transform:translateY(0)}
-      #guidedTeach .gtMain{font:800 17px/1.3 var(--face,system-ui);
+      #guidedTeach{padding:0 max(14px,env(safe-area-inset-left,0px)) 0 max(14px,env(safe-area-inset-right,0px))}
+      #guidedTeach .gtMain{font:800 17px/1.35 var(--face,system-ui);
         letter-spacing:.22em;color:#eefaff;
         text-shadow:0 0 18px rgba(103,216,255,.65),0 2px 10px rgba(0,0,0,.8)}
+      .bandClause{display:inline-block;white-space:nowrap}
       #guidedTeach.on{opacity:1}
     `;
     document.head.appendChild(style);
@@ -44,7 +71,7 @@ export class GuidedTeach {
   _show(key, main) {
     if (this._key !== key) {
       this._key = key;
-      this.main.textContent = main;
+      setBandLine(this.main, main);
     }
     this.el.classList.add('on');
   }

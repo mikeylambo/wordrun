@@ -95,12 +95,19 @@
   #meterLabel i{flex:1;height:1px;background:currentColor;opacity:.3;font-style:normal}
   /* The bar the player set for themselves. Marks, never a word — the naming
      cap is four and this is not one of them. */
-  /* RC6.2: the player's own bar sits with the DASH meter — the two things
-     the player SETS, together — and is invisible until it is actually set.
-     An unset row of marks was three characters of noise beside the hearts
-     explaining nothing. Marks, never a word: the naming cap is four. */
-  #barLevel{font-weight:700;letter-spacing:.22em;color:#8be4ff;font-size:9px;opacity:0;transition:opacity .18s ease}
-  #barLevel.set{opacity:1}
+  /* RC8.1: and the marks are their own row now, not a tail on the meter
+     label. Riding with the meter (RC6.2) put them at the bottom of a column
+     the touch build hides, so on a phone they sat behind the 76px DASH
+     button: a readout invisible on the device it was drawn for. They sit
+     directly above that button instead — centred, three of them, lit per
+     level, and shown only once the player has actually set one. */
+  #barMarks{position:absolute;left:50%;transform:translateX(-50%);z-index:24;pointer-events:none;
+    display:flex;gap:6px;opacity:0;transition:opacity .18s ease;
+    bottom:calc(var(--safe-b) + 52px)}
+  #barMarks.set{opacity:1}
+  #barMarks i{width:16px;height:3px;background:rgba(139,228,255,.22);
+    box-shadow:0 1px 6px rgba(4,9,13,.5);transition:background .18s ease,box-shadow .18s ease}
+  #barMarks i.lit{background:#8be4ff;box-shadow:0 0 10px rgba(139,228,255,.7)}
   .meter-zone.armed #meterLabel{color:rgba(190,238,255,.85)}
   .meter-zone.spending #meterLabel{color:#fff}
   /* The one-shot flourish when the dash reaches full charge. */
@@ -122,6 +129,11 @@
   .meter-zone.spending #meter{background:linear-gradient(90deg,hsl(var(--dashHue) 92% 86%),#fff);filter:drop-shadow(0 0 12px hsl(var(--dashHue) 95% 78% / .85))}
 
   #bandName,#coach,#powerHint{position:absolute;z-index:24;pointer-events:none;left:50%;transform:translateX(-50%);text-align:center;white-space:nowrap}
+  /* RC8.1: the bar line says what the hold BUYS as well as what to hold, and
+     at 11px/.24em that is wider than a 390px phone. The two teach-band lines
+     wrap inside a reading measure instead of clipping off both edges; every
+     shorter line still lands on one. */
+  #coach,#powerHint{white-space:normal;max-width:min(86vw,540px);line-height:1.45}
   #bandName{top:calc(var(--safe-t) + 15%);opacity:0;font-size:clamp(18px,5vw,28px);font-weight:800;letter-spacing:.34em;margin-left:.17em;color:rgba(223,242,252,.85);text-shadow:0 0 18px rgba(103,216,255,.35);transition:opacity .5s ease,transform .65s cubic-bezier(.2,.8,.2,1);transform:translateX(-50%) translateY(7px)}
   #bandName.on{opacity:.8;transform:translateX(-50%) translateY(0)}
   /* RC-3 playtest: teaching text at the bottom edge was invisible while the
@@ -333,15 +345,18 @@
      a mouse/keyboard player has no ring, so there it stays exactly as it was.
      The reward-bar readout moves out of the meter's label so it survives. */
   /* RC5: the charge bar is hidden wherever the DASH button's ring is the
-     tell. RC6.2: the bar MARKS are not the charge, so they stay — the row
-     keeps its place above the button and holds nothing but them, which is
-     nothing at all until the player sets a bar. */
+     tell. RC8.1: with the marks moved out, nothing is left in that column on
+     touch — so the whole zone goes, rather than reserving a row for a
+     readout that no longer lives there. */
   @media (pointer:coarse){
-    #meterWrap,#meterLabel .mLabel,#meterLabel i{display:none}
-    .meter-zone{gap:0;min-height:14px}
-    #meterLabel{justify-content:center}
+    .meter-zone{display:none}
+    /* Clear of the 76px DASH button and its safe-area offset. */
+    #barMarks{bottom:calc(max(20px, var(--safe-b) + 16px) + 86px)}
   }
-  #barLevel{align-self:flex-end}
+  /* The short-landscape control row shrinks the button to 66px and drops it. */
+  @media (pointer:coarse) and (orientation:landscape) and (max-height:500px){
+    #barMarks{bottom:calc(max(12px, var(--safe-b) + 8px) + 76px)}
+  }
   @media(min-width:760px) and (orientation:landscape){#hud{padding-left:28px;padding-right:28px}#meterWrap{max-width:560px;margin:0 auto}.title-lockup{margin-top:8vh}}
 </style>
 </head>
@@ -351,10 +366,11 @@
   <div id="grade"></div>
   <div id="staticVeil"></div><div id="dread"></div><div id="dreadRed"></div><div id="fur"></div><div id="flash"></div><div id="drain"></div><div id="drainDim"></div>
   <div id="bandName"></div><div id="coach"></div><div id="powerHint"></div>
+  <div id="barMarks" role="img" aria-label="Reward bar 0 of 3"><i></i><i></i><i></i></div>
 
   <div id="hud">
     <div><div class="row"><div><div id="dist">0</div><div id="distSub">0 M</div><div id="vitalsSlot"></div></div><div id="best" hidden><span>BEST TODAY</span><b id="bestVal">—</b></div></div><div id="chain"></div></div>
-    <div class="meter-zone"><div id="meterLabel"><span class="mLabel">DASH</span><i></i><b id="barLevel"></b></div><div id="meterWrap"><div id="meter"></div></div></div>
+    <div class="meter-zone"><div id="meterLabel"><span class="mLabel">DASH</span><i></i></div><div id="meterWrap"><div id="meter"></div></div></div>
   </div>
 
   <button id="mute" aria-label="Toggle sound">♪</button>

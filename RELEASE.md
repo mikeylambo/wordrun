@@ -2135,3 +2135,68 @@ ends anything: the sim only kills through the obstacle ledger, and a clean
 streak hands the heart straight back. It also no longer answers the word it
 is waiting to be stopped on, which was releasing a stop in the same frame it
 began and walking straight past it.
+
+## 1.0-RC8.1 — one vocabulary
+
+The controls are the same controls; the words for them were not. This pass
+gives the game a single control vocabulary, in one pure module the gates can
+drive, and moves the one HUD element that was drawn where nobody could see it.
+
+- **The dash is a PRESS, and every line says so.** It has been one since the
+  debugging pass — `Player._overdrive` fires on the rising edge and the dash
+  then runs itself out on `DRAIN_RATE`, so a button touched for a frame and a
+  button leaned on for three seconds buy the identical dash — and four
+  surfaces still said HOLD. HOLD DASH, HOLD F, HOLD RT and the button's own
+  aria name are gone: TAP DASH on touch, PRESS SPACE on a keyboard, RT on a
+  pad. The header comment in `teach-copy.js` that asserted the touch button
+  was held is rewritten, because that sentence is why HOLD kept coming back.
+  The `usedDash` retire flag is untouched.
+- **One phrase for the charged state.** `DASH READY · TAP DASH`, byte
+  identical in the stop, the coach and the HUD hint — not by three edits that
+  agree but by construction: all three call `dashReadyLine(modality)`, which
+  is built from the one control token. The rising-edge flash used to say
+  `DASH READY` and the teaching hold `DASH READY · HOLD F`, two strings for
+  one state. "THE BAR IS FULL" is retired outright; it named nothing, and the
+  bar it accidentally referred to is a different mechanic entirely.
+- **The modality copy stops mixing.** The detection was always right — a
+  connected pad wins, then touch, then the keyboard — and the strings were the
+  bug. Touch names the buttons it draws (TAP REAL / TAP FAKE) and the keyboard
+  names the arrows (→ / ←), on the HOW TO PLAY card and in the coach's
+  fallback rungs alike, all of it read from `ui/teach-copy.js` so the card and
+  the run cannot drift. Gated both ways: no touch line contains RIGHT or LEFT,
+  no keyboard line contains REAL or FAKE — which is also why the real stop now
+  reads SPELLED CORRECTLY, matching the card's own sentence.
+- **The bar is taught, not secret.** The coach line survives and says what the
+  hold buys: `HOLD THE REAL SIDE TO RAISE THE BAR · ANSWER FASTER, SCORE
+  MORE`, still taught only at a four-link chain and still retired on the first
+  real raise. It names the held SCREEN ZONE rather than the answer button, and
+  ↑ rather than →, because that is what raises it: `_pollHolds` reads a press
+  on the right zone that outlives the tap window, the REAL button answers on
+  pointerdown and stops the event there, and ArrowRight has already fired its
+  answer on the way down — reusing it would move when a keyboard answer is
+  timed, which is a tuning change this pass does not make. The card carries
+  the same rule as its seventh.
+- **The level marks came out of the HUD column.** Riding with the DASH meter
+  (RC6.2) put them at the bottom of a zone the touch build hides, so on a
+  phone they sat behind a 76px button: a readout invisible on the device it
+  was drawn for. They are their own row now — three marks, centred, 17px above
+  the DASH button, lit per level, shown from the first raise. The HUD column
+  carries nothing for it, and on touch the whole meter zone goes with it.
+- **HOW TO PLAY, corrected.** Rule 4 is the moment rather than the economy
+  ("when the ring is full to tear down the track"); rule 5 loses the "three
+  times" figure, which `EARLY_MULT` left behind at 3.5; "Take your time early;
+  you will not have it later" is gone; and the bar closes the card.
+
+Two small pieces of typography came with it, because the new lines are longer
+than the old ones. The teach band wraps inside a reading measure instead of
+clipping off both edges of a 390px phone, and it may only break at the `·`:
+each clause is set unbreakable, so a wrapped line is still two whole thoughts
+rather than `SPELLED CORRECTLY · TAP / REAL`. The stills driver waits for the
+band to finish fading in before it fires, having filed a half-transparent
+frame of the fade as a picture of the stop.
+
+Gated: the ban list (HOLD DASH, HOLD F, HOLD RT, THE BAR IS FULL, "three
+times") over every player-facing string with comments stripped, the two
+modality vocabularies, the charged phrase being one function, the bar naming a
+control that actually raises it, and the marks being three, their own row, and
+clear of the button. The three stop stills are re-shot on both viewports.

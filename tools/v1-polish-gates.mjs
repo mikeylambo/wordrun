@@ -141,12 +141,15 @@ check(mobile.includes('Audio.prototype.__v1MobileTouchUi'),
 // nobody on a phone has.
 // Phase C teaches two zones rather than one verb, and names the control set
 // each device actually has.
-check(onboarding.includes("touch ? 'TAP RIGHT' : '\u2192'") &&
-  onboarding.includes("touch ? 'TAP LEFT' : '\u2190'") &&
+// RC8.1: it no longer names its own — every token on the card is the one the
+// run uses, read from ui/teach-copy.js, so a player who read HOW TO PLAY does
+// not meet a second word for the same button the moment they start running.
+check(onboarding.includes("const yes = control('real', m);") &&
+  onboarding.includes("const no = control('fake', m);") &&
   onboarding.includes('if the word is spelled correctly'),
   'onboarding teaches both zones rather than requiring discovery');
-check(onboarding.includes("touch ? 'DASH' : 'SPACE'") &&
-  onboarding.includes('spends a full DASH charge'),
+check(onboarding.includes("const dash = control('dash', m);") &&
+  onboarding.includes('when the ${charge} is full to tear down the track'),
   'the DASH is taught by name, and by the gesture a phone actually has');
 check(onboarding.includes('three hearts') && onboarding.includes('in a row</i> to win one back'),
   'and the heart economy is taught, since a wrong read now costs one');
@@ -441,15 +444,15 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
       'the control lessons run until the player has used the control, not until tomorrow');
     check(!/!this\._firstRun\) \{\s*this\.coach/.test(coach),
       'and are no longer gated on it being the first run of the day');
-    check(/L\.dash/.test(coach) && /TO DASH|TAP DASH/.test(coach),
-      'the game names the dash control at the moment the bar is full — it never did before');
+    check(/L\.dash/.test(coach) && /text = dashReadyLine\(m\);/.test(coach),
+      'the game names the dash control the moment the charge is full — it never did before');
     const mainCode = codeOf('src/main.js');
     check(/learn\('Confirm'\)/.test(mainCode) && /learn\('Reject'\)/.test(mainCode) &&
       /learn\('Dash'\)/.test(mainCode),
       'and each lesson is retired where its action is actually performed');
     // Phase R: the compression hold joins the set — taught to a player who
     // is already reading cleanly, retired on the first successful raise.
-    check(/L\.bar/.test(coach) && /RAISE THE BAR/.test(coach) &&
+    check(/L\.bar/.test(coach) && /text = barLesson\(m\);/.test(coach) &&
       /p\.compressionLevel === 0 && p\.chain >= 4/.test(coach),
       'the compression hold is taught, and only to a player mid-flow');
     check(/if \(p\.compressionLevel > 0\) learn\('Bar'\)/.test(mainCode) &&
@@ -676,8 +679,8 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   // the condensed mode must stay deleted.
   check(!onboardingCode.includes("classList.add('condensed')") &&
     !onboardingCode.includes('.condensed') &&
-    (onboardingCode.match(/<div class="rule">/g) || []).length === 6,
-    'one HOW TO PLAY card — the full six-rule sheet on fresh open and in the pause menu alike');
+    (onboardingCode.match(/<div class="rule">/g) || []).length === 7,
+    'one HOW TO PLAY card — the full sheet on fresh open and in the pause menu alike');
 }
 
 // ── PD-2: the continuous journey ─────────────────────────────────────────
@@ -826,12 +829,18 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     "RC3's position pin is gone, not left beside its replacement");
 
   // ── The copy names a control that EXISTS in that modality, and no other ──
-  const { stopLine, stopRing, MODALITY } = await import('../src/ui/teach-copy.js');
+  const {
+    stopLine, stopRing, MODALITY, dashReadyLine, confirmLesson, rejectLesson,
+    barLesson, control,
+  } = await import('../src/ui/teach-copy.js');
   // What each modality can actually be told to press, per input/input.js.
+  // RC8.1: the dash is a PRESS on all three (Player._overdrive fires on the
+  // rising edge and the dash runs itself out on DRAIN_RATE), so no line in
+  // any modality may say HOLD DASH, HOLD F or HOLD RT again.
   const CONTROLS = {
-    touch: { has: ['TAP REAL', 'TAP FAKE', 'HOLD DASH'], hasNot: ['→', '←', 'SPACE', ' A', 'RT'] },
-    key: { has: ['→', '←', 'PRESS SPACE'], hasNot: ['TAP', 'HOLD DASH', 'RT'] },
-    pad: { has: ['A', 'HOLD RT'], hasNot: ['TAP', '→', '←', 'SPACE'] },
+    touch: { has: ['TAP REAL', 'TAP FAKE', 'TAP DASH'], hasNot: ['→', '←', 'SPACE', ' A', 'RT'] },
+    key: { has: ['→', '←', 'PRESS SPACE'], hasNot: ['TAP', 'RT'] },
+    pad: { has: ['A', 'RT'], hasNot: ['TAP', '→', '←', 'SPACE'] },
   };
   let copyOk = true;
   const copyDetail = [];
@@ -856,6 +865,93 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   check(stopLine('fake', MODALITY.PAD) === 'MISSPELLED · LET IT PASS' &&
     !read('src/v1-ship-polish.js').includes('this.reject = true'),
     'the pad line invents no button: the gamepad layer binds no reject, so it names the pass');
+
+  // ── RC8.1: one vocabulary per device, one phrase per state ──────────────
+  // Every player-facing line the copy module can produce, per modality. The
+  // stop, the coach rung and the HOW TO PLAY token all come from here, so
+  // this list IS the game's control vocabulary.
+  const allLines = (m) => [
+    stopLine('real', m), stopLine('fake', m), stopLine('dash', m),
+    confirmLesson(m), rejectLesson(m), barLesson(m),
+    control('real', m), control('fake', m), control('dash', m),
+  ].filter(Boolean);
+
+  // The detection was already right; the strings were the bug. Touch names
+  // the buttons it draws and has no screen halves left to point at; the
+  // keyboard names the arrows and has no buttons to name.
+  const mixed = [];
+  for (const line of allLines(MODALITY.TOUCH)) {
+    if (/\b(RIGHT|LEFT)\b/.test(line)) mixed.push(`touch: "${line}"`);
+  }
+  for (const line of allLines(MODALITY.KEY)) {
+    if (/\b(REAL|FAKE)\b/.test(line)) mixed.push(`key: "${line}"`);
+  }
+  check(mixed.length === 0,
+    `no touch line says RIGHT or LEFT and no keyboard line says REAL or FAKE${mixed.length ? ` — ${mixed.join('; ')}` : ' — 18 lines, both vocabularies clean'}`);
+
+  // The charged state is ONE phrase, and the three surfaces read it from the
+  // one function rather than agreeing by hand.
+  const chargedOk = Object.values(MODALITY).every((m) =>
+    stopLine('dash', m) === dashReadyLine(m));
+  check(chargedOk && dashReadyLine(MODALITY.TOUCH) === 'DASH READY · TAP DASH' &&
+    uiCode.includes('const charged = dashReadyLine(this.modality);') &&
+    /text = dashReadyLine\(m\);/.test(uiCode),
+    'the stop, the coach and the HUD hint show byte-identical charged copy — DASH READY · TAP DASH');
+
+  // The bar names the control that RAISES it, which is not the answer button:
+  // _pollHolds reads a held press on the right screen zone (the REAL button
+  // answers on pointerdown and stops the event), and on a keyboard it is
+  // ArrowUp, because ArrowRight has already fired its answer on the way down.
+  const inputSrc = read('src/input/input.js');
+  check(/case 'ArrowUp': case 'KeyW': if \(down\) this\.raiseBar = true;/.test(inputSrc) &&
+    /_pollHolds\(now\)[\s\S]{0,420}_zoneOf\(meta\.downX\) === 'right'\) this\.raiseBar = true/.test(inputSrc) &&
+    barLesson(MODALITY.TOUCH).startsWith('HOLD THE REAL SIDE') &&
+    barLesson(MODALITY.KEY).startsWith('PRESS ↑') &&
+    !/HOLD →|HOLD REAL TO/.test(barLesson(MODALITY.KEY) + barLesson(MODALITY.TOUCH)),
+    'the bar line names the held zone and the up arrow — the controls that actually raise it');
+  check(barLesson(MODALITY.TOUCH).endsWith(' · ANSWER FASTER, SCORE MORE') &&
+    barLesson(MODALITY.KEY).endsWith(' · ANSWER FASTER, SCORE MORE') &&
+    barLesson(MODALITY.PAD) === '',
+    'and says what the hold buys, in one clause — except on a pad, which binds no raise at all');
+
+  // The ban list. Every one of these was live copy for a control the game
+  // does not have, or a figure the tuning has moved past.
+  const BANNED_COPY = ['HOLD DASH', 'HOLD F', 'HOLD RT', 'THE BAR IS FULL', 'three times'];
+  const facing = ['index.html', 'src/ui/ui.js', 'src/ui/onboarding.js', 'src/ui/teach-copy.js',
+    'src/ui/guided.js', 'src/ui/pause.js', 'src/ui/access.js', 'src/v1-mobile-ui.js'];
+  const banned = [];
+  for (const f of facing) {
+    // Strings and markup only: the comments above each change still quote the
+    // retired line, which is the record of what was removed and why.
+    const text = read(f)
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
+    const strings = [
+      ...text.matchAll(/'([^'\n]*)'/g),
+      ...text.matchAll(/`([^`\n]*)`/g),
+      ...text.matchAll(/>([^<>{}\n]+)</g),
+      ...text.matchAll(/aria-label(?:', |=")([^'"]+)/g),
+    ].map((mm) => mm[1]);
+    for (const str of strings) {
+      for (const b of BANNED_COPY) if (str.includes(b)) banned.push(`${f}: "${str.trim().slice(0, 44)}"`);
+    }
+  }
+  check(banned.length === 0,
+    `no player-facing string says HOLD DASH, HOLD F, HOLD RT, THE BAR IS FULL or "three times"${banned.length ? ` — ${banned.slice(0, 3).join(' | ')}` : ` — ${BANNED_COPY.length} retired, none present`}`);
+
+  // Every modality line is also built from the ONE control token, so a
+  // renamed control cannot leave a stale string behind on some other surface.
+  const onboardSrc = read('src/ui/onboarding.js');
+  check(onboardSrc.includes("from './teach-copy.js'") &&
+    onboardSrc.includes('const yes = control(\'real\', m);') &&
+    onboardSrc.includes('const dash = control(\'dash\', m);') &&
+    !/TAP RIGHT|TAP LEFT/.test(onboardSrc.split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n')),
+    'HOW TO PLAY reads its control names from the same module the run does');
+  check(!/up to <i>three times<\/i>/.test(onboardSrc) &&
+    !onboardSrc.includes('Take your time early') &&
+    onboardSrc.includes('to raise the bar —') &&
+    onboardSrc.includes('when the ${charge} is full to tear down the track'),
+    'the card loses the stale 3x figure and the retired aside, and teaches the bar');
 
   // ── Behavioural: all three stops, headless and deterministic ────────────
   const { Sim, emptyInput } = await import('../src/sim/sim.js');
@@ -1087,19 +1183,21 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     !/text = .*CLEAN READS CHARGE/.test(liveUi) &&
     !liveUi.includes('_showedChargeLesson') && !liveUi.includes('_firstRun'),
     'the economy asides are gone — the coach teaches controls, never commentary');
-  check(uiCode.includes('TAP RIGHT IF THE WORD IS REAL') &&
-    uiCode.includes('THE BAR IS FULL'),
+  check(/text = confirmLesson\(m\);/.test(liveUi) && /: rejectLesson\(m\);/.test(liveUi) &&
+    /text = dashReadyLine\(m\);/.test(liveUi) && /text = barLesson\(m\);/.test(liveUi),
     'the control lessons remain, each still retiring on the action it teaches');
 
   // One tell per mechanic, one row of controls.
-  check(/@media \(pointer:coarse\)\{[\s\S]{0,220}#meterWrap,#meterLabel \.mLabel,#meterLabel i\{display:none\}/.test(html) &&
+  check(/@media \(pointer:coarse\)\{[\s\S]{0,300}\.meter-zone\{display:none\}/.test(html) &&
     mobileCode.includes('--dash-angle'),
     "the bottom charge bar is gone where the DASH ring exists — one tell per mechanic");
-  // RC6.2: the marks sit with the meter (the two things the player SETS) and
-  // survive where the bar itself is hidden, because they are not the charge.
-  check(html.includes('<span class="mLabel">DASH</span><i></i><b id="barLevel"></b>') &&
-    html.includes('#barLevel{') && html.includes('#barLevel.set{opacity:1}'),
-    'the bar marks ride with the DASH meter and show only once a bar is set');
+  // RC8.1: the marks left that column. Riding with the meter (RC6.2) put them
+  // at the bottom of a zone the touch build hides, so on a phone they sat
+  // behind the 76px DASH button — the one device the row was drawn for.
+  check(html.includes('<span class="mLabel">DASH</span><i></i></div>') &&
+    !html.includes('barLevel') &&
+    html.includes('<div id="barMarks"') && html.includes('#barMarks.set{opacity:1}'),
+    'the bar marks are their own row above the DASH button, and the HUD column carries nothing for them');
   check(/#v1MobileDash\{left:50%;margin-left:-38px/.test(mobileCode) &&
     /#v1MobileDash\{width:66px;height:66px;left:50%;right:auto;margin-left:-33px/.test(mobileCode),
     'DASH is centred between the answers in both orientations, and stays centred when it shrinks');

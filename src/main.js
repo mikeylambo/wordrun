@@ -1530,6 +1530,9 @@ function tick(dt) {
     sim.teach.firedThisRun.dash && running &&
     sim.player.boostMeter >= TUNING.BOOST.MIN_ACTIVATE && !sim.player.overdrive;
   const teachModality = modalityFor({ touch: ui.touch, pad: padConnected() });
+  // RC8.1: the coach and the charged hint speak in the same modality the
+  // stops do. One detection, one vocabulary — the strings were the bug.
+  ui.setModality(teachModality);
   ui.setDashLine(dashPending ? stopLine('dash', teachModality) : '');
   ui.setGuidedActive(stopsOn);
   ui.setStopActive(!!sim.teach.active);

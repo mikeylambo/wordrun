@@ -1411,10 +1411,29 @@ head('COMPRESSION — risk without a legibility cost');
     /Math\.sign\(this\.pendingBar\)/.test(simSrc),
     'advance() runs several fixed steps a frame; an unconsumed edge moved it two');
 
-  check('the level is shown as marks, never as a name',
-    /barLevel/.test(fs.readFileSync('src/ui/ui.js', 'utf8')) &&
-    /'\u25b0'\.repeat/.test(fs.readFileSync('src/ui/ui.js', 'utf8')),
-    'the naming cap is four and this is not one of them');
+  // RC8.1: still marks, and now where the player can see them — a row of
+  // three directly above the DASH button, lit per level, with the HUD column
+  // carrying nothing for it. The old row rode the DASH meter label, which the
+  // touch build hides, so on a phone it sat behind the button.
+  {
+    const uiSrc = fs.readFileSync('src/ui/ui.js', 'utf8');
+    const html = fs.readFileSync('index.html', 'utf8');
+    const marks = (html.match(/<div id="barMarks"[^>]*>([\s\S]*?)<\/div>/) || [])[1] || '';
+    check('the level is shown as marks, never as a name',
+      /barMarks/.test(uiSrc) && /classList\.toggle\('lit', i < lvl\)/.test(uiSrc) &&
+      !/barLevel/.test(uiSrc) && !html.includes('id="barLevel"'),
+      'the naming cap is four and this is not one of them');
+    check('three marks, their own row, directly above the DASH button',
+      (marks.match(/<i><\/i>/g) || []).length === TUNING.WORDS.COMPRESSION_MULT.length - 1 &&
+      /#barMarks\{[^}]*left:50%/.test(html) &&
+      /@media \(pointer:coarse\)\{[\s\S]{0,260}#barMarks\{bottom:calc\(max\(20px, var\(--safe-b\) \+ 16px\) \+ 86px\)\}/.test(html) &&
+      !/<b id="barLevel">/.test(html),
+      'one mark per compression level, clear of the 76px button, and nothing left in the HUD column');
+    check('the marks appear on the first raise and not before',
+      /#barMarks\{[^}]*opacity:0/.test(html) && html.includes('#barMarks.set{opacity:1}') &&
+      /classList\.toggle\('set', lvl > 0\)/.test(uiSrc),
+      'an unset row of marks is three pips of noise explaining nothing');
+  }
 }
 
 // ── Phase G: the words you keep missing ──────────────────────────────────

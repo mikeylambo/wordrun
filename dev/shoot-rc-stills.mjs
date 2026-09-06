@@ -136,7 +136,10 @@ async function driveToStop(page, which, cap = 1600) {
       over: document.getElementById('deathScreen')?.classList.contains('on') || false,
     }));
     if (s.over) throw new Error(`the run ended before the ${which} stop`);
-    if (s.stop === which && s.band) return;          // frozen AND speaking
+    // Frozen AND speaking — then let the band finish arriving. The teach
+    // surface fades in over 280ms, and shooting the frame the class lands
+    // caught it half-transparent: a still of the fade, not of the stop.
+    if (s.stop === which && s.band) { await wait(420); return; }
     // Never answer the word we are waiting to be STOPPED on. The freeze
     // lands one fixed step after the gate arms, so a driver that answers on
     // sight buffers an input that releases the stop in the same frame it
