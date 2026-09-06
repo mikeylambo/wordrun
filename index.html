@@ -240,6 +240,11 @@
   #openCurve.hasNews::after{content:'';position:absolute;top:5px;right:6px;width:5px;height:5px;border-radius:50%;background:var(--ice);box-shadow:0 0 6px rgba(103,216,255,.8)}
   #titleGoals{display:flex;flex-direction:column;gap:9px;align-items:center}
   #titleStreak{font-size:8px;font-weight:600;letter-spacing:.28em;color:var(--dim)}
+  /* RC10.3 — what the ledger has been quietly doing. One line, and only once
+     there is something to say: the spaced repetition under this game is its
+     best idea and it accumulated where nobody could see it. */
+  #titleMastery{font-size:8px;font-weight:700;letter-spacing:.28em;color:#8be4ff;opacity:.72}
+  #titleMastery:empty{display:none}
   /* RC9.4 — what the DAILY RUN actually is, once. The chip names the mode;
      this says the three facts that make it worth choosing, and it retires
      the first time the player finishes one. */
@@ -574,7 +579,7 @@
           <text x="774" y="206" fill="#f4fbff">DICTION DASH</text>
         </g>
       </svg><div id="titleHint"></div></div>
-    <div class="drop-lockup"><div class="drop">BEGIN RUN</div><div id="modeRows"><div class="modeRow" id="modeRow"><button class="modeChip" type="button" data-mode="endless">ENDLESS</button><button class="modeChip" type="button" data-mode="standard">DAILY RUN</button></div><div class="modeRow" id="difficultyRow"><button class="modeChip" type="button" data-difficulty="easy">EASY</button><button class="modeChip" type="button" data-difficulty="normal">NORMAL</button><button class="modeChip" type="button" data-difficulty="hard">HARD</button></div></div><div id="titleGoals"><div id="dailyNote"></div><div class="goalRow" id="titleGoalRow"></div><div id="titleStreak"></div></div><div class="seed" id="seedLine"></div></div>
+    <div class="drop-lockup"><div class="drop">BEGIN RUN</div><div id="modeRows"><div class="modeRow" id="modeRow"><button class="modeChip" type="button" data-mode="endless">ENDLESS</button><button class="modeChip" type="button" data-mode="standard">DAILY RUN</button></div><div class="modeRow" id="difficultyRow"><button class="modeChip" type="button" data-difficulty="easy">EASY</button><button class="modeChip" type="button" data-difficulty="normal">NORMAL</button><button class="modeChip" type="button" data-difficulty="hard">HARD</button></div></div><div id="titleGoals"><div id="dailyNote"></div><div class="goalRow" id="titleGoalRow"></div><div id="titleStreak"></div><div id="titleMastery"></div></div><div class="seed" id="seedLine"></div></div>
   </div>
 
   <div class="screen" id="deathScreen">

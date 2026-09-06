@@ -61,6 +61,7 @@ export class UI {
     this.shot = $('shot');
     this.saveShot = $('saveShot');
     this.titleStreak = $('titleStreak');
+    this.titleMastery = $('titleMastery');
     this.dailyNote = $('dailyNote');
     this.attractLine = $('attractLine');
     this.titleGoalRow = $('titleGoalRow');
@@ -189,6 +190,22 @@ export class UI {
       ? `DAY ${card.streak}${card.playedToday ? '' : ' · KEEP IT'}`
       : '';
     this.titleGoalRow.innerHTML = '';
+  }
+
+  /**
+   * RC10.3 — the words this player has learned, on the title.
+   *
+   * The nemesis ledger has always done spaced repetition properly and has
+   * always done it invisibly: a player could beat forty words over a
+   * fortnight and find nothing anywhere that had grown. This is that number,
+   * and it is the honest one — a word counts once it has been read right and
+   * is not owed a repeat, so it rises when you learn and falls back when you
+   * start missing something again. Silent until there is something to say.
+   */
+  setMastery(count = 0) {
+    if (!this.titleMastery) return;
+    this.titleMastery.textContent = count > 0
+      ? `${count.toLocaleString('en-US')} WORDS LEARNED` : '';
   }
 
   /**
@@ -826,6 +843,13 @@ export class UI {
     // E4: at most ONE standout, chosen by rarity in meta/standout.js — an
     // ordinary run shows nothing here, and that is the point.
     if (extras.standout) core.push(row(extras.standout.k, extras.standout.v));
+    // RC10.3: the run's actual learning, and only when it happened. A word
+    // counts here the first time it goes from being owed a repeat to being
+    // read right — so this line is never the same word twice, and an ordinary
+    // run says nothing, exactly as the standout does.
+    if (extras.learnedWords > 0) {
+      core.push(row('LEARNED', `+${extras.learnedWords}`));
+    }
 
     // RC6: today's goals, the objective queue and the ◆ takings all moved to
     // PROFILE. This card is the high-score moment — the number, whether it

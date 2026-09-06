@@ -41,6 +41,8 @@ import { Input } from './input/input.js';
 import { Storage } from './storage/storage.js';
 import { StatsManager, localStorageAdapter } from './meta/stats.js';
 import { NemesisLedger } from './meta/nemesis.js';
+import { MasteryLedger } from './meta/mastery.js';
+import { TIERS } from './words/wordlist.js';
 import { CurveLog } from './meta/curve.js';
 import { buildCurveScreen } from './ui/curve-screen.js';
 import { DailyManager } from './meta/daily.js';
@@ -179,6 +181,7 @@ const moments = new MomentCapture(canvas, ACCESS);
 const momentClip = new MomentClip();
 momentClip.mount(document.getElementById('momentSlot'));
 let frozenRank = 0;
+let learnedWords = 0;    // RC10.3: words mastered for the first time this run
 let breathing = false;   // RC9.9: is the held breath currently being written
 let deathShownAt = 0;
 let shotUrl = null;
@@ -236,6 +239,14 @@ const metaAdapter = localStorageAdapter();
 const metaStats = new StatsManager(metaAdapter);
 // The per-word ledger rides the same adapter seam as the stats.
 const nemesis = new NemesisLedger(metaAdapter);
+// RC10.3 — the words this player has actually learned. A word counts once it
+// has been read right and is not currently owed a repeat, so the two systems
+// agree by construction: the ledger owns "still practising", this owns "done".
+// The predicate is OUTSTANDING MISSES, not "has an entry": the ledger records
+// every word it sees, so `history(w)` is true of a word read right the first
+// time and would have made mastery uncountable for a good reader. `m > 0` is
+// the state that actually means "this one is still being practised".
+const mastery = new MasteryLedger(metaAdapter, (w) => (nemesis.history(w)?.m || 0) > 0);
 const curve = new CurveLog(metaAdapter);
 buildCurveScreen(() => ({
   series: curve.series(14),
@@ -245,6 +256,9 @@ buildCurveScreen(() => ({
   objectives: metaObjectives.status(),
   currency: metaStats.get('currency', 0),
   best: Storage.bestFor(SEED),
+  // RC10.3: the learning, tier by tier. The bank's own lists go in so the
+  // ledger needs to know nothing about how words are grouped.
+  mastery: { total: mastery.count, tiers: mastery.byTier(TIERS) },
 }));
 const metaDaily = new DailyManager(metaAdapter);
 
@@ -344,6 +358,7 @@ ui.setChallenge(CHALLENGE);
 ui.setSeed(SEED_STRING, Storage.bestFor(SEED), Storage.runsToday(SEED));
 pushLessons();
 ui.setDaily(metaDaily.status(DAILY_SEED));
+ui.setMastery(mastery.count);
 ui.showTitle(true);
 input.onFirstGesture = () => audio.start();
 
@@ -542,6 +557,7 @@ function buildRunInTheDark() {
   burstWindow = [];
   burst10 = 0;
   frozenRank = 0;
+  learnedWords = 0;
   moments.begin(ACCESS);
   momentClip.hide();
   earlyStreak = 0;
@@ -851,6 +867,10 @@ function finalizeRun() {
       dashRung: dashRungMax, earlyStreak: bestEarlyStreak, burst10,
       bestChain: sim.player.bestChain, avgReadMs, reads: wg.readCount,
     }),
+    // RC10.3: words this run took from "getting wrong" to "know". Only when
+    // it happened — an ordinary run says nothing, exactly like the standout.
+    learnedWords,
+    masteredTotal: mastery.count,
   });
   // RC9.8: the clip, and ONLY when the run earned a standout. No standout, no
   // frozen moment, no player and no button — an ordinary run is offered a
@@ -902,6 +922,9 @@ function resumeGame() {
 }
 
 function quitToTitle() {
+  // RC10.3: the title's learned count is the one number a run can move, so it
+  // is refreshed on the way back rather than only at boot.
+  ui.setMastery(mastery.count);
   paused = false;
   running = false;
   input.enabled = false;
@@ -1332,7 +1355,11 @@ function drainSimEvents() {
         if (e.dashMult > 1) dashRungMax = Math.max(dashRungMax, (e.dashChain | 0) + 1);
         if (e.answer) {
           const before = nemesis.history(e.answer);
-          if (nemesis.record(e.answer, true, e.index) === 'retired' && before?.m > 0) {
+          const outcome = nemesis.record(e.answer, true, e.index);
+          // RC10.3: after the ledger, not before — a word retiring on THIS
+          // read stops being owed on this read, and is mastered on it too.
+          if (mastery.mark(e.answer)) learnedWords++;
+          if (outcome === 'retired' && before?.m > 0) {
             retiredThisRun.push({ word: e.answer, misses: before.m, attempts: before.a });
             // The retirement beat, AT the read (Phase 1) — not a text line two
             // screens later. Its own sound, an escalated burst reusing the
@@ -1382,6 +1409,8 @@ function drainSimEvents() {
         const t = tierTally[e.tier] || (tierTally[e.tier] = { a: 0, c: 0 });
         t.a++;
         nemesis.record(e.answer, false, e.index);
+        // RC10.3: a word being practised again is not a word mastered.
+        mastery.unmark(e.answer);
         // Phase M: one layer of the architecture falls, frame-accurate with
         // the drain — the loss made spatial.
         editorialWorld.onWrongRead();

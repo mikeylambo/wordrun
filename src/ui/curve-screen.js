@@ -116,7 +116,7 @@ export function buildCurveScreen(getData) {
   };
 
   const render = () => {
-    const { series, beaten, daily, objectives, currency, best } = getData() || {};
+    const { series, beaten, daily, objectives, currency, best, mastery } = getData() || {};
     const rows = [];
     const hasTrend = series && series.tiers.length > 0;
 
@@ -128,6 +128,22 @@ export function buildCurveScreen(getData) {
         `<span class="cV">${Math.floor(best || 0).toLocaleString('en-US')}` +
         (currency > 0 ? `<i class="cBank">◆ ${Math.floor(currency)}</i>` : '') +
         '</span></div>');
+    }
+    // RC10.3 — the learning, where someone comes to look at their progress.
+    // The title carries the one number; this is what it is made of. Tier by
+    // tier, because "412 of 10,556" is a fraction nobody can feel and "tier 1:
+    // 380 of 900" is a shelf filling up.
+    if (mastery?.total > 0) {
+      rows.push(`<div class="cHead">${mastery.total.toLocaleString('en-US')} WORDS LEARNED</div>`);
+      const bars = mastery.tiers.map((t, i) => {
+        const pct = t.total > 0 ? Math.round((t.known / t.total) * 100) : 0;
+        return `<div class="objRow"><span class="ol">TIER ${i + 1}</span>`
+          + `<span class="ob"><i style="width:${pct}%"></i></span>`
+          + `<span class="ov">${t.known}/${t.total}</span></div>`;
+      });
+      rows.push(`<div class="objList">${bars.join('')}</div>`);
+      rows.push('<p class="note">A word counts once you read it right and are '
+        + 'not owed it again. Miss it and it comes back.</p>');
     }
     if (daily?.goals?.length) {
       const done = daily.goals.filter((g) => g.done).length;
@@ -157,7 +173,7 @@ export function buildCurveScreen(getData) {
       rows.push(`<div class="objList">${bits.join('')}</div>`);
     }
 
-    if (!hasTrend && (!beaten || beaten.length === 0)) {
+    if (!hasTrend && (!beaten || beaten.length === 0) && !(mastery?.total > 0)) {
       if (!rows.length) rows.push('<p class="note">Play a few runs and this fills in.</p>');
       body.innerHTML = rows.join('');
       return;

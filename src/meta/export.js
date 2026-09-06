@@ -106,7 +106,11 @@ export function buildStatsExport({ stats = {}, daily, run, tuning, access, seed,
     // Settings change perceived difficulty, so a verdict needs them.
     access: access ? {
       reducedFlash: !!access.reducedFlash,
+      // RC10.2: the derived "any legibility help" flag, plus the steps that
+      // set it — a verdict on a read time wants to know how big the word was.
       readableType: !!access.readableType,
+      plateSpacing: access.plateSpacing | 0,
+      plateSize: access.plateSize | 0,
       colorVision: access.mode ?? access.colorVision ?? 'off',
     } : null,
   };

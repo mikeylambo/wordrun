@@ -323,6 +323,110 @@ head('BOARD POLICY — DAILY on NORMAL only, ENDLESS per difficulty, no continue
     /metaDaily\.recordRun\(DAILY_SEED/.test(main) && !/boardEligible[\s\S]{0,200}metaDaily\.recordRun/.test(main));
 }
 
+// ── RC10.3: the words you have actually learned ──────────────────────────
+head('MASTERY — the ledger\'s work, finally visible and honestly counted');
+{
+  const { MasteryLedger } = await import('../src/meta/mastery.js');
+  const { NemesisLedger } = await import('../src/meta/nemesis.js');
+
+  const mem = () => { const m = {}; return { get: (k) => m[k], set: (k, v) => { m[k] = v; } }; };
+
+  // The definition, driven end to end against the REAL nemesis ledger: a word
+  // counts once it is read right and not owed a repeat; missing it takes it
+  // back; beating it through the ledger's three clean reads returns it.
+  {
+    const store = mem();
+    const nem = new NemesisLedger(store);
+    const mas = new MasteryLedger(store, (w) => (nem.history(w)?.m || 0) > 0);
+    nem.record('receive', true, 0);
+    check('a clean word is learned on the first correct read',
+      mas.mark('receive') === true && mas.count === 1 && mas.has('receive'));
+    check('and it is only NEW once — the same word never counts twice',
+      mas.mark('receive') === false && mas.count === 1);
+
+    nem.record('receive', false, 1);      // missed: the ledger now owes it
+    mas.unmark('receive');
+    check('missing it takes it back — a word being practised is not a word learned',
+      mas.count === 0 && !mas.has('receive'));
+    check('and it cannot be re-learned while the ledger is still owed it',
+      mas.mark('receive') === false && mas.count === 0,
+      'the two systems agree by construction: one owns "practising", one owns "done"');
+
+    // Three clean reads retire it, and the third one is also the read that
+    // earns it back — which is why main.js marks AFTER recording.
+    nem.record('receive', true, 2);
+    nem.record('receive', true, 3);
+    const outcome = nem.record('receive', true, 4);
+    check('the read that retires a word is the read that learns it',
+      outcome === 'retired' && !nem.history('receive') &&
+      mas.mark('receive') === true && mas.count === 1);
+  }
+
+  // It survives storage, and it is bounded by the bank rather than by time.
+  {
+    const store = mem();
+    const a = new MasteryLedger(store);
+    for (const w of ['alpha', 'beta', 'gamma']) a.mark(w);
+    const b = new MasteryLedger(store);
+    check('the ledger survives a round-trip through the same adapter seam',
+      b.count === 3 && b.has('beta') && b.words().join(',') === 'alpha,beta,gamma');
+    check('and it stores WORDS, not positions in a list this game appends to',
+      typeof store.get('mastery').words === 'string' &&
+      !/\d/.test(store.get('mastery').words),
+      'RC9.6 put 103 words into the middle of four tiers; an index would have moved under them');
+  }
+
+  // The per-tier readout the profile draws.
+  {
+    const store = mem();
+    const m = new MasteryLedger(store);
+    m.mark('one'); m.mark('two'); m.mark('four');
+    const tiers = m.byTier([['one', 'two', 'three'], ['four', 'five']]);
+    check('the tier breakdown counts only what is in each tier',
+      tiers[0].known === 2 && tiers[0].total === 3 &&
+      tiers[1].known === 1 && tiers[1].total === 2);
+  }
+
+  // The number is honest about the player it is describing: a run that never
+  // misses still learns, which `retiredCount` could never say.
+  {
+    const store = mem();
+    const nem = new NemesisLedger(store);
+    const mas = new MasteryLedger(store, (w) => (nem.history(w)?.m || 0) > 0);
+    for (const w of ['alpha', 'beta', 'gamma', 'delta']) { nem.record(w, true, 0); mas.mark(w); }
+    check('a player who never misses has still learned something',
+      nem.retiredCount === 0 && mas.count === 4,
+      'retiredCount only counts words you got WRONG first — the better you read, the smaller it gets');
+  }
+
+  // Wiring: one hook each way, and the surfaces that show it.
+  {
+    const main = fs.readFileSync('src/main.js', 'utf8');
+    const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
+    const curve = fs.readFileSync('src/ui/curve-screen.js', 'utf8');
+    const html = fs.readFileSync('index.html', 'utf8');
+    check('a correct read marks AFTER the nemesis ledger records, a wrong read unmarks',
+      main.includes('const outcome = nemesis.record(e.answer, true, e.index);') &&
+      main.includes('if (mastery.mark(e.answer)) learnedWords++;') &&
+      main.includes('mastery.unmark(e.answer);') &&
+      main.indexOf('const outcome = nemesis.record') < main.indexOf('mastery.mark(e.answer)'),
+      'a word retiring on THIS read stops being owed on it, and is learned on it too');
+    check('the title carries the number, and says nothing until there is something to say',
+      ui.includes('setMastery(count = 0)') && ui.includes('WORDS LEARNED') &&
+      html.includes('id="titleMastery"') && html.includes('#titleMastery:empty{display:none}') &&
+      main.includes('ui.setMastery(mastery.count);'),
+      'silent on a fresh profile, refreshed on the way back from a run');
+    check('PROFILE carries what the number is made of, tier by tier',
+      curve.includes('WORDS LEARNED') && curve.includes('mastery.tiers.map') &&
+      main.includes('mastery: { total: mastery.count, tiers: mastery.byTier(TIERS) }'),
+      '"412 of 10,556" is a fraction nobody can feel; a tier is a shelf filling up');
+    check('and the results card reports only a run that actually taught something',
+      ui.includes("core.push(row('LEARNED', `+${extras.learnedWords}`))") &&
+      ui.includes('extras.learnedWords > 0') && main.includes('learnedWords = 0;'),
+      'an ordinary run says nothing, exactly as the standout does');
+  }
+}
+
 // ── Wiring + module independence ─────────────────────────────────────────
 head('META — wiring and independence');
 

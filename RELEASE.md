@@ -3050,3 +3050,58 @@ Verified through the real build: a legacy profile comes up with the treatment
 on, a fresh one comes up with it off, and clicking WIDEST and LARGEST as a
 player does persists both and switches the coach to Atkinson at 13 px, with no
 console errors.
+
+## 1.0-RC10.3 — the words you have actually learned
+
+The nemesis ledger is the best idea in this game. A word you miss comes back
+inside the same run, then across days on a widening schedule, and three clean
+reads in a row retire it for good. It has always worked and it has always been
+INVISIBLE: a player could beat forty words over a fortnight and find nothing
+anywhere that had grown.
+
+`retiredCount` was never the number to show, either. It only counts words you
+got WRONG first, so the better you read the smaller it gets — a player who
+rarely misses would be told they had mastered nothing. That is the opposite of
+the truth, and it is the reason this needed its own ledger rather than a label
+on an existing one.
+
+**A word is LEARNED when you have read it correctly and are not currently owed
+a repeat for it.** Missing it takes it back; beating it through the ledger's
+three clean reads returns it. Two systems, one honest number, and it is
+self-correcting — nothing has to remember why a word left.
+
+The predicate is OUTSTANDING MISSES, not "the ledger has heard of it". The
+first version asked whether the word had a history at all, which is true of
+every word the ledger has ever seen — including one read right the first time.
+That version counted nothing for a good reader, and the gate driving the two
+real ledgers together found it before it shipped, which is what those gates are
+for.
+
+**Where it shows.**
+
+- **The title** carries the one number — `412 WORDS LEARNED` — and says
+  nothing at all until there is something to say. It refreshes on the way back
+  from a run, because a run is the only thing that can move it.
+- **PROFILE** carries what the number is made of, tier by tier, with a bar
+  each. "412 of 10,556" is a fraction nobody can feel; "tier 1: 380 of 900" is
+  a shelf filling up.
+- **The results card** reports a run that actually taught something —
+  `LEARNED +7` — and an ordinary run says nothing, exactly as the standout
+  does. A word counts there the first time it is learned and never again, so
+  the line is never the same word twice.
+
+**It stores words, not positions.** A bit per word over the bank would be 1.3 kB
+against roughly 25 kB for a realistic player's actual words — and it would be
+keyed by position in a list this game appends to. RC9.6 put 103 new words into
+the MIDDLE of four tiers; every such edit would shift indices under a stored
+bitmap and silently rewrite what a player had earned. A word identifies itself,
+the set is bounded by the bank, and no migration hazard exists to get wrong
+later.
+
+The order of the two hooks matters and is gated: a correct read marks AFTER the
+nemesis ledger records, so the read that RETIRES a word is also the read that
+learns it rather than leaving it a run behind. `meta/mastery.js` is pure and
+adapter-backed, so all thirteen new checks drive the real ledger against the
+real nemesis ledger headlessly rather than inspecting source. The run export
+also carries the two RC10.2 legibility steps now: a verdict on a read time
+wants to know how big the word was.
