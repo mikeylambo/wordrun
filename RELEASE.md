@@ -3232,3 +3232,54 @@ through the real build across two browser profiles: a challenger plays, the
 link carries the run, and a receiver **with no ghost of their own** opens it and
 races a rival that reports `fromLink: true`, rebuilds to 457 m against the
 challenger's 477 m, and advances alongside them down the road.
+
+## 1.0-RC10.6 — a setlist, so a second score can actually be played
+
+One track was always going to be thin for a game meant to be played every day:
+a ten-run sitting is forty minutes of the same loop. The machinery for more
+than one has been half-present since Phase J — `tools/build-score-map.mjs` has
+taken a slug since the day it was written, and the clock, the map, the bus, the
+duck, MUSIC OFF and RC9.7's high layer are all per-track already. What stopped
+a second score being played was three files that spelled one name out.
+
+`src/music/setlist.js` is the list and the one rule for choosing from it:
+
+- **A track is three files named from its id** — `<id>.mp3`,
+  `<id>.scoremap.json`, and an optional `<id>.high.mp3`. Nothing else in the
+  game knows a track's name. `src/music-track.js` no longer contains the string
+  `into-the-night` at all, and the high layer follows whichever score the
+  session is playing rather than naming one.
+- **Rotation, not shuffle.** A shuffle repeats, and a repeat inside a sitting
+  is the exact complaint this exists to answer. A stored counter advances once
+  per session and the list wraps it, so consecutive sittings walk the list in
+  order. Read-and-advance is a single `Storage.nextMusicIndex()` call, so no
+  caller can take the index and forget to move it.
+- **An id is one plain path segment**, checked. `urlsFor('../../etc/passwd')`
+  is null, not a path.
+
+**Per session, not per run — and that is a stopping point rather than an
+oversight.** Swapping mid-session means tearing down and rebuilding the
+media-element source on a live audio graph between runs, and audio bugs are the
+kind you cannot see in a gate. The picker takes an index and does not care
+where it comes from, so per-run is a two-line change here if it ever earns its
+risk. What ships is the variety a player actually notices: a different score
+next sitting.
+
+**RC10.4's load-time win survives, and is gated to stay.** A session fetches
+ONE score — the setlist is a list, not a preload manifest — and the chosen
+track is still `preload = 'none'` until `play()`. Verified through the real
+build: at boot the only music requests are the score map and the high layer's
+HEAD probe; the 6.7 MB track is not requested until a run starts.
+
+Eleven new checks in `gate:music`, including one that matters more than it
+looks: **every id in the setlist must actually ship a track and a map**, so a
+list entry without files fails the build instead of playing a session of
+silence. The drop-in contract in `public/audio/music/README.md` now opens with
+how to add a score — build the map with the slug, drop two files in, add one
+line — because that is the part [MP] does and it should not require reading
+any code.
+
+**[MP] supplies the second score; the setlist of one behaves exactly as
+today until it arrives.** The high-flow layer from RC9.7 is still a
+placeholder pad and still waiting on its file, and now belongs to whichever
+track it is written for.

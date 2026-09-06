@@ -302,7 +302,10 @@ console.log('\nHIGH LAYER — one hook re-opened from the retired stem engine');
     ok(!/musicResponse\([^)]*high/i.test(mainSrc) &&
       !/highLayer[\s\S]{0,120}(rig\.|stage\.|materialPass|flow|palette)/.test(mainSrc),
       'nothing on screen reads its gain — the visual energy stays the run\'s and the map\'s');
-    ok(/const HIGH_URL = '\.\/audio\/music\/into-the-night\.high\.mp3';/.test(audioSrc) &&
+    // RC10.6: the layer belongs to a TRACK now, so it is named by the setlist
+    // rather than spelled out here — the drop-in contract is unchanged.
+    ok(/urlsFor\(id \|\| 'into-the-night'\)/.test(audioSrc) &&
+      /const res = await fetch\(urls\.high, \{ method: 'HEAD' \}\)/.test(audioSrc) &&
       fs.existsSync('public/audio/music/README.md') &&
       fs.readFileSync('public/audio/music/README.md', 'utf8').includes('into-the-night.high.mp3'),
       'the real file is a drop-in, and the contract for it is written down beside the track');
@@ -312,6 +315,64 @@ console.log('\nHIGH LAYER — one hook re-opened from the retired stem engine');
     ok(!fs.existsSync('src/audio/stems.js') && !fs.existsSync('public/audio/stems'),
       'and the retired stem engine stays retired — one hook re-opened, not the machine');
   }
+}
+
+// ── RC10.6: the setlist ──────────────────────────────────────────────────
+{
+  const { SETLIST, pickTrack, urlsFor, ID_RE } = await import('../src/music/setlist.js');
+  const trackSrc = fs.readFileSync('src/music-track.js', 'utf8');
+  const mainSrc2 = fs.readFileSync('src/main.js', 'utf8');
+  const storeSrc = fs.readFileSync('src/storage/storage.js', 'utf8');
+
+  ok(SETLIST.length >= 1 && SETLIST.every((t) => ID_RE.test(t.id)) &&
+    new Set(SETLIST.map((t) => t.id)).size === SETLIST.length && Object.isFrozen(SETLIST),
+    `setlist: ${SETLIST.length} track(s), every id a safe path segment, no duplicates`);
+
+  // Rotation walks the list and wraps; it never repeats before it has to.
+  {
+    const list = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+    const walk = [0, 1, 2, 3, 4, 5].map((i) => pickTrack(i, list).id).join('');
+    const odd = [-1, -7, 1e9 + 2, 1e9 + 1, 0.7, NaN, Infinity]
+      .map((i) => pickTrack(i, list));
+    ok(walk === 'abcabc' && odd.every((t) => t && list.includes(t)),
+      `rotation, not shuffle (${walk}) — and a negative, huge, fractional or ` +
+      'non-finite index still lands inside the list');
+    ok(pickTrack(0, []) === null && pickTrack(0, null) === null,
+      'an empty setlist is silence, not a crash');
+  }
+
+  // A track is three files, named from the id and nowhere else.
+  {
+    const u = urlsFor('into-the-night');
+    ok(u.track === './audio/music/into-the-night.mp3' &&
+      u.map === './audio/music/into-the-night.scoremap.json' &&
+      u.high === './audio/music/into-the-night.high.mp3',
+      'a track is three files named from its id — adding one touches a line, not the code');
+    ok(urlsFor('../../etc/passwd') === null && urlsFor('a/b') === null &&
+      urlsFor('') === null && urlsFor(null) === null,
+      'and an id that is not one plain path segment is refused, never concatenated');
+  }
+
+  ok(!/into-the-night/.test(trackSrc) && /urlsFor\(track\?\.id\)/.test(trackSrc) &&
+    /async load\(id = null\)/.test(trackSrc),
+    'the player names no track: it takes an id and asks the setlist for the files');
+
+  ok(/nextMusicIndex\(\)/.test(storeSrc) && /safeSet\('pref\.musicIndex'/.test(storeSrc) &&
+    (mainSrc2.match(/Storage\.nextMusicIndex\(\)/g) || []).length === 1 &&
+    mainSrc2.includes('music.load(musicPick?.id);') &&
+    mainSrc2.includes('highLayer.load(musicPick?.id);'),
+    'read-and-advance is one call, so nobody can take the index and forget to move it');
+
+  for (const t of SETLIST) {
+    ok(fs.existsSync(`public/audio/music/${t.id}.mp3`) &&
+      fs.existsSync(`public/audio/music/${t.id}.scoremap.json`),
+      `${t.id}: the track and its map both ship`);
+  }
+
+  // RC10.4's load-time win must survive: only the CHOSEN track is ever touched.
+  ok(/el\.preload = 'none';/.test(trackSrc) &&
+    !/SETLIST\.map|SETLIST\.forEach|for \(const .* of SETLIST\)/.test(trackSrc),
+    'one session fetches one score — the setlist is a list, not a preload manifest');
 }
 
 console.log(`\nMusic gates: ${pass} passed, ${fail} failed`);

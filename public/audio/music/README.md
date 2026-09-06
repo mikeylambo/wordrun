@@ -1,6 +1,29 @@
-# The score, and the layer that rides on top of it
+# The scores, and the layers that ride on top of them
 
 Two files ship here today and a third is a drop-in.
+
+## Adding a second score (RC10.6)
+
+The game plays ONE score per session and walks the setlist in order across
+sessions — rotation, not shuffle, so a sitting never hears the same track
+twice in a row for the wrong reason. Adding one is three files and one line:
+
+1. **Build the map.** `node tools/build-score-map.mjs <midiDir> <slug>` — the
+   tool has taken a slug since the day it was written. Put the result in
+   `music/<slug>.scoremap.json` and copy it here beside the audio.
+2. **Drop the files in** as `<slug>.mp3` and `<slug>.scoremap.json`. The names
+   are not configurable and do not need to be: `src/music/setlist.js` derives
+   all three paths from the id.
+3. **Add the id** to `SETLIST` in `src/music/setlist.js`.
+
+Nothing else changes. The clock, the map, the bus, the duck, MUSIC OFF and the
+high layer were all per-track already; three files simply spelled one name out.
+`npm run gate:music` checks that every id in the setlist actually ships a track
+and a map, so a list entry without files fails the build rather than playing a
+session of silence.
+
+A `<slug>.high.mp3` is optional per score and follows the same contract as the
+one below — the layer belongs to the track it was written for.
 
 | file | what it is |
 | --- | --- |

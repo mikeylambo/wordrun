@@ -14,28 +14,37 @@
 
 import { ScoreMap } from './music/score-map.js';
 import { MusicClock } from './music/music-clock.js';
-
-const TRACK_URL = './audio/music/into-the-night.mp3';
-const MAP_URL = './audio/music/into-the-night.scoremap.json';
+import { pickTrack, urlsFor } from './music/setlist.js';
 
 export class MusicTrack {
   constructor() {
     this.clock = null;
     this.el = null;
     this.ready = false;
+    this.id = null;     // RC10.6: which score this session is playing
     this._wired = false;
   }
 
-  /** Fetch the map and stage the audio. Safe to call before any gesture. */
-  async load() {
+  /**
+   * Fetch the map and stage the audio. Safe to call before any gesture.
+   *
+   * RC10.6: `id` names a track in the setlist. Nothing else here changed —
+   * the map, the clock, the bus and the element are all per-track already
+   * and only ever knew one name because three files spelled it out.
+   */
+  async load(id = null) {
+    const track = id ? { id } : pickTrack(0);
+    const urls = urlsFor(track?.id);
+    if (!urls) return false;
+    this.id = track.id;
     try {
-      const res = await fetch(MAP_URL);
+      const res = await fetch(urls.map);
       if (!res.ok) throw new Error(`score map ${res.status}`);
       this.clock = new MusicClock(new ScoreMap(await res.json()));
     } catch {
       return false;   // no map, no sync — the game plays on in silence
     }
-    const el = new Audio(TRACK_URL);
+    const el = new Audio(urls.track);
     el.loop = true;          // the whole song, looping naturally
     // RC10.4: 'none', not 'auto'. This is the largest file in the build by a
     // factor of five, and `preload = 'auto'` began pulling all 6.7 MB of it

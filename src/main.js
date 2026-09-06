@@ -40,6 +40,7 @@ import { Audio } from './audio/audio.js';
 import { MusicTrack } from './music-track.js';
 import { HighLayer } from './audio/high-layer.js';
 import { musicResponse } from './render/music-response.js';
+import { pickTrack } from './music/setlist.js';
 import { Input } from './input/input.js';
 import { Storage } from './storage/storage.js';
 import { StatsManager, localStorageAdapter } from './meta/stats.js';
@@ -69,12 +70,18 @@ const stage = new Stage(canvas);
 const ui = new UI();
 const audio = new Audio();
 const music = new MusicTrack();
-music.load();
+// RC10.6 — which score this session plays. The index only goes up; the
+// setlist wraps it, so consecutive sittings walk the list in order rather
+// than rolling dice and repeating. With one track it is today's behaviour
+// exactly. Read and advanced through Storage directly because the meta
+// adapter is built further down and this runs at boot.
+const musicPick = pickTrack(Storage.nextMusicIndex());
+music.load(musicPick?.id);
 // RC9.7: the second layer. One hook re-opened from the retired stem engine —
 // it thickens the arrangement while the chain holds the third editorial band
 // and thins out when the chain breaks. Same bus, same ducks, no visual.
 const highLayer = new HighLayer();
-highLayer.load();
+highLayer.load(musicPick?.id);
 let musicState = { pulse: 0, accent: 0, shimmer: 0, drive: 0, calm: false, section: null };
 const input = new Input(canvas);
 

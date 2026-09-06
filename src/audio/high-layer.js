@@ -25,8 +25,8 @@
  */
 
 import { HighLayerEnvelope } from '../music/high-layer.js';
+import { urlsFor } from '../music/setlist.js';
 
-const HIGH_URL = './audio/music/into-the-night.high.mp3';
 // The placeholder's voices, in the track's own key (A minor). A fifth and its
 // octave, filtered dark and detuned a few cents apart so it reads as a pad
 // rather than a test tone. Deliberately plain: it is a mechanism, not a mix.
@@ -50,11 +50,17 @@ export class HighLayer {
    * and is not an error: the placeholder covers it, and `real` says which is
    * playing so the gates and the audit can tell them apart.
    */
-  async load() {
+  async load(id = null) {
+    // RC10.6: the layer belongs to a TRACK, so it follows whichever score the
+    // session is playing rather than naming one. A setlist of one behaves
+    // exactly as before.
+    const urls = urlsFor(id || 'into-the-night');
+    if (!urls) return false;
+    this.url = urls.high;
     try {
-      const res = await fetch(HIGH_URL, { method: 'HEAD' });
+      const res = await fetch(urls.high, { method: 'HEAD' });
       if (!res.ok) return false;
-      const el = new Audio(HIGH_URL);
+      const el = new Audio(urls.high);
       el.loop = true;
       el.preload = 'auto';
       el.crossOrigin = 'anonymous';

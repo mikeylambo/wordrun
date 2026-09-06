@@ -131,6 +131,18 @@ export const Storage = {
   // six-rule sheet is a reference the player opens, so there is nothing to
   // remember about having shown it.
 
+  /**
+   * RC10.6 — the session counter the setlist rotates on. Reads the stored
+   * value, advances it, and hands back the one this session should use, so a
+   * caller cannot forget the second half and play the same score forever.
+   */
+  nextMusicIndex() {
+    const n = Math.floor(Number(safeGet('pref.musicIndex')));
+    const cur = Number.isFinite(n) && n >= 0 ? n : 0;
+    safeSet('pref.musicIndex', String((cur + 1) % 1000000));
+    return cur;
+  },
+
   ghostEnabled() {
     const raw = safeGet('pref.ghost');
     return raw == null ? true : raw !== '0';
