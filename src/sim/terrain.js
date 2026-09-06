@@ -13,11 +13,28 @@
  * The profile is a pure function of the seed. Segments are generated
  * sequentially from one seeded stream, so the same seed always lays the
  * same road (the DAILY RUN identity) and elevation at every segment
- * boundary is accumulated exactly. Between segments, grade and roll ramp
- * linearly over ROUTE.TRANS_M centred on the boundary; a linear ramp is
- * symmetric, so the simple per-segment accumulation e1 = e0 + grade·len
- * stays EXACT at the boundaries and elevation inside a ramp has a closed
- * quadratic form — heightAt is O(log segs), no numeric integration.
+ * boundary is accumulated exactly.
+ *
+ * RC8.2 — THE JOINS ARE EASED. Between segments, grade and roll ramp over
+ * ROUTE.TRANS_M centred on the boundary, and that ramp is a SMOOTHSTEP, not
+ * a line. A linear ramp made grade continuous but not smooth: its derivative
+ * jumped at both ramp edges, which is a crease you can see on the road every
+ * time a climb starts or a crest folds. Smoothstep leaves and arrives with
+ * zero derivative, so slope and roll are C1 through every boundary and
+ * elevation is C2. Two properties of the old ramp are kept exactly:
+ *
+ *   - it is SYMMETRIC about the boundary (S(u) + S(1-u) = 1), so the simple
+ *     per-segment accumulation e1 = e0 + grade·len stays EXACT at every
+ *     boundary and no drift accumulates over a run;
+ *   - elevation inside a ramp still has a CLOSED FORM — now a quartic rather
+ *     than a quadratic, being the integral of the smoothstep — so heightAt
+ *     stays O(log segs) with no numeric integration.
+ *
+ * The one new constraint the easing brings is ROUTE.MIN_SEG_M: a segment
+ * shorter than TRANS_M would have its two ramp windows overlap, which
+ * neither the sampler nor the closed form covers. MIN_SEG_M is comfortably
+ * above TRANS_M and is enforced in _pushSeg, so the overlap is impossible by
+ * construction rather than by every call site remembering.
  *
  * The class keeps the full API surface the frame consumes (heightAt /
  * normalAt / collidersNear / chunk / ...): still no colliders, no ice, no
@@ -44,6 +61,11 @@ export const FEATURE = {
   TREE: 'tree', ROCK: 'rock', GATE: 'gate', ICE: 'ice',
   MOGUL: 'mogul', CLIFF: 'cliff',
 };
+
+// The longest a crest half can be drawn — the apex-clearance guard in the
+// walk has to know it, and a literal 66 there would rot the moment MIN_SEG_M
+// or the draw range moved.
+const CREST_HALF_MAX = Math.max(RT.MIN_SEG_M, 48 + 18);
 
 // The route vocabulary (L1–L3). Weights are relative draw odds; a type never
 // repeats back-to-back except the straights, and vertical types are biased
@@ -114,10 +136,14 @@ export class Terrain {
 
   // ── The route walk ──────────────────────────────────────────────────────
 
+  /** Push one segment. The MIN_SEG_M clamp lives HERE and nowhere else: a
+   *  segment under TRANS_M would overlap its own two ramp windows, and a
+   *  rule enforced at the one place segments are made cannot be forgotten
+   *  by a new vocabulary entry. */
   _pushSeg(type, len, grade, roll) {
     const prev = this._segs[this._segs.length - 1];
     this._segs.push({
-      d0: prev.d0 + prev.len, len, grade, roll,
+      d0: prev.d0 + prev.len, len: Math.max(RT.MIN_SEG_M, len), grade, roll,
       e0: prev.e0 + prev.grade * prev.len, type,
     });
   }
@@ -138,7 +164,7 @@ export class Terrain {
         if (type === 'climb' && elev > RT.ELEV_CAP_M * 0.55) weight = 0;
         if (type === 'descent' && elev < -RT.ELEV_CAP_M * 0.55) weight = 0;
         // A crest's apex must clear the cap too: it climbs before it falls.
-        if (type === 'crest' && elev + RT.CREST_GRADE * 66 > RT.ELEV_CAP_M) weight = 0;
+        if (type === 'crest' && elev + RT.CREST_GRADE * CREST_HALF_MAX > RT.ELEV_CAP_M) weight = 0;
         // The advanced vocabulary waits until the run has earned it.
         if ((type === 'drop' || type === 'tunnel' || type === 'canyon' || type === 'narrows') &&
             prev.d0 + prev.len < RT.ADV_MIN_D_M) weight = 0;
@@ -160,12 +186,12 @@ export class Terrain {
       case 'climb': {
         // The cap is a hard bound, not a bias: size the pitch to the headroom.
         const len = Math.min(120 + rng() * 80, (RT.ELEV_CAP_M - elev) / RT.GRADE);
-        this._pushSeg(pick, Math.max(60, len), RT.GRADE, 0);
+        this._pushSeg(pick, Math.max(RT.MIN_SEG_M, len), RT.GRADE, 0);
         break;
       }
       case 'descent': {
         const len = Math.min(120 + rng() * 80, (elev + RT.ELEV_CAP_M) / RT.GRADE);
-        this._pushSeg(pick, Math.max(60, len), -RT.GRADE, 0);
+        this._pushSeg(pick, Math.max(RT.MIN_SEG_M, len), -RT.GRADE, 0);
         break;
       }
       case 'bank': {
@@ -175,7 +201,10 @@ export class Terrain {
       }
       case 'crest': {
         // Two halves of one page-fold: up, then down, net zero elevation.
-        const half = 48 + rng() * 18;
+        // The only place in the vocabulary where two opposing grades meet
+        // head-on, and so the only place MIN_SEG_M is doing real work: below
+        // it the fold reads as a hump rather than a crest.
+        const half = Math.max(RT.MIN_SEG_M, 48 + rng() * 18);
         this._pushSeg('crest-up', half, RT.CREST_GRADE, 0);
         this._pushSeg('crest-down', half, -RT.CREST_GRADE, 0);
         break;
@@ -203,7 +232,12 @@ export class Terrain {
     return lo;
   }
 
-  /** A per-segment property, linearly ramped over TRANS_M at each boundary. */
+  /** A per-segment property, EASED over TRANS_M at each boundary. `u` is the
+   *  boundary-relative position through the ramp window, 0 at its start and
+   *  1 at its end, and smooth01 is the smoothstep: the property leaves and
+   *  reaches each segment's value with zero derivative. MIN_SEG_M guarantees
+   *  the two windows of one segment never overlap, so the two branches below
+   *  are exclusive. */
   _ramped(d, key) {
     const i = this._segAt(Math.max(0, d));
     const seg = this._segs[i];
@@ -211,12 +245,12 @@ export class Terrain {
     const intoStart = d - seg.d0;
     if (intoStart < h && i > 0) {
       const prev = this._segs[i - 1];
-      return prev[key] + (seg[key] - prev[key]) * (intoStart + h) / RT.TRANS_M;
+      return prev[key] + (seg[key] - prev[key]) * smooth01((intoStart + h) / RT.TRANS_M);
     }
     const fromEnd = seg.d0 + seg.len - d;
     if (fromEnd < h) {
       const next = this._segs[i + 1] || seg;
-      return seg[key] + (next[key] - seg[key]) * (h - fromEnd) / RT.TRANS_M;
+      return seg[key] + (next[key] - seg[key]) * smooth01((h - fromEnd) / RT.TRANS_M);
     }
     return seg[key];
   }
@@ -228,23 +262,30 @@ export class Terrain {
   rollAt(d) { return this._ramped(d, 'roll'); }
 
   /** Centreline elevation. Closed form: the piecewise-linear base is exact at
-   *  every boundary (the ramp is symmetric), plus a quadratic correction
-   *  inside a ramp window. */
+   *  every boundary (the ramp is symmetric), plus a QUARTIC correction inside
+   *  a ramp window — the integral of the smoothstep the slope now eases with.
+   *
+   *  With u the ramp parameter and T = TRANS_M, ∫S = T·(u³ − u⁴/2). The two
+   *  corrections below differ only in which grade the piecewise-linear base
+   *  already carries at that point:
+   *    before the boundary (base gA):  T·(gB−gA)·(u³ − u⁴/2)
+   *    after  the boundary (base gB):  T·(gB−gA)·(u³ − u⁴/2 − u + ½)
+   *  Both are zero at their ramp's far edge, so elevation is continuous by
+   *  construction and e0 stays exact — the same two properties the quadratic
+   *  form had, which is why the easing costs nothing downstream. */
   elevAt(d) {
     if (d <= 0) return 0;
     const i = this._segAt(d);
     const seg = this._segs[i];
     let e = seg.e0 + seg.grade * (d - seg.d0);
-    const h = RT.TRANS_M / 2;
+    const T = RT.TRANS_M;
+    const h = T / 2;
     // Correction for the ramp at this segment's START boundary.
     const s0 = d - seg.d0; // signed offset from the boundary, here ≥ 0
     if (s0 < h && i > 0) {
       const gA = this._segs[i - 1].grade, gB = seg.grade;
-      const s = s0; // in [0, h): boundary-relative position
-      // Exact-vs-base correction inside the ramp: (gB−gA)·[(s+h)²/2T − s].
-      // Zero at both ramp edges, so elevation is continuous by construction;
-      // the boundary accumulation e0 is exact because the ramp is symmetric.
-      e += (gB - gA) * (((s + h) * (s + h)) / (2 * RT.TRANS_M) - s);
+      const u = (s0 + h) / T; // in [0.5, 1)
+      e += (gB - gA) * T * (u * u * u - (u * u * u * u) / 2 - u + 0.5);
     }
     // Correction for the ramp at this segment's END boundary (d inside it).
     const s1 = d - (seg.d0 + seg.len); // in [-h, 0) when inside
@@ -252,7 +293,8 @@ export class Terrain {
       const next = this._segs[i + 1];
       if (next) {
         const gA = seg.grade, gB = next.grade;
-        e += (gB - gA) * (((s1 + h) * (s1 + h)) / (2 * RT.TRANS_M));
+        const u = (s1 + h) / T; // in (0, 0.5)
+        e += (gB - gA) * T * (u * u * u - (u * u * u * u) / 2);
       }
     }
     return e;

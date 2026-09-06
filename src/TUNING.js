@@ -56,7 +56,23 @@ export const TUNING = {
     // constraint: grades and rolls stay gentle enough that the plate holds
     // its measured 270×68 px at 62 m/s on every segment type (route-gates).
     ROUTE: {
-      TRANS_M: 26,          // metres a grade/roll change is blended over
+      // RC8.2 — the joins are EASED, not merely blended. The ramp is a
+      // smoothstep over TRANS_M, so grade and roll leave and reach each
+      // segment's value with zero derivative: the road is C1 in slope (C2 in
+      // elevation) and the crease a linear ramp left at each ramp edge is
+      // gone. The cost is arithmetic and bounded — a smoothstep's peak
+      // gradient is 1.5x a line's, so the sharpest join in the vocabulary
+      // (a crest's own apex, 0.190 of grade) changes at 0.0110 per metre
+      // instead of 0.0073, and the gate asserts exactly that bound.
+      TRANS_M: 26,          // metres a grade/roll change is eased over
+      // No segment may be shorter than this. Two things need it: a segment
+      // under TRANS_M would have its two ramp windows OVERLAP, which no
+      // closed form covers and which reads as a step in the slope; and two
+      // short opposing segments (the crest's halves are the only pair in the
+      // vocabulary that can meet head-on) make a hump rather than a fold.
+      // At 60 every segment keeps at least 34 m of its own character
+      // between the two eased ends.
+      MIN_SEG_M: 60,
       GRADE: 0.055,         // climb/descent rise per metre (~3.1°)
       CREST_GRADE: 0.095,   // the sharper pitch of a crest's two halves
       ROLL: 0.10,           // bank cross-slope, rise per metre across (~5.7°)

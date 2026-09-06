@@ -2200,3 +2200,59 @@ times") over every player-facing string with comments stripped, the two
 modality vocabularies, the charged phrase being one function, the bar naming a
 control that actually raises it, and the marks being three, their own row, and
 clear of the button. The three stop stills are re-shot on both viewports.
+
+## 1.0-RC8.2 — the road
+
+The route grammar (Phase L) laid the right road and joined it with a straight
+line. A linear blend makes grade continuous but not smooth: its derivative
+jumps at both ends of every ramp, which is a crease on the surface at the
+start of every climb and at the fold of every crest. The joins are eased now.
+
+- **Smoothstep, not a line.** `_ramped` blends grade and roll with `smooth01`
+  over the same `TRANS_M` window, so both leave and reach each segment's value
+  with zero derivative: slope and roll are C1 through every boundary and
+  elevation is C2. Two properties of the old ramp are kept exactly, and they
+  are why this costs nothing downstream — the ramp is still SYMMETRIC about
+  the boundary (`S(u) + S(1−u) = 1`), so the per-segment accumulation
+  `e1 = e0 + grade·len` is still exact at every boundary with no drift over a
+  run, and elevation inside a ramp still has a closed form: the integral of a
+  smoothstep, `T·(u³ − u⁴/2)` before the boundary and `T·(u³ − u⁴/2 − u + ½)`
+  after it, both zero at their far edge. `heightAt` stays O(log segs), no
+  numeric integration, and the closed-form-vs-integral gate holds at 2.8e-5
+  over 5 km.
+- **A minimum segment length.** `ROUTE.MIN_SEG_M = 60`, enforced in
+  `_pushSeg` and nowhere else, so no vocabulary entry can forget it. Two
+  things need it: a segment shorter than `TRANS_M` would have its two ramp
+  windows OVERLAP, which no closed form covers and which reads as a step in
+  the slope; and the crest — the only pair of opposing grades in the grammar
+  that meets head-on — drew halves as short as 48 m, where the fold reads as a
+  hump rather than a page turning. The apex-clearance guard now derives its
+  own bound (`CREST_HALF_MAX`) instead of carrying a literal 66.
+- **The numbers, before and after**, walked at 0.1 m over 5 km on three seeds:
+
+      peak d(grade)/dm     peak d(roll)/dm     peak d²(grade)/dm²
+      linear   7.308e-3    3.846e-3            6.353e-2   (a kink: unbounded)
+      eased    1.096e-2    5.769e-3            1.672e-3   (smooth)
+
+  The first column rises by exactly 1.5×, which is a smoothstep's peak
+  gradient against a line's, and it is the price of the third column falling
+  by thirty-eight: the sharpest join in the vocabulary (a crest's own apex,
+  0.190 of grade) now turns over 26 m instead of hinging at two points. Both
+  bounds are analytic — `1.5·Δg/T` and `6·Δg/T²` — so the new gate asserts
+  them rather than a number someone chose.
+- **The gate**, beside the lateral-curvature one in `tools/gates.mjs`: it
+  walks 5 km on each of the ten seeds asserting the maximum slope change per
+  metre (grade and roll), the bounded second derivative that says EASED rather
+  than merely blended, and that no segment is shorter than `MIN_SEG_M`. It
+  prints the elevation profile and its derivative every 250 m of the DAILY
+  RUN's seed, so a change to the road shows up in a diff and not only in a
+  bound.
+
+Every plate legibility and occlusion gate was re-run on the new geometry and
+holds: 227–231 px of read-moment plate on all six segment types against the
+220 px floor, 183–185 px at the 62 m/s ceiling, plate rotation 0.14° against a
+4.5° ceiling, FOV peak 93.6° inside the clamp, the ARMED plate never occluded
+across 20,505 armed frames, and a crest still hides a lookahead plate on 1,176
+frames — the L3 payoff survives the easing. The Phase 0 behaviour snapshot is
+byte-identical, which is the proof that none of this reached the run: the
+speed model, the gates and the Redline still never read the road.

@@ -108,6 +108,65 @@ head('TRACK — routed, winding, auto-followed (Phase L)');
   check('curvature is bounded: peak |dx/dd| stays under 0.5',
     maxSlope < 0.5, `peak ${maxSlope.toFixed(3)}`);
 
+  // RC8.2 — the VERTICAL curvature, walked the same way the lateral one is.
+  // The joins are eased with a smoothstep over TRANS_M, so both bounds below
+  // are analytic rather than chosen: a smoothstep's peak gradient is 1.5/T of
+  // the jump it spans and its peak second derivative is 6/T² of it. The
+  // sharpest join in the vocabulary is a crest's own apex (+CREST_GRADE to
+  // −CREST_GRADE); the sharpest roll join is a bank returning to level, since
+  // the walk never draws two banks back to back.
+  //
+  // The second bound is the one that says EASED rather than merely blended:
+  // the linear ramp this replaced was continuous in grade but kinked at both
+  // ramp edges, and a kink has no bounded second derivative at all — walked
+  // at this step it measured 6.4e-2 per m², thirty-eight times the smooth
+  // bound, and it grows without limit as the step shrinks.
+  {
+    const STEP = 0.1, SPAN = 5000;
+    const gradeJump = 2 * RT.CREST_GRADE;          // a crest apex
+    const rollJump = RT.ROLL;                      // a bank returning to level
+    const dgBound = (gradeJump * 1.5) / RT.TRANS_M;
+    const drBound = (rollJump * 1.5) / RT.TRANS_M;
+    const d2gBound = (gradeJump * 6) / (RT.TRANS_M * RT.TRANS_M);
+    let maxDg = 0, maxDgAt = 0, maxDr = 0, maxD2g = 0;
+    let shortest = Infinity;
+    for (const seed of SEEDS) {
+      const tt = new Terrain(seed);
+      let pg = tt.gradeAt(0), pr = tt.rollAt(0), pdg = 0;
+      for (let d = STEP; d < SPAN; d += STEP) {
+        const g = tt.gradeAt(d), r = tt.rollAt(d);
+        const dg = Math.abs(g - pg) / STEP;
+        if (dg > maxDg) { maxDg = dg; maxDgAt = d; }
+        maxDr = Math.max(maxDr, Math.abs(r - pr) / STEP);
+        maxD2g = Math.max(maxD2g, Math.abs(dg - pdg) / STEP);
+        pg = g; pr = r; pdg = dg;
+      }
+      for (const sg of tt.routeSegments(SPAN)) shortest = Math.min(shortest, sg.len);
+    }
+    check('the road is C0 in slope: no segment boundary steps the grade',
+      maxDg <= dgBound + 1e-9 && maxDr <= drBound + 1e-9,
+      `peak d(grade)/dm ${maxDg.toExponential(3)} ≤ ${dgBound.toExponential(3)}, ` +
+      `d(roll)/dm ${maxDr.toExponential(3)} ≤ ${drBound.toExponential(3)} over ${SEEDS.length}×${SPAN / 1000}km`);
+    check('and C1: the eased join has a BOUNDED second derivative, not a kink',
+      maxD2g <= d2gBound + 1e-9,
+      `peak d²(grade)/dm² ${maxD2g.toExponential(3)} ≤ ${d2gBound.toExponential(3)} (the retired linear ramp: 6.4e-2, and unbounded as the step shrinks)`);
+    check('no segment is shorter than MIN_SEG_M, so two ramp windows never overlap',
+      shortest >= RT.MIN_SEG_M - 1e-9 && RT.MIN_SEG_M > RT.TRANS_M,
+      `shortest ${shortest.toFixed(1)}m ≥ ${RT.MIN_SEG_M}m, blended over ${RT.TRANS_M}m`);
+    // The profile itself, so a change to the road is visible in the diff and
+    // not only in a bound. Sampled on the DAILY RUN's own seed.
+    const tp = new Terrain(SEEDS[1]);
+    results.push('\n  the road, every 250 m of seed ' + SEEDS[1] +
+      ' — elevation, grade, roll, type');
+    let row = '  ';
+    for (let d = 0; d <= 5000; d += 250) {
+      row += `${String(d).padStart(5)}${tp.elevAt(d).toFixed(2).padStart(8)}` +
+        `${tp.gradeAt(d).toFixed(4).padStart(9)}${tp.rollAt(d).toFixed(4).padStart(9)}  ` +
+        `${tp.segTypeAt(d).padEnd(13)}\n  `;
+    }
+    results.push(row.trimEnd());
+  }
+
   let maxStep = 0;
   let prev = t.corridorX(0);
   for (let d = 0.5; d < 4000; d += 0.5) {
