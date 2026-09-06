@@ -22,6 +22,7 @@ import { EditorialWorld } from './render/editorial-world.js';
 import { LaunchSequence } from './render/launch-sequence.js';
 import { AttractMode } from './render/attract.js';
 import { GuidedTeach } from './ui/guided.js';
+import { modalityFor } from './ui/teach-copy.js';
 import { BellRenderer } from './render/bells.js';
 import { HEARTS } from './design/bells.js';
 import { flowFactor, flowGlow, flowLevel } from './render/flow-curve.js';
@@ -103,16 +104,25 @@ const attract = new AttractMode({
 });
 const guided = new GuidedTeach();
 
-// PD-1: the fundamentals — has this player EVER confirmed and rejected?
-// While either is undemonstrated and GUIDED TIPS is on, the TEACH surface
-// runs, the coach line yields those rungs, and an ENDLESS run opens on
-// the guided chart (the DAILY course is never touched).
-function fundamentalsDone() {
-  return metaStats.get('usedConfirm', 0) > 0 && metaStats.get('usedReject', 0) > 0;
+// RC7: the three stops — has this player been SHOWN each of them? Shown, not
+// merely performed: the fake stop's correct answer is to do nothing, so a
+// player who learns it by letting the word pass must not be stopped again.
+// While any remains unshown and GUIDED TIPS is on, an ENDLESS run opens on
+// the guided chart and the sim freezes at each first instance (the DAILY
+// course is never touched, for anyone).
+function stopsDone() {
+  return metaStats.get('usedStopReal', 0) > 0 &&
+    metaStats.get('usedStopFake', 0) > 0 &&
+    metaStats.get('usedStopDash', 0) > 0;
 }
 function chartForRun() {
   if (runMode === 'standard') return 'daily';
-  return ACCESS.guidedTips && !fundamentalsDone() ? 'guided' : 'endless';
+  return ACCESS.guidedTips && !stopsDone() ? 'guided' : 'endless';
+}
+/** A pad the player is actually holding — the modality the stops teach in. */
+function padConnected() {
+  try { return [...(navigator.getGamepads?.() || [])].some((p) => p && p.connected); }
+  catch { return false; }
 }
 // The bells the runner collects. The sim owns the field and the pickup
 // (sim.bells); this only draws it. Created after the material pass so its
@@ -1147,6 +1157,14 @@ function drainSimEvents() {
   if (!events) return;
   for (const e of events) {
     switch (e.t) {
+      // RC7: a stop is marked SHOWN the instant it begins, persisted beside
+      // the other learned lessons. Shown, not performed — the fake stop's
+      // correct answer is to do nothing, and a player who learns it that way
+      // must not be stopped at the next fake for the rest of their life.
+      case 'teach_stop':
+        learn(`Stop${e.which[0].toUpperCase()}${e.which.slice(1)}`);
+        audio.uiTap();
+        break;
       case 'hit':
         audio.hit();
         spray.emit(e.x, e.y, -e.d, 18, 7, 3.2, 0);
@@ -1480,29 +1498,40 @@ function tick(dt) {
     bv.x, sim.beast.side);
   stage.followLight(pv.x, pv.y, -pv.d);
   audio.update(dt, p, bands, dreadLive);
-  // PD-1: the TEACH surface and the coach line split the lessons — TEACH
-  // takes the fundamentals, centered and loud; the coach keeps the rest.
-  const guidedActive = ACCESS.guidedTips && !fundamentalsDone();
-  ui.setGuidedActive(guidedActive);
-  // PD-4: GUIDED TIPS is the accessibility switch for the study stop too —
-  // flipping it OFF releases a hold mid-run, the same frame.
-  sim.wordGates.studyEnabled = !!ACCESS.guidedTips;
+  // RC7: the three stops own the fundamentals. The sim reads which of them
+  // this player has already been SHOWN (persisted beside the other learned
+  // lessons, so each fires once for a life, whatever the player did with
+  // it), and GUIDED TIPS switches the whole thing off live.
+  const stopsOn = !!ACCESS.guidedTips && !stopsDone();
+  // The switch is the chip alone. It must NOT also depend on "all three are
+  // learned", because a stop is marked shown the instant it begins — gating
+  // on that switched the system off underneath the third stop while it was
+  // still on screen, taking its line and its ring with it. Re-firing is
+  // already impossible: `learned` and `firedThisRun` refuse each stop
+  // individually, which is the check that belongs at this level.
+  sim.teach.enabled = !!ACCESS.guidedTips;
+  sim.teach.learned = {
+    real: metaStats.get('usedStopReal', 0) > 0,
+    fake: metaStats.get('usedStopFake', 0) > 0,
+    dash: metaStats.get('usedStopDash', 0) > 0,
+  };
+  ui.setGuidedActive(stopsOn);
+  ui.setStopActive(!!sim.teach.active);
   guided.update({
     running,
-    enabled: guidedActive,
-    lessons: {
-      confirm: metaStats.get('usedConfirm', 0) > 0,
-      reject: metaStats.get('usedReject', 0) > 0,
-    },
+    enabled: !!ACCESS.guidedTips,
+    stop: sim.teach.active,
+    modality: modalityFor({ touch: ui.touch, pad: padConnected() }),
     veilUp: launch.t >= 0,
     hintUp: !!ui.powerHint?.classList.contains('on'),
-    touch: ui.touch,
-    hold: !!sim.studyHold,
   });
   ui.update(dt, sim, dreadLive, clock);
   // Phase L HUD pass: while the run is live the only chrome is PAUSE — the
   // sound/settings/shop buttons come back whenever the game is stopped.
   appEl.classList.toggle('chromeless', running && !paused && sim.phase === PHASE.RUNNING);
+  // RC7: REDUCED FLASH reaches CSS, so a rule can drop a pulse without a
+  // second copy of the setting living in the stylesheet's own module.
+  appEl.classList.toggle('rf', !!ACCESS.reducedFlash);
   stage.render();
 
   if (!shotTaken && sim.phase === PHASE.KILL &&

@@ -177,9 +177,12 @@ export class UI {
    *  teaching follows the player rather than the calendar. */
   setLessons(learned) { this._lessons = learned || {}; }
 
-  /** PD-1: while the centered TEACH surface owns the fundamentals, the
-   *  coach line skips those rungs — one instruction at a time, everywhere. */
+  /** RC7: while the three stops own the fundamentals, the coach skips those
+   *  rungs; with GUIDED TIPS off there are no stops, so it teaches them as
+   *  it always did. `setStopActive` silences it outright for a frozen frame —
+   *  a stop is one line on one band, and nothing else speaks over it. */
   setGuidedActive(on) { this._guidedActive = !!on; }
+  setStopActive(on) { this._stopActive = !!on; }
 
   _updateCoach(sim, running) {
     if (!this.coach) return;
@@ -191,11 +194,9 @@ export class UI {
     const p = sim.player;
     const d = sim.distance;
     const L = this._lessons || {};
-    // RC playtest: tips were showing at the bottom AND the middle. While
-    // the TEACH surface is active (guided tips on, fundamentals not yet
-    // demonstrated) the coach line says NOTHING AT ALL — not merely the
-    // rungs TEACH owns. The advanced lessons resume once TEACH retires.
-    if (this._guidedActive) {
+    // A stopped frame carries ONE line, on the teach band. The coach is
+    // silent through it — not merely skipping a rung.
+    if (this._stopActive) {
       this.coach.classList.remove('on');
       return;
     }
@@ -212,13 +213,19 @@ export class UI {
     // Phase C teaches the right zone first, because it is the whole game
     // without the left one. The left zone arrives as an option, not a rule —
     // a player who never uses it plays exactly the game they already knew.
-    if (!L.confirm) {
+    // RC7: while the stops are running they teach these three at the first
+    // instance of each, and the coach does not pre-empt them. Switch GUIDED
+    // TIPS off and there are no stops — then these rungs are the teaching,
+    // exactly as they were. The bar is the coach's either way: no stop
+    // covers it, because it is not a fundamental.
+    const stopsTeach = !!this._guidedActive;
+    if (!stopsTeach && !L.confirm) {
       text = this.touch ? 'TAP RIGHT IF THE WORD IS REAL' : 'RIGHT ARROW IF THE WORD IS REAL';
-    } else if (!L.reject) {
+    } else if (!stopsTeach && !L.reject) {
       text = d < 300
         ? 'A MISSPELLED WORD CAN SIMPLY PASS'
         : (this.touch ? 'OR TAP LEFT TO CALL IT OUT SOONER' : 'OR LEFT ARROW TO CALL IT OUT SOONER');
-    } else if (!L.dash && p.boostMeter >= TUNING.BOOST.MIN_ACTIVATE && !p.overdrive) {
+    } else if (!stopsTeach && !L.dash && p.boostMeter >= TUNING.BOOST.MIN_ACTIVATE && !p.overdrive) {
       // The line the game never had. "CLEAN READS CHARGE THE DASH" said where
       // the charge comes from and then left the player holding a full meter
       // with nothing telling them what to press.
@@ -366,7 +373,13 @@ export class UI {
     // is still unlearned this holds for as long as the meter is charged,
     // and it names the input instead of describing a feeling. REDUCED
     // FLASH drops the pulse but keeps every word of the instruction.
-    if (running && this.powerHint) {
+    // RC7: a stopped frame carries the band's line and the ring, and nothing
+    // else — the dash stop IS this hint's teaching moment, said louder and
+    // with the world held still, so the hint stands down for it.
+    if (this._stopActive && this.powerHint) {
+      this.powerHint.classList.remove('on', 'spending', 'teaching');
+      this._powerT = 0;
+    } else if (running && this.powerHint) {
       const teaching = !this._dashLearned;
       if (armed && !this._wasArmed) {
         this.powerHint.textContent = 'DASH READY';

@@ -42,11 +42,12 @@ const browser = await chromium.launch({
 });
 
 /** One profile's shoot. `seed` runs before anything is played. */
-async function shoot(dir, prepare) {
+const TOUCH = { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true };
+const KEYS = { viewport: { width: 1280, height: 800 } };
+
+async function shoot(dir, prepare, device = TOUCH) {
   mkdirSync(path.join(ROOT, dir), { recursive: true });
-  const ctx = await browser.newContext({
-    viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true,
-  });
+  const ctx = await browser.newContext(device);
   const page = await ctx.newPage();
   const shots = [];
   const shot = async (name) => {
@@ -60,6 +61,48 @@ async function shoot(dir, prepare) {
   await wait(1200);
   await prepare(page);
   return { page, ctx, shot, shots };
+}
+
+/**
+ * Drive until the named teaching stop is on screen, reading correctly the
+ * whole way. Throws rather than filing a still of the wrong screen.
+ */
+async function driveToStop(page, which, cap = 1600) {
+  for (let i = 0; i < cap; i++) {
+    const s = await page.evaluate(() => ({
+      stop: window.__SIM?.teach?.active,
+      band: document.getElementById('guidedTeach')?.classList.contains('on') || false,
+      armed: window.__SIM?.wordGates.armed(window.__SIM.player.d),
+      real: window.__SIM?.wordGates.current().real,
+      over: document.getElementById('deathScreen')?.classList.contains('on') || false,
+    }));
+    if (s.over) throw new Error(`the run ended before the ${which} stop`);
+    if (s.stop === which && s.band) return;          // frozen AND speaking
+    if (!s.stop && s.armed) await page.keyboard.press(s.real ? 'ArrowRight' : 'ArrowLeft');
+    await wait(s.stop ? 110 : 70);
+  }
+  const st = await page.evaluate(() => ({
+    stop: window.__SIM?.teach?.active, next: window.__SIM?.wordGates.next,
+    hearts: window.__SIM?.hearts, enabled: window.__SIM?.teach?.enabled,
+    learned: window.__SIM?.teach?.learned, fired: window.__SIM?.teach?.firedThisRun,
+    band: document.getElementById('guidedTeach')?.classList.contains('on'),
+    chart: window.__SIM?.wordGates.profile?.CHART,
+  }));
+  throw new Error(`never reached the ${which} stop — ${JSON.stringify(st)}`);
+}
+
+/** The three stops, in order, shot for whichever controls this device has. */
+async function shootStops(page, shot, suffix) {
+  await driveToStop(page, 'real');
+  await shot(`03-stop-real${suffix}`);
+  await page.keyboard.press('ArrowRight');
+  await driveToStop(page, 'fake');
+  await shot(`04-stop-fake${suffix}`);
+  await wait(2400);                                   // the pass releases it
+  await driveToStop(page, 'dash');
+  await shot(`05-stop-dash${suffix}`);
+  await page.keyboard.press('Space');
+  await wait(500);
 }
 
 // ── fresh ────────────────────────────────────────────────────────────────
@@ -78,78 +121,45 @@ async function shoot(dir, prepare) {
   // BEGIN RUN — straight into the run, no card in the way.
   await page.tap('body', { position: { x: 195, y: 150 } });
   await page.waitForFunction(() => window.__SIM?.phase === 'running', null, { timeout: 60000 });
-  await page.waitForFunction(() => window.__SIM?.studyHold === true, null, { timeout: 60000 }).catch(() => {});
-  await wait(500);
-  await shot('03-study-stop-real');       // the world waits for the first verb
-  await page.keyboard.press('ArrowRight');
-  await wait(1400);
-  await shot('04-first-correct');
-
-  await page.waitForFunction(() => window.__SIM?.studyHold === true &&
-    window.__SIM?.wordGates.next === 2, null, { timeout: 90000 }).catch(() => {});
-  await wait(400);
-  await shot('05-study-stop-fake');       // the other verb, also at rest
-  await page.keyboard.press('ArrowLeft');
-  await wait(1200);
-
-  // The first mistake: say REAL to a fake and lose a heart for it.
-  const heartsBefore = await page.evaluate(() => window.__SIM?.hearts);
-  for (let i = 0; i < 400; i++) {
-    const state = await page.evaluate(() => ({
-      hearts: window.__SIM?.hearts,
-      armed: window.__SIM?.wordGates.armed(window.__SIM.player.d),
-      real: window.__SIM?.wordGates.current().real,
-    }));
-    if (state.hearts < heartsBefore) break;
-    if (state.armed && !state.real) { await page.keyboard.press('ArrowRight'); await wait(260); }
-    else await wait(90);
-  }
-  await wait(500);
-  await shot('06-heart-lost');
-
-  // The DASH hint, on the teach band with the rest of the teaching. Reading
-  // CORRECTLY the whole way there: an idle wait let the run die of missed
-  // words, and the still then showed the results card under the name of the
-  // dash hint — a record that did not match the game.
-  let hinted = false;
-  for (let i = 0; i < 600 && !hinted; i++) {
-    const s = await page.evaluate(() => ({
-      hint: document.getElementById('powerHint')?.classList.contains('on') || false,
-      over: document.getElementById('deathScreen')?.classList.contains('on') || false,
-      armed: window.__SIM?.wordGates.armed(window.__SIM.player.d),
-      real: window.__SIM?.wordGates.current().real,
-    }));
-    if (s.over) throw new Error('the run ended before the DASH hint — still would misreport');
-    if (s.hint) { hinted = true; break; }
-    if (s.armed) { await page.keyboard.press(s.real ? 'ArrowRight' : 'ArrowLeft'); await wait(240); }
-    else await wait(80);
-  }
-  if (!hinted) throw new Error('never reached DASH READY');
-  await shot('07-dash-ready');
+  await shootStops(page, shot, '');
 
   // RUN OVER and the card.
   await page.evaluate(() => window.__SIM && (window.__SIM.hearts = 0));
   await page.waitForFunction(() => document.getElementById('deathScreen')?.classList.contains('on'),
     null, { timeout: 40000 }).catch(() => {});
   await wait(900);
-  await shot('08-run-over');
+  await shot('06-run-over');
   await wait(2200);                        // the count-up settles
-  await shot('09-results');
+  await shot('07-results');
   await page.evaluate(() => document.getElementById('moreStats')?.click());
   await wait(500);
-  await shot('10-results-more-stats');
+  await shot('08-results-more-stats');
 
   // AGAIN: the one-second cut, not the full arrival.
   await page.evaluate(() => document.getElementById('deathAgain')?.click());
   await wait(320);
-  await shot('11-again-quick-cut');
+  await shot('09-again-quick-cut');
 
   // PROFILE, which now carries the goals, the queue and the bank.
   await page.evaluate(() => window.__QUIT?.());
   await wait(700);
   await page.evaluate(() => document.dispatchEvent(new CustomEvent('dictiondash:show-curve')));
   await wait(600);
-  await shot('12-profile');
+  await shot('10-profile');
+  await ctx.close();
+}
+
+// ── fresh, on a keyboard ─────────────────────────────────────────────────
+// The same three stops on a 1280x800 desktop viewport: the lines must name
+// the KEYS this player has, and no ring may appear — there is no on-screen
+// control to ring.
+{
+  const { page, ctx, shot } = await shoot('fresh', async () => {}, KEYS);
+  await page.keyboard.press('Space');
+  await page.waitForFunction(() => window.__SIM?.phase === 'running', null, { timeout: 60000 });
+  await shootStops(page, shot, '-keyboard');
+  const rings = await page.evaluate(() => document.querySelectorAll('.teachRing').length);
+  if (rings) throw new Error('a ring appeared on a keyboard viewport');
   await ctx.close();
 }
 
@@ -160,8 +170,8 @@ async function shoot(dir, prepare) {
     // counters a played run writes. GUIDED TIPS is left ON, so what these
     // stills prove is that a taught player is not taught again.
     await p.evaluate(() => {
-      window.__META?.stats.increment('usedConfirm');
-      window.__META?.stats.increment('usedReject');
+      for (const k of ['usedStopReal', 'usedStopFake', 'usedStopDash',
+        'usedConfirm', 'usedReject']) window.__META?.stats.increment(k);
     });
     await p.reload();
     await p.waitForFunction(() => window.__SIM, null, { timeout: 20000 });
@@ -171,8 +181,23 @@ async function shoot(dir, prepare) {
 
   await page.tap('body', { position: { x: 195, y: 150 } });
   await page.waitForFunction(() => window.__SIM?.phase === 'running', null, { timeout: 60000 });
-  await new Promise((r) => setTimeout(r, 3200));
-  await shot('02-run-no-teaching');       // no TEACH, no study stop, no coach
+  // Prove the ABSENCE: read a dozen words with every stop already seen —
+  // no freeze, no ring, no line, at any point.
+  for (let i = 0; i < 260; i++) {
+    const s = await page.evaluate(() => ({
+      stop: window.__SIM?.teach?.active,
+      ring: !!document.querySelector('.teachRing'),
+      band: document.getElementById('guidedTeach')?.classList.contains('on') || false,
+      armed: window.__SIM?.wordGates.armed(window.__SIM.player.d),
+      real: window.__SIM?.wordGates.current().real,
+      next: window.__SIM?.wordGates.next,
+    }));
+    if (s.stop || s.ring || s.band) throw new Error(`a returning profile was taught: ${s.stop || 'ring/line'}`);
+    if (s.next > 8) break;
+    if (s.armed) await page.keyboard.press(s.real ? 'ArrowRight' : 'ArrowLeft');
+    await new Promise((r) => setTimeout(r, 70));
+  }
+  await shot('02-run-no-teaching');       // no stop, no ring, no line
 
   await page.evaluate(() => window.__SIM && (window.__SIM.hearts = 0));
   await page.waitForFunction(() => document.getElementById('deathScreen')?.classList.contains('on'),

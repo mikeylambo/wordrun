@@ -2056,3 +2056,49 @@ streak, and the reward-bar marks. It is one instrument now.
 The four gates that protected the retired widget were retired with it rather
 than repointed at a rewritten target; what they protected is now held by
 five checks on the hearts themselves.
+
+## 1.0-RC7 — the three stops
+
+The run is the tutorial. A first-timer's guided ENDLESS opening now freezes
+exactly three times — at the first real word, the first fake, and the first
+full DASH charge — each once for a life, and the standing TEACH prompt that
+used to hover through the opening is gone with them.
+
+This is RC3's study stop promoted rather than a new system. That one pinned
+the runner's POSITION a fixed distance short of the plate; this one pauses
+the world outright at the arm edge, which needs no room in front of the
+plate — so it also works for the dash, which has no plate at all — and never
+touches `ARM_DISTANCE_M`.
+
+- **A stop is a pause, not a slow-motion.** `Sim.step` returns before
+  anything advances: measured over ten seconds of frames on a frozen stop,
+  the clock, the runner, the pursuit and the step counter all moved by zero.
+  The full chain — the Phase 0 behaviour snapshot and the calibration
+  freeze included — is byte-identical.
+- **The freeze is not priced.** An answer that releases a stop is worth what
+  it was worth on the frozen frame: measured at 54.9 m out with a latency of
+  0, whether the player answers instantly or stares for a minute. Both
+  halves of the multiplier read the frozen frame, not the step that let the
+  world go again.
+- **Two control schemes, one tutorial.** Each stop renders for the modality
+  in the player's hands: touch rings the on-screen control and says TAP;
+  a keyboard names the key it actually binds (`→`, `←`, Space) and rings
+  nothing, there being nothing on screen to ring. A gate drives all three
+  stops under all three modalities and rejects any line naming a control
+  from another one. Two honest findings came out of writing it: the gamepad
+  layer binds confirm and the dash but **never reject**, so the pad's fake
+  line names only the pass rather than inventing a button; and Space is an
+  edge, not a hold, so the keyboard dash line says PRESS.
+- **One line, one ring, nothing else.** The coach is silent through a stop
+  and yields the three fundamentals while the stops teach them — switch
+  GUIDED TIPS off and there are no stops, and the coach teaches them as it
+  always did. REDUCED FLASH keeps the stop, the line and the ring, and drops
+  the ring's pulse.
+- Stops never touch the DAILY RUN, which stays byte-identical across
+  players, and never fire on plain ENDLESS — proven with the stops forced
+  on in both.
+
+Two bugs the browser found and the gates now hold: the DASH READY hint fired
+on the same full meter as the dash stop and had to stand down for it, and
+marking a stop "shown" at its start was switching the whole system off
+underneath the third stop while it was still on screen.

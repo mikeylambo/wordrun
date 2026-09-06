@@ -660,16 +660,16 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     'the TEACH surface is presentation only and never blocks input');
   // RC-2 playtest: partial yielding still let a tip show at the bottom AND
   // the middle. While TEACH is active the coach line says nothing at all.
-  check(guidedSrc.includes('veilUp || hintUp') &&
-    /if \(this\._guidedActive\) \{\s*\n\s*this\.coach\.classList\.remove\('on'\);\s*\n\s*return;/.test(uiCode),
-    'one instruction at a time: TEACH yields to the launch and the dash hint, and the coach is fully silent while TEACH is active');
+  check(guidedSrc.includes('!veilUp && !hintUp') &&
+    /if \(this\._stopActive\) \{\s*\n\s*this\.coach\.classList\.remove\('on'\);\s*\n\s*return;/.test(uiCode),
+    'one instruction at a time: the band yields to the launch and the dash hint, and the coach is silent through a stop');
   check(accessCode.includes("chipRow('GUIDED TIPS'") &&
     accessCode.includes('guidedTips: ACCESS.guidedTips') &&
     accessCode.includes('saved.guidedTips !== false'),
     'GUIDED TIPS is a persisted chip, default ON');
   check(mainCode.includes('chart: chartForRun()') &&
     mainCode.includes("CHART: chartForRun()") &&
-    /return ACCESS\.guidedTips && !fundamentalsDone\(\) \? 'guided' : 'endless';/.test(mainCode),
+    /return ACCESS\.guidedTips && !stopsDone\(\) \? 'guided' : 'endless';/.test(mainCode),
     'the guided chart reaches the run and the warm plates through one predicate, ENDLESS only');
   // RC-2 playtest: the condensed "essence" first-open card made the fresh
   // open WORSE — the full six-rule sheet is the one card, everywhere, and
@@ -771,73 +771,170 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     'the fold closes between runs — MORE STATS is a per-card choice');
 }
 
-// ── PD-4: the study stop — the world waits for the first answers ─────────
-// The SIGNAL lesson: teach by letting the player STOP. On the guided chart
-// the first gate of each verb pins the run just short of the plate and
-// waits, without limit, for an active LEFT or RIGHT. Toggleable (GUIDED
-// TIPS); never on 'daily' or 'endless'; the Redline is pinned with it.
+// ── RC7: the three stops — the run itself is the tutorial ────────────────
+// RC3's study stop, promoted: a real PAUSE at the arm edge instead of a
+// position pin, three of them (first real word, first fake, first full dash
+// charge), each shown once for a life. Guided ENDLESS only; toggleable; the
+// DAILY never stops.
 {
-  const wgCode = read('src/sim/word-gates.js');
   const simCode = read('src/sim/sim.js');
+  const stopsSrc = read('src/sim/teach-stops.js');
   const guidedSrc = read('src/ui/guided.js');
   const mainCode = read('src/main.js');
-  const tuning = read('src/TUNING.js');
+  const uiCode = read('src/ui/ui.js');
+  const mobileSrc = read('src/v1-mobile-ui.js');
   const launchSrc = read('src/render/launch-sequence.js');
 
-  check(/STUDY_STOP_M: 24,/.test(tuning) &&
-    wgCode.includes("if (this.profile.CHART !== 'guided' || this.studyEnabled === false) return 0;"),
-    "the study stop exists ONLY on the guided chart, inside the arm window, behind the GUIDED TIPS switch");
-  check(simCode.includes('this.player.d = Math.min(this.player.d, studyD);') &&
-    simCode.indexOf('studyStop(') < simCode.indexOf('this.wordGates.step('),
-    'the pin lands before the gate step — the line is never crossed, the plate stays armed');
-  check(/if \(this\.studyHold\) \{\s*\n\s*this\.beast\.gap = this\._studyGap;/.test(simCode) &&
-    simCode.includes("this.events.push({ t: 'study_stop', index: this.wordGates.next });"),
-    'the Redline is pinned for the lesson, and the stop announces itself as an event');
-  check(guidedSrc.includes("this._show('hold', 'READ THE WORD'") &&
-    mainCode.includes('hold: !!sim.studyHold,') &&
-    mainCode.includes('sim.wordGates.studyEnabled = !!ACCESS.guidedTips;'),
-    'the held frame teaches BOTH verbs and never the truth, and the chip releases a hold live');
   check(launchSrc.includes('z-index:70'),
     'black means black: the arrival veil covers every piece of in-run chrome');
-  check(index.includes('#coach{top:57%'),
+  check(index.includes('#coach{top:57%') && index.includes('#powerHint{top:57%'),
     'all tutorial text speaks from the one mid-screen teach band');
 
-  // Behavioural: on the guided chart the run stops at gate 0 and WAITS —
-  // forever if need be — then an answer releases it; on plain ENDLESS the
-  // same drive sails through with no hold. Deterministic, headless.
+  // The freeze is a pause, and it is the FIRST thing a step does.
+  check(/step\(input\) \{[\s\S]{0,1200}?if \(this\.teach\.active\) \{[\s\S]{0,200}?if \(!this\.teach\.tryRelease\(input, dt\)\) return;/.test(simCode) &&
+    simCode.indexOf('this.teach.active') < simCode.indexOf('this.steps++'),
+    'a stop returns before ANYTHING advances — the clock, the pursuit and the player all hold');
+  // Two independent guards, and BOTH must hold: the chart (a stop can only
+  // exist in a guided opening, which the DAILY can never be) and the chip.
+  check(stopsSrc.includes("wg.profile?.CHART !== 'guided'") &&
+    stopsSrc.includes('if (!this.enabled || this.active) return null;') &&
+    mainCode.includes("return ACCESS.guidedTips && !stopsDone() ? 'guided' : 'endless';"),
+    'the stops exist only in a guided ENDLESS opening, behind the GUIDED TIPS switch');
+  check(mainCode.includes("learn(`Stop${e.which[0].toUpperCase()}${e.which.slice(1)}`)") &&
+    mainCode.includes("metaStats.get('usedStopFake', 0) > 0"),
+    'a stop is persisted the instant it is SHOWN — the fake stop is not owed a second chance');
+  check(uiCode.includes('setStopActive(on)') &&
+    /if \(this\._stopActive\) \{\s*\n\s*this\.coach\.classList\.remove\('on'\);\s*\n\s*return;/.test(uiCode) &&
+    uiCode.includes('const stopsTeach = !!this._guidedActive;'),
+    'the coach is silent through a stop and yields the fundamentals while the stops teach them');
+  // Both of these were live bugs, found by driving the stops in a browser.
+  check(/if \(this\._stopActive && this\.powerHint\) \{[\s\S]{0,200}remove\('on', 'spending', 'teaching'\)/.test(uiCode),
+    'the DASH READY hint stands down for the dash stop — a stopped frame carries one line, not two');
+  check(mainCode.includes('sim.teach.enabled = !!ACCESS.guidedTips;') &&
+    mainCode.includes("enabled: !!ACCESS.guidedTips,") &&
+    !/sim\.teach\.enabled = stopsOn/.test(mainCode),
+    'the switch is the chip alone: marking a stop shown cannot silence the stop still on screen');
+  check(mobileSrc.includes('.v1MobileAction.teachRing{') &&
+    index.includes('#app.rf .v1MobileAction.teachRing{animation:none}') &&
+    mainCode.includes("appEl.classList.toggle('rf', !!ACCESS.reducedFlash);"),
+    'REDUCED FLASH keeps the stop, the line and the ring, and drops the ring pulse');
+  check(!read('src/sim/word-gates.js').includes('studyStop') &&
+    !read('src/TUNING.js').includes('STUDY_STOP_M') &&
+    !guidedSrc.includes('READ THE WORD'),
+    "RC3's position pin is gone, not left beside its replacement");
+
+  // ── The copy names a control that EXISTS in that modality, and no other ──
+  const { stopLine, stopRing, MODALITY } = await import('../src/ui/teach-copy.js');
+  // What each modality can actually be told to press, per input/input.js.
+  const CONTROLS = {
+    touch: { has: ['TAP REAL', 'TAP FAKE', 'HOLD DASH'], hasNot: ['→', '←', 'SPACE', ' A', 'RT'] },
+    key: { has: ['→', '←', 'PRESS SPACE'], hasNot: ['TAP', 'HOLD DASH', 'RT'] },
+    pad: { has: ['A', 'HOLD RT'], hasNot: ['TAP', '→', '←', 'SPACE'] },
+  };
+  let copyOk = true;
+  const copyDetail = [];
+  for (const m of Object.values(MODALITY)) {
+    for (const which of ['real', 'fake', 'dash']) {
+      const line = stopLine(which, m);
+      if (!line) { copyOk = false; copyDetail.push(`${m}/${which}: empty`); continue; }
+      // Nothing may name a control from another modality.
+      for (const bad of CONTROLS[m].hasNot) {
+        if (line.includes(bad)) { copyOk = false; copyDetail.push(`${m}/${which} names "${bad}"`); }
+      }
+      // The ring only exists where there is an on-screen control to ring.
+      const ring = stopRing(which, m);
+      if (m === MODALITY.TOUCH ? !ring : !!ring) {
+        copyOk = false; copyDetail.push(`${m}/${which} ring=${ring}`);
+      }
+    }
+  }
+  check(copyOk, `every stop line names a control of its own modality and no other${copyDetail.length ? ` — ${copyDetail.join('; ')}` : ''}`);
+  // The pad genuinely has no reject binding (input.js binds button 0 and the
+  // triggers only), so its fake line names the pass and nothing else.
+  check(stopLine('fake', MODALITY.PAD) === 'MISSPELLED · LET IT PASS' &&
+    !read('src/v1-ship-polish.js').includes('this.reject = true'),
+    'the pad line invents no button: the gamepad layer binds no reject, so it names the pass');
+
+  // ── Behavioural: all three stops, headless and deterministic ────────────
   const { Sim, emptyInput } = await import('../src/sim/sim.js');
-  const sim = new Sim(4242);
-  sim.start(4242, null, { mode: 'endless', difficulty: 'normal', wordSalt: 1, chart: 'guided' });
+  const guided = () => {
+    const sim = new Sim(4242);
+    sim.start(4242, null, { mode: 'endless', difficulty: 'normal', wordSalt: 1, chart: 'guided' });
+    sim.teach.enabled = true;
+    return sim;
+  };
   const idle = emptyInput();
-  for (let i = 0; i < 60 * 60; i++) sim.step(idle); // a full minute, no input
+  const sim = guided();
+  // 1 — the first REAL word arms and the world stops, without limit.
+  for (let i = 0; i < 60 * 60; i++) sim.step(idle);
   const g0 = sim.wordGates.current();
-  check(sim.studyHold === true && g0.index === 0 && !g0.resolved &&
-    sim.player.d < g0.d && sim.wordGates.armed(sim.player.d),
-    `the guided run stops at the first plate and waits a full minute unresolved — pinned ${(g0.d - sim.player.d).toFixed(1)}m out, armed`);
-  const heartsBefore = sim.hearts;
+  const frozen = { d: sim.player.d, t: sim.time, gap: sim.beast.gap, steps: sim.steps };
+  check(sim.teach.active === 'real' && g0.real === true && !g0.resolved &&
+    sim.wordGates.armed(sim.player.d),
+    'the first REAL word arms and the run stops there, armed, for as long as it takes');
+  for (let i = 0; i < 60 * 10; i++) sim.step(idle);
+  check(sim.player.d === frozen.d && sim.time === frozen.t && sim.beast.gap === frozen.gap &&
+    sim.steps === frozen.steps,
+    'a stop is a PAUSE: ten more seconds of frames move the clock, the runner and the pursuit not at all');
+  // The freeze is not priced: the answer lands at the arm edge it stopped on.
+  const armEdge = g0.d - sim.player.d;
   const tap = emptyInput(); tap.confirm = true;
   sim.step(tap);
-  const heartsHeld = sim.hearts === heartsBefore; // judged AT the plate, before later gates
-  for (let i = 0; i < 60 * 5; i++) sim.step(idle);
-  check(g0.resolved && g0.correct === true && sim.studyHold === false &&
-    sim.player.d > g0.d && heartsHeld,
-    'one RIGHT answers the study gate — full credit, hold released, the run moves again');
-  // Drive on to the second study gate (index 2, the chart's first fake).
-  let held2 = false;
-  for (let i = 0; i < 60 * 90 && !held2; i++) { sim.step(idle); held2 = sim.studyHold && sim.wordGates.next === 2; }
-  const g2 = sim.wordGates.current();
-  check(held2 && g2.index === 2 && !g2.resolved,
-    'the first fake is the second study gate — the run stops again to teach the other verb');
-  const rej = emptyInput(); rej.reject = true;
-  sim.step(rej);
-  check(g2.resolved && g2.correct === true,
-    'one LEFT calls the fake — the second verb demonstrated at rest');
-  const plain = new Sim(4242);
-  plain.start(4242, null, { mode: 'endless', difficulty: 'normal', wordSalt: 1 });
-  let anyHold = false;
-  for (let i = 0; i < 60 * 60; i++) { plain.step(idle); if (plain.studyHold) anyHold = true; }
-  check(!anyHold && plain.wordGates.next > 0,
-    'plain ENDLESS never stops — the study gates belong to the guided chart alone');
+  check(g0.resolved && g0.correct === true &&
+    Math.abs(g0.answerDistance - armEdge) < 1e-9 && g0.answerLatency === 0,
+    `the answer is timed at the instant the stop began — ${g0.answerDistance.toFixed(1)}m out, latency 0`);
+  // 2 — the first FAKE word arms; two seconds of nothing is the right answer.
+  let sawFake = false;
+  for (let i = 0; i < 60 * 120 && !sawFake; i++) { sim.step(idle); sawFake = sim.teach.active === 'fake'; }
+  const gf = sim.wordGates.current();
+  check(sawFake && gf.real === false && !gf.resolved,
+    'the first FAKE word arms and the run stops again, on the other verb');
+  let released = 0;
+  for (let i = 0; i < 60 * 4; i++) { sim.step(idle); if (!sim.teach.active) { released = i; break; } }
+  check(released > 0 && released <= 60 * 2 + 2,
+    `letting it pass releases the fake stop on its own — ${(released / 60).toFixed(2)}s`);
+  // 3 — the first full DASH charge.
+  let sawDash = false;
+  for (let i = 0; i < 60 * 600 && !sawDash; i++) {
+    const g = sim.wordGates.current();
+    const armed = sim.wordGates.armed(sim.player.d);
+    const inp = emptyInput();
+    if (armed && !sim.teach.active) { if (g.real) inp.confirm = true; else inp.reject = true; }
+    sim.step(inp);
+    sawDash = sim.teach.active === 'dash';
+  }
+  check(sawDash && sim.player.boostMeter >= 100 && !sim.player.overdrive,
+    'the first full DASH charge stops the run too — the third and last stop');
+  const dashIn = emptyInput(); dashIn.boostHeld = true;
+  sim.step(dashIn);
+  check(!sim.teach.active, 'the dash releases it');
+  check(sim.teach.firedThisRun.real && sim.teach.firedThisRun.fake && sim.teach.firedThisRun.dash,
+    'three stops, and the run has no more to give');
+
+  // Each fires ONCE: a run that has seen them all never stops again.
+  const seen = guided();
+  seen.teach.learned = { real: true, fake: true, dash: true };
+  let anyStop = false;
+  for (let i = 0; i < 60 * 240 && !anyStop; i++) {
+    const g = seen.wordGates.current();
+    const inp = emptyInput();
+    if (seen.wordGates.armed(seen.player.d)) { if (g.real) inp.confirm = true; else inp.reject = true; }
+    seen.step(inp);
+    if (seen.teach.active) anyStop = true;
+  }
+  check(!anyStop && seen.wordGates.next > 6,
+    'a returning profile — all three learned — is never stopped again');
+
+  // The DAILY never stops, and plain ENDLESS never stops.
+  for (const [label, opts] of [['the DAILY RUN', { mode: 'standard', difficulty: 'normal' }],
+    ['plain ENDLESS', { mode: 'endless', difficulty: 'normal', wordSalt: 1 }]]) {
+    const s2 = new Sim(4242);
+    s2.start(4242, null, opts);
+    s2.teach.enabled = true;   // even switched ON, the chart refuses
+    let stopped = false;
+    for (let i = 0; i < 60 * 90 && !stopped; i++) { s2.step(idle); stopped = !!s2.teach.active; }
+    check(!stopped && s2.wordGates.next > 0, `${label} never stops, even with the stops enabled`);
+  }
 }
 
 // ── RC-4: THE ORDER — menu, black, the storm, then gameplay ──────────────

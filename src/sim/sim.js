@@ -10,6 +10,7 @@ import { ENDGAME } from '../design/endgame.js';
 import { GhostRecorder, GhostPlayer } from './ghost.js';
 import { WordGates } from './word-gates.js';
 import { BellField, HEARTS } from '../design/bells.js';
+import { TeachStops } from './teach-stops.js';
 // Phase 7: the RC6 beat/pursuit pass and the landing-feel pass are retired
 // with the downhill verb — the track is flat and the pursuit is a pure
 // speed differential. See sim/terrain.js and sim/beast.js.
@@ -31,6 +32,9 @@ export class Sim {
     this.seed = seed >>> 0;
     this.terrain = new Terrain(this.seed);
     this.player = new Player(this.terrain);
+    // RC7: the three teaching stops. Inert unless main.js enables them
+    // for a first-timer's guided ENDLESS opening.
+    this.teach = new TeachStops();
     this.beast = new Beast(this.seed);
     this.wordGates = new WordGates(this.seed);
     this.recorder = new GhostRecorder();
@@ -118,8 +122,10 @@ export class Sim {
     this.events.length = 0;
     this._lastStuntId = null;
     this.stuntsCleared = 0;
-    this.studyHold = false;   // PD-4: the guided chart's study stop
-    this._studyGap = 0;
+    this._pricedAt = null;
+    this.teach.active = null;   // RC7: no stop survives a run boundary
+    this.teach.heldT = 0;
+    this.teach.firedThisRun = { real: false, fake: false, dash: false };
 
     // Fresh vitals per run, and the bell field re-seeded onto this run's
     // terrain (a new run may have rebuilt it above).
@@ -135,6 +141,31 @@ export class Sim {
 
   step(input) {
     const dt = TUNING.SIM.DT;
+
+    // RC7 — the three stops. A PAUSE, not a slow-motion: nothing below this
+    // runs, so the clock, the pursuit, the player and the armed word all
+    // hold exactly where they were when the stop began. The input that
+    // releases a stop then flows into this same step, which is why the tap
+    // that answers a stopped word is the tap that resolves it — at the
+    // frozen distance, so the early multiplier prices the arm edge and not
+    // the time the player spent reading. Inert outside a guided opening.
+    if (this.phase === PHASE.RUNNING) {
+      if (this.teach.active) {
+        if (!this.teach.tryRelease(input, dt)) return;
+        // The answer belongs to the frame the world stopped on, not to the
+        // step that let it go again.
+        this._pricedAt = this.teach.frozen;
+        this.events.push({ t: 'teach_go', which: null });
+      } else {
+        const stop = this.teach.evaluate(this);
+        if (stop) {
+          this.teach.begin(stop, this.player.d, this.time);
+          this.events.push({ t: 'teach_stop', which: stop });
+          return;
+        }
+      }
+    }
+
     this.steps++;
     this.time += dt;
 
@@ -193,29 +224,10 @@ export class Sim {
     // past is re-dealt ahead instead, so KEEP GOING never resumes into a
     // word that was already lost. Headless tools never set `escaped`, so
     // every golden and every suite drives the exact same sim as before.
-    // PD-4 — the study stop (guided chart only). The first gate of each
-    // verb pins the runner just short of the plate: position holds (speed
-    // is left alone, so pacing survives the lesson untouched), the Redline
-    // gap is pinned below like the last stand's, and the world waits —
-    // without limit — for an active answer. The pin lands BEFORE the gate
-    // step so the line is never crossed and the plate stays armed; the
-    // answer resolves through the exact same step as every other read.
-    const studyD = this.escaped ? 0 : this.wordGates.studyStop(this.player.d);
-    if (studyD > 0) {
-      if (!this.studyHold) {
-        this.studyHold = true;
-        this._studyGap = this.beast.gap;
-        this.events.push({ t: 'study_stop', index: this.wordGates.next });
-      }
-      this.player.d = Math.min(this.player.d, studyD);
-    } else if (this.studyHold) {
-      this.studyHold = false;
-      this.events.push({ t: 'study_go' });
-    }
-
     if (!this.escaped) {
       this.wordGates.step(this.player, input.confirm, this.events, proxMult, this.time,
-        input.reject);
+        input.reject, this._pricedAt);
+      this._pricedAt = null;
     } else {
       const wg = this.wordGates;
       while (wg.current().d < this.player.d + 20) { wg.next++; wg.gate = null; }
@@ -235,14 +247,6 @@ export class Sim {
 
 
     this.beast.step(dt, this.player);
-    // The study stop pins the pursuit too — a lesson the Redline interrupts
-    // is not a lesson. Same shape as the last stand's pin below.
-    if (this.studyHold) {
-      this.beast.gap = this._studyGap;
-      this.beast.desired = this._studyGap;
-      this.beast.killed = false;
-      this.beast.killT = 0;
-    }
 
     this.recorder.step(dt, this.player);
     this.ghost.step(dt);

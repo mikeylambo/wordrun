@@ -231,10 +231,6 @@ export class WordGates {
     this.heldIndex = -1;
     this._prevIn = false;   // last step's raw answer input, for edge capture
     this.lastResolveT = -9; // sim time of the last resolution (refractory)
-    // PD-4: the study stop (guided chart only). Live-toggleable via GUIDED
-    // TIPS — main.js mirrors the chip here each frame; headless tools never
-    // touch it and the guided chart is opt-in, so nothing else changes.
-    this.studyEnabled = true;
   }
 
   /** The gate the player is currently approaching (always exists). */
@@ -252,32 +248,18 @@ export class WordGates {
   }
 
   /**
-   * PD-4 — the study stop, the SIGNAL lesson: teach by letting the player
-   * STOP. On the guided chart the first gate of each verb (index 0, a real;
-   * index 2, the first fake) is a study gate: the run halts just short of
-   * the plate — inside the arm window, so both answers land — and the world
-   * waits, without limit, for an active LEFT or RIGHT. No timer, no
-   * pursuit, no thrusting a first-timer into the word bank at pace.
-   * Returns the pin distance when the hold applies, else 0. The pinning
-   * itself (position, Redline gap) lives in sim.step — this only owns the
-   * rule. Never fires on 'daily' or 'endless': those charts read normally.
-   */
-  studyStop(playerD) {
-    if (this.profile.CHART !== 'guided' || this.studyEnabled === false) return 0;
-    const g = this.current();
-    if (g.resolved || (g.index !== 0 && g.index !== 2)) return 0;
-    const stopD = g.d - W.STUDY_STOP_M;
-    return playerD >= stopD ? stopD : 0;
-  }
-
-  /**
    * One fixed step. `confirm` is an edge (one tap), consumed here. Applies
    * rewards/penalties directly to the player so the hit is byte-identical to
    * the frame's obstacle hit, and pushes events for presentation.
    * `proxMult` is the frame's courage multiplier: reading well with the
    * beast in range banks more, exactly as clean landings did.
    */
-  step(player, confirm, events, proxMult = 1, now = 0, reject = false) {
+  /** `priceAt` (RC7) is `{d, t}` from the frame a teaching stop froze on, and
+   *  overrides both halves of what an answer is worth: a stop pauses the
+   *  world, and the answer that releases it is worth exactly what it was
+   *  worth on that frozen frame, however long the player looked at it. Null
+   *  on every ordinary step, so nothing else in the game can see it. */
+  step(player, confirm, events, proxMult = 1, now = 0, reject = false, priceAt = null) {
     const g = this.current();
     const armed = this.armed(player.d);
 
@@ -334,8 +316,8 @@ export class WordGates {
     const answering = (confirm || reject) && armed && !g.confirmed && !g.rejected;
     if (answering) {
       if (confirm) g.confirmed = true; else g.rejected = true;
-      g.answerDistance = Math.max(0, Math.min(W.ARM_DISTANCE_M, g.d - player.d));
-      g.answerLatency = Math.max(0, now - (g.armedAt ?? now));
+      g.answerDistance = Math.max(0, Math.min(W.ARM_DISTANCE_M, g.d - (priceAt?.d ?? player.d)));
+      g.answerLatency = Math.max(0, (priceAt?.t ?? now) - (g.armedAt ?? now));
       // Phase F: the player's own bar. Beyond it the early multiplier pays
       // and the compression bonus rides on top; inside it the answer is worth
       // the late rate and nothing more. The word was legible the whole way —

@@ -63,6 +63,15 @@ function ensureMobileUi() {
     #v1MobileDash.armed::before{border-color:rgba(140,230,255,.7);background:rgba(12,30,40,.68)}
     #v1MobileDash.ready{animation:dashButtonReady 1.15s ease-in-out infinite}
     @keyframes dashButtonReady{0%,100%{box-shadow:0 0 22px rgba(103,216,255,.32),0 4px 20px rgba(4,9,13,.18);transform:scale(1)}50%{box-shadow:0 0 44px rgba(103,216,255,.78),0 4px 20px rgba(4,9,13,.22);transform:scale(1.045)}}
+    /* RC7: the stop's ring. It marks the control the teach band's line names
+       — the only addition to a frozen frame besides that line. REDUCED FLASH
+       keeps the ring and drops its pulse: the mark is the information, the
+       motion is not. */
+    .v1MobileAction.teachRing{opacity:1;box-shadow:0 0 0 3px rgba(139,228,255,.9),0 0 34px rgba(103,216,255,.55)}
+    .v1MobileAction.teachRing::before{border-color:rgba(160,236,255,.85)}
+    .v1MobileAction.teachRing{animation:teachRingPulse 1.1s ease-in-out infinite}
+    @keyframes teachRingPulse{0%,100%{box-shadow:0 0 0 3px rgba(139,228,255,.75),0 0 26px rgba(103,216,255,.45)}
+      50%{box-shadow:0 0 0 5px rgba(160,240,255,1),0 0 46px rgba(103,216,255,.8)}}
     #v1MobileDash.held{opacity:1;transform:scale(.95);animation:none;box-shadow:0 0 40px rgba(103,216,255,.72),0 4px 20px rgba(4,9,13,.22)}
 
     /* RC-5: all three controls on ONE line — FAKE, DASH, REAL, left to

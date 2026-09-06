@@ -1,23 +1,24 @@
 /**
- * PD-1 — the TEACH surface. The guided coach's LOUD half: a centered,
- * large instruction that stays up until the player performs the action it
- * teaches. It owns only the FUNDAMENTALS (the confirm and the reject/pass
- * verbs); every later lesson — the dash, the bar, early value — stays on
- * the quiet contextual coach line, which yields nothing to this surface
- * because the two never speak at once (main tells the coach when TEACH is
- * active and the coach skips the rungs TEACH owns).
+ * RC7 — the teach band, which now says something only when the world has
+ * STOPPED to say it.
  *
- * Placement: ~62% screen height — below the plate's reading zone, above
- * the answer buttons, so the instruction sits between the word and the
- * control it names without ever crossing either. It hides during the
- * launch veil and whenever the dash hint is up (one instruction at a
- * time), and disappears for good as each lesson retires — the same
- * demonstrated-action flags the coach line has always used.
+ * PD-1 hung a standing instruction here for as long as a fundamental went
+ * undemonstrated; RC7 replaces that with the three stops (src/sim/teach-stops.js).
+ * The run is the tutorial: it freezes at the first real word, the first fake
+ * and the first full dash charge, and this surface carries the one line for
+ * whichever stop is on — in the modality the player is actually using — plus
+ * a ring on the control that line names, where there is a control to ring.
  *
- * main.js constructs this and drives update() from the frame loop —
- * explicit integration, no timers, nothing wrapped. Copy is functional
- * words only; the four-name cap is untouched.
+ * Placement is unchanged: the 57% band, below the plate's reading zone and
+ * above the answer buttons, where every other in-run line now speaks from.
+ * REDUCED FLASH keeps the line and the ring and drops the ring's pulse — the
+ * information survives, the motion does not.
+ *
+ * main.js constructs this and drives update() from the frame loop; the copy
+ * lives in ui/teach-copy.js, which is pure so the gates can drive it.
  */
+
+import { stopLine, stopRing } from './teach-copy.js';
 
 export class GuidedTeach {
   constructor() {
@@ -29,26 +30,21 @@ export class GuidedTeach {
       #guidedTeach .gtMain{font:800 17px/1.3 var(--face,system-ui);
         letter-spacing:.22em;color:#eefaff;
         text-shadow:0 0 18px rgba(103,216,255,.65),0 2px 10px rgba(0,0,0,.8)}
-      #guidedTeach .gtSub{margin-top:8px;font:700 11px/1 var(--face,system-ui);
-        letter-spacing:.3em;color:#8be4ff;
-        text-shadow:0 0 12px rgba(103,216,255,.5),0 2px 8px rgba(0,0,0,.8)}
       #guidedTeach.on{opacity:1}
     `;
     document.head.appendChild(style);
     this.el = document.createElement('div');
     this.el.id = 'guidedTeach';
-    this.el.innerHTML = '<div class="gtMain"></div><div class="gtSub"></div>';
+    this.el.innerHTML = '<div class="gtMain"></div>';
     document.body.appendChild(this.el);
     this.main = this.el.querySelector('.gtMain');
-    this.sub = this.el.querySelector('.gtSub');
     this._key = '';
   }
 
-  _show(key, main, sub) {
+  _show(key, main) {
     if (this._key !== key) {
       this._key = key;
       this.main.textContent = main;
-      this.sub.textContent = sub;
     }
     this.el.classList.add('on');
   }
@@ -58,30 +54,27 @@ export class GuidedTeach {
   }
 
   /**
-   * One frame's verdict. `lessons` are the persisted demonstrated-action
-   * flags; `enabled` is the GUIDED TIPS chip; `veilUp`/`hintUp` silence
-   * this surface while the launch or the dash hint owns the frame.
-   * `hold` is the study stop (PD-4): the run is pinned at a plate and the
-   * world is waiting — the instruction names both verbs and never the
-   * truth, because reading the word IS the lesson.
+   * One frame. `stop` is the active stop (or null), `modality` the control
+   * scheme to teach in. Nothing is shown between stops — the run teaches by
+   * stopping, not by hovering.
    */
-  update({ running, enabled, lessons, veilUp, hintUp, touch, hold }) {
-    if (!running || !enabled || veilUp || hintUp) { this.hide(); return; }
-    if (hold) {
-      this._show('hold', 'READ THE WORD',
-        touch ? 'SPELLED RIGHT? TAP RIGHT · MISSPELLED? TAP LEFT'
-          : 'SPELLED RIGHT? PRESS → · MISSPELLED? PRESS ←');
+  update({ running, enabled, stop, modality, veilUp, hintUp }) {
+    const show = running && enabled && stop && !veilUp && !hintUp;
+    if (!show) {
+      this.hide();
+      this._ring(null);
       return;
     }
-    if (!lessons.confirm) {
-      this._show('confirm', 'IS IT SPELLED RIGHT?',
-        touch ? 'TAP RIGHT' : 'PRESS →');
-    } else if (!lessons.reject) {
-      this._show('reject', 'MISSPELLED? LET IT PASS',
-        touch ? 'OR TAP LEFT TO CALL IT' : 'OR PRESS ← TO CALL IT');
-    } else {
-      this.hide();
-    }
+    this._show(`${stop}:${modality}`, stopLine(stop, modality));
+    this._ring(stopRing(stop, modality));
+  }
+
+  /** Ring the named control, and only it. */
+  _ring(id) {
+    if (this._ringId === id) return;
+    if (this._ringId) document.getElementById(this._ringId)?.classList.remove('teachRing');
+    this._ringId = id;
+    if (id) document.getElementById(id)?.classList.add('teachRing');
   }
 }
 

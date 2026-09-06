@@ -321,6 +321,8 @@
      sound, settings and shop buttons return the moment the game stops
      (pause menu, title, results), so nothing is lost, only deferred. The
      class is driven from the frame loop in main.js. */
+  /* RC7: REDUCED FLASH keeps the ring, drops the pulse. */
+  #app.rf .v1MobileAction.teachRing{animation:none}
   #app.chromeless #mute,#app.chromeless #accessBtn,#app.chromeless #shopBtn{display:none}
   /* RC-5: on a touch device the DASH button's own ring IS the charge meter,
      and the bottom bar sat under it — two tells for one mechanic, with the
