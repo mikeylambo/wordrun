@@ -173,7 +173,28 @@ check(onboarding.includes("const dash = control('dash', m);") &&
   'the DASH is taught by name, and by the gesture a phone actually has');
 check(onboarding.includes('three hearts') && onboarding.includes('in a row</i> to win one back'),
   'and the heart economy is taught, since a wrong read now costs one');
-check(index.includes('/src/v1-mobile-ui.js'), 'mobile control presentation is loaded by the release page');
+// RC10.4: index.html loads ONE entry, and it waits for a paint before
+// importing the game. The mobile controls still load — one frame later.
+{
+  const boot = read('src/boot.js');
+  check(index.includes('/src/boot.js') &&
+    !/<script[^>]+src="\/src\/(main|v1-mobile-ui)\.js"/.test(index) &&
+    boot.includes("import('./v1-mobile-ui.js')") && boot.includes("import('./main.js')"),
+    'mobile control presentation is loaded by the release page, through the deferred boot');
+  check(/requestAnimationFrame\(\(\) => requestAnimationFrame\(load\)\)/.test(boot) &&
+    boot.includes("document.visibilityState !== 'hidden'") && boot.includes('setTimeout(load, 0)'),
+    'two frames, because one only schedules against the frame being assembled — and a '
+    + 'background tab gets no frames at all, so it falls back to a timer');
+  // The boot file may never grow into a loading scheme: it exists to move ONE
+  // paint earlier, and every module still loads in the same order.
+  check(boot.split('\n').filter((l) => l.trim() && !/^\s*(\/\/|\*|\/\*)/.test(l)).length <= 14 &&
+    !/if\s*\(.*(mobile|touch|width|Memory|connection)/i.test(boot),
+    'and it stays a doorway, not a loader — nothing here is conditional on the device');
+  // The largest file in the build is not allowed onto the critical path.
+  check(read('src/music-track.js').includes("el.preload = 'none';") &&
+    read('src/music-track.js').includes("this.el.preload = 'auto';"),
+    'the 6.7 MB score is staged at boot and fetched at play(), not before the title');
+}
 
 check(viewport.includes('height:100dvh!important') && viewport.includes('#rc2Pause,#rc7Onboarding'),
   'standalone portrait overlays fill the complete dynamic viewport');

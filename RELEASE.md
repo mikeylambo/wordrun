@@ -3105,3 +3105,69 @@ adapter-backed, so all thirteen new checks drive the real ledger against the
 real nemesis ledger headlessly rather than inspecting source. The run export
 also carries the two RC10.2 legibility steps now: a verdict on a read time
 wants to know how big the word was.
+
+## 1.0-RC10.4 — the title paints in 0.7 s instead of 2.7
+
+The size ceilings were never the problem. The build is 8.35 MB against a 30 MB
+Playables limit, and 6.73 MB of that is the score — the JavaScript is 1.2 MB.
+What was wrong was the only number a player feels, and nothing in the repo had
+ever measured it: **time to first play**.
+
+`npm run audit:load` measures it now, on a mid-tier phone profile — 12 Mbps,
+70 ms RTT, 4x CPU slowdown, cold cache — and reports three moments and the
+waterfall behind each. Before this pass:
+
+```
+paint         2687 ms
+interactive   2722 ms   15 requests, 7152 kB
+playable      2730 ms
+```
+
+**Two point seven seconds of blank screen, for a title screen that is
+plain markup.** The title is written out in `index.html`, styled by the inline stylesheet,
+and needs no JavaScript at all to be looked at. The reason it was not on screen is
+boring and entirely fixable: a deferred module runs the moment the parser is
+done, and evaluating this one means three.js, the renderer, the scene, the
+audio graph and the word bank. On a throttled CPU that is one unbroken task,
+and a browser cannot paint in the middle of a task. The player watched an empty
+screen while the game built a world nobody had asked for yet.
+
+`src/boot.js` is the entry point now and does exactly one thing: waits for a
+frame to be presented, then imports the game. Two `requestAnimationFrame`s
+rather than one, because the first only schedules against the frame currently
+being assembled; a background tab never gets a frame at all, so that case falls
+back to a timer. It is a doorway, not a loading scheme — the same modules load
+in the same order, one paint later — and a gate holds it under fourteen lines
+with nothing conditional on the device, so it cannot grow into one.
+
+Two more things came off the critical path:
+
+- **The score is staged, not fetched.** `preload = 'auto'` on a 6.7 MB file
+  began pulling all of it the instant the element existed — during boot,
+  against the bundle and the fonts, for a track that cannot sound until the
+  player has made a gesture. It is `'none'` now and becomes `'auto'` at
+  `play()`, the first moment anyone wants it. Streaming still means a run
+  starts before the whole track has arrived; that was never what cost the load.
+- **three.js has its own chunk.** It is roughly two thirds of the bundle and
+  changes about once a year, while the game changes every commit. A returning
+  player re-downloads the game and keeps the engine, and on a first visit the
+  two arrive in parallel instead of one after the other inside a single file.
+
+After:
+
+```
+paint          677 ms      (-2010 ms)
+interactive    677 ms      8 requests, 79 kB   (-7073 kB)
+playable      1087 ms      (-1643 ms)
+```
+
+The title arrives **four times sooner**, with 79 kB on the wire instead of
+7.1 MB, and a run can start 1.6 seconds earlier despite the boot deliberately
+waiting two frames. The audit's budgets are set just above the measured
+numbers — 1200 ms and 2000 ms — so the fix cannot quietly rot.
+
+The entry point moving is the riskiest thing here, so it was checked rather
+than assumed: `reachability-gate` walks dynamic imports and still finds all 105
+source files reachable, now from one entry instead of two, and `audit:network`
+drives a full boot, run and death through the new entry with zero external
+requests.

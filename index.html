@@ -614,8 +614,12 @@
     <div id="continueBalance"></div>
   </div>
 </div>
-<script type="module" src="/src/main.js"></script>
-<script type="module" src="/src/v1-mobile-ui.js"></script>
+<!-- RC10.4: one entry point, and it waits for a paint. The title is written
+     out below and needs no JavaScript to be looked at; evaluating the game's
+     module graph is a single unbroken task on a slow phone, and a browser
+     cannot paint in the middle of one. src/boot.js imports both of these
+     after a real frame has been presented. -->
+<script type="module" src="/src/boot.js"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));

@@ -1,6 +1,7 @@
 /**
  * Reachability gate (Phase 0.6) — every file in src/ must be reachable from the
- * two entry points index.html loads (src/main.js and src/v1-mobile-ui.js), via
+ * the entry point index.html loads (src/boot.js, which imports src/main.js and
+ * src/v1-mobile-ui.js one paint later — RC10.4), via
  * static OR side-effect OR dynamic import.
  *
  * This is the standing gate that would have caught the original problem: the
@@ -17,7 +18,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const ENTRIES = ['src/main.js', 'src/v1-mobile-ui.js'];
+// RC10.4: ONE entry now. boot.js is what index.html loads; it dynamically
+// imports the other two after a frame has been presented, and the walker
+// follows dynamic imports, so the reachable set is unchanged.
+const ENTRIES = ['src/boot.js'];
 
 function resolveSpec(fromFile, spec) {
   if (!spec.startsWith('.')) return null; // bare specifier → external package

@@ -37,7 +37,14 @@ export class MusicTrack {
     }
     const el = new Audio(TRACK_URL);
     el.loop = true;          // the whole song, looping naturally
-    el.preload = 'auto';
+    // RC10.4: 'none', not 'auto'. This is the largest file in the build by a
+    // factor of five, and `preload = 'auto'` began pulling all 6.7 MB of it
+    // the instant the element existed — during boot, against the bundle and
+    // the fonts, for a track that cannot sound until the player has made a
+    // gesture. It is staged here and fetched at `play()`, which is the first
+    // moment anyone wants it. Streaming still means the run starts before the
+    // whole track has arrived; that was never what cost the load.
+    el.preload = 'none';
     el.crossOrigin = 'anonymous';
     this.el = el;
     this.ready = true;
@@ -59,7 +66,13 @@ export class MusicTrack {
     } catch { /* a second attach on the same element throws; harmless */ }
   }
 
-  play() { if (this.ready) this.el.play().catch(() => {}); }
+  play() {
+    if (!this.ready) return;
+    // The moment the file is actually wanted. Setting this before play() lets
+    // the element buffer ahead rather than fetching in lockstep with playback.
+    if (this.el.preload !== 'auto') this.el.preload = 'auto';
+    this.el.play().catch(() => {});
+  }
   pause() { if (this.ready) this.el.pause(); }
 
   stop() {
