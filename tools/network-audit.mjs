@@ -47,6 +47,19 @@ await page.waitForTimeout(4000); // kill cam, death card, share-poster compose
 await browser.close();
 
 console.log(`same-origin assets requested: ${internal.size}`);
+
+// RC10.7 — the board carve-out, measured rather than promised. The one module
+// that can make a request is reached by dynamic import from the board surface
+// alone, so a boot, a run and a death card must never even LOAD it. If this
+// name ever appears here, something in the play path imported it.
+const boardChunk = [...internal].filter((p) => /board-transport/.test(p));
+if (boardChunk.length) {
+  console.error('FAIL — the board transport was loaded during play:');
+  for (const p of boardChunk) console.error(`  ${p}`);
+  await browser.close?.();
+  process.exit(1);
+}
+console.log('board transport never loaded through boot, run or death — the carve-out holds');
 if (external.length) {
   console.error(`FAIL — ${external.length} external request(s):`);
   for (const u of external.slice(0, 10)) console.error('  ' + u);

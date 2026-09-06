@@ -3283,3 +3283,76 @@ any code.
 today until it arrives.** The high-flow layer from RC9.7 is still a
 placeholder pad and still waiting on its file, and now belongs to whichever
 track it is written for.
+
+## 1.0-RC10.7 — boards, built dark
+
+Everything a leaderboard needs on this side of the wire, and nothing that
+reaches across it. There is no endpoint configured, so `enabled` is false, no
+surface appears, and the game behaves exactly as it did yesterday. **Nothing
+was applied to any database.** `db/schema.sql` is a file in this repository and
+a file is all it is.
+
+**Why dark, and not because it was easier.** Two reasons, both real:
+
+- **HARD's reading window is still provisional.** A board freezes difficulty
+  semantics permanently — scores set under a window that later moves can never
+  be compared to scores set after it — so no score may be written anywhere
+  until 0.88 is played on a phone and fixed. That playtest is [MP]'s and it is
+  the single thing standing between this and a live board.
+- **Zero network at play time is a standing constraint, not a preference.**
+  The carve-out had to be a decision rather than a slip, so it is one: the run
+  and the results card stay at zero, and a board is reachable only from its own
+  surface.
+
+**The carve-out is structural.** `src/net/board-transport.js` is the only file
+in this game that can make an outbound request, it lives alone in a directory
+of its own, and NOTHING imports it at module scope — `meta/boards.js` reaches
+it by dynamic import from `open()`, which a player's request for a board is the
+only thing that calls. It builds as its own 1.10 kB chunk. `audit:network` now
+measures this rather than trusting it: a full boot, run and death card requests
+19 same-origin assets, and the audit fails outright if `board-transport` is
+among them. It is not.
+
+**The board key is the policy, serialised.** `TUNING.META.BOARD_POLICY` already
+decided the rules two phases ago — the DAILY RUN records on NORMAL only,
+ENDLESS keeps a board per difficulty, a continued run is never eligible — and
+`boardKeyFor` turns them into one opaque string (`daily:2026-09-06:normal`,
+`endless:hard`). Opaque on purpose: the server stores a `board` column and
+never parses it, so a new board shape is a client change and not a migration.
+A daily board is keyed by its own date, because everyone that day read the
+identical hundred words and nobody else ever will.
+
+**The client never inserts.** The anon key ships inside the bundle and is
+public by construction, so the table grants no write to anyone — read to all,
+and no insert, update or delete policy at all, their absence being the rule.
+The only way a row appears is a `security definer` function that prices the
+claim against the game's own physics: a run cannot cover more ground than the
+64 m/s ceiling allows in the time it claims, cannot resolve more gates than 55 m
+of arm distance leaves room for, and cannot score more than its gates can be
+worth. Names are checked against the same family blocklist the game gates on,
+so the two cannot drift apart, and a refused name is refused rather than
+silently altered.
+
+**One project, a schema per game** — free Supabase allows two active projects
+per organisation and pauses one after seven days of quiet, so a project per
+game would spend the quota and then sleep through it. A schema per game keeps
+every game's traffic on one database, which is also what keeps it awake, and
+makes cross-game contamination structurally impossible rather than merely
+prevented: this schema's table does not contain another game's rows, so no
+forgotten filter can surface them. The schema says plainly what it does NOT
+claim: read isolation between games is not achievable with one anon role, and
+leaderboard rows are published data by definition. The moment a game holds
+something that is not — accounts, email, purchases — that game gets its own
+project.
+
+**A board is a bonus and may never be able to fail the game that fed it.** A
+transport that throws returns null and records the reason; a submission for an
+ineligible run never leaves the client; an unset name is one more reason
+nothing is sent. Twenty new checks drive all of it in node against a fake
+transport, including the one that matters most — that across 109 source files,
+zero import the transport statically.
+
+**To switch it on**, after the HARD playtest: apply `db/schema.sql` to a
+Supabase project, load the blocklist into `blocked_words`, expose the schema,
+and hand `new Boards({ endpoint, key })` the two values. Nothing else in the
+game changes.

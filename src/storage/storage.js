@@ -132,6 +132,15 @@ export const Storage = {
   // remember about having shown it.
 
   /**
+   * RC10.7 — the name a player would appear under on a board. Empty until a
+   * board exists to ask for one, which is today: `meta/boards.js` refuses a
+   * submission without a name, so an unset name is one more reason nothing is
+   * ever sent. It lives here because it is a preference, not a score.
+   */
+  boardName() { return String(safeGet('pref.boardName') || ''); },
+  setBoardName(name) { return safeSet('pref.boardName', String(name || '').slice(0, 12)); },
+
+  /**
    * RC10.6 — the session counter the setlist rotates on. Reads the stored
    * value, advances it, and hands back the one this session should use, so a
    * caller cannot forget the second half and play the same score forever.

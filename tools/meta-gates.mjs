@@ -323,6 +323,168 @@ head('BOARD POLICY — DAILY on NORMAL only, ENDLESS per difficulty, no continue
     /metaDaily\.recordRun\(DAILY_SEED/.test(main) && !/boardEligible[\s\S]{0,200}metaDaily\.recordRun/.test(main));
 }
 
+// ── RC10.7: boards, built dark ───────────────────────────────────────────
+head('BOARDS — decided, gated, and reaching nothing');
+{
+  const B = await import('../src/meta/boards.js');
+  const POLICY = TUNING.META.BOARD_POLICY;
+
+  // The board key IS the policy, serialised — and the policy is already law.
+  {
+    const daily = (d, day = '2026-09-06', continued = false) =>
+      B.boardKeyFor({ mode: 'standard', difficulty: d, day, continued });
+    check('the DAILY RUN records on its one board difficulty and no other',
+      daily(POLICY.DAILY_DIFFICULTY) === `daily:2026-09-06:${POLICY.DAILY_DIFFICULTY}` &&
+      daily('easy') === null && daily('hard') === null,
+      'a challenge link can pin another difficulty; that run keeps its score, not a place');
+    check('and only inside its own day, because that is what makes it comparable',
+      daily(POLICY.DAILY_DIFFICULTY, 'yesterday') === null &&
+      daily(POLICY.DAILY_DIFFICULTY, '') === null,
+      'everyone that day read the identical hundred words and nobody else ever will');
+    check('ENDLESS keeps a board per difficulty',
+      B.boardKeyFor({ mode: 'endless', difficulty: 'hard' }) === 'endless:hard' &&
+      B.boardKeyFor({ mode: 'endless', difficulty: 'easy' }) === 'endless:easy' &&
+      POLICY.ENDLESS_PER_DIFFICULTY === true);
+    check('a continued run belongs on no board at all',
+      B.boardKeyFor({ mode: 'endless', difficulty: 'hard', continued: true }) === null &&
+      daily(POLICY.DAILY_DIFFICULTY, '2026-09-06', true) === null &&
+      POLICY.CONTINUE_ELIGIBLE === false,
+      'the same rule the local best already respects, in one place');
+  }
+
+  // Names: shape only. Content is the server's job, against the family list.
+  check('a name is trimmed, bounded and printable',
+    B.cleanName('  Mike  ') === 'Mike' && B.cleanName('a b') === 'a b' &&
+    B.cleanName('') === null && B.cleanName('   ') === null &&
+    B.cleanName('x'.repeat(B.NAME.MAX + 1)) === null &&
+    B.cleanName('a\u0000b') === null && B.cleanName('a\u202Eb') === null,
+    'no control characters and no direction marks — nothing that rewrites its own row');
+
+  // A submission is a claim, and it is refused here before it can be made.
+  {
+    const run = { mode: 'endless', difficulty: 'hard', name: 'Mike', score: 1234,
+      seedString: 'S', distance: 900, gates: 14, seconds: 60 };
+    const ok = B.submissionFor(run);
+    check('a submission carries the evidence its score will be priced against',
+      ok.board === 'endless:hard' && ok.name === 'Mike' && ok.score === 1234 &&
+      ok.distance === 900 && ok.gates === 14 && ok.seconds === 60,
+      'it travels so the server can CHECK it, not so the server can believe it');
+    check('and no board, no name or no score means no submission',
+      B.submissionFor({ ...run, name: '' }) === null &&
+      B.submissionFor({ ...run, continued: true }) === null &&
+      B.submissionFor({ ...run, score: -1 }) === null &&
+      B.submissionFor({ ...run, score: 'lots' }) === null);
+  }
+
+  // DARK. The shipped build configures nothing, so nothing can be sent.
+  {
+    const dark = new B.Boards({});
+    check('with no endpoint there is no board, and submitting is a no-op',
+      dark.enabled === false &&
+      await dark.submit({ mode: 'endless', difficulty: 'hard', name: 'Mike', score: 10 }) === null &&
+      await dark.top('endless:hard') === null,
+      'nothing in the shipped build sets an endpoint or a key');
+    const main = fs.readFileSync('src/main.js', 'utf8');
+    check('and the game constructs it dark, with the offer behind the same eligibility rule',
+      main.includes('const boards = new Boards({});') &&
+      main.includes('if (boardEligible && boards.enabled) {'),
+      'a board is a bonus and may never be able to fail the game that fed it');
+  }
+
+  // With a transport injected it works — and a failing board is not a failure.
+  {
+    const sent = [];
+    const fake = {
+      submit: async (p) => { sent.push(p); return { ok: true }; },
+      top: async () => [{ name: 'A', score: 9 }],
+    };
+    const live = new B.Boards({}, fake);
+    const res = await live.submit({ mode: 'endless', difficulty: 'hard',
+      name: 'Mike', score: 77, distance: 100, gates: 2, seconds: 10 });
+    check('an injected transport is used, and only for eligible runs',
+      live.enabled === true && res.ok === true && sent.length === 1 &&
+      sent[0].board === 'endless:hard' &&
+      await live.submit({ mode: 'endless', difficulty: 'hard', name: '', score: 1 }) === null &&
+      sent.length === 1);
+    const angry = new B.Boards({}, {
+      submit: async () => { throw new Error('502'); },
+      top: async () => { throw new Error('502'); },
+    });
+    check('and a board that fails returns nothing rather than throwing into the run',
+      await angry.submit({ mode: 'endless', difficulty: 'hard', name: 'M', score: 1 }) === null &&
+      await angry.top('endless:hard') === null && angry.error === '502');
+  }
+
+  // THE CARVE-OUT. The one module that can make a request is not in the boot
+  // graph: it is reached by dynamic import from open(), and nothing else
+  // mentions it at all.
+  {
+    const boardsSrc = fs.readFileSync('src/meta/boards.js', 'utf8');
+    const transport = fs.readFileSync('src/net/board-transport.js', 'utf8');
+    const srcFiles = [];
+    const walk = (dir) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = `${dir}/${e.name}`;
+        if (e.isDirectory()) walk(full);
+        else if (e.name.endsWith('.js')) srcFiles.push(full);
+      }
+    };
+    walk('src');
+    const importers = srcFiles.filter((f) =>
+      f !== 'src/net/board-transport.js' &&
+      /^\s*import[^\n]*board-transport/m.test(fs.readFileSync(f, 'utf8')));
+    check('nothing imports the transport at module scope — it is a dynamic import, alone',
+      importers.length === 0 &&
+      boardsSrc.includes("await import('../net/board-transport.js')") &&
+      (boardsSrc.match(/board-transport/g) || []).length === 1,
+      `${srcFiles.length} source files, ${importers.length} static importers`);
+    // Prose does not count: sim/ghost.js has described this seam since Phase 2.
+    const code = (f) => fs.readFileSync(f, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
+    const SHIPPED_ASSETS = [
+      'src/music-track.js',            // the score and its map
+      'src/audio/high-layer.js',       // the optional layer beside it
+      'src/audio/approved-assets.js',  // the sound manifest and its files
+      'src/main.js',                   // the share image, as a blob it made
+      'src/v1-share.js',               // likewise
+    ];
+    const fetchers = srcFiles.filter((f) => /\bfetch\(/.test(code(f)));
+    check('and it is the only file that reaches anything but a shipped asset',
+      /\bfetch\(/.test(transport) &&
+      fetchers.every((f) => f === 'src/net/board-transport.js' || SHIPPED_ASSETS.includes(f)),
+      `${fetchers.length} files fetch at all, and the rest read same-origin files ` +
+      'that ship inside the build or blobs the page made itself');
+    check('the client never inserts — the only way a row appears is the function',
+      transport.includes('/rpc/submit_score') &&
+      !/method: 'POST'[\s\S]{0,160}\/scores\?/.test(transport),
+      'the anon key ships in the bundle and is public by construction');
+  }
+
+  // The schema is the other half, and it is written down rather than implied.
+  {
+    const sqlRaw = fs.readFileSync('db/schema.sql', 'utf8');
+    const sql = sqlRaw.split('\n').filter((l) => !/^\s*--/.test(l)).join('\n');
+    check('the schema grants NO write to anyone, and says so by omission',
+      /alter table diction_dash\.scores enable row level security/.test(sql) &&
+      /for select using \(true\)/.test(sql) &&
+      !/for insert/i.test(sql) && !/for update/i.test(sql) &&
+      !/grant (insert|update|delete|all)/i.test(sql),
+      'their absence is the rule');
+    check("the one way in is a security-definer function with the game's own bounds",
+      /security definer/.test(sql) && /submit_score\(p jsonb\)/.test(sql) &&
+      sql.includes('64.0 * greatest(v_seconds, 0)') && sql.includes('/ 55.0') &&
+      /blocked_words/.test(sql),
+      `the ${TUNING.RUN.CEILING} m/s ceiling and the ` +
+      `${TUNING.WORDS.ARM_DISTANCE_M} m arm distance, as arithmetic a claim must survive`);
+    check('one project, a schema per game, and no claim it cannot keep',
+      /create schema if not exists diction_dash/.test(sql) &&
+      /Read isolation between games is NOT claimed/.test(sqlRaw) &&
+      /unique \(board, player\)/.test(sql),
+      'leaderboard rows are published data; a game holding anything private gets its own project');
+  }
+}
+
 // ── RC10.5: the rival travels in the link ────────────────────────────────
 head('RIVAL — a challenge that is an opponent rather than a number');
 {

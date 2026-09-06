@@ -46,6 +46,7 @@ import { Storage } from './storage/storage.js';
 import { StatsManager, localStorageAdapter } from './meta/stats.js';
 import { NemesisLedger } from './meta/nemesis.js';
 import { MasteryLedger } from './meta/mastery.js';
+import { Boards } from './meta/boards.js';
 import { TIERS } from './words/wordlist.js';
 import { CurveLog } from './meta/curve.js';
 import { buildCurveScreen } from './ui/curve-screen.js';
@@ -246,6 +247,16 @@ function dailyBest() {
 
 // Meta layer (ported from the SLU shell's Layer-1 managers): lifetime
 // stats, daily goals and the play streak, over one storage adapter.
+// RC10.7 — boards, dark. No endpoint is configured in the shipped build, so
+// `enabled` is false, no surface appears and nothing is ever sent. The module
+// exists now so the board key, the eligibility rule and the submission shape
+// are decided and gated in one place rather than invented the day a server
+// turns up; db/schema.sql is the other half, applied nowhere.
+//
+// The transport is a DYNAMIC import inside boards.open(), so the one module
+// that can make a request is not in the boot graph and a run cannot reach it.
+const boards = new Boards({});
+
 const metaAdapter = localStorageAdapter();
 const metaStats = new StatsManager(metaAdapter);
 // The per-word ledger rides the same adapter seam as the stats.
@@ -796,6 +807,26 @@ function finalizeRun() {
   // (a challenge link can pin another; that run keeps its score, not a best).
   const boardEligible = !runContinued &&
     (runMode !== 'standard' || effectiveDifficulty() === BOARD.DAILY_DIFFICULTY);
+  // RC10.7: and offer it to a board, if one exists. It does not: `boards` has
+  // no endpoint, so this resolves to null without touching the network. The
+  // call is here so the eligibility rule has exactly one home — the same
+  // `boardEligible` the local best already respects.
+  if (boardEligible && boards.enabled) {
+    boards.submit({
+      mode: runMode,
+      difficulty: effectiveDifficulty(),
+      continued: runContinued,
+      // The DAILY RUN's own date, which is what makes a daily board
+      // comparable: everyone that day read the identical hundred words.
+      day: dailySeedString(),
+      name: Storage.boardName(),
+      score: finalScore,
+      seedString: SEED_STRING,
+      distance,
+      gates: wg.readCount,
+      seconds: sim.time,
+    });
+  }
   const isPb = boardEligible ? Storage.setBestFor(SEED, finalScore) : false;
   if (boardEligible) {
     sim.recorder.finish(sim.player);
