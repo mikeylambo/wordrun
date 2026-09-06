@@ -92,7 +92,8 @@ export class OnboardingUI {
           <div class="rule">The sooner you answer, the more the read is worth.</div>
           <div class="rule">Fakes look almost right — one letter out of place.</div>
           <div class="rule">${bar.verb} <b>${bar.control}</b> to raise the bar —
-            a stricter window, a bigger multiplier.</div>
+            a stricter window, a bigger multiplier. A held press never dashes,
+            and past the top the bar returns to none.</div>
         </div>
         <div class="ghost"><span>BEST RUN</span><button class="toggle" data-act="ghost"></button></div>
         <button class="start" data-act="start">BEGIN RUN</button>

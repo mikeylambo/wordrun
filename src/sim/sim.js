@@ -24,7 +24,7 @@ export const PHASE = {
 
 export function emptyInput() {
   return { carve: 0, flip: 0, jump: false, boostHeld: false, dragging: false,
-    confirm: false, reject: false, raiseBar: false, lowerBar: false };
+    confirm: false, reject: false, raiseBar: false };
 }
 
 export class Sim {
@@ -199,13 +199,12 @@ export class Sim {
     // through the speed differential — no pressure is registered anywhere.
     // Phase F: the bar never moves while a word is up. Raising it on a word
     // already on screen would be judging the answer after seeing it.
-    if (input.raiseBar || input.lowerBar) {
+    if (input.raiseBar) {
       // Consume the edge HERE, not in the frame loop. advance() runs several
       // fixed steps per frame, and an edge left standing is applied by every
       // one of them — one hold moved the bar two levels before this.
-      this.pendingBar += input.raiseBar ? 1 : -1;
+      this.pendingBar += 1;
       input.raiseBar = false;
-      input.lowerBar = false;
     }
     // The intent is buffered and lands at the next moment nothing is armed.
     // Requiring the gesture to begin AND end inside a gap made it impossible
@@ -214,12 +213,16 @@ export class Sim {
     // the 0.22s tap window to be distinguishable at all. Buffering keeps the
     // rule the restriction was written for, and the word the change affects
     // is still one the player has not seen.
-    if (this.pendingBar !== 0 && !this.wordGates.armed(this.player.d)) {
+    if (this.pendingBar > 0 && !this.wordGates.armed(this.player.d)) {
+      // RC9.9: one direction, and it WRAPS. There is no lower any more — the
+      // control is a single held press on the DASH, so a bar that could only
+      // climb would be a bar nobody could ever back out of. Past the top it
+      // returns to nothing, which is also the only way to say "I am done
+      // betting" with one control.
       const levels = TUNING.WORDS.COMPRESSION_MULT.length - 1;
       const before = this.player.compressionLevel;
-      const dir = Math.sign(this.pendingBar);
-      this.player.compressionLevel = Math.max(0, Math.min(levels, before + dir));
-      this.pendingBar -= dir;
+      this.player.compressionLevel = before >= levels ? 0 : before + 1;
+      this.pendingBar -= 1;
       if (this.player.compressionLevel !== before) {
         this.events.push({ t: 'bar_set', level: this.player.compressionLevel });
       }

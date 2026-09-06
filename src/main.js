@@ -24,6 +24,7 @@ import { AttractMode } from './render/attract.js';
 import { GuidedTeach } from './ui/guided.js';
 import { KeyLegend, isFramed } from './ui/cabinet.js';
 import { modalityFor, stopLine } from './ui/teach-copy.js';
+import { breathAt } from './ui/breath.js';
 import { BellRenderer } from './render/bells.js';
 import { HEARTS } from './design/bells.js';
 import { flowFactor, flowGlow, flowLevel } from './render/flow-curve.js';
@@ -176,6 +177,7 @@ const moments = new MomentCapture(canvas, ACCESS);
 const momentClip = new MomentClip();
 momentClip.mount(document.getElementById('momentSlot'));
 let frozenRank = 0;
+let breathing = false;   // RC9.9: is the held breath currently being written
 let deathShownAt = 0;
 let shotUrl = null;
 let shotTaken = false;
@@ -1434,7 +1436,6 @@ function tick(dt) {
     if (simInput.confirm) learn('Confirm');
     if (simInput.reject) learn('Reject');
     simInput.raiseBar = input.raiseBar;
-    simInput.lowerBar = input.lowerBar;
     // Phase R: the compression lesson retires on the first SUCCESSFUL raise —
     // the level actually moving — not on an accidental hold that went nowhere.
     if (p.compressionLevel > 0) learn('Bar');
@@ -1605,6 +1606,26 @@ function tick(dt) {
   ui.setDashLine(dashPending ? stopLine('dash', teachModality) : '');
   ui.setGuidedActive(stopsOn);
   ui.setStopActive(!!sim.teach.active);
+  // RC9.9 — the held breath. A stop freezes the sim outright, which is right
+  // and which also leaves a still frame that a player cannot tell from a
+  // hang. The five things that are STILL TRUE through the freeze — the stop's
+  // line, the bar's marks, the hearts, the score's glow and the ring on the
+  // control being pointed at — brighten and dim together on the music's own
+  // two-bar phrase. One writer, one custom property, and CSS spends it: there
+  // is no per-element animation to fall out of step with the others.
+  {
+    const on = !!sim.teach.active && !ACCESS.reducedFlash;
+    if (on) {
+      appEl.style.setProperty('--breath', breathAt({
+        active: true,
+        beat: clock?.playing ? clock.beat : null,
+        seconds: performance.now() / 1000,
+      }).toFixed(3));
+    } else if (breathing) {
+      appEl.style.setProperty('--breath', '1');
+    }
+    if (on !== breathing) { appEl.classList.toggle('breathing', on); breathing = on; }
+  }
   guided.update({
     running,
     enabled: !!ACCESS.guidedTips,

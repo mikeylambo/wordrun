@@ -102,12 +102,14 @@ check(input.includes('TOUCH_RESPONSE_GROUND = 24.0') && input.includes('TOUCH_RE
   'mobile air tricks respond faster than grounded carving');
 check(input.includes('_lastGrounded') && input.includes('_reanchorTouch') && input.includes('grounded !== this._lastGrounded'),
   'held touch re-anchors when takeoff/landing changes gesture context');
-// Phase C: the second-finger hold is gone. The dash is an edge — Space or
-// both zones at once — and the on-screen button still holds, because a held
-// control gains nothing by becoming a tap. All three reach one flag.
+// Phase C: the second-finger hold is gone. RC9.9: and every way in now runs
+// the one press/release machine — a tap dashes on release, a hold buys a bar
+// level and can no longer dash. `boostHeld` is the edge and nothing else.
 check(input.includes('__v1DashButtonHeld') &&
-  input.includes('this.dashEdge || this.keyBoost || this.__v1DashButtonHeld'),
-  'the on-screen button, the key and the two-zone edge share one dash flag');
+  input.includes('this.boostHeld = this.dashEdge;') &&
+  input.includes('_dashDown(now)') && input.includes('_dashUp(now)') &&
+  !input.includes('keyBoost'),
+  'the on-screen button, the key and the pad share one dash machine and one flag');
 check(!input.includes('GO_HOLD_MS') && input.includes('TAP_MS') && !input.includes('BOTH_ZONE_MS'),
   'a tap is a reading and nothing else — the dash is a button or a key');
 // Playtest: REAL sat beside DASH and crowded one thumb; FAKE did not exist at
@@ -901,25 +903,40 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     /text = dashReadyLine\(m\);/.test(uiCode),
     'the stop, the coach and the HUD hint show byte-identical charged copy — DASH READY · TAP DASH');
 
-  // The bar names the control that RAISES it, which is not the answer button:
-  // _pollHolds reads a held press on the right screen zone (the REAL button
-  // answers on pointerdown and stops the event), and on a keyboard it is
-  // ArrowUp, because ArrowRight has already fired its answer on the way down.
+  // RC9.9: the bar names the DASH control, on every device, because that is
+  // now the control that raises it — a press on it that outlives HOLD_MS buys
+  // a level instead of dashing. The right SCREEN ZONE it used to name is
+  // retired: a half whose only other meaning is "this word is spelled
+  // correctly" was never going to teach a second verb.
   const inputSrc = read('src/input/input.js');
-  check(/case 'ArrowUp': case 'KeyW': if \(down\) this\.raiseBar = true;/.test(inputSrc) &&
-    /_pollHolds\(now\)[\s\S]{0,420}_zoneOf\(meta\.downX\) === 'right'\) this\.raiseBar = true/.test(inputSrc) &&
-    barLesson(MODALITY.TOUCH).startsWith('HOLD THE REAL SIDE') &&
-    barLesson(MODALITY.KEY).startsWith('PRESS ↑') &&
-    !/HOLD →|HOLD REAL TO/.test(barLesson(MODALITY.KEY) + barLesson(MODALITY.TOUCH)),
-    'the bar line names the held zone and the up arrow — the controls that actually raise it');
-  check(barLesson(MODALITY.TOUCH).endsWith(' · ANSWER FASTER, SCORE MORE') &&
-    barLesson(MODALITY.KEY).endsWith(' · ANSWER FASTER, SCORE MORE') &&
-    barLesson(MODALITY.PAD) === '',
-    'and says what the hold buys, in one clause — except on a pad, which binds no raise at all');
+  check(/_pollDashHold\(now\)/.test(inputSrc) &&
+    /this\._dashRaised = true;\s*\n\s*this\.raiseBar = true;/.test(inputSrc) &&
+    !/_pollHolds/.test(inputSrc) && !/_zoneOf\(meta\.downX\)/.test(inputSrc) &&
+    barLesson(MODALITY.TOUCH).startsWith('HOLD DASH') &&
+    barLesson(MODALITY.KEY).startsWith('HOLD SPACE') &&
+    barLesson(MODALITY.PAD).startsWith('HOLD RT') &&
+    !/HOLD →|HOLD REAL TO|THE REAL SIDE/.test(
+      barLesson(MODALITY.KEY) + barLesson(MODALITY.TOUCH) + barLesson(MODALITY.PAD)),
+    'the bar line names the DASH control, on all three devices — the one that raises it');
+  // And the distinction the move has to protect: the bar is HELD, the dash is
+  // never held. Every DASH instruction still says TAP, PRESS or RT.
+  check([MODALITY.TOUCH, MODALITY.KEY, MODALITY.PAD].every((m) =>
+    !/HOLD/i.test(dashReadyLine(m)) && !/HOLD/i.test(stopLine('dash', m))) &&
+    dashReadyLine(MODALITY.KEY) === 'DASH READY · PRESS SPACE' &&
+    dashReadyLine(MODALITY.PAD) === 'DASH READY · RT',
+    'no DASH instruction says HOLD — a hold is the bar, and a tap is still the dash');
+  check([MODALITY.TOUCH, MODALITY.KEY, MODALITY.PAD].every((m) =>
+    barLesson(m).endsWith(' · ANSWER FASTER, SCORE MORE')),
+    'and says what the hold buys, in one clause — on a pad too, now that RT raises it');
 
   // The ban list. Every one of these was live copy for a control the game
   // does not have, or a figure the tuning has moved past.
-  const BANNED_COPY = ['HOLD DASH', 'HOLD F', 'HOLD RT', 'THE BAR IS FULL', 'three times'];
+  // RC8.1 banned HOLD DASH and HOLD RT because the dash was a press and the
+  // copy kept saying otherwise. RC9.9 made a held DASH mean something real —
+  // the bar — so those two come off the list and the gate directly above
+  // enforces what the ban was actually protecting: no DASH INSTRUCTION says
+  // HOLD. HOLD F stays banned; F is an unadvertised alias the copy never names.
+  const BANNED_COPY = ['HOLD F', 'THE BAR IS FULL', 'three times'];
   const facing = ['index.html', 'src/ui/ui.js', 'src/ui/onboarding.js', 'src/ui/teach-copy.js',
     'src/ui/guided.js', 'src/ui/pause.js', 'src/ui/access.js', 'src/v1-mobile-ui.js'];
   const banned = [];
@@ -940,7 +957,7 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     }
   }
   check(banned.length === 0,
-    `no player-facing string says HOLD DASH, HOLD F, HOLD RT, THE BAR IS FULL or "three times"${banned.length ? ` — ${banned.slice(0, 3).join(' | ')}` : ` — ${BANNED_COPY.length} retired, none present`}`);
+    `no player-facing string says HOLD F, THE BAR IS FULL or "three times"${banned.length ? ` — ${banned.slice(0, 3).join(' | ')}` : ` — ${BANNED_COPY.length} retired, none present`}`);
 
   // Every modality line is also built from the ONE control token, so a
   // renamed control cannot leave a stale string behind on some other surface.

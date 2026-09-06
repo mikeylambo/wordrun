@@ -18,6 +18,10 @@ import { setBandLine } from './guided.js';
 const $ = (id) => document.getElementById(id);
 
 /** The heart, drawn once and shared by all three layers of every pip. */
+// RC9.9 — how fast a wrong read's consequences fall away. One constant, so
+// the world's drain and the bar's collapse are literally the same beat rather
+// than two numbers that happen to match today.
+const DRAIN_FALL = 1.7;
 const HEART_PATH = 'M12 21.2 3.6 12.6a5.6 5.6 0 0 1 0-7.9 5.4 5.4 0 0 1 7.7 0l.7.7.7-.7a5.4 5.4 0 0 1 7.7 0 5.6 5.6 0 0 1 0 7.9Z';
 
 /** One labelled recap row: a short key, then the words it describes. */
@@ -64,6 +68,7 @@ export class UI {
     this.drainEl = $('drain');
     this.drainDimEl = $('drainDim');
     this._drainT = 0;
+    this._barFellT = 0;     // RC9.9: the bar's collapse, on the drain's beat
 
     // The answer vignette (playtest: "the visual for correct/incorrect
     // selection needs to be more visible"). At speed the eye is already on
@@ -299,13 +304,19 @@ export class UI {
       // phrase, read from teach-copy.js — the same bytes the stop and the
       // HUD hint show, so a player never meets two names for one press.
       text = dashReadyLine(m);
-    } else if (!L.bar && p.compressionLevel === 0 && p.chain >= 4) {
+    } else if (!L.bar && p.compressionLevel === 0 && p.chain >= 4 &&
+      !sim.wordGates.armed(p.d)) {
       // Phase R: the compression hold joins the lesson set. Taught only to a
       // player already reading cleanly (a four-link chain) — the bar is the
       // reward knob for someone who has stopped needing the other lessons —
       // and retired for good the first time they actually raise it. RC8.1
       // says what it buys as well as what to hold: it is a bargain, not a
       // button, and a line that only named the button taught half of it.
+      // RC9.9: and ONLY in the gap. The control it names is the dash control,
+      // so a player who follows this line while a word is up is holding
+      // instead of answering — the sim would buffer the raise and the word
+      // would go by unread. The instruction may only appear where obeying it
+      // is free, which is the same rule the sim itself applies to the raise.
       text = barLesson(m);
     }
     // RC-5: the value and charge asides are gone. "ANSWERING EARLY IS WORTH
@@ -432,6 +443,13 @@ export class UI {
     // above the DASH button, centred, and they appear on the first raise.
     const lvl = p.compressionLevel | 0;
     if (lvl !== this._lastBar && this.barMarks) {
+      // A fall is a wrong read taking the bar back (word-gates.js), and it is
+      // the one bar change that has to be SEEN. A rise is the player's own
+      // doing and needs no announcement.
+      if (lvl < this._lastBar) {
+        this._barFellT = 1;
+        this.barMarks.classList.add('fell');
+      }
       this._lastBar = lvl;
       const max = this.barPips.length;
       this.barPips.forEach((pip, i) => pip.classList.toggle('lit', i < lvl));
@@ -589,10 +607,28 @@ export class UI {
     // The drain: sharp onset, ~0.6s recovery — the light comes back as the
     // world does. REDUCED FLASH halves its bite.
     if (this._drainT > 0) {
-      this._drainT = Math.max(0, this._drainT - dt * 1.7);
+      this._drainT = Math.max(0, this._drainT - dt * DRAIN_FALL);
       const k = this._drainT * this._drainT * (ACCESS.reducedFlash ? 0.5 : 1);
       if (this.drainEl) this.drainEl.style.opacity = (k * 0.85).toFixed(3);
       if (this.drainDimEl) this.drainDimEl.style.opacity = (k * 0.42).toFixed(3);
+    }
+
+    // RC9.9 — and the bar goes with it, ON THE SAME BEAT. The reset was
+    // already in the sim; what was missing was anyone seeing it happen. The
+    // marks used to blink out on the frame the level changed, in the middle
+    // of a wrong-read drain that had the eye elsewhere, so the player learned
+    // the bar was gone several words later by not scoring. Now they collapse
+    // down the drain's own curve, in the danger colour ACCESS is currently
+    // set to. Its own timer rather than a read of `_drainT`, so the collapse
+    // cannot be lost to whichever of the two lands first on a given frame.
+    if (this._barFellT > 0 && this.barMarks) {
+      this._barFellT = Math.max(0, this._barFellT - dt * DRAIN_FALL);
+      const c = this._barFellT * this._barFellT;
+      this.barMarks.style.setProperty('--drain', c.toFixed(3));
+      if (this._barFellT === 0) {
+        this.barMarks.classList.remove('fell');
+        this.barMarks.style.removeProperty('--drain');
+      }
     }
 
     // The answer vignette: sharp onset, fast decay — a verdict, not a glow.

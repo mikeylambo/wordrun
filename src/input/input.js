@@ -35,9 +35,20 @@ const SWIPE_MS = 260;
 // the game's most important verb: the player had already decided, and the
 // game spent a quarter of a second finding out.
 const TAP_MS = 220;
-// Phase F: holding a zone past this sets the player's own bar instead of
-// answering. Comfortably past TAP_MS so a slow answer is never a level change.
-const HOLD_MS = 520;
+// RC9.9: the bar's hold moved off the screen zones and onto the DASH control.
+// A press shorter than this dashes ON RELEASE; a press that outlives it raises
+// the bar and can no longer dash at all. Comfortably past TAP_MS, so nothing a
+// player means as an answer is ever read as a level change.
+export const HOLD_MS = 520;
+
+/**
+ * What a press of the dash control MEANT, given how long it was held. The one
+ * place the two verbs are told apart, exported so the gates can walk the
+ * boundary in node rather than inferring it from a regex over this file.
+ */
+export function dashVerb(heldMs) {
+  return heldMs >= HOLD_MS ? 'bar' : 'dash';
+}
 const TAP_PX = 12;
 // Phase C shipped a both-halves-at-once dash and it is gone again after one
 // playtest. On a phone the gesture has to compete with the buttons that live
@@ -63,8 +74,13 @@ export class Input {
     this.flip = 0;
     this.jump = false;          // said REAL (the right zone)
     this.reject = false;        // said FAKE (the left zone)
-    this.raiseBar = false;      // hold right / Up: raise the compression level
-    this.lowerBar = false;      // hold left / Down: lower it
+    this.raiseBar = false;      // a held DASH (or Up): raise the compression bar
+    // RC9.9 — the dash control's two verbs. One timer, whatever pressed it:
+    // null when nothing is down, else the press's start. `_dashRaised` marks a
+    // press that has already spent itself on the bar and may no longer dash.
+    this._dashT = null;
+    this._dashRaised = false;
+    this._padDashDown = false;
     this.boostHeld = false;
     this.dragging = false;
 
@@ -95,7 +111,7 @@ export class Input {
     this.keyX = 0; this.keyY = 0;
     this.keyLeft = false; this.keyRight = false;
     this.keyUp = false; this.keyDown = false;
-    this.keyBoost = false;
+    this._btnDown = false;      // the touch DASH button's last polled state
 
     this._bind();
   }
@@ -224,20 +240,46 @@ export class Input {
   }
 
   /**
-   * A press held past the tap window is not an answer — it sets the bar. Fires
-   * once per press, and the sim refuses it while a word is armed, so the
-   * gesture only ever lands in the gap between gates.
+   * RC9.9 — the DASH control, which now carries both verbs.
+   *
+   * A press starts a clock. Lift before HOLD_MS and it is a TAP: the dash
+   * fires on the RELEASE, because until the press has outlived the hold
+   * window the game cannot yet know which verb it is. Keep holding past
+   * HOLD_MS and it raises the bar instead, once, and that press can no longer
+   * dash however it ends.
+   *
+   * Firing on release costs the dash up to 520 ms of latency on the frame a
+   * player takes their thumb off, and buys the bar a control that is on every
+   * device, is on screen, and is already the one thing a new player has been
+   * taught to find. The old bar — a held press on the right SCREEN ZONE —
+   * asked people to hold a half of the screen whose only other meaning is
+   * "this word is real", which is why nobody found it and why the two verbs
+   * had to be told apart by a stopwatch on the same pixel.
+   *
+   * One timer for every source: touch button, Space, F, pad RT. They cannot
+   * disagree about what a press means, because there is only one answer.
    */
-  _pollHolds(now) {
-    for (const [, meta] of this.pointerMeta) {
-      if (meta.barFired || now - meta.downT < HOLD_MS) continue;
-      const travel = Math.hypot((meta.x ?? meta.downX) - meta.downX,
-        (meta.y ?? meta.downY) - meta.downY);
-      if (travel > TAP_PX * 2) { meta.barFired = true; continue; }
-      meta.barFired = true;
-      if (this._zoneOf(meta.downX) === 'right') this.raiseBar = true;
-      else this.lowerBar = true;
-    }
+  _dashDown(now) {
+    if (this._dashT != null) return;      // key repeat, or a second source
+    this._dashT = now;
+    this._dashRaised = false;
+  }
+
+  _dashUp(now) {
+    if (this._dashT == null) return;
+    const held = now - this._dashT;
+    this._dashT = null;
+    // A press that already bought a level is spent. Anything shorter dashes.
+    if (!this._dashRaised && dashVerb(held) === 'dash') this.dashEdge = true;
+    this._dashRaised = false;
+  }
+
+  /** Called once a frame: the moment a live press crosses the hold window. */
+  _pollDashHold(now) {
+    if (this._dashT == null || this._dashRaised) return;
+    if (dashVerb(now - this._dashT) !== 'bar') return;
+    this._dashRaised = true;
+    this.raiseBar = true;
   }
 
   _key(code, down) {
@@ -247,12 +289,18 @@ export class Input {
       // auto-followed — nothing reads `carve`.
       case 'ArrowRight': case 'KeyD': if (down) this.jump = true; return true;
       case 'ArrowLeft': case 'KeyA': if (down) this.reject = true; return true;
-      // The vertical pair sets the bar on a keyboard, where a held key has
-      // already fired its answer on the way down and cannot be reused.
+      // ArrowUp stays a keyboard raise. It is not the taught control any more
+      // — every modality is taught the held DASH — but it costs nothing, the
+      // cabinet's key legend still names it, and a keyboard player who learned
+      // it should not find it gone. ArrowDown retires with `lowerBar`: the bar
+      // wraps to zero past the top now, so there is nothing to lower.
       case 'ArrowUp': case 'KeyW': if (down) this.raiseBar = true; return true;
-      case 'ArrowDown': case 'KeyS': if (down) this.lowerBar = true; return true;
-      case 'Space': if (down) this.dashEdge = true; return true;
-      case 'KeyF': case 'ShiftLeft': case 'ShiftRight': this.keyBoost = down; return true;
+      // RC9.9: the dash keys press and release through the one machine, so
+      // Space behaves exactly as the button and the pad's RT do.
+      case 'Space': case 'KeyF': case 'ShiftLeft': case 'ShiftRight':
+        if (down) this._dashDown(performance.now());
+        else this._dashUp(performance.now());
+        return true;
       default: return false;
     }
   }
@@ -264,13 +312,16 @@ export class Input {
     this.pointerMeta.clear();
     this.dragging = false;
     this.keyLeft = this.keyRight = this.keyUp = this.keyDown = false;
-    this.keyBoost = false;
+    // A window that loses focus mid-press has not dashed and has not raised.
+    this._dashT = null;
+    this._dashRaised = false;
+    this._padDashDown = false;
     this.keyX = 0; this.keyY = 0;
     this.touchX = 0; this.touchY = 0;
     this.__v1DashButtonHeld = false;
     this._lastGrounded = null;
     this.carve = 0; this.flip = 0; this.jump = false; this.reject = false;
-    this.raiseBar = false; this.lowerBar = false;
+    this.raiseBar = false;
     this.boostHeld = false; this.dashEdge = false;
   }
 
@@ -347,17 +398,25 @@ export class Input {
     // Pointer wins when present, otherwise the keyboard drives.
     this.carve = this.primaryId !== null ? dragX : this.keyX;
     this.flip = this.primaryId !== null ? dragY : this.keyY;
-    // Phase C: the dash is an edge now, not a hold. `dashEdge` latches for one
-    // frame from Space or from both zones at once; the on-screen button and
-    // the F key still hold, because a held control has nothing to gain by
-    // becoming a tap.
-    this._pollHolds(performance.now());
-    this.boostHeld = this.dashEdge || this.keyBoost || this.__v1DashButtonHeld;
+    // RC9.9: the touch button reports itself as a held flag (v1-mobile-ui.js
+    // owns that element), so its edges are read here rather than pushed —
+    // one frame of latency against a 520 ms window, and no second owner of
+    // the button's state.
+    const now = performance.now();
+    if (this.__v1DashButtonHeld && !this._btnDown) this._dashDown(now);
+    else if (!this.__v1DashButtonHeld && this._btnDown) this._dashUp(now);
+    this._btnDown = !!this.__v1DashButtonHeld;
+    this._pollDashHold(now);
+    // The dash is the EDGE and nothing else. A press being held is not a dash
+    // being held — it is a bar being raised — and `Player._overdrive` has fired
+    // on the rising edge and run itself out on DRAIN_RATE since the debugging
+    // pass, so one frame is the whole signal it ever needed.
+    this.boostHeld = this.dashEdge;
   }
 
   /** The sim consumes these as edges; call after stepping. */
   consumeJump() {
     this.jump = false; this.reject = false; this.dashEdge = false;
-    this.raiseBar = false; this.lowerBar = false;
+    this.raiseBar = false;
   }
 }

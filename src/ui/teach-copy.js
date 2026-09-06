@@ -11,7 +11,7 @@
  *   confirm/REAL  — the right tap zone and the REAL button, ArrowRight/KeyD, pad A
  *   reject/FAKE   — the left tap zone and the FAKE button, ArrowLeft/KeyA, (no pad)
  *   dash          — the DASH button, Space (or F/Shift), pad RT
- *   raise the bar — a HELD press on the right screen zone, ArrowUp/KeyW, (no pad)
+ *   raise the bar — a HELD press on that SAME dash control, on every device
  *
  * THE DASH IS A PRESS, ON EVERY CONTROL, AND HAS BEEN SINCE THE DEBUGGING
  * PASS. The header this replaces said the touch button was "held", and that
@@ -22,18 +22,20 @@
  * buy the identical dash. Every DASH instruction therefore reads TAP DASH
  * (touch), PRESS SPACE (keyboard) or RT (pad) — never HOLD.
  *
- * The one control that IS genuinely held is the compression bar, and it is
- * NOT the answer button: `_pollHolds` reads a press on the right SCREEN ZONE
- * that outlives the tap window, and on a keyboard it is ArrowUp, because a
- * held arrow key has already fired its answer on the way down. The bar copy
- * names those, which is why it is the only line in this file that may say
- * HOLD and the only one that does not name an answer button.
+ * The one control that IS genuinely held is the compression bar, and RC9.9
+ * moved it onto the dash control itself: a press under HOLD_MS dashes on
+ * release, a press that outlives HOLD_MS raises the bar and cannot dash. So
+ * the bar line is still the only one in this file that may say HOLD — but it
+ * now names the SAME control the dash lines name, on every device, which is
+ * the whole point of the move. The distinction the copy has to keep is TAP
+ * versus HOLD, not one control versus another: every DASH instruction still
+ * reads TAP / PRESS / RT and never HOLD.
  *
  * Two more worth stating plainly rather than papering over:
- *   - the gamepad layer binds confirm and the dash but NEVER reject or the
- *     bar, so on a pad the fake stop can only name the pass — which is a real
- *     answer, and the one that word wants — and the bar has nothing to teach.
- *     Naming a pad button for either would be inventing a binding.
+ *   - the gamepad layer binds confirm and the dash but NEVER reject, so on a
+ *     pad the fake stop can only name the pass — which is a real answer, and
+ *     the one that word wants. Naming a pad button for it would be inventing
+ *     a binding. The bar, since RC9.9, rides RT and so has a pad line at last.
  *   - the modality vocabularies do not mix. Touch says the button names and
  *     never says RIGHT or LEFT (it has no screen halves to point at any
  *     more); the keyboard says the arrows and never says REAL or FAKE. Both
@@ -128,18 +130,21 @@ export function rejectLesson(modality = MODALITY.TOUCH) {
  * apart: the card sets the control as a chip inside a sentence, the coach
  * says it as one line.
  *
- * The control is NOT the answer button, and this is the one place the copy
- * has to resist the obvious phrasing. `_pollHolds` reads a press on the right
- * SCREEN ZONE that outlives the tap window — the REAL button answers on
- * pointerdown and stops the event there, so it never reaches the poll — and
- * on a keyboard the raise is ArrowUp, a press, because ArrowRight has already
- * fired its answer on the way down and cannot be reused without moving when a
- * keyboard answer is timed. So: the side, not the button; ↑, not →.
+ * RC9.9: the control is the DASH, on every device. It used to be a held press
+ * on the right SCREEN ZONE — a half of the screen whose only other meaning is
+ * "this word is spelled correctly" — with the two verbs told apart by a
+ * stopwatch on the same pixel, and a keyboard raise on ArrowUp that shared
+ * nothing with it. Nobody found either. The dash control is on screen, it is
+ * on every device, and it is the one thing a new player has already been
+ * taught to look for; a press it does not spend within 520 ms is a press that
+ * was never an answer. So the verb is HOLD and the control is the dash's own
+ * name in each modality — and no line here may say HOLD about the DASH
+ * ITSELF, which is still, always, a tap.
  */
 const BAR = Object.freeze({
-  touch: { verb: 'Hold', control: 'THE REAL SIDE' },
-  key: { verb: 'Press', control: '↑' },
-  pad: null,
+  touch: { verb: 'Hold', control: 'DASH' },
+  key: { verb: 'Hold', control: 'SPACE' },
+  pad: { verb: 'Hold', control: 'RT' },
 });
 
 /** {verb, control} for raising the bar, or null where nothing is bound. */

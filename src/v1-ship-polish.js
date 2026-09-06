@@ -76,7 +76,13 @@ if (!Input.prototype.__v1GamepadSupport) {
       this.flip = clamp(axes.y, -1, 1);
       this.dragging = Math.abs(axes.x) > 0.02 || Math.abs(axes.y) > 0.02;
     }
-    this.boostHeld = this.boostHeld || boost;
+    // RC9.9: RT obeys the one dash rule — a tap dashes on release, a hold
+    // raises the bar. The pad reports a level, so its edges are read here and
+    // handed to the same machine the button and Space use.
+    if (boost && !this._padDashDown) this._dashDown(performance.now());
+    else if (!boost && this._padDashDown) this._dashUp(performance.now());
+    this._padDashDown = boost;
+    this.boostHeld = this.boostHeld || this.dashEdge;
 
     if (!a) this.__v1PadConsumedConfirmUntilRelease = false;
     if (a && !this.__v1PadJumpDown && !this.__v1PadConsumedConfirmUntilRelease) this.jump = true;

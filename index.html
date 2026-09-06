@@ -117,6 +117,14 @@
   #barMarks i{width:16px;height:3px;background:rgba(139,228,255,.22);
     box-shadow:0 1px 6px rgba(4,9,13,.5);transition:background .18s ease,box-shadow .18s ease}
   #barMarks i.lit{background:#8be4ff;box-shadow:0 0 10px rgba(139,228,255,.7)}
+  /* RC9.9 — a wrong read takes the bar back, and the marks collapse ON THE
+     DRAIN'S OWN BEAT so it reads as the consequence of the read rather than
+     as a HUD that changed while the screen was busy. The colour is the live
+     ACCESS danger hue, the same one every other correction wears. */
+  #barMarks.fell{opacity:1}
+  #barMarks.fell i,#barMarks.fell i.lit{background:var(--sem-wrong,#ff7a7a);
+    box-shadow:0 0 calc(14px * var(--drain,0)) var(--sem-wrong,#ff7a7a);
+    transform:scaleX(calc(.30 + .70 * var(--drain,0)));transition:none}
   .meter-zone.armed #meterLabel{color:rgba(190,238,255,.85)}
   .meter-zone.spending #meterLabel{color:#fff}
   /* The one-shot flourish when the dash reaches full charge. */
@@ -398,6 +406,22 @@
      class is driven from the frame loop in main.js. */
   /* RC7: REDUCED FLASH keeps the ring, drops the pulse. */
   #app.rf .v1MobileAction.teachRing{animation:none}
+  /* RC9.9 — the held breath. A stop freezes the world; these five things are
+     still true, so they brighten and dim together on the music's two-bar
+     phrase (0.34 Hz at the score's 164 BPM, half the 0.6 Hz ceiling). Light
+     only — nothing moves, nothing steps, and REDUCED FLASH never adds the
+     class, so every one of them holds LIT rather than holding dark. The ring
+     drops its own 1.1s pulse for the duration: one rhythm on screen, not two.
+     main.js is the single writer of --breath. */
+  #app.breathing #guidedTeach .gtMain{opacity:calc(.72 + .28 * var(--breath,1))}
+  #app.breathing #barMarks i.lit{opacity:calc(.55 + .45 * var(--breath,1))}
+  #app.breathing #vitals .heartPip:not(.empty) .hFill{opacity:calc(.62 + .38 * var(--breath,1))}
+  #app.breathing #dist{text-shadow:
+    0 0 calc(10px + 16px * var(--breath,1)) rgba(103,216,255,calc(.18 + .26 * var(--breath,1))),
+    0 1px 2px rgba(2,6,10,.85)}
+  #app.breathing .v1MobileAction.teachRing{animation:none;
+    box-shadow:0 0 0 3px rgba(139,228,255,calc(.50 + .45 * var(--breath,1))),
+      0 0 calc(18px + 22px * var(--breath,1)) rgba(103,216,255,calc(.30 + .30 * var(--breath,1)))}
   #app.chromeless #mute,#app.chromeless #accessBtn,#app.chromeless #shopBtn{display:none}
   /* RC7.1: and no chrome at all over the results card — the gear is a
      title action. AGAIN and MENU are the only ways off this screen. */

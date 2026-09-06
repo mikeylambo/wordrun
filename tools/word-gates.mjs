@@ -14,6 +14,11 @@
  */
 
 import fs from 'node:fs';
+import { advanceStride, strideLength } from '../src/render/actors.js';
+import { HOLD_MS, dashVerb } from '../src/input/input.js';
+import {
+  BREATH_BEATS, BREATH_FALLBACK_BPM, BREATH_HZ_MAX, breathAt, breathHz,
+} from '../src/ui/breath.js';
 import TUNING from '../src/TUNING.js';
 import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
 import { mulberry32 } from '../src/sim/rng.js';
@@ -829,10 +834,14 @@ head('ZONES — the reject is optional, and never worse than silence');
     !/dashEdge = true;[\s\S]{0,80}_zoneOf/.test(inputSrc) &&
     !/_zonePress/.test(inputSrc) && !/BOTH_ZONE_MS/.test(inputSrc),
     'no gesture competes with the buttons that sit in the same halves');
+  // RC9.9: the dash control carries two verbs, so every way in runs the same
+  // press/release machine — the tap dashes on RELEASE, the hold buys a level.
   check('the dash still has three ways in and no gesture',
-    /case 'Space': if \(down\) this\.dashEdge = true/.test(inputSrc) &&
-    /this\.dashEdge \|\| this\.keyBoost \|\| this\.__v1DashButtonHeld/.test(inputSrc),
-    'Space, the F key and the on-screen button');
+    /case 'Space': case 'KeyF': case 'ShiftLeft': case 'ShiftRight':/.test(inputSrc) &&
+    /this\._dashDown\(performance\.now\(\)\)/.test(inputSrc) &&
+    /this\.__v1DashButtonHeld && !this\._btnDown/.test(inputSrc) &&
+    /this\.boostHeld = this\.dashEdge;/.test(inputSrc),
+    'Space, the F key and the on-screen button — one machine, one meaning');
   check('the hold that used to arm the dash is gone',
     !/GO_HOLD_MS/.test(inputSrc) && /dashEdge/.test(inputSrc),
     'the dash is an edge — no quarter-second tax on the most important verb');
@@ -1372,6 +1381,19 @@ head('COMPRESSION — risk without a legibility cost');
     mid[3] > 0 && route(3, 0.06) > 0,
     'every level still finishes the route; what a late answer costs is money, not the run');
 
+  // RC9.9 re-drove these: the bar's CONTROL moved to a held DASH and the
+  // levels wrap, so what the bar PAYS had to be shown not to have moved with
+  // it. One route, one seed, four levels, two answering habits.
+  out.push('\n  the bar, over one DAILY route of seed 777 — score by level and habit');
+  out.push('      level   mult   clearing it (100% early)   answering at 40%');
+  for (let l = 0; l <= 3; l++) {
+    out.push(`      L${l}      ${W.COMPRESSION_MULT[l].toFixed(2)}   ` +
+      `${edge[l].toLocaleString().padStart(14)}            ` +
+      `${mid[l].toLocaleString().padStart(12)}`);
+  }
+  out.push(`      the bar is raised by a HELD DASH now (>= ${HOLD_MS}ms) and wraps ` +
+    `L${TUNING.WORDS.COMPRESSION_MULT.length - 1} -> L0; the payout table above is unchanged by that.\n`);
+
   // A wrong read of any kind drops the bar to the floor.
   const dropsOn = (kind) => {
     const sim = new Sim(11); sim.start(11);
@@ -1404,11 +1426,11 @@ head('COMPRESSION — risk without a legibility cost');
     `the gap is ${gapAt(W.SPACING_MIN_M, TUNING.RUN.CEILING).toFixed(2)}s at the spacing floor ` +
     'and the ceiling — shorter than any hold could be, so the intent is buffered');
   check('a buffered change still never lands on a word already showing',
-    /this\.pendingBar !== 0 && !this\.wordGates\.armed/.test(simSrc),
+    /this\.pendingBar > 0 && !this\.wordGates\.armed/.test(simSrc),
     'the word it affects is one the player has not seen');
   check('one hold moves the bar exactly one level',
-    /input\.raiseBar = false;\s*\n\s*input\.lowerBar = false;/.test(simSrc) &&
-    /Math\.sign\(this\.pendingBar\)/.test(simSrc),
+    /input\.raiseBar = false;/.test(simSrc) && /this\.pendingBar -= 1;/.test(simSrc) &&
+    !/lowerBar/.test(simSrc),
     'advance() runs several fixed steps a frame; an unconsumed edge moved it two');
 
   // RC8.1: still marks, and now where the player can see them — a row of
@@ -1433,6 +1455,183 @@ head('COMPRESSION — risk without a legibility cost');
       /#barMarks\{[^}]*opacity:0/.test(html) && html.includes('#barMarks.set{opacity:1}') &&
       /classList\.toggle\('set', lvl > 0\)/.test(uiSrc),
       'an unset row of marks is three pips of noise explaining nothing');
+  }
+}
+
+// ── RC9.9: held breath, and the bar on DASH ──────────────────────────────
+head('STRIDE — the figure runs on GROUND, so a frozen sim is a frozen figure');
+{
+  const inputSrc = fs.readFileSync('src/input/input.js', 'utf8');
+  const actorsSrc = fs.readFileSync('src/render/actors.js', 'utf8');
+
+  // A phase that cannot advance without metres is the whole fix, stated once.
+  check('no ground, no stride — at every speed the stride length knows about',
+    [0, 0.5, 1, 1.35, 1.85].every((n) =>
+      advanceStride(1.234, 0, n) === 1.234 && advanceStride(1.234, -3, n) === 1.234),
+    'zero, and a rewind, both hold the pose');
+  check('and metres do move it, proportionally',
+    Math.abs(advanceStride(0, strideLength(0), 0) - Math.PI * 2) < 1e-12 &&
+    advanceStride(0, 1, 1) < advanceStride(0, 1, 0),
+    'one stride length is exactly one full cycle; a faster figure covers more ground per step');
+
+  // THE gate the brief asks for, on the real thing: a guided run driven into
+  // its first stop, then two hundred frozen steps of stride integration.
+  const sim = new Sim(4242);
+  sim.start(4242, null, { mode: 'endless', chart: 'guided' });
+  sim.teach.enabled = true;
+  sim.teach.learned = { real: false, fake: false, dash: false };
+  let guard = 0;
+  while (sim.phase === PHASE.RUNNING && guard++ < 40000 && !sim.teach.active) sim.step(emptyInput());
+  const stopped = sim.teach.active;
+  let phase = 1.7, lastD = sim.player.d;
+  const beforeD = lastD;
+  for (let i = 0; i < 200; i++) {
+    sim.step(emptyInput());
+    phase = advanceStride(phase, sim.player.d - lastD, 0.6);
+    lastD = sim.player.d;
+  }
+  check('across a stop the stride phase does not move — at all',
+    stopped === 'real' && sim.teach.active === 'real' &&
+    sim.player.d === beforeD && phase === 1.7,
+    `${stopped} stop, 200 frozen steps, phase 1.7 -> ${phase}`);
+
+  // And both figures read the same rule, from one function.
+  check('the player and the ghost stride from the SAME rule',
+    (actorsSrc.match(/advanceStride\(/g) || []).length === 3 &&
+    !/_phase \+= [^\n]*\* dt/.test(actorsSrc) && !/effSpeed \?\? p\.speed\) \* dt/.test(actorsSrc),
+    'one exported function, called by each actor — and no dt left anywhere near a stride');
+
+  head('DASH — one control, two verbs, told apart by the clock');
+  check(`the boundary is HOLD_MS (${HOLD_MS}ms) and nothing else`,
+    dashVerb(0) === 'dash' && dashVerb(HOLD_MS - 1) === 'dash' &&
+    dashVerb(HOLD_MS) === 'bar' && dashVerb(5000) === 'bar' &&
+    HOLD_MS > 220,
+    'and it sits clear of the 220ms tap window, so no answer is ever read as a level');
+  check('the tap fires on RELEASE, because until then it could still be a hold',
+    /_dashUp\(now\) \{[\s\S]{0,320}this\.dashEdge = true;/.test(inputSrc) &&
+    !/case 'Space': if \(down\) this\.dashEdge = true/.test(inputSrc),
+    'a dash on the press could not be taken back when the press turned out to be a bar');
+  check('a press that bought a level can no longer dash, however it ends',
+    /this\._dashRaised = true;\s*\n\s*this\.raiseBar = true;/.test(inputSrc) &&
+    /if \(!this\._dashRaised && dashVerb\(held\) === 'dash'\)/.test(inputSrc));
+
+  // What a hold LOOKS like to the sim: the bar edge raised, the dash flag
+  // never set. The claim is not "no gate resolves" — words the player lets
+  // pass resolve on their own, which is the game — it is that a hold is
+  // INDISTINGUISHABLE from not touching the control at all, everywhere except
+  // the bar. So it is driven twice against the same seed and compared.
+  const holdRun = (holding) => {
+    const s2 = new Sim(909); s2.start(909);
+    let g2 = 0, dashes = 0, moves = 0, level = 0;
+    const trace = [];
+    while (s2.phase === PHASE.RUNNING && g2++ < 6000) {
+      const wasOver = s2.player.overdrive;
+      s2.player.boostMeter = TUNING.BOOST.METER_MAX;      // charged the whole way
+      s2.step({ ...emptyInput(), raiseBar: holding });
+      if (s2.player.overdrive && !wasOver) dashes++;
+      if (s2.player.compressionLevel !== level) { moves++; level = s2.player.compressionLevel; }
+      const wg = s2.wordGates;
+      trace.push(`${wg.correctCount}/${wg.wrongCount}`);
+    }
+    return { dashes, moves, trace: trace.join('|') };
+  };
+  const held = holdRun(true), idle = holdRun(false);
+  check('a hold on DASH never answers a word and never dashes',
+    held.dashes === 0 && idle.dashes === 0 && held.trace === idle.trace &&
+    held.moves > 0 && idle.moves === 0,
+    `6000 held steps at a full meter: ${held.dashes} dashes, and every gate resolved ` +
+    `exactly as an untouched control did — the bar moved ${held.moves} times and ` +
+    'nothing else in the run knew the difference');
+
+  // And what a tap looks like: the edge, once, with a charged meter.
+  const tapRun = () => {
+    const s2 = new Sim(909); s2.start(909);
+    for (let i = 0; i < 40; i++) s2.step(emptyInput());
+    s2.player.boostMeter = TUNING.BOOST.METER_MAX;
+    s2.step({ ...emptyInput(), boostHeld: true });
+    const on = s2.player.overdrive;
+    // The dash then runs itself out on DRAIN_RATE, whatever the control does.
+    let steps = 0;
+    while (s2.player.overdrive && steps++ < 6000) s2.step(emptyInput());
+    return { on, seconds: steps * TUNING.SIM.DT };
+  };
+  const tapped = tapRun();
+  const expected = TUNING.BOOST.METER_MAX / TUNING.BOOST.DRAIN_RATE;
+  check('a tap under the hold window always dashes when charged',
+    tapped.on === true, 'one edge, with the meter at full');
+  check('and dash TIMING is untouched: a full charge still spends itself whole',
+    Math.abs(tapped.seconds - expected) < TUNING.SIM.DT * 2,
+    `${tapped.seconds.toFixed(3)}s against METER_MAX/DRAIN_RATE = ${expected.toFixed(3)}s, ` +
+    'released or not — the score model reads the same dash it always did');
+
+  // The bar wraps, because one control cannot walk backwards.
+  const wrapRun = () => {
+    const s2 = new Sim(4242); s2.start(4242);
+    const seen = [];
+    let g2 = 0;
+    while (s2.phase === PHASE.RUNNING && g2++ < 60000 && seen.length < 6) {
+      const inGap = !s2.wordGates.armed(s2.player.d);
+      const before = s2.player.compressionLevel;
+      s2.step({ ...emptyInput(), raiseBar: inGap });
+      if (s2.player.compressionLevel !== before) seen.push(s2.player.compressionLevel);
+    }
+    return seen;
+  };
+  const levels = TUNING.WORDS.COMPRESSION_MULT.length - 1;
+  const wrapped = wrapRun();
+  check('holding past the top returns the bar to nothing',
+    wrapped.slice(0, levels + 1).join(',') ===
+      [...Array(levels).keys()].map((i) => i + 1).concat(0).join(','),
+    `${wrapped.join(' -> ')} — the only way to stop betting with a single control`);
+
+  head('HELD BREATH — the frozen frame is alive, and slowly');
+  check(`one breath per two bars is ${breathHz().toFixed(3)} Hz, under the ${BREATH_HZ_MAX} ceiling`,
+    breathHz() <= BREATH_HZ_MAX && breathHz(220) <= BREATH_HZ_MAX,
+    `${BREATH_BEATS} beats at ${BREATH_FALLBACK_BPM} BPM — a phrase, not a pulse`);
+  check('no stop, no breath — and REDUCED FLASH holds them LIT, never dark',
+    breathAt({ active: false, beat: 3 }) === 1 &&
+    breathAt({ active: true, reducedFlash: true, beat: 3 }) === 1 &&
+    breathAt({ active: true, reducedFlash: true, beat: 7.5 }) === 1,
+    'the rest value is full brightness: a HUD the player is being asked to read');
+  {
+    // Continuous and bounded: it may never step, and may never go dark.
+    let worst = 0, lo = 1, hi = 0, prev = breathAt({ active: true, beat: 0 });
+    for (let i = 1; i <= 4000; i++) {
+      const v = breathAt({ active: true, beat: i * 0.01 });
+      worst = Math.max(worst, Math.abs(v - prev));
+      lo = Math.min(lo, v); hi = Math.max(hi, v);
+      prev = v;
+    }
+    check('and it is a curve, not a flash — no step, and the full 0..1 swing',
+      worst < 0.02 && lo < 0.001 && hi > 0.999,
+      `largest change over a hundredth of a beat: ${worst.toFixed(5)}`);
+  }
+  {
+    const html = fs.readFileSync('index.html', 'utf8');
+    const mainSrc = fs.readFileSync('src/main.js', 'utf8');
+    const uiSrc2 = fs.readFileSync('src/ui/ui.js', 'utf8');
+    const FIVE = ['#app.breathing #guidedTeach .gtMain', '#app.breathing #barMarks i.lit',
+      '#app.breathing #vitals .heartPip:not(.empty) .hFill', '#app.breathing #dist',
+      '#app.breathing .v1MobileAction.teachRing'];
+    check('the five things that are still true breathe, and only they',
+      FIVE.every((sel) => html.includes(sel)) &&
+      (html.match(/#app\.breathing /g) || []).length === FIVE.length,
+      'the stop line, the marks, the hearts, the score glow, the ring');
+    check('one writer, and REDUCED FLASH never even adds the class',
+      (mainSrc.match(/setProperty\('--breath'/g) || []).length === 2 &&
+      mainSrc.includes("const on = !!sim.teach.active && !ACCESS.reducedFlash;") &&
+      !/animation:[^;}]*breath/i.test(html),
+      'a custom property main.js sets and CSS spends — no per-element animation to drift');
+    check('nothing moves: the breath is light only',
+      !/#app\.breathing[^}]*(transform|translate|scale)/.test(html),
+      'a frozen world that jiggles is not holding its breath');
+    // (4) the marks collapse ON the drain's beat, from one shared constant.
+    check('the bar\'s collapse rides the drain\'s own beat, from one constant',
+      /const DRAIN_FALL = 1\.7;/.test(uiSrc2) &&
+      (uiSrc2.match(/dt \* DRAIN_FALL/g) || []).length === 2 &&
+      /this\._barFellT = 1;/.test(uiSrc2) && html.includes('#barMarks.fell i') &&
+      html.includes('var(--sem-wrong'),
+      'the world drains and the bar collapses on the same curve, in the live danger colour');
   }
 }
 

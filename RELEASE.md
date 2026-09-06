@@ -2841,3 +2841,85 @@ pays lands on one condition rather than the other — with that in place the two
 conditions come back within a frame of each other at p50 on every viewport,
 which is the shape a fair comparison has. **[MP] runs the
 bench on a GPU host, and the two new soak items on a phone.**
+
+## 1.0-RC9.9 — held breath, and the bar on DASH
+
+Three playtest findings, and the third is a mechanic finally arriving where
+anyone can find it.
+
+**The runner runs on GROUND, not on the frame clock.** A teach stop freezes the
+world outright — the clock, the pursuit, the player, the gate — which is the
+right design and which also left the figure sprinting on the spot in front of
+a stopped world. It read as a hang. The stride phase now integrates the SIM's
+distance delta: no metres, no stride, so a frozen sim is a frozen figure for
+free and the pose is a pure function of ground covered rather than of how the
+browser is feeling. The ghost rides the same rule, from the same exported
+function, so the two figures cannot fall out of step for reasons that have
+nothing to do with either of them. Gated on the real thing: a guided run
+driven into its first stop, then two hundred frozen steps of stride
+integration, phase 1.7 in and phase 1.7 out — not close, equal.
+
+**And the frozen frame breathes.** Five things are still true through a stop —
+the stop's own line, the bar's three marks, the hearts, the score's glow, and
+the ring on the control being pointed at — so they brighten and dim together
+on the music's own two-bar phrase. That is 0.34 Hz at the score's 164 BPM,
+half the 0.6 Hz ceiling: respiration, not animation. Light only; nothing
+moves, and the gate refuses any transform under the breathing class. The ring
+drops its own 1.1 s pulse for the duration, because one rhythm on screen is
+the point. REDUCED FLASH never adds the class at all, and the rest value is
+full brightness — held still means held LIT, since the alternative is dimming
+a HUD the player is being asked to read. One writer: main.js sets a single
+custom property and CSS spends it, so there is no per-element animation that
+can drift out of phase with the other four.
+
+**The bar moved onto the DASH.** It used to be a held press on the right SCREEN
+HALF — a half whose only other meaning is "this word is spelled correctly" —
+with the two verbs told apart by a stopwatch on the same pixel, plus an
+ArrowUp on keyboards that shared nothing with it and nothing on a pad at all.
+Nobody found it. Now:
+
+- **A tap dashes ON RELEASE.** Under 520 ms and the press was a dash. The
+  release is when it fires, because until the press has outlived the hold
+  window the game cannot yet know which verb it is, and a dash spent on the
+  press could not be taken back when the press turned out to be a bar.
+- **A hold raises one level, and wraps.** Past 520 ms the press buys a level
+  and can no longer dash however it ends. Past the top the bar returns to
+  none — the only way to say "I am done betting" with a single control.
+- **The same rule on every device**: the DASH button, Space, and the pad's RT,
+  through one press/release machine, so they cannot disagree about what a
+  press means. The right-zone hold and `lowerBar` are retired. ArrowUp stays
+  bound as a keyboard alias — it is no longer the taught control, but it costs
+  nothing, the cabinet's key legend still names it, and a player who learned it
+  should not find it gone.
+- **The copy, everywhere, from the one module**: HOLD DASH TO RAISE THE BAR ·
+  ANSWER FASTER, SCORE MORE, with SPACE and RT by modality, and the HOW TO PLAY
+  rule now says the two things a player would otherwise learn by accident — a
+  held press never dashes, and past the top the bar returns to none. The coach
+  offers the line ONLY while nothing is armed: it names the dash control, so a
+  player who obeys it mid-word is holding instead of answering.
+
+RC8.1 banned HOLD DASH and HOLD RT outright, because the dash was a press and
+the copy kept saying otherwise. A held DASH means something real now, so those
+two come off the ban list and a sharper gate replaces them: **no DASH
+instruction may say HOLD**, in any modality, checked against the charged line
+and all three stop lines. HOLD F stays banned — F is an unadvertised alias the
+copy never names.
+
+**And losing the bar is now something you see.** The reset on a wrong read was
+always there; what was missing was anyone noticing it, because the marks
+blinked out on the frame the level changed, in the middle of a drain that had
+the eye elsewhere. They collapse down the drain's own curve now, in the live
+ACCESS danger colour every other correction wears — one shared constant, so
+the world's drain and the bar's collapse are literally the same beat rather
+than two numbers that happen to match today.
+
+**Dash timing did not move, and the gates prove it rather than assert it.** A
+full charge still spends itself whole on DRAIN_RATE whatever the control does
+afterwards: 3.583 s measured against METER_MAX/DRAIN_RATE = 3.571 s. A hold
+was driven against an untouched control run on the same seed and every gate
+resolved identically — 402 bar moves, and nothing else in the run knew the
+difference. Every calibrated table reproduces byte-for-byte and the Phase 0
+behaviour snapshot is unchanged on all five scripts. The Phase F tables are
+re-driven and printed: L0 472,126 through L3 755,402 clearing the bar, and the
+same collapse to 137,580 for a bar set and not cleared. What the bar PAYS is
+exactly what it paid; only how you raise it has changed.

@@ -156,6 +156,38 @@ function buildRunner(ghost = false) {
 }
 
 /**
+ * RC9.9 — ONE STRIDE RULE, and it is ground, not time.
+ *
+ * The phase advances with METRES COVERED. It used to advance with the render
+ * frame's dt, which is the same number while the world is moving and a lie the
+ * moment it stops: a teach stop freezes the sim outright — the clock, the
+ * pursuit, the player, the gate — and the figure kept running on the spot in
+ * front of a frozen world, which reads as a hang rather than as a held breath.
+ * Distance-driven, a frozen sim is a frozen figure for free, and the pose is
+ * a pure function of ground covered rather than of how the browser is feeling.
+ *
+ * The ghost rides the same rule from its own recorded motion, so the two
+ * figures cannot fall out of step for reasons that have nothing to do with
+ * either of them.
+ */
+export const STRIDE_BASE_M = 2.4;
+
+/** Metres per full stride pair — longer as the figure sprints. */
+export function strideLength(speedN) {
+  return STRIDE_BASE_M + speedN * 0.9;
+}
+
+/**
+ * @param {number} phase radians so far
+ * @param {number} dD    metres covered since the last call
+ * @param {number} speedN normalised speed, for the stride's length
+ */
+export function advanceStride(phase, dD, speedN) {
+  if (!(dD > 0)) return phase;      // stopped, paused, or rewound: hold the pose
+  return phase + dD * (Math.PI * 2) / strideLength(speedN);
+}
+
+/**
  * The shared run cycle — drives one rig from a phase angle. Used by the
  * player and the ghost so the two figures stride identically.
  *   phase    : radians, 2π per full stride pair
@@ -265,6 +297,9 @@ export class PlayerActor {
   update(p, slope, dt, beastGap = 80) {
     this.t += dt;
     if (p.d < this._lastD - 5) this._clearTracks();
+    // RC9.9: the ground covered since the last frame IS the stride's clock.
+    // Read before `_lastD` moves, because the tracks need the same number.
+    const strideD = p.d - this._lastD;
     this._lastD = p.d;
     this.root.position.set(p.x, p.y, -p.d);
     this.root.rotation.y = -p.heading;
@@ -309,12 +344,9 @@ export class PlayerActor {
       hipDrop: (p.overdrive ? 0.09 : 0) + nerve * 0.035,
     };
 
-    // The run cycle is driven by distance, so stride matches the ground:
-    // ~2.4m per full stride pair at base, longer as the figure sprints.
-    const strideLen = 2.4 + speedN * 0.9;
-    if (!p.airborne && p.speed > 0.5) {
-      this._phase += (p.effSpeed ?? p.speed) * dt * (Math.PI * 2) / strideLen;
-    }
+    // The run cycle is driven by distance, so stride matches the ground —
+    // and so a frozen sim is a frozen figure (RC9.9).
+    if (!p.airborne) this._phase = advanceStride(this._phase, strideD, speedN);
     poseRunner(this, this._phase, speedN, p.airborne, dt, style);
 
     // Sprinter's lean deepens with speed; Overdrive is nearly horizontal
@@ -406,12 +438,16 @@ export class GhostActor {
     this.root.position.set(ghost.x, ghost.y, -ghost.d);
     for (const m of this.materials) if (m.transparent) m.opacity = ghost.opacity;
 
-    // Stride from its own recorded motion, so the pale runner keeps pace.
-    const v = this._lastD == null || dt <= 0 ? 0 : Math.max(0, (ghost.d - this._lastD) / dt);
+    // Stride from its own recorded motion, so the pale runner keeps pace —
+    // the same distance-driven rule the live figure runs (RC9.9). The rate is
+    // still a rate, because the stride's LENGTH is a function of speed; only
+    // the phase is advanced by ground.
+    const strideD = this._lastD == null ? 0 : Math.max(0, ghost.d - this._lastD);
+    const v = dt > 0 ? strideD / dt : 0;
     this._lastD = ghost.d;
     const R = TUNING.RUN;
     const speedN = Math.max(0, Math.min(1, (v - R.FLOOR) / (R.CEILING - R.FLOOR))) * 1.35;
-    this._phase += v * dt * (Math.PI * 2) / (2.4 + speedN * 0.9);
+    this._phase = advanceStride(this._phase, strideD, speedN);
     poseRunner(this, this._phase, speedN, false, dt);
     this.chest.rotation.x = -(0.16 + speedN * 0.22);
 
