@@ -2434,3 +2434,61 @@ string out — so the gate suite builds real rows over real bank words and check
 what a player would actually read, rather than pattern-matching a method it
 cannot call. Eleven new checks in `word-gates`; the three older gates that
 asserted the retired shape now point at the new one. Every suite green.
+
+## 1.0-RC9.2 — the challenge loop
+
+The deterministic core has been able to hand one player another player's exact
+run since Phase 14, and the loop never closed, because sharing a run and daring
+someone to beat it were two different buttons. SHARE sent the image and the
+game's front page; LINK copied the dare. An image is a boast and a link is an
+invitation, and the half a player skips is the one that brings anybody back.
+
+- **One tap does both.** SHARE copies the challenge link AND hands the image to
+  the share sheet with that link as its URL, so whichever way the message
+  travels it arrives with the route attached. LINK is gone from the tray. The
+  clipboard write is STARTED before the sheet opens and awaited after it —
+  both want the same user gesture and the sheet is the one that expires first
+  — so a dismissed sheet still leaves the link on the clipboard.
+- **The link carries the bar.** `seed · mode · difficulty · salt · score` gains
+  `bar`, the compression level the challenger played at, because two runs at
+  different bars are not the same dare: the bar moves both the reward line and
+  what counts as an early read. A challenge run STARTS on that level and is
+  never locked to it — the hold that moves the bar works exactly as it always
+  did, because a link is a coordinate, not a rule. The clamp reads
+  `COMPRESSION_MULT.length` rather than a literal.
+- **The dare is said once.** A challenge visit used to caption itself twice: a
+  CHALLENGE label under the wordmark and a `BEAT 2790M` line under the chips —
+  which between them said the word "challenge", said METRES for a figure that
+  has been a score since Phase 25, and never said the one thing that makes a
+  dare a dare. One line does all of it: `BEAT 141,082 · THIS ROUTE`, and it is
+  styled as the caption of the screen rather than as the seed string it
+  replaced. The hint under the wordmark is now empty on every screen there is.
+- **The score to beat is on the HUD.** A second quiet figure under the metre
+  caption — smaller than the caption so it never competes with the score it is
+  measured against — and it turns the semantic right-read colour the instant it
+  is passed. That flip is the whole reason for putting it on the HUD instead of
+  on the card: a player chasing a number should not have to work out whether
+  they have it yet. It appears on a challenge run with a goal and nowhere else,
+  and it is gated that way.
+- **A challenge run is still never board-eligible and still never sets a best.**
+  Unchanged rule, unchanged code.
+
+**The title's caption had three other owners, and one of them was a runtime
+patch.** Chasing why the new dare line kept reverting found `rc97-endgame.js`
+overriding `UI.prototype.setSeed` to re-assert the caption, `v1-finalize.js`
+rewriting the line in its consolidation pass, and `render/endgame-sky.js`
+writing it every frame of the ending — three files fighting over one element,
+with the stalest copy winning. That is precisely the failure the one-file rule
+in CLAUDE.md exists to prevent, so all three are removed and two gates hold the
+line: the caption is written in exactly one file, and no file patches
+`UI.prototype.setSeed` at runtime. `v1-share.js` also joined the retired-copy
+scan, having carried `HOW FAR CAN YOU GO` for four phases after the line was
+retired — no scan reached the one file that says the game's name to everyone
+the player shares with.
+
+Gated: a link round-trips a BYTE-IDENTICAL route — sixty gates driven from the
+encoded coordinates and again from the decoded ones, every shown spelling, true
+answer, tier, deception family and arm distance matching, with a changed seed
+and a changed salt both proving the check measures the route rather than the
+loop. `audit:network` still reads zero: the link is a URL, and building one
+makes no request.

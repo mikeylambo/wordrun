@@ -412,9 +412,115 @@ head('CHALLENGE — the run as a URL, pure and validated');
   check('the meta layer stays on the daily seed during a challenge visit',
     main.includes('metaDaily.recordRun(DAILY_SEED') &&
     !main.includes('metaDaily.recordRun(SEED'));
+  // RC9.2: the link stopped being a button of its own and became half of
+  // SHARE, so main publishes the coordinates and v1-share.js performs the act.
   check('the death card offers the link and the title shows the way home',
-    main.includes('buildChallengeLink(location.origin + location.pathname') &&
-    main.includes('BACK TO DAILY RUN'));
+    main.includes('globalThis.__DASH_CHALLENGE_LINK = () => buildChallengeLink(') &&
+    main.includes('BACK TO DAILY RUN') &&
+    fs.readFileSync('src/v1-share.js', 'utf8').includes('__DASH_CHALLENGE_LINK?.()'));
+
+  // ── RC9.2: the loop, end to end ────────────────────────────────────────
+  // The link carries the bar now, because two runs at different compression
+  // levels are not the same dare — the bar moves both the reward line and
+  // what counts as an early read.
+  const withBar = parseChallenge(new URL(buildChallengeLink('https://e.test/p', {
+    seedString: 'r9', mode: 'endless', difficulty: 'normal', salt: 1, goal: 8811, bar: 2,
+  })).search);
+  check('the link carries the compression bar, and clamps it to the real levels',
+    withBar?.bar === 2 && parseChallenge('?draft=a')?.bar === 0 &&
+    parseChallenge('?draft=a&bar=99')?.bar === TUNING.WORDS.COMPRESSION_MULT.length - 1 &&
+    parseChallenge('?draft=a&bar=-5')?.bar === 0,
+    `bar 0..${TUNING.WORDS.COMPRESSION_MULT.length - 1}, read from the tuning that defines them`);
+  check('and a challenge run STARTS on that bar without being locked to it',
+    main.includes('if (CHALLENGE) sim.player.compressionLevel = CHALLENGE.bar | 0;') &&
+    !/CHALLENGE[^\n]*raiseBar|raiseBar[^\n]*CHALLENGE/.test(main),
+    'the hold that moves the bar is untouched — a link is a coordinate, not a rule');
+
+  // THE round trip that matters: the link has to reproduce the ROUTE, not
+  // merely the query string. Play a run, encode it, decode it, and drive a
+  // second sim from the decoded coordinates — every word, every fake and
+  // every gate distance has to match, or the dare is not the same road.
+  {
+    const { Sim, PHASE, emptyInput } = await import('../src/sim/sim.js');
+    const { hashString } = await import('../src/sim/rng.js');
+    const route = (seedString, opts) => {
+      const seed = hashString(seedString);
+      const sim = new Sim(seed);
+      sim.start(seed, null, opts);
+      const input = emptyInput();
+      const seen = [];
+      for (let i = 0; i < 60 * 240 && sim.phase === PHASE.RUNNING && seen.length < 60; i++) {
+        const g = sim.wordGates.current();
+        if (g && !g.resolved && sim.wordGates.armed(sim.player.d)) {
+          if (seen.length === 0 || seen[seen.length - 1].i !== g.index) {
+            // The gate as the player meets it: which spelling is on the
+            // plate, which word it is really, whether it is real, and where
+            // it sits on the road.
+            seen.push({
+              i: g.index, s: g.shown, a: g.answer, t: g.tier,
+              r: g.real, f: g.family, d: Math.round(g.d * 1000),
+            });
+          }
+          input.confirm = !!g.real;
+          input.reject = !g.real;
+        } else { input.confirm = false; input.reject = false; }
+        sim.step(input);
+      }
+      return JSON.stringify(seen);
+    };
+    const coords = {
+      seedString: '2026-09-06', mode: 'standard', difficulty: 'hard', salt: 5, goal: 40100, bar: 1,
+    };
+    const decoded = parseChallenge(
+      new URL(buildChallengeLink('https://e.test/p', coords)).search);
+    const before = route(coords.seedString,
+      { mode: coords.mode, difficulty: coords.difficulty, wordSalt: coords.salt });
+    const after = route(decoded.seedString,
+      { mode: decoded.mode, difficulty: decoded.difficulty, wordSalt: decoded.salt });
+    check('a link round-trips a BYTE-IDENTICAL route, not just its query string',
+      before === after && before.length > 200,
+      `${JSON.parse(before).length} gates — word, fake, real/fake and arm distance all identical`);
+    // And changing ONE coordinate must NOT reproduce it, or the check above
+    // is measuring nothing. Both of the coordinates that author a route: the
+    // seed names the road, the salt picks the gauntlet of words on it.
+    const otherSeed = route('2026-09-07',
+      { mode: coords.mode, difficulty: coords.difficulty, wordSalt: coords.salt });
+    const otherSalt = route(coords.seedString,
+      { mode: coords.mode, difficulty: coords.difficulty, wordSalt: coords.salt + 1 });
+    check('and a different seed or salt is a different gauntlet',
+      otherSeed !== before && otherSalt !== before,
+      'the round-trip check is measuring the route, not the loop');
+  }
+
+  // The HUD figure is a challenge-run thing and nothing else.
+  const uiSrc = fs.readFileSync('src/ui/ui.js', 'utf8');
+  const html = fs.readFileSync('index.html', 'utf8');
+  check('the score to beat appears on a challenge run and nowhere else',
+    /const goal = this\._challenge\?\.goal \| 0;/.test(uiSrc) &&
+    /const show = goal > 0 && running;/.test(uiSrc) &&
+    html.includes('#distTarget{display:none') && html.includes('#distTarget.on{display:block}') &&
+    /this\.distTarget\?\.classList\.remove\('on', 'passed'\)/.test(uiSrc),
+    'no challenge, no goal, or no run in progress — the row is display:none and carries no text');
+  check('and it turns the semantic right-read colour the moment it is passed',
+    /const passed = sc > goal;/.test(uiSrc) &&
+    html.includes('#distTarget.passed{color:var(--sem-right'),
+    'the same pair the review marks with, so it reads in every colour-vision mode');
+
+  // The title's caption has ONE owner. Three other files used to re-assert it
+  // — a runtime patch on UI.prototype.setSeed, v1-finalize's consolidation
+  // pass, and the endgame sky's per-frame sync — and between them they kept
+  // overwriting ui.setSeed's own line with copy that still said metres for a
+  // figure that has been a score since Phase 25. That is the exact failure
+  // mode CLAUDE.md's one-file rule exists to prevent, so it is gated.
+  const owners = ['src/v1-finalize.js', 'src/rc97-endgame.js', 'src/render/endgame-sky.js']
+    .filter((f) => /titleHint[^\n]*textContent\s*=|textContent = globalThis\.__CHALLENGE/
+      .test(fs.readFileSync(f, 'utf8')));
+  check('the title caption is written in exactly one file',
+    owners.length === 0 && /this\.titleHint\.textContent = '';/.test(uiSrc),
+    owners.length ? `${owners.join(', ')} still write it` : 'ui/ui.js setSeed, and nothing else');
+  check('and no file patches UI.prototype.setSeed at runtime to re-assert it',
+    !fs.readFileSync('src/rc97-endgame.js', 'utf8').includes('UI.prototype.setSeed ='),
+    'the patch existed only to overwrite the line it was fighting');
 }
 
 // ── Phase 14: the two ◆ sinks ────────────────────────────────────────────

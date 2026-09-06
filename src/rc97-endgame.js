@@ -141,17 +141,12 @@ if (!Beast.prototype.__rc97EscapePatched) {
 // player earned, not a secret being spoiled.
 if (!UI.prototype.__rc97MysteryPatched) {
   UI.prototype.__rc97MysteryPatched = true;
-  const baseSetSeed = UI.prototype.setSeed;
-  UI.prototype.setSeed = function setSeedRC97(...args) {
-    const out = baseSetSeed.apply(this, args);
-    if (this.titleHint) {
-      // Phase 19: the retired tagline used to be re-asserted here after a
-      // finish. RC-5: and the day's name came off the wordmark entirely —
-      // the mode chip names it. Only a challenge still captions itself.
-      this.titleHint.textContent = globalThis.__CHALLENGE ? 'CHALLENGE' : '';
-    }
-    return out;
-  };
+  // RC9.2 removed a `setSeed` override that lived here. It existed to
+  // re-assert the title caption after a finish, and it was one of THREE
+  // places writing that one element — this patch, v1-finalize's
+  // consolidation pass, and the endgame sky's per-frame sync — each
+  // overwriting ui.setSeed's own line. The caption has one owner now
+  // (ui/ui.js), which is the rule this file was breaking to enforce.
 
   const baseUpdate = UI.prototype.update;
   UI.prototype.update = function updateRC97(dt, sim, running) {

@@ -29,6 +29,7 @@ export class UI {
     this.dist = $('dist');
     this.bestVal = $('bestVal');
     this.distSub = $('distSub');
+    this.distTarget = $('distTarget');
     this.meterWrap = $('meterWrap');
     this.meterZone = this.meterWrap?.closest('.meter-zone');
     this.barMarks = $('barMarks');
@@ -140,13 +141,23 @@ export class UI {
     // A challenge link re-titles the line: the track is someone's dare,
     // not today's shared draft (functional label, not a sixth name).
     // Two tiny lines, not one long one: WHAT this run is, then the numbers.
-    this.titleHint.textContent = this._challenge ? 'CHALLENGE' : '';
     // Playtest: the date-seed line came off the title — DAILY RUN already
     // says what today's course is; the string was inventory, not identity.
     // A challenge keeps its line: the dare's target is the whole point.
+    //
+    // RC9.2 says it ONCE. There were two lines — a CHALLENGE label and a
+    // BEAT ...M target — and between them they said the word 'challenge',
+    // said metres for a figure that has been a SCORE since Phase 25, and
+    // never said the one thing that makes a dare a dare: that it is the same
+    // road. One line does all of it.
+    this.titleHint.textContent = '';
+    const dare = this._challenge?.goal > 0;
     this.seedLine.textContent = this._challenge
-      ? (this._challenge.goal > 0 ? `BEAT ${this._challenge.goal}M` : seedString)
+      ? (dare
+        ? `BEAT ${this._challenge.goal.toLocaleString('en-US')} · THIS ROUTE`
+        : seedString)
       : '';
+    this.seedLine.classList.toggle('dare', !!dare);
     this.deathSeed.textContent = '';
     this.bestVal.textContent = best > 0 ? Math.floor(best).toLocaleString('en-US') : '—';
   }
@@ -346,6 +357,27 @@ export class UI {
     if (sub !== this._lastSub) {
       this._lastSub = sub;
       if (this.distSub) this.distSub.textContent = sub;
+    }
+    // RC9.2 — the score to beat, on a challenge run and nowhere else. It sits
+    // under the metre caption as a second quiet figure and turns the semantic
+    // right-read colour the moment it is passed. A player chasing a number
+    // should be able to see the number, and should not have to work out
+    // whether they have it yet: the colour is the answer.
+    if (this.distTarget) {
+      const goal = this._challenge?.goal | 0;
+      const show = goal > 0 && running;
+      if (show !== this._targetOn) {
+        this._targetOn = show;
+        this.distTarget.classList.toggle('on', show);
+        if (show) this.distTarget.textContent = `BEAT ${goal.toLocaleString('en-US')}`;
+      }
+      if (show) {
+        const passed = sc > goal;
+        if (passed !== this._targetPassed) {
+          this._targetPassed = passed;
+          this.distTarget.classList.toggle('passed', passed);
+        }
+      }
     }
 
     const pct = (p.boostMeter / TUNING.BOOST.METER_MAX) * 100;
@@ -866,6 +898,9 @@ export class UI {
 
   clearRun() {
     document.getElementById('missedPanel')?.classList.remove('on');
+    this.distTarget?.classList.remove('on', 'passed');
+    this._targetOn = false;
+    this._targetPassed = false;
     this.chain.classList.remove('on', 'lost', 'pop');
     if (this.bandName) this.bandName.classList.remove('on');
     if (this.powerHint) this.powerHint.classList.remove('on', 'spending', 'teaching');

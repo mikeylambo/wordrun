@@ -242,12 +242,11 @@ function syncAllTimeTitle() {
   const line = document.getElementById('seedLine');
   if (!line || !seed) return;
   // A challenge visit (Phase 14) keeps its own title line — the all-time
-  // decoration belongs to the DAILY RUN, not to someone's dare.
-  const ch = globalThis.__CHALLENGE;
-  if (ch) {
-    line.textContent = ch.goal > 0 ? `BEAT ${ch.goal}M` : seed;
-    return;
-  }
+  // decoration belongs to the DAILY RUN, not to someone's dare. RC9.2: and
+  // that line is WRITTEN by ui.setSeed, not re-written here. This copy still
+  // said metres for a figure that has been a score since Phase 25, which is
+  // what two files writing one line always costs eventually.
+  if (globalThis.__CHALLENGE) return;
   // Playtest: the date-seed came off the title — DAILY RUN already says
   // what today's course is. 'BEST EVER' stays: it is the all-time number,
   // and the HUD's 'BEST TODAY' is a different one. It is a SCORE (the
@@ -385,8 +384,8 @@ function installSkyFinale() {
 function installUiConsolidation() {
   // Eliminate the remaining player-facing contradictions from older RC source
   // layers without adding another screen or changing the mystery contract.
-  const title = document.getElementById('titleHint');
-  if (title) title.textContent = globalThis.__CHALLENGE ? 'CHALLENGE' : '';
+  // RC9.2: the caption is ui.setSeed's, and it is empty on every screen —
+  // a challenge says what it is on its own line, once.
   document.querySelector('#rc7Onboarding .lead')?.remove();
   syncAllTimeTitle();
 }

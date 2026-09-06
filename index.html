@@ -49,6 +49,15 @@
   #hud.on{opacity:1}.row{display:flex;align-items:flex-start;justify-content:space-between}
   #dist{font-size:clamp(38px,11vw,66px);font-weight:800;line-height:.86;letter-spacing:-.045em;color:#f4fbff;text-shadow:0 0 18px rgba(103,216,255,.3),0 1px 2px rgba(2,6,10,.85)}
   #distSub{margin-top:3px;font-size:10px;font-weight:700;letter-spacing:.2em;color:var(--dim)}
+  /* RC9.2 — the score to beat, on a challenge run and nowhere else. A second
+     quiet figure under the metre caption: smaller than the caption, so it
+     never competes with the score it is measured against, and it turns the
+     semantic right-read colour the instant it is passed. That flip is the
+     whole point of putting it on the HUD rather than on the card. */
+  #distTarget{display:none;margin-top:2px;font-size:9px;font-weight:700;letter-spacing:.2em;
+    color:var(--dimmer);transition:color .2s ease}
+  #distTarget.on{display:block}
+  #distTarget.passed{color:var(--sem-right,#57e389)}
   /* Playtest: the hearts sat at a fixed offset from the top while the score
      above them is clamp(38px..66px) tall, so on a wide viewport the headline
      grew straight through them. They live in the column's flow now and cannot
@@ -182,6 +191,12 @@
   /* The one thing to do on this screen, sized like it. */
   .drop{font-size:15px;font-weight:700;letter-spacing:.3em;margin-right:-.3em;color:#f6fcff;padding-bottom:11px;border-bottom:1px solid rgba(255,255,255,.22);animation:pulse 2.2s ease-in-out infinite}
   .seed{font-size:8px;font-weight:600;letter-spacing:.22em;color:var(--dimmer)}
+  /* RC9.2 — the dare. A challenge visit's title has exactly one thing to say
+     and this is it, so it stops being styled like the seed string it replaced:
+     brighter, larger, and the only caption on the screen. Still one line, and
+     still not a name — the cap is four. */
+  .seed.dare{font-size:11px;font-weight:800;letter-spacing:.24em;color:#bfeaff;
+    text-shadow:0 0 18px rgba(103,216,255,.35);margin-top:2px}
   @keyframes pulse{0%,100%{opacity:.62}50%{opacity:1}}
 
   #deathScreen{gap:0;overflow:hidden;background:linear-gradient(180deg,rgba(7,11,15,.22),rgba(7,11,15,.88));color:#f2f8fb;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
@@ -336,8 +351,8 @@
   #deathActions{display:flex;gap:10px;margin-top:22px}
   /* Everything after AGAIN is a footnote, and is sized like one. */
   #shotBtns{display:flex;gap:0;margin-top:14px}
-  #shotBtns .btn,#copyChallenge,#copyStats{border:0;background:transparent;min-width:0;padding:8px 13px;font-size:8px;letter-spacing:.22em;color:var(--dimmer)}
-  #shotBtns .btn:active,#copyChallenge:active,#copyStats:active{color:#cfeaf6;background:transparent}
+  #shotBtns .btn,#copyStats{border:0;background:transparent;min-width:0;padding:8px 13px;font-size:8px;letter-spacing:.22em;color:var(--dimmer)}
+  #shotBtns .btn:active,#copyStats:active{color:#cfeaf6;background:transparent}
 
   /* The priced continue (Phase 14): a short offer between death and the
      card. One primary button carrying its ◆ cost, a decline, a draining
@@ -394,7 +409,7 @@
   <div id="barMarks" role="img" aria-label="Reward bar 0 of 3"><i></i><i></i><i></i></div>
 
   <div id="hud">
-    <div><div class="row"><div><div id="dist">0</div><div id="distSub">0 M</div><div id="vitalsSlot"></div></div><div id="best" hidden><span>BEST TODAY</span><b id="bestVal">—</b></div></div><div id="chain"></div></div>
+    <div><div class="row"><div><div id="dist">0</div><div id="distSub">0 M</div><div id="distTarget"></div><div id="vitalsSlot"></div></div><div id="best" hidden><span>BEST TODAY</span><b id="bestVal">—</b></div></div><div id="chain"></div></div>
     <div class="meter-zone"><div id="meterLabel"><span class="mLabel">DASH</span><i></i></div><div id="meterWrap"><div id="meter"></div></div></div>
   </div>
 
@@ -426,7 +441,7 @@
     <div id="deathRecap"></div>
     <div class="stats" id="deathStats"></div>
     <div id="deathActions"><button class="btn primary" id="deathAgain" data-rc2-ui>AGAIN</button><button class="btn" id="deathMenu" data-rc2-ui>MENU</button></div>
-    <div id="shotBtns"><button class="btn" id="copyChallenge" data-rc2-ui>LINK</button><button class="btn" id="saveShot" data-rc2-ui>SAVE</button><button class="btn" id="copyStats" data-rc2-ui>STATS</button></div>
+    <div id="shotBtns"><button class="btn" id="saveShot" data-rc2-ui>SAVE</button><button class="btn" id="copyStats" data-rc2-ui>STATS</button></div>
     <div class="seed" id="deathSeed"></div>
   </div>
 

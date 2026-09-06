@@ -147,9 +147,12 @@ check(!onboarding.includes('READ THE MOUNTAIN. COMMIT TO THE LINE.') && !onboard
 // label under the wordmark reads as a subtitle for the GAME. What must hold
 // is the invariant, not the replacement text: the caption is empty for an
 // ordinary day (a CHALLENGE still names its dare), and no tagline anywhere.
-check(/titleHint\.textContent = this\._challenge \? 'CHALLENGE' : '';/.test(ui) &&
-  !/HOW FAR CAN YOU GO/.test(ui),
-  'the wordmark stands alone — no tagline, and no caption for an ordinary day');
+// RC9.2 took the last caption too. A CHALLENGE named itself on one line and
+// dared on another; one line does both now, and it is the seed line's — so
+// the hint under the wordmark is empty on every screen there is.
+check(/titleHint\.textContent = '';/.test(ui) && !/HOW FAR CAN YOU GO/.test(ui) &&
+  /BEAT \$\{this\._challenge\.goal\.toLocaleString\('en-US'\)\} · THIS ROUTE/.test(ui),
+  'the wordmark stands alone — no tagline, and no caption for any day');
 
 console.log(`\nV1 release gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

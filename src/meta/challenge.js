@@ -14,10 +14,23 @@
  * pieces. Tools import it directly and assert the round trip.
  */
 
+import TUNING from '../TUNING.js';
+
 /** Query keys, deliberately short and stable — links get typed out loud. */
 // `score` replaces the old `goal` (a distance) in Phase 25. A link carrying
 // the retired key is read as having no target rather than a trivial one.
-const KEYS = { seed: 'draft', mode: 'mode', difficulty: 'diff', salt: 'salt', goal: 'score' };
+// RC9.2 adds `bar`: the compression level the challenger played at. Two runs
+// at different bars are not the same dare — the bar changes both the reward
+// line and what counts as an early read — so it travels with the mode and the
+// difficulty, and a challenge run STARTS there. It is not locked afterwards:
+// the bar is the one dial that belongs to the player, and a link that took it
+// away would be a rule, not a coordinate.
+const KEYS = {
+  seed: 'draft', mode: 'mode', difficulty: 'diff', salt: 'salt', goal: 'score', bar: 'bar',
+};
+
+/** The bar's own ceiling, read from the tuning that defines the levels. */
+const MAX_BAR = TUNING.WORDS.COMPRESSION_MULT.length - 1;
 
 const MODES = ['endless', 'standard'];
 const DIFFICULTIES = ['easy', 'normal', 'hard'];
@@ -40,14 +53,15 @@ export function parseChallenge(search) {
     ? params.get(KEYS.difficulty) : 'normal';
   const salt = clampInt(params.get(KEYS.salt), 1, 1, 9999);
   const goal = clampInt(params.get(KEYS.goal), 0, 0, 99999999);
-  return { seedString, mode, difficulty, salt, goal };
+  const bar = clampInt(params.get(KEYS.bar), 0, 0, MAX_BAR);
+  return { seedString, mode, difficulty, salt, goal, bar };
 }
 
 /**
  * Build the shareable link. `base` is origin+pathname (no query); the
  * caller passes its own location so this stays pure and testable.
  */
-export function buildChallengeLink(base, { seedString, mode, difficulty, salt, goal }) {
+export function buildChallengeLink(base, { seedString, mode, difficulty, salt, goal, bar }) {
   const params = new URLSearchParams();
   params.set(KEYS.seed, String(seedString));
   if (MODES.includes(mode) && mode !== 'endless') params.set(KEYS.mode, mode);
@@ -58,6 +72,8 @@ export function buildChallengeLink(base, { seedString, mode, difficulty, salt, g
   if (s !== 1) params.set(KEYS.salt, String(s));
   const g = clampInt(goal, 0, 0, 99999999);
   if (g > 0) params.set(KEYS.goal, String(g));
+  const b = clampInt(bar, 0, 0, MAX_BAR);
+  if (b > 0) params.set(KEYS.bar, String(b));
   return `${base}?${params.toString()}`;
 }
 

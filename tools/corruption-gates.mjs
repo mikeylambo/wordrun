@@ -157,6 +157,7 @@ head('CORRUPTION — identity');
     'src/ui/pause.js',
     'src/ui/access.js',
     'src/v1-mobile-ui.js',
+    'src/v1-share.js',
     'src/v1-finalize.js',
     'src/render/endgame-sky.js',
   ];
@@ -730,9 +731,13 @@ head('BROADCAST — few words, one type system, numbers first');
     // Phase 21 relabels.
     'SLIPPED BY', 'EVERY READ TRUE', "'REDACTED'",
   ];
+  // RC9.2 adds v1-share.js. It carried 'HOW FAR CAN YOU GO' for four phases
+  // after the line was retired, because no scan reached the file that says
+  // the game's name to everyone the player shares with — which is the last
+  // place stale copy should be allowed to live.
   const tree = ['index.html', 'src/ui/ui.js', 'src/ui/onboarding.js', 'src/ui/pause.js',
-    'src/meta/daily.js', 'src/v1-finalize.js', 'src/render/endgame-sky.js',
-    'src/rc97-endgame.js'];
+    'src/meta/daily.js', 'src/v1-share.js', 'src/v1-finalize.js',
+    'src/render/endgame-sky.js', 'src/rc97-endgame.js'];
   const wordy = [];
   for (const f of tree) {
     const text = fs.readFileSync(f, 'utf8');

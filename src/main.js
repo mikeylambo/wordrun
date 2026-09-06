@@ -454,6 +454,11 @@ function buildRunInTheDark() {
     // rule lives rather than here.
     nemesisLane: (index) => nemesis.substituteFor(index),
   });
+  // RC9.2: a challenge starts on the bar the challenger finished on, so both
+  // runs are priced the same way from the first gate. It is a starting point,
+  // not a lock — the bar is the one dial that belongs to the player, and the
+  // hold that moves it works exactly as it always does.
+  if (CHALLENGE) sim.player.compressionLevel = CHALLENGE.bar | 0;
   terrainMesh.terrain = sim.terrain;
   props.terrain = sim.terrain;
   landmarks.terrain = sim.terrain;
@@ -517,6 +522,11 @@ let runContinued = false;
 // the results card, the challenge link and the stats export, which all run
 // outside onDead().
 let lastRunScore = 0;
+// RC9.2: and the bar it was played at. A challenge is only the same dare if
+// both runs start on the same compression level, so the link carries it — and
+// the honest value to carry is the one the run ENDED on, which is the level
+// the score in the link was actually earned under.
+let lastRunBar = 0;
 let retiredThisRun = [];
 let tierTally = {};
 let lastRunScoreLost = 0;
@@ -674,6 +684,7 @@ function finalizeRun() {
   // charge for every continue twice.
   const finalScore = Math.floor(earned * failKeep);
   lastRunScore = finalScore;
+  lastRunBar = sim.player.compressionLevel | 0;
   lastRunScoreLost = (earned - finalScore) + continueScoreLost;
   // Unassisted runs own the boards: a continued run reports its distance
   // but cannot set the best or leave a ghost (see CONTINUE tuning note).
@@ -1023,35 +1034,27 @@ deathMenu?.addEventListener('click', (e) => {
   quitToTitle();
 });
 
-// COPY CHALLENGE LINK (Phase 14): the dead run, encoded. Whoever opens the
-// link stands at the start of the same track, same rules, same words, with
-// this distance as the target. Clipboard first, the share sheet as the
-// mobile fallback — no network either way.
-const copyChallenge = document.getElementById('copyChallenge');
-copyChallenge?.addEventListener('click', async (e) => {
-  e.stopPropagation();
-  audio.uiTap();
-  const link = buildChallengeLink(location.origin + location.pathname, {
+// THE CHALLENGE LINK (Phase 14, folded into SHARE at RC9.2): the run just
+// played, encoded. Whoever opens it stands at the start of the same track,
+// same rules, same words, same bar, with this score as the target.
+//
+// It stopped being a button of its own. LINK sat beside SHARE doing half of
+// what a player means by sharing a run, and the half they would skip: the
+// image travels and the dare stays behind. One tap now does both — v1-share.js
+// owns the act, and this owns the coordinates, because main is the only file
+// that knows which seed, salt and bar the run was actually played at.
+//
+// The link is a URL and nothing else: no request is made to build it, and
+// `audit:network` still measures zero at play time.
+globalThis.__DASH_CHALLENGE_LINK = () => buildChallengeLink(
+  location.origin + location.pathname, {
     seedString: SEED_STRING,
     mode: runMode,
     difficulty: effectiveDifficulty(),
     salt: currentSalt,
     goal: lastRunScore,
+    bar: lastRunBar,
   });
-  let ok = false;
-  try {
-    await navigator.clipboard.writeText(link);
-    ok = true;
-  } catch { /* clipboard denied — try the share sheet */ }
-  if (!ok && navigator.share) {
-    try {
-      await navigator.share({ url: link, title: 'DICTION DASH' });
-      ok = true;
-    } catch { /* dismissed */ }
-  }
-  copyChallenge.textContent = ok ? 'COPIED' : 'COPY BLOCKED';
-  setTimeout(() => { copyChallenge.textContent = 'CHALLENGE LINK'; }, 1400);
-});
 
 // COPY STATS (Phase 21): the calibration verdicts on the roadmap all want
 // numbers from real runs, and the build is deliberately zero-network — there

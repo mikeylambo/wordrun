@@ -335,9 +335,8 @@ export class EndgameSky {
     const sim = globalThis.__SIM;
     if (!sim) return;
 
-    const title = document.getElementById('titleHint');
-    const want = globalThis.__CHALLENGE ? 'CHALLENGE' : '';
-    if (title && title.textContent !== want) title.textContent = want;
+    // RC9.2: this used to re-assert the title caption on every frame of the
+    // ending. A renderer does not own the title's copy — ui.setSeed does.
 
     if (!sim.escaped) {
       if (distance < 100) {
