@@ -37,6 +37,17 @@ export const STOP = Object.freeze({ REAL: 'real', FAKE: 'fake', DASH: 'dash' });
 // The fake stop's other exit. Letting the word pass IS the lesson, so the
 // world cannot wait forever for an input the correct answer never sends.
 const FAKE_AUTO_SECONDS = 2;
+// RC7.1 — the dash stop's exits. The other two stops teach an answer the
+// player must give to continue at all; the dash is a POWER, and holding a
+// frozen world hostage until someone finds a button they may not want is a
+// worse lesson than letting them go. It releases on five seconds or on the
+// third input that is not a dash — a player pressing other things is a
+// player who has read the line and is not doing it. The RING and the LINE
+// stay after the release, and the lesson itself retires only on a real
+// hold, so the world offers it again next run rather than pretending it
+// was learned.
+const DASH_AUTO_SECONDS = 5;
+const DASH_OTHER_INPUTS = 3;
 
 export class TeachStops {
   constructor() { this.reset(); }
@@ -49,6 +60,8 @@ export class TeachStops {
     this.active = null;
     this.heldT = 0;
     this.frozen = null;
+    this.otherInputs = 0;
+    this._prevOther = false;
     this.firedThisRun = { real: false, fake: false, dash: false };
   }
 
@@ -83,6 +96,8 @@ export class TeachStops {
     // read, so an answer would otherwise be priced 0.45m and 17ms later than
     // the frame the player actually answered on. The gate prices THESE.
     this.frozen = { d: frozenD, t: frozenT };
+    this.otherInputs = 0;
+    this._prevOther = false;
     this.firedThisRun[which] = true;
   }
 
@@ -95,13 +110,21 @@ export class TeachStops {
     this.heldT += dt;
     const answered = !!(input.confirm || input.reject);
     const dashed = !!(input.boostHeld || input.dashEdge);
+    const other = answered;   // anything that is not the dash
     let go = false;
     switch (this.active) {
       // The answer is the lesson: the world waits for it, with no limit.
       case STOP.REAL: go = answered; break;
       // Any input at all, or the two seconds that ARE the correct answer.
       case STOP.FAKE: go = answered || dashed || this.heldT >= FAKE_AUTO_SECONDS; break;
-      case STOP.DASH: go = dashed; break;
+      // The dash lets go three ways; only one of them is the lesson.
+      case STOP.DASH: {
+        if (other && !this._prevOther) this.otherInputs++;
+        this._prevOther = other;
+        go = dashed || this.otherInputs >= DASH_OTHER_INPUTS ||
+          this.heldT >= DASH_AUTO_SECONDS;
+        break;
+      }
       default: go = true;
     }
     if (go) { this.active = null; this.heldT = 0; }

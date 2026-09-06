@@ -2102,3 +2102,36 @@ Two bugs the browser found and the gates now hold: the DASH READY hint fired
 on the same full meter as the dash stop and had to stand down for it, and
 marking a stop "shown" at its start was switching the whole system off
 underneath the third stop while it was still on screen.
+
+## 1.0-RC7.1 — the dash lets go, the lesson does not
+
+- **The dash stop stops holding the world hostage.** The other two stops
+  teach an answer that must be given to continue at all; the dash teaches a
+  POWER, and freezing the game until someone finds a button they may not
+  want is a worse lesson than letting them go. It now releases three ways:
+  a real hold, five seconds, or the third input that is not a dash — a
+  player pressing other things has read the line and is not doing it.
+  Measured: 5.00 s on the clock, and released on the third press, counted
+  as rising edges so a held button is one input rather than many.
+- **The ring and the line outlive the freeze.** When the stop lets go
+  without a dash the control stays ringed and the COACH picks up the line,
+  so the teaching follows the player through the run instead of ending with
+  the pause. The DASH READY hint stands down for both — they share the 57%
+  band, and only one voice speaks on it.
+- **The lesson retires only on a real hold.** It keys off `usedDash`, the
+  flag an actual dash has always written, not off having been shown the
+  stop — so a player who let it time out is offered it again next run. The
+  two word stops are unchanged: those retire on being shown, because their
+  correct answer can be to do nothing.
+- **No chrome on the results card.** The gear is a title action; AGAIN and
+  MENU are the only ways off that screen.
+
+The stills driver got three fixes of its own, each a case of the record not
+matching the game: it waits for the card to be genuinely VISIBLE (not merely
+classed `on`, which filed a half-faded screen), it declines the priced
+continue rather than timing out behind it, and it ends a run the way a
+player does — calling a fake REAL — because assigning `hearts = 0` never
+ends anything: the sim only kills through the obstacle ledger, and a clean
+streak hands the heart straight back. It also no longer answers the word it
+is waiting to be stopped on, which was releasing a stop in the same frame it
+began and walking straight past it.

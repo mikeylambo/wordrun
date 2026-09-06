@@ -324,6 +324,9 @@
   /* RC7: REDUCED FLASH keeps the ring, drops the pulse. */
   #app.rf .v1MobileAction.teachRing{animation:none}
   #app.chromeless #mute,#app.chromeless #accessBtn,#app.chromeless #shopBtn{display:none}
+  /* RC7.1: and no chrome at all over the results card — the gear is a
+     title action. AGAIN and MENU are the only ways off this screen. */
+  #app.carded #accessBtn,#app.carded #shopBtn,#app.carded #mute{display:none}
   /* RC-5: on a touch device the DASH button's own ring IS the charge meter,
      and the bottom bar sat under it — two tells for one mechanic, with the
      button overlapping the bar. The bar is hidden wherever the ring exists;

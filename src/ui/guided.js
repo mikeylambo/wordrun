@@ -58,11 +58,14 @@ export class GuidedTeach {
    * scheme to teach in. Nothing is shown between stops — the run teaches by
    * stopping, not by hovering.
    */
-  update({ running, enabled, stop, modality, veilUp, hintUp }) {
+  update({ running, enabled, stop, modality, veilUp, hintUp, dashPending }) {
     const show = running && enabled && stop && !veilUp && !hintUp;
     if (!show) {
       this.hide();
-      this._ring(null);
+      // RC7.1: the dash ring outlives its stop. When that stop lets go
+      // without a dash the control stays marked — the coach carries the
+      // words, this keeps the finger pointed at the button they name.
+      this._ring(dashPending ? stopRing('dash', modality) : null);
       return;
     }
     this._show(`${stop}:${modality}`, stopLine(stop, modality));

@@ -64,6 +64,65 @@ async function shoot(dir, prepare, device = TOUCH) {
 }
 
 /**
+ * End the run the way a player does: call a fake word REAL until the hearts
+ * are gone. Zeroing `sim.hearts` does not work and should not — the sim only
+ * ends a run through the obstacle ledger, so an assigned zero just sits there
+ * until the clean-streak ladder hands the heart back.
+ */
+async function killRun(page, cap = 600) {
+  for (let i = 0; i < cap; i++) {
+    const s = await page.evaluate(() => ({
+      running: window.__SIM?.phase === 'running',
+      stop: window.__SIM?.teach?.active,
+      armed: window.__SIM?.wordGates.armed(window.__SIM.player.d),
+      real: window.__SIM?.wordGates.current().real,
+    }));
+    if (!s.running) return;
+    // A fake called REAL is the one action in the rulebook that spends a heart.
+    if (!s.stop && s.armed && !s.real) await page.keyboard.press('ArrowRight');
+    await wait(s.armed ? 220 : 70);
+  }
+  throw new Error('the run would not end');
+}
+
+/**
+ * Wait until the results card is actually VISIBLE, not merely classed `on`.
+ * The screen carries a 0.32s opacity/visibility transition, so shooting on
+ * the class alone filed a half-faded card — the record has to show what a
+ * player sees.
+ */
+async function waitForCard(page, timeout = 40000) {
+  // The priced continue can stand between the run and the card; decline it,
+  // exactly as a player who wants their score would.
+  const decline = async () => {
+    await page.evaluate(() => {
+      const off = document.getElementById('continueOffer');
+      if (off?.classList.contains('on')) document.getElementById('continuePass')?.click();
+    });
+  };
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeout) {
+    const seen = await page.evaluate(() => {
+      const el = document.getElementById('deathScreen');
+      if (!el || !el.classList.contains('on')) return false;
+      const cs = getComputedStyle(el);
+      return cs.visibility !== 'hidden' && +cs.opacity > 0.98;
+    });
+    if (seen) return;
+    await decline();
+    await wait(150);
+  }
+  const st = await page.evaluate(() => ({
+    phase: window.__SIM?.phase, hearts: window.__SIM?.hearts,
+    stop: window.__SIM?.teach?.active,
+    offer: document.getElementById('continueOffer')?.classList.contains('on'),
+    death: document.getElementById('deathScreen')?.classList.contains('on'),
+    opacity: getComputedStyle(document.getElementById('deathScreen')).opacity,
+  }));
+  throw new Error(`the results card never became visible — ${JSON.stringify(st)}`);
+}
+
+/**
  * Drive until the named teaching stop is on screen, reading correctly the
  * whole way. Throws rather than filing a still of the wrong screen.
  */
@@ -78,7 +137,15 @@ async function driveToStop(page, which, cap = 1600) {
     }));
     if (s.over) throw new Error(`the run ended before the ${which} stop`);
     if (s.stop === which && s.band) return;          // frozen AND speaking
-    if (!s.stop && s.armed) await page.keyboard.press(s.real ? 'ArrowRight' : 'ArrowLeft');
+    // Never answer the word we are waiting to be STOPPED on. The freeze
+    // lands one fixed step after the gate arms, so a driver that answers on
+    // sight buffers an input that releases the stop in the same frame it
+    // begins — the stop fires, nothing is ever seen, and the shoot walks
+    // past it. A player does not pre-press; neither does this.
+    const holdFire = (which === 'real' && s.real) || (which === 'fake' && !s.real);
+    if (!s.stop && s.armed && !holdFire) {
+      await page.keyboard.press(s.real ? 'ArrowRight' : 'ArrowLeft');
+    }
     await wait(s.stop ? 110 : 70);
   }
   const st = await page.evaluate(() => ({
@@ -124,15 +191,15 @@ async function shootStops(page, shot, suffix) {
   await shootStops(page, shot, '');
 
   // RUN OVER and the card.
-  await page.evaluate(() => window.__SIM && (window.__SIM.hearts = 0));
-  await page.waitForFunction(() => document.getElementById('deathScreen')?.classList.contains('on'),
-    null, { timeout: 40000 }).catch(() => {});
-  await wait(900);
+  await killRun(page);
+  await waitForCard(page);
   await shot('06-run-over');
-  await wait(2200);                        // the count-up settles
+  await wait(2400);                        // the count-up settles
+  await waitForCard(page);
   await shot('07-results');
   await page.evaluate(() => document.getElementById('moreStats')?.click());
   await wait(500);
+  await waitForCard(page);
   await shot('08-results-more-stats');
 
   // AGAIN: the one-second cut, not the full arrival.
@@ -170,7 +237,11 @@ async function shootStops(page, shot, suffix) {
     // counters a played run writes. GUIDED TIPS is left ON, so what these
     // stills prove is that a taught player is not taught again.
     await p.evaluate(() => {
-      for (const k of ['usedStopReal', 'usedStopFake', 'usedStopDash',
+      // RC7.1: "learned" for the dash means the player has actually HELD it —
+      // usedDash, the flag a real dash writes — not that they were once shown
+      // the stop. A profile that has seen the stop and never dashed is still
+      // owed the lesson, and this fixture is a player who owes nothing.
+      for (const k of ['usedStopReal', 'usedStopFake', 'usedDash',
         'usedConfirm', 'usedReject']) window.__META?.stats.increment(k);
     });
     await p.reload();
@@ -199,9 +270,8 @@ async function shootStops(page, shot, suffix) {
   }
   await shot('02-run-no-teaching');       // no stop, no ring, no line
 
-  await page.evaluate(() => window.__SIM && (window.__SIM.hearts = 0));
-  await page.waitForFunction(() => document.getElementById('deathScreen')?.classList.contains('on'),
-    null, { timeout: 40000 }).catch(() => {});
+  await killRun(page);
+  await waitForCard(page);
   await new Promise((r) => setTimeout(r, 2600));
   await page.evaluate(() => document.getElementById('deathAgain')?.click());
   await new Promise((r) => setTimeout(r, 320));

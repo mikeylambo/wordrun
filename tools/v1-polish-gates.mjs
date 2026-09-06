@@ -808,8 +808,10 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
     uiCode.includes('const stopsTeach = !!this._guidedActive;'),
     'the coach is silent through a stop and yields the fundamentals while the stops teach them');
   // Both of these were live bugs, found by driving the stops in a browser.
-  check(/if \(this\._stopActive && this\.powerHint\) \{[\s\S]{0,200}remove\('on', 'spending', 'teaching'\)/.test(uiCode),
-    'the DASH READY hint stands down for the dash stop — a stopped frame carries one line, not two');
+  // RC7.1: and it stays down while the coach carries the dash line after the
+  // stop lets go — the two share the 57% band, so only one may speak.
+  check(/if \(\(this\._stopActive \|\| this\._dashLine\) && this\.powerHint\) \{[\s\S]{0,200}remove\('on', 'spending', 'teaching'\)/.test(uiCode),
+    'the DASH READY hint stands down for the stop AND for the line that outlives it — one voice on the band');
   check(mainCode.includes('sim.teach.enabled = !!ACCESS.guidedTips;') &&
     mainCode.includes("enabled: !!ACCESS.guidedTips,") &&
     !/sim\.teach\.enabled = stopsOn/.test(mainCode),
@@ -908,6 +910,71 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   const dashIn = emptyInput(); dashIn.boostHeld = true;
   sim.step(dashIn);
   check(!sim.teach.active, 'the dash releases it');
+
+  // ── RC7.1: the dash stop lets go three ways; only one is the lesson ────
+  // The other two stops teach an answer that must be given to continue at
+  // all. The dash teaches a POWER, and a frozen world held hostage until
+  // someone finds a button they may not want is a worse lesson than letting
+  // them go — so it also releases on five seconds, or on the third input
+  // that is not a dash.
+  const toDash = (learnedDash = false) => {
+    const s2 = guided();
+    s2.learnedDash = learnedDash;
+    s2.teach.learned = { real: true, fake: true, dash: learnedDash };
+    for (let i = 0; i < 60 * 600; i++) {
+      const g = s2.wordGates.current();
+      const inp = emptyInput();
+      if (s2.wordGates.armed(s2.player.d) && !s2.teach.active) {
+        if (g.real) inp.confirm = true; else inp.reject = true;
+      }
+      s2.step(inp);
+      if (s2.teach.active === 'dash') return s2;
+    }
+    return null;
+  };
+  const byTime = toDash();
+  let heldFor = 0;
+  if (byTime) {
+    for (let i = 0; i < 60 * 8; i++) {
+      byTime.step(idle);
+      if (!byTime.teach.active) { heldFor = (i + 1) / 60; break; }
+    }
+  }
+  check(!!byTime && heldFor > 4.9 && heldFor <= 5.05,
+    `the dash stop lets go on its own after five seconds — ${heldFor.toFixed(2)}s`);
+  const byInputs = toDash();
+  let releasedAfter = -1;
+  if (byInputs) {
+    // Three PRESSES, each a rising edge: a held button is one input, not many.
+    for (let n = 0; n < 6 && releasedAfter < 0; n++) {
+      const press = emptyInput(); press.confirm = true;
+      byInputs.step(press);
+      if (!byInputs.teach.active) { releasedAfter = n + 1; break; }
+      byInputs.step(idle);                    // release the button
+      if (!byInputs.teach.active) { releasedAfter = n + 1; break; }
+    }
+  }
+  check(!!byInputs && releasedAfter === 3,
+    `three non-DASH inputs let it go — released on ${releasedAfter}`);
+  const held = toDash();
+  const holdIn = emptyInput(); holdIn.boostHeld = true;
+  if (held) held.step(holdIn);
+  check(!!held && !held.teach.active && held.player.overdrive,
+    'and a real hold releases it by DOING it — the only exit that is the lesson');
+  // The lesson itself retires on the hold, never on the stop being shown.
+  check(mainSrc.includes("if (e.which !== 'dash') learn(") &&
+    mainSrc.includes("metaStats.get('usedDash', 0) > 0") &&
+    !mainSrc.includes("metaStats.get('usedStopDash'"),
+    'the dash lesson retires on the hold itself — a timed-out stop is offered again next run');
+  // Ring and line survive the release.
+  check(read('src/ui/guided.js').includes("this._ring(dashPending ? stopRing('dash', modality) : null);") &&
+    read('src/ui/ui.js').includes('setDashLine(line)') &&
+    /if \(this\._dashLine\) \{\s*\n\s*text = this\._dashLine;/.test(read('src/ui/ui.js')) &&
+    mainSrc.includes("ui.setDashLine(dashPending ? stopLine('dash', teachModality) : '');"),
+    'the ring stays lit and the coach carries the line after the stop lets go');
+  check(read('index.html').includes('#app.carded #accessBtn,#app.carded #shopBtn,#app.carded #mute{display:none}') &&
+    mainSrc.includes("appEl.classList.toggle('carded', ui.deathScreen.classList.contains('on'));"),
+    'no chrome over the results card — the gear is a title action');
   check(sim.teach.firedThisRun.real && sim.teach.firedThisRun.fake && sim.teach.firedThisRun.dash,
     'three stops, and the run has no more to give');
 

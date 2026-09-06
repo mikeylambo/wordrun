@@ -22,7 +22,7 @@ import { EditorialWorld } from './render/editorial-world.js';
 import { LaunchSequence } from './render/launch-sequence.js';
 import { AttractMode } from './render/attract.js';
 import { GuidedTeach } from './ui/guided.js';
-import { modalityFor } from './ui/teach-copy.js';
+import { modalityFor, stopLine } from './ui/teach-copy.js';
 import { BellRenderer } from './render/bells.js';
 import { HEARTS } from './design/bells.js';
 import { flowFactor, flowGlow, flowLevel } from './render/flow-curve.js';
@@ -113,7 +113,11 @@ const guided = new GuidedTeach();
 function stopsDone() {
   return metaStats.get('usedStopReal', 0) > 0 &&
     metaStats.get('usedStopFake', 0) > 0 &&
-    metaStats.get('usedStopDash', 0) > 0;
+    // RC7.1: the dash retires on a real HOLD — the same flag an actual dash
+    // has always written — not on having been shown the stop. The other two
+    // teach an answer that must be given to continue; this one teaches a
+    // power, and a power is not learned by being told about it.
+    metaStats.get('usedDash', 0) > 0;
 }
 function chartForRun() {
   if (runMode === 'standard') return 'daily';
@@ -1162,7 +1166,10 @@ function drainSimEvents() {
       // correct answer is to do nothing, and a player who learns it that way
       // must not be stopped at the next fake for the rest of their life.
       case 'teach_stop':
-        learn(`Stop${e.which[0].toUpperCase()}${e.which.slice(1)}`);
+        // RC7.1: the dash is NOT retired here — it retires on the hold
+        // itself (the 'overdrive_on' case below), so a player who let the
+        // stop time out is offered it again next run.
+        if (e.which !== 'dash') learn(`Stop${e.which[0].toUpperCase()}${e.which.slice(1)}`);
         audio.uiTap();
         break;
       case 'hit':
@@ -1510,18 +1517,28 @@ function tick(dt) {
   // already impossible: `learned` and `firedThisRun` refuse each stop
   // individually, which is the check that belongs at this level.
   sim.teach.enabled = !!ACCESS.guidedTips;
+  const dashLearned = metaStats.get('usedDash', 0) > 0;
   sim.teach.learned = {
     real: metaStats.get('usedStopReal', 0) > 0,
     fake: metaStats.get('usedStopFake', 0) > 0,
-    dash: metaStats.get('usedStopDash', 0) > 0,
+    dash: dashLearned,
   };
+  // RC7.1: once the dash stop has let go without a dash, the ring stays lit
+  // on the control and the COACH carries the line — the teaching follows the
+  // player through the run instead of ending with the freeze.
+  const dashPending = stopsOn && !dashLearned && !sim.teach.active &&
+    sim.teach.firedThisRun.dash && running &&
+    sim.player.boostMeter >= TUNING.BOOST.MIN_ACTIVATE && !sim.player.overdrive;
+  const teachModality = modalityFor({ touch: ui.touch, pad: padConnected() });
+  ui.setDashLine(dashPending ? stopLine('dash', teachModality) : '');
   ui.setGuidedActive(stopsOn);
   ui.setStopActive(!!sim.teach.active);
   guided.update({
     running,
     enabled: !!ACCESS.guidedTips,
     stop: sim.teach.active,
-    modality: modalityFor({ touch: ui.touch, pad: padConnected() }),
+    modality: teachModality,
+    dashPending,
     veilUp: launch.t >= 0,
     hintUp: !!ui.powerHint?.classList.contains('on'),
   });
@@ -1532,6 +1549,10 @@ function tick(dt) {
   // RC7: REDUCED FLASH reaches CSS, so a rule can drop a pulse without a
   // second copy of the setting living in the stylesheet's own module.
   appEl.classList.toggle('rf', !!ACCESS.reducedFlash);
+  // RC7.1: the results card carries no chrome. The gear belongs to the
+  // title — the card is a score and two buttons, and a settings cog
+  // floating over it invites everything except the next run.
+  appEl.classList.toggle('carded', ui.deathScreen.classList.contains('on'));
   stage.render();
 
   if (!shotTaken && sim.phase === PHASE.KILL &&

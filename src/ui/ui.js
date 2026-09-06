@@ -183,6 +183,10 @@ export class UI {
    *  a stop is one line on one band, and nothing else speaks over it. */
   setGuidedActive(on) { this._guidedActive = !!on; }
   setStopActive(on) { this._stopActive = !!on; }
+  /** RC7.1: the dash line, after its stop has let go without a dash. The
+   *  coach carries it for as long as the charge is there and the hold is
+   *  still unlearned — the ring stays lit on the control beside it. */
+  setDashLine(line) { this._dashLine = line || ''; }
 
   _updateCoach(sim, running) {
     if (!this.coach) return;
@@ -219,7 +223,10 @@ export class UI {
     // exactly as they were. The bar is the coach's either way: no stop
     // covers it, because it is not a fundamental.
     const stopsTeach = !!this._guidedActive;
-    if (!stopsTeach && !L.confirm) {
+    // The dash stop's line outlives the freeze: it moves here.
+    if (this._dashLine) {
+      text = this._dashLine;
+    } else if (!stopsTeach && !L.confirm) {
       text = this.touch ? 'TAP RIGHT IF THE WORD IS REAL' : 'RIGHT ARROW IF THE WORD IS REAL';
     } else if (!stopsTeach && !L.reject) {
       text = d < 300
@@ -376,7 +383,7 @@ export class UI {
     // RC7: a stopped frame carries the band's line and the ring, and nothing
     // else — the dash stop IS this hint's teaching moment, said louder and
     // with the world held still, so the hint stands down for it.
-    if (this._stopActive && this.powerHint) {
+    if ((this._stopActive || this._dashLine) && this.powerHint) {
       this.powerHint.classList.remove('on', 'spending', 'teaching');
       this._powerT = 0;
     } else if (running && this.powerHint) {
