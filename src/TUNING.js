@@ -247,6 +247,32 @@ export const TUNING = {
     NOTORIOUS_DAILY_BIAS: 0.5,
   },
 
+  // ── The plate, as a dial (RC10.2) ───────────────────────────────────────
+  // Word-plate legibility outranks every other visual and audio change in
+  // this game, and until now it was a SWITCH: READABLE TYPE opened the
+  // tracking from 1px to 7px and added weight, and that was the whole range
+  // on offer. One step serves the players it happens to fit and nobody else.
+  //
+  // Two dials, three steps each, index 0 = the shipped default so a player
+  // who never opens settings sees exactly what shipped:
+  //
+  //   TRACKING — space between letters. The single best-supported lever for
+  //     reading difficulty, and the one a one-edit fake asks the most of:
+  //     `rn` versus `m` is a spacing problem before it is a shape problem.
+  //   SIZE — the world height of the glyphs. It changes how BIG the word is,
+  //     never how LONG it is on screen: the arm distance and the run's speed
+  //     are untouched, so both reading floors hold at every step and the
+  //     occlusion gate is re-run at the largest.
+  //
+  // The face is not a dial. It is Atkinson Hyperlegible Next at every step,
+  // bundled, chosen by the Braille Institute for exactly this discrimination.
+  PLATE: {
+    TRACKING_PX: [1, 7, 12],      // letter-spacing on the plate canvas
+    TRACKING_WEIGHT: [700, 800, 800],
+    SIZE_MULT: [1, 1.12, 1.24],   // world glyph height, x LETTER_H
+    MIN_FONT_PX: 64,              // the shrink-to-fit floor a long word may not pass
+  },
+
   // ── Best-moment capture (RC9.8) ─────────────────────────────────────────
   // A rolling few seconds of the run, at a size a clip is actually watched
   // at, kept so the results card can offer the run's best stretch as a short

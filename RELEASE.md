@@ -2985,3 +2985,68 @@ and not on press; a 1.2 s hold raises exactly one level with no dash and no
 wrong read; A answers; START pauses and A activates the focused button; zero
 console errors through the lot. All suites green, every calibrated table
 reproduces, and the behaviour snapshot is unchanged — nothing here is sim.
+
+## 1.0-RC10.2 — legibility is a dial, and it reaches the sentences
+
+Word-plate legibility outranks every other visual and audio change in this
+game, and until now it was a SWITCH. READABLE TYPE opened the plate's tracking
+from 1px to 7px and added weight — one step, which serves the players it
+happens to fit and nobody else — and it touched nothing outside the plate, so
+a player who needed help reading the WORD got no help reading the sentence
+explaining the word.
+
+Two dials, three steps each, and step 0 at both is exactly what shipped: a
+player who never opens settings sees no change at all.
+
+- **WORD SPACING** — 1 / 7 / 12 px, with weight following. Tracking is the
+  lever with the best evidence behind it and the one this game asks the most
+  of: `rn` against `m` is a spacing problem before it is a shape problem, and
+  every fake here is one edit.
+- **WORD SIZE** — the plate's world height, x1 / x1.12 / x1.24. Nobody could
+  reach this before at all. It scales the quad, not the canvas, so the same
+  texture is simply read larger: nothing re-renders, no word re-flows, and it
+  costs nothing per frame.
+
+**The face is not a dial and never becomes one.** It is Atkinson Hyperlegible
+Next at every step — bundled, drawn by the Braille Institute so I/l/1, O/0 and
+rn/m cannot be confused. Adding a second "dyslexia font" option would offer a
+worse face as a courtesy.
+
+**Neither dial can move a reading floor, and that is gated twice.** How long a
+word is on screen is `ARM_DISTANCE_M` over the run's speed; how big it looks is
+these dials. The window measures 1.27 s at cruise and 0.86 s at the ceiling at
+every step of both, and no file under `src/sim/` mentions either dial or
+`TUNING.PLATE` — the sim cannot see them.
+
+**The occlusion promise is re-proved at every step, not just the default.** A
+larger plate is a larger thing for a crest to hide behind, so `route-gates`
+takes a size multiplier now and walks the routed road three times. Zero
+occluded frames out of 20,505 armed at each, and the worst segment's read
+moment grows rather than shrinks — 230x58 px, 258x64, 285x71 at 36 m/s, with
+screen rotation flat at 0.14 degrees throughout.
+
+**Every word still fits.** Widening tracking pushes long words into the
+shrink-to-fit floor sooner, and a word that reaches the 64 px floor and is
+still too wide would render clipped — the one failure this whole constraint
+exists to prevent. `dev/measure-plate-fit.mjs` renders all 10,747 plate strings
+(every real word AND a one-edit fake for each, since a fake can be a character
+longer than its word — the longest is 13) at every step through the real font:
+worst fit 120 px, 104 px, 96 px, and **zero overflow at any step**. The gate
+holds the inputs that measurement was taken at, so moving the character cap or
+the tracking ceiling fails the build and sends you back to re-measure.
+
+**And raising either dial relaxes the PROSE.** A player asking for a more
+legible word is telling you something about the whole screen. The coach line,
+the teach line, the HOW TO PLAY rules, the review rows and the results recap
+switch to the same hyperlegible face and ease the display tracking that is fine
+on a label and hostile in a sentence. Deliberately not a global face swap: the
+cabinet, the marquee and the HUD are laid out to the display face's metrics,
+and reading is not fixed by moving furniture.
+
+**A profile saved before this lands exactly where it was.** READABLE TYPE meant
+7 px tracking and no size change; it migrates to spacing 1, size 0, and the
+stored preferences are not rewritten until the player changes something.
+Verified through the real build: a legacy profile comes up with the treatment
+on, a fresh one comes up with it off, and clicking WIDEST and LARGEST as a
+player does persists both and switches the coach to Atkinson at 13 px, with no
+console errors.

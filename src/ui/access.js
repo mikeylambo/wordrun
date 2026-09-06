@@ -32,6 +32,14 @@ const PALETTES = {
 /** Live settings — renderers read this directly each frame/paint. */
 export const ACCESS = {
   reducedFlash: false,
+  // RC10.2 — the plate's legibility, as two dials rather than one switch.
+  // Index into TUNING.PLATE's tables; 0 is the shipped default at both.
+  plateSpacing: 0,
+  plateSize: 0,
+  // Derived from the two above and maintained by `apply()`: true whenever the
+  // player has asked for ANY legibility help. The plate renderer and the run
+  // export both read it, and the interface treatment follows it, so raising
+  // either dial improves the whole game rather than only the word.
   readableType: false,
   // The BROADCAST look (Phase N as decided): a whole-frame cel/ink/glow
   // treatment, strictly opt-in — the shipped look is the default and this
@@ -52,7 +60,8 @@ export const ACCESS = {
 function persist() {
   Storage.setAccessPrefs({
     reducedFlash: ACCESS.reducedFlash,
-    readableType: ACCESS.readableType,
+    plateSpacing: ACCESS.plateSpacing,
+    plateSize: ACCESS.plateSize,
     broadcastLook: ACCESS.broadcastLook,
     guidedTips: ACCESS.guidedTips,
     musicOff: ACCESS.musicOff,
@@ -67,6 +76,12 @@ function apply() {
   const p = PALETTES[ACCESS.palette] || PALETTES.off;
   Object.assign(ACCESS, p);
   ACCESS.epoch++;
+  // RC10.2: one intent, applied everywhere. A player who asked for a more
+  // legible WORD is telling you something about the whole screen, so the same
+  // switch relaxes the interface's smallest labels and sets the prose in the
+  // same hyperlegible face. The plate reads the dials; CSS reads the class.
+  ACCESS.readableType = ACCESS.plateSpacing > 0 || ACCESS.plateSize > 0;
+  document.getElementById('app')?.classList.toggle('readable', ACCESS.readableType);
 
   // DOM consumer of the danger accent: the close-range red wash. (The
   // hearts left the danger palette in the Phase L HUD pass — they are
@@ -95,7 +110,13 @@ function apply() {
 export function initAccess() {
   const saved = Storage.accessPrefs();
   ACCESS.reducedFlash = !!saved.reducedFlash;
-  ACCESS.readableType = !!saved.readableType;
+  // A profile saved before RC10.2 carries `readableType` and no dials. It
+  // meant exactly today's step 1 tracking and no size change, so that is what
+  // it becomes — nobody's setting silently moves under them.
+  const step = (v, fallback) => (Number.isInteger(v) && v >= 0 && v <= 2 ? v : fallback);
+  const legacy = saved.readableType ? 1 : 0;
+  ACCESS.plateSpacing = step(saved.plateSpacing, legacy);
+  ACCESS.plateSize = step(saved.plateSize, 0);
   ACCESS.broadcastLook = !!saved.broadcastLook;
   ACCESS.guidedTips = saved.guidedTips !== false; // unset = ON
   ACCESS.musicOff = saved.musicOff === true;      // unset = music ON
@@ -218,8 +239,13 @@ export function buildAccessPanel(hooks = {}) {
       () => ACCESS.broadcastLook, (v) => { ACCESS.broadcastLook = v === 'true' || v === true; }),
     chipRow('FLASHING LIGHT', [[false, 'FULL'], [true, 'REDUCED']],
       () => ACCESS.reducedFlash, (v) => { ACCESS.reducedFlash = v === 'true' || v === true; }),
-    chipRow('WORD TYPE', [[false, 'STANDARD'], [true, 'READABLE']],
-      () => ACCESS.readableType, (v) => { ACCESS.readableType = v === 'true' || v === true; }),
+    // RC10.2: the one legibility switch becomes two dials. WORD SPACING is
+    // the lever with the best evidence behind it and the one a one-edit fake
+    // asks the most of; WORD SIZE is the one nobody could reach at all.
+    chipRow('WORD SPACING', [[0, 'NORMAL'], [1, 'WIDE'], [2, 'WIDEST']],
+      () => ACCESS.plateSpacing, (v) => { ACCESS.plateSpacing = Number(v) || 0; }),
+    chipRow('WORD SIZE', [[0, 'NORMAL'], [1, 'LARGE'], [2, 'LARGEST']],
+      () => ACCESS.plateSize, (v) => { ACCESS.plateSize = Number(v) || 0; }),
     chipRow('COLOR VISION', [['off', 'DEFAULT'], ['deuteranopia', 'DEUTERANOPIA'],
       ['protanopia', 'PROTANOPIA'], ['tritanopia', 'TRITANOPIA']],
       () => ACCESS.palette, (v) => { ACCESS.palette = v; }),

@@ -406,6 +406,27 @@
      class is driven from the frame loop in main.js. */
   /* RC7: REDUCED FLASH keeps the ring, drops the pulse. */
   #app.rf .v1MobileAction.teachRing{animation:none}
+  /* RC10.2 — the legibility treatment, on the surfaces that carry actual
+     WORDS. A player who raised either plate dial is telling you something
+     about the whole screen, not just the plate, so the prose follows: the
+     hyperlegible face the plate already uses, a size floor on the smallest
+     lines, and the extreme display tracking eased where it is applied to a
+     sentence rather than to a label. Deliberately NOT a global --face swap:
+     the cabinet, the marquee and the HUD are chrome laid out to the display
+     face's metrics, and re-setting them would move furniture to fix reading.
+     One class, written by access.js's apply(), and nothing else. */
+  #app.readable #coach,
+  #app.readable #guidedTeach .gtMain,
+  #app.readable #rc7Onboarding .rule,
+  #app.readable #rc7Onboarding .rule span,
+  #app.readable #missedPanel .mPair,
+  #app.readable #missedPanel .mDef,
+  #app.readable #deathRecap{font-family:var(--plate),var(--face);letter-spacing:.02em}
+  #app.readable #coach{font-size:13px;letter-spacing:.10em}
+  #app.readable #rc7Onboarding .rule{font-size:14px;line-height:1.55}
+  #app.readable #rc7Onboarding .rule span{font-size:13px;line-height:1.5}
+  #app.readable #missedPanel .mPair{font-size:18px}
+
   /* RC9.9 — the held breath. A stop freezes the world; these five things are
      still true, so they brighten and dim together on the music's two-bar
      phrase (0.34 Hz at the score's 164 BPM, half the 0.6 Hz ceiling). Light

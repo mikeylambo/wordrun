@@ -34,8 +34,14 @@ const head = (t) => out.push(`\n\x1b[1m${t}\x1b[0m`);
 const PLATE_ABOVE = 3.4;
 const LETTER_H = 2.05;
 const CANVAS_H = 256, FONT_PX = 168, CANVAS_W = 1024;
-const PLATE_H = LETTER_H * (CANVAS_H / FONT_PX);
-const PLATE_W = PLATE_H * (CANVAS_W / CANVAS_H);
+// RC10.2: the plate's world size is a player dial now, so the mirror takes a
+// multiplier and the occlusion check is run at the LARGEST step a player can
+// choose. A bigger plate is a bigger thing for a crest to hide behind, and
+// "the armed plate is never occluded" has to keep meaning the same thing
+// there — a promise that only holds at the default is not the promise.
+let PLATE_MULT = 1;
+const plateH = () => LETTER_H * PLATE_MULT * (CANVAS_H / FONT_PX);
+const plateW = () => plateH() * (CANVAS_W / CANVAS_H);
 
 const VIEW_W = 390, VIEW_H = 844, DPR = 2;
 const SPEED = 62;
@@ -57,8 +63,8 @@ function plateOnScreen(camera, terrain, gateD) {
   const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
   const corner = (sx, sy) => projectPx(camera, new THREE.Vector3()
     .copy(centre)
-    .addScaledVector(right, sx * PLATE_W / 2)
-    .addScaledVector(up, sy * PLATE_H / 2));
+    .addScaledVector(right, sx * plateW() / 2)
+    .addScaledVector(up, sy * plateH() / 2));
   const tl = corner(-1, 1), tr = corner(1, 1), bl = corner(-1, -1), br = corner(1, -1);
   const xs = [tl.x, tr.x, bl.x, br.x], ys = [tl.y, tr.y, bl.y, br.y];
   return {
@@ -248,6 +254,36 @@ check('the ARMED plate is never occluded by the road — the crest may hide the 
 check('and a crest DOES hide a lookahead plate somewhere — the geometry means something',
   L.aheadHidden > 0 && L.aheadShown > 0,
   `+2 plate hidden on ${L.aheadHidden} frames, revealed on ${L.aheadShown} (flat: hidden ${FLAT.aheadHidden})`);
+
+// ── RC10.2: every step of the WORD SIZE dial, on the same road ────────────
+{
+  const SIZES = TUNING.PLATE.SIZE_MULT;
+  const rows = [];
+  for (let i = 0; i < SIZES.length; i++) {
+    PLATE_MULT = SIZES[i];
+    const { L: LS } = mergeRuns(SEEDS.map((s) => measure(s)));
+    const { merged: m36 } = mergeRuns(SEEDS.map((s) => measure(s, false, 36)));
+    const worst = want.map((t) => m36[t]).filter((m) => m?.readN)
+      .reduce((a, m) => (a === null || m.readW < a.readW ? m : a), null);
+    rows.push({ i, mult: SIZES[i], occ: LS.armedOccluded, frames: LS.armedFrames,
+      rot: LS.rotMax, w: worst?.readW ?? 0, h: worst?.readH ?? 0 });
+    check(`WORD SIZE ${i} (x${SIZES[i]}): the armed plate is still never occluded`,
+      LS.armedOccluded === 0, `${LS.armedOccluded} of ${LS.armedFrames} armed frames`);
+    check(`WORD SIZE ${i}: bigger never means smaller — the read moment only grows`,
+      (worst?.readW ?? 0) >= 220 * SIZES[i] * 0.98 && LS.rotMax <= 4.5,
+      `worst segment reads ${(worst?.readW ?? 0).toFixed(0)}x${(worst?.readH ?? 0).toFixed(0)} px ` +
+      `at 36 m/s, rotation ${LS.rotMax.toFixed(2)}°`);
+  }
+  PLATE_MULT = 1;
+  out.push('\n  the WORD SIZE dial, on the routed road — worst segment at 36 m/s');
+  out.push('      step   x      read px      armed frames   occluded');
+  for (const r of rows) {
+    out.push(`      ${r.i}      ${r.mult.toFixed(2)}   ` +
+      `${`${r.w.toFixed(0)}x${r.h.toFixed(0)}`.padEnd(11)}  ${String(r.frames).padStart(10)}   ` +
+      `${String(r.occ).padStart(8)}`);
+  }
+  out.push('      a larger plate is a larger thing to hide behind; the road hides none of them.\n');
+}
 check('the route never crowds the read beyond what the flat track already did',
   L.overlapMax <= FLAT.overlapMax + 0.03,
   `worst +1-over-armed cover ${(L.overlapMax * 100).toFixed(1)}% vs flat ${(FLAT.overlapMax * 100).toFixed(1)}%`);

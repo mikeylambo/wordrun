@@ -1458,6 +1458,75 @@ head('COMPRESSION — risk without a legibility cost');
   }
 }
 
+// ── RC10.2: legibility is a dial ─────────────────────────────────────────
+head('LEGIBILITY — two dials, and the floors they may never touch');
+{
+  const P = TUNING.PLATE;
+  const accessSrc = fs.readFileSync('src/ui/access.js', 'utf8');
+  const plateSrc = fs.readFileSync('src/render/word-gates.js', 'utf8');
+
+  check('three steps on each dial, and step 0 is exactly what shipped',
+    P.TRACKING_PX.length === 3 && P.TRACKING_WEIGHT.length === 3 && P.SIZE_MULT.length === 3 &&
+    P.TRACKING_PX[0] === 1 && P.TRACKING_WEIGHT[0] === 700 && P.SIZE_MULT[0] === 1,
+    'a player who never opens settings sees no change at all');
+  check('both dials only ever go up',
+    P.TRACKING_PX.every((v, i, a) => i === 0 || v > a[i - 1]) &&
+    P.SIZE_MULT.every((v, i, a) => i === 0 || v > a[i - 1]),
+    `tracking ${P.TRACKING_PX.join('/')}px, size x${P.SIZE_MULT.join('/x')}`);
+
+  // THE constraint. The dials change how the word LOOKS, never how long it is
+  // on screen — that is ARM_DISTANCE_M over the run's speed, and neither dial
+  // can reach either. Proved twice: the window is arithmetic that contains no
+  // dial, and no sim file mentions one.
+  const W = TUNING.WORDS;
+  const windowAt = (speed) => W.ARM_DISTANCE_M / speed;
+  const cruise = windowAt(TUNING.RUN.START_SPEED + TUNING.RUN.SPEED_GAIN_MAX * 4);
+  const ceiling = windowAt(TUNING.RUN.CEILING);
+  const simFiles = fs.readdirSync('src/sim').map((f) => fs.readFileSync(`src/sim/${f}`, 'utf8'));
+  check('neither dial can move a reading floor — they are presentation, and the sim cannot see them',
+    !simFiles.some((f) => /plateSpacing|plateSize|TUNING\.PLATE\b/.test(f)) &&
+    cruise >= W.READ_WINDOW_MIN_S * 0.999 && ceiling >= W.READ_WINDOW_HARD_MIN_S * 0.83,
+    `${cruise.toFixed(2)}s at cruise and ${ceiling.toFixed(2)}s at the ceiling, at every step of both`);
+
+  // The size dial is a WORLD scale on the same texture: no repaint, no cost,
+  // and the occlusion gate re-runs the road at every step (route-gates).
+  check('the size dial scales the plate in the world, not the canvas',
+    plateSrc.includes('LETTER_H * plateSizeMult() * (CANVAS_H / FONT_PX)') &&
+    plateSrc.includes('export function plateSizeMult') &&
+    !/CANVAS_H\s*[*=]\s*[^;]*plateSize/.test(plateSrc),
+    'the same texture read larger — nothing re-renders and no word re-flows');
+
+  // The fit floor. Text metrics need the real font in a real canvas, so the
+  // measurement lives in dev/measure-plate-fit.mjs and this holds its INPUTS:
+  // move the character cap or the tracking ceiling and you owe a re-measure.
+  const longest = ALL_WORDS.reduce((a, w) => Math.max(a, w.length), 0);
+  check('the inputs the plate-fit measurement was taken at have not moved',
+    longest <= 12 && Math.max(...P.TRACKING_PX) <= 12 && P.MIN_FONT_PX === 64 &&
+    fs.existsSync('dev/measure-plate-fit.mjs'),
+    `longest real word ${longest} chars, tracking ceiling ${Math.max(...P.TRACKING_PX)}px — ` +
+    'measured 10,747 strings, worst fit 96px against the 64px floor, zero overflow');
+
+  // One intent, everywhere. Raising either dial is a statement about the whole
+  // screen, so the prose follows the plate into the hyperlegible face.
+  const html = fs.readFileSync('index.html', 'utf8');
+  check('raising either dial also relaxes the prose — one class, one writer',
+    accessSrc.includes('ACCESS.readableType = ACCESS.plateSpacing > 0 || ACCESS.plateSize > 0;') &&
+    accessSrc.includes("classList.toggle('readable', ACCESS.readableType)") &&
+    (html.match(/#app\.readable /g) || []).length >= 5 &&
+    /#app\.readable[^}]*font-family:var\(--plate\)/.test(html),
+    'the coach, the teach line, HOW TO PLAY, the review and the recap');
+  check('and it does NOT swap the interface face wholesale',
+    !/#app\.readable\s*\{[^}]*--face:/.test(html),
+    'the cabinet and the HUD are laid out to the display face; reading is not fixed by moving furniture');
+
+  // A profile saved before the dials existed must land exactly where it was.
+  check('the retired switch migrates to the step it meant, and nowhere else',
+    accessSrc.includes('const legacy = saved.readableType ? 1 : 0;') &&
+    accessSrc.includes('ACCESS.plateSpacing = step(saved.plateSpacing, legacy);') &&
+    accessSrc.includes('ACCESS.plateSize = step(saved.plateSize, 0);'),
+    'READABLE TYPE meant 7px tracking and no size change: that is step 1 and step 0');
+}
+
 // ── RC9.9: held breath, and the bar on DASH ──────────────────────────────
 head('STRIDE — the figure runs on GROUND, so a frozen sim is a frozen figure');
 {

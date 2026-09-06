@@ -430,9 +430,12 @@ head('ACCESS — reduced flash, readable type, colour-vision axes');
   check('the plate is set in the bundled hyperlegible face',
     plates.includes("const PLATE_FAMILY = 'Atkinson Hyperlegible Next'") &&
     !/\$\{px\}px ui-monospace/.test(plates));
-  check('readable type widens tracking and weight, not the family',
-    plates.includes('ACCESS.readableType ? 800 : 700') &&
-    plates.includes("ACCESS.readableType ? '7px' : '1px'"));
+  // RC10.2: it is a DIAL now, and it still never touches the family.
+  check('the legibility dials widen tracking and weight, not the family',
+    plates.includes('P.TRACKING_WEIGHT[step]') &&
+    plates.includes('g.letterSpacing = `${P.TRACKING_PX[step]}px`') &&
+    (plates.match(/PLATE_FAMILY/g) || []).length === 4 &&
+    !/FAMILY = .*readable/i.test(plates));
   check('plates repaint once the bundled face resolves',
     plates.includes('plateFontReady') && plates.includes('fontEpoch') &&
     plates.includes('${ACCESS.epoch}|${fontEpoch}') &&

@@ -21,6 +21,18 @@ import { ACCESS } from '../ui/access.js';
 
 const PLATE_ABOVE = 3.4;      // metres above the snow at the gate line
 const LETTER_H = 2.05;        // world metres of glyph height (the legibility dial)
+
+/**
+ * RC10.2 — the WORD SIZE dial, as a multiplier on the plate's world height.
+ * Exported so the occlusion gate can mirror the geometry at every step rather
+ * than at the default alone: a larger plate is a larger thing for the road to
+ * hide behind, and "the armed plate is never occluded" has to keep meaning
+ * the same thing at the largest setting a player can choose.
+ */
+export function plateSizeMult(step = ACCESS.plateSize) {
+  const m = TUNING.PLATE.SIZE_MULT;
+  return m[Math.max(0, Math.min(m.length - 1, step | 0))];
+}
 const CANVAS_H = 256;
 const FONT_PX = 168;
 const SHOW_AHEAD = 260;       // build plates well inside fog range
@@ -158,9 +170,16 @@ class Plate {
     // the shipped face already is the legibility face. It opens the tracking
     // and adds weight instead, which is what the toggle was really buying.
     const FAMILY = `'${PLATE_FAMILY}', Verdana, 'DejaVu Sans', Arial, sans-serif`;
-    const weight = ACCESS.readableType ? 800 : 700;
+    // RC10.2: tracking and weight are a DIAL now, not a switch. Index 0 is
+    // exactly what shipped, so a player who never opens settings sees no
+    // change at all; the two steps above it are for the players one step
+    // never fitted. The face does not move at any step — it is already the
+    // legibility face.
+    const P = TUNING.PLATE;
+    const step = Math.max(0, Math.min(P.TRACKING_PX.length - 1, ACCESS.plateSpacing | 0));
+    const weight = P.TRACKING_WEIGHT[step];
     const font = (px) => `${weight} ${px}px ${FAMILY}`;
-    if ('letterSpacing' in g) g.letterSpacing = ACCESS.readableType ? '7px' : '1px';
+    if ('letterSpacing' in g) g.letterSpacing = `${P.TRACKING_PX[step]}px`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     let text = word;
@@ -168,7 +187,7 @@ class Plate {
     // clip would fail the premise, a smaller-but-whole word tests it.
     let px = FONT_PX;
     g.font = font(px);
-    while (px > 64 && g.measureText(text).width > cw - 90) {
+    while (px > P.MIN_FONT_PX && g.measureText(text).width > cw - 90) {
       px -= 8;
       g.font = font(px);
     }
@@ -213,7 +232,11 @@ class Plate {
 
   place(word, d, groundY, camera, opacity = 1, centerX = 0, roll = 0) {
     // Constant world glyph height; plate width follows the word.
-    const h = LETTER_H * (CANVAS_H / FONT_PX);
+    // RC10.2: the size dial scales the plate in the WORLD — the same texture,
+    // read larger. It cannot touch how long the word is on screen, because
+    // that is the arm distance and the run's speed, so both reading floors
+    // hold at every step and nothing about the run changes.
+    const h = LETTER_H * plateSizeMult() * (CANVAS_H / FONT_PX);
     const aspect = this.canvas.width / this.canvas.height;
     this.mesh.scale.set(h * aspect, h, 1);
     this.mesh.position.set(centerX, groundY + PLATE_ABOVE, -d);
