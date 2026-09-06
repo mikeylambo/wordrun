@@ -42,7 +42,9 @@ import { CurveLog } from './meta/curve.js';
 import { buildCurveScreen } from './ui/curve-screen.js';
 import { DailyManager } from './meta/daily.js';
 import { buildStatsExport, formatStatsExport } from './meta/export.js';
-import { pickStandout } from './meta/standout.js';
+import { pickStandout, standoutRank } from './meta/standout.js';
+import { MomentCapture } from './render/moment-capture.js';
+import { MomentClip } from './ui/moment-clip.js';
 import { ObjectiveQueue } from './meta/objectives.js';
 import { buildReview } from './meta/review.js';
 import { UI } from './ui/ui.js';
@@ -167,6 +169,13 @@ let burst10 = 0;
 let earlyStreak = 0;
 let bestEarlyStreak = 0;
 let dashRungMax = 0;
+// RC9.8: the rolling few seconds, and the rarity of the moment it is frozen
+// on. The buffer freezes when a brilliance ledger crosses its floor, so the
+// clip on the card is the moment the card is ABOUT.
+const moments = new MomentCapture(canvas, ACCESS);
+const momentClip = new MomentClip();
+momentClip.mount(document.getElementById('momentSlot'));
+let frozenRank = 0;
 let deathShownAt = 0;
 let shotUrl = null;
 let shotTaken = false;
@@ -528,6 +537,9 @@ function buildRunInTheDark() {
   inScream = false;
   burstWindow = [];
   burst10 = 0;
+  frozenRank = 0;
+  moments.begin(ACCESS);
+  momentClip.hide();
   earlyStreak = 0;
   bestEarlyStreak = 0;
   dashRungMax = 0;
@@ -836,6 +848,10 @@ function finalizeRun() {
       bestChain: sim.player.bestChain, avgReadMs, reads: wg.readCount,
     }),
   });
+  // RC9.8: the clip, and ONLY when the run earned a standout. No standout, no
+  // frozen moment, no player and no button — an ordinary run is offered a
+  // still and nothing else, which is the same scarcity the line is built on.
+  momentClip.show(frozenRank > 0 ? moments.moment() : null, endedFlowLevel);
   ui.showHud(false);
   ui.showDeath(true);
   deathShownAt = performance.now();
@@ -1605,6 +1621,22 @@ function tick(dt) {
   keyLegend.update({
     framed: isFramed(), touch: ui.touch, running, learned: learnedNow,
   });
+  // RC9.8: the rolling buffer. It measures the device before it arms, draws
+  // nothing on screen, and freezes whenever the run's rarest feat improves —
+  // the last freeze wins, exactly as the rarest ledger wins the line.
+  moments.update(dt, running && sim.phase === PHASE.RUNNING);
+  {
+    // The SAME five ledgers finalizeRun feeds pickStandout, read live — a run
+    // whose only feat is its reading speed has to be able to freeze on it too.
+    const wg = sim.wordGates;
+    const rank = standoutRank({
+      dashRung: dashRungMax, earlyStreak: bestEarlyStreak, burst10,
+      bestChain: sim.player.bestChain,
+      avgReadMs: wg.readCount > 0 ? Math.round((wg.latencySum / wg.readCount) * 1000) : 0,
+      reads: wg.readCount,
+    });
+    if (rank > frozenRank && moments.freeze()) frozenRank = rank;
+  }
   // Phase L HUD pass: while the run is live the only chrome is PAUSE — the
   // sound/settings/shop buttons come back whenever the game is stopped.
   appEl.classList.toggle('chromeless', running && !paused && sim.phase === PHASE.RUNNING);
@@ -1676,6 +1708,9 @@ if (new URLSearchParams(location.search).get('dev') === '1') {
   import('./dev-panel.js').then((m) => m.mountDevPanel()).catch(() => {});
 }
 
+// RC9.8: the capture and the clip, for the audits and the phone matrix run.
+window.__CAPTURE = moments;
+window.__MOMENT = momentClip;
 window.__INPUT = input;
 window.__START = () => { startRun(); launch.snapToBlack(); return sim.state(); };
 window.__QUIT = () => { quitToTitle(); return { phase: sim.phase }; };

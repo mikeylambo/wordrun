@@ -14,7 +14,9 @@ import TUNING from '../src/TUNING.js';
 import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
 import { corruptionIntensity, veilOpacity, fieldScale } from '../src/render/corruption-curve.js';
 import { COUNT_BEATS, countProgress, countValue } from '../src/ui/results-motion.js';
-import { FLOORS, pickStandout } from '../src/meta/standout.js';
+import { FLOORS, pickStandout, standoutRank } from '../src/meta/standout.js';
+import { captureBudget, ringOrder } from '../src/render/moment-capture.js';
+import { encodeGif } from '../src/ui/gif.js';
 import fs from 'node:fs';
 
 let PASS = 0, FAIL = 0;
@@ -1039,6 +1041,203 @@ head('STANDOUT — one line, chosen by rarity, or nothing at all');
     main.includes('standout: pickStandout({') &&
     ui.includes('if (extras.standout) core.push(row(extras.standout.k, extras.standout.v));') &&
     (ui.match(/extras\.standout\.k/g) || []).length === 1);
+}
+
+/**
+ * The smallest GIF89a reader that can answer "did that encode work": skip to
+ * the first image descriptor, run the format's LZW backwards, and resolve the
+ * indices through the global table. Deliberately assumes what our own encoder
+ * writes (global table, no interlace, no local table) — it is a check on this
+ * encoder, not a general decoder.
+ */
+function decodeFirstFrame(b, w, h) {
+  const bits = (b[10] & 7) + 1;
+  const tableSize = 1 << bits;
+  let p = 13;
+  const table = [];
+  for (let i = 0; i < tableSize; i++, p += 3) table.push([b[p], b[p + 1], b[p + 2]]);
+  while (p < b.length && b[p] !== 0x2c) {
+    if (b[p] === 0x21) { p += 2; while (b[p]) p += b[p] + 1; p++; }   // extension
+    else p++;
+  }
+  p += 10;                                    // descriptor: x, y, w, h, flags
+  const minCode = b[p++];
+  const data = [];
+  while (b[p]) { const n = b[p++]; for (let i = 0; i < n; i++) data.push(b[p++]); }
+  // LZW, the GIF variant.
+  const clear = 1 << minCode, end = clear + 1;
+  let dict = [], width = minCode + 1, acc = 0, nbits = 0, prev = null;
+  const reset = () => {
+    dict = [];
+    for (let i = 0; i < clear; i++) dict.push([i]);
+    dict.push([], []);
+    width = minCode + 1;
+    prev = null;
+  };
+  reset();
+  const idx = [];
+  for (let i = 0; i < data.length; i++) {
+    acc |= data[i] << nbits; nbits += 8;
+    while (nbits >= width) {
+      const code = acc & ((1 << width) - 1);
+      acc >>= width; nbits -= width;
+      if (code === clear) { reset(); continue; }
+      if (code === end) { i = data.length; break; }
+      let entry;
+      if (code < dict.length && dict[code].length) entry = dict[code];
+      else if (prev) entry = [...prev, prev[0]];
+      else break;
+      idx.push(...entry);
+      if (prev) dict.push([...prev, entry[0]]);
+      prev = entry;
+      if (dict.length >= (1 << width) && width < 12) width++;
+    }
+  }
+  const rgb = new Uint8Array(w * h * 3);
+  for (let i = 0; i < Math.min(idx.length, w * h); i++) {
+    const c = table[idx[i]] || [0, 0, 0];
+    rgb[i * 3] = c[0]; rgb[i * 3 + 1] = c[1]; rgb[i * 3 + 2] = c[2];
+  }
+  return { count: idx.length, rgb };
+}
+
+// ── RC9.8: the best moment, as a clip ────────────────────────────────────
+head('MOMENT — the run\'s best stretch, bounded, frozen, and offered once');
+
+{
+  const C = TUNING.CAPTURE;
+  // The budget, at the shape the cabinet frames and at the widest phone the
+  // matrix carries. Printed, because a budget nobody can read is a hope.
+  const tall = captureBudget(844 / 390);
+  const wide = captureBudget(896 / 414);
+  check('the capture budget is known from the dials alone, and under the ceiling',
+    tall.megabytes <= C.MAX_MB && wide.megabytes <= C.MAX_MB &&
+    tall.frames === Math.round(C.FPS * C.SECONDS),
+    tall.line);
+  check('the ring holds the advertised seconds and nothing more',
+    tall.frames / C.FPS === C.SECONDS && tall.frames >= 2);
+  check('the cell is small on purpose — a clip, not a replay',
+    tall.cellW === C.WIDTH && tall.cellW <= 200 && tall.cellH <= 480,
+    `${tall.cellW}x${tall.cellH}`);
+
+  // The ring reads oldest-first from wherever the head was left, wraps, and
+  // never invents a frame that was not written.
+  check('a frozen ring plays oldest frame first, wrapping exactly once',
+    ringOrder(3, 24, 24).join(',') ===
+      '3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,0,1,2' &&
+    ringOrder(3, 5, 24).join(',') === '22,23,0,1,2' &&
+    ringOrder(0, 0, 24).length === 0 &&
+    ringOrder(7, 99, 24).length === 24);
+
+  // The rank and the line are the same ordering read twice — a run that gets
+  // no line must get no clip, and the rarest feat must win both.
+  const LEDGERS = [
+    {}, { bestChain: 24 }, { earlyStreak: 9 }, { burst10: 24999 },
+    { avgReadMs: 421, reads: 40 }, { avgReadMs: 300, reads: 19 },
+    { dashRung: FLOORS.DASH_RUNG }, { earlyStreak: FLOORS.EARLY_STREAK },
+    { burst10: FLOORS.BURST_10 }, { bestChain: FLOORS.CLEAN },
+    { avgReadMs: FLOORS.AVG_READ_MS, reads: FLOORS.AVG_READ_MIN_N },
+    { dashRung: 9, earlyStreak: 99, burst10: 9e9, bestChain: 999 },
+  ];
+  check('no standout, no clip: the rank is 0 exactly when the line is null',
+    LEDGERS.every((l) => (standoutRank(l) > 0) === (pickStandout(l) !== null)));
+  check('rarity ranks the clip the way it ranks the line',
+    standoutRank({ dashRung: FLOORS.DASH_RUNG }) >
+      standoutRank({ earlyStreak: FLOORS.EARLY_STREAK }) &&
+    standoutRank({ earlyStreak: FLOORS.EARLY_STREAK }) >
+      standoutRank({ burst10: FLOORS.BURST_10 }) &&
+    standoutRank({ burst10: FLOORS.BURST_10 }) > standoutRank({ bestChain: FLOORS.CLEAN }) &&
+    standoutRank({ bestChain: FLOORS.CLEAN }) >
+      standoutRank({ avgReadMs: FLOORS.AVG_READ_MS, reads: FLOORS.AVG_READ_MIN_N }));
+
+  const main = fs.readFileSync('src/main.js', 'utf8');
+  const cap = fs.readFileSync('src/render/moment-capture.js', 'utf8');
+  const clip = fs.readFileSync('src/ui/moment-clip.js', 'utf8');
+  const gif = fs.readFileSync('src/ui/gif.js', 'utf8');
+  const html = fs.readFileSync('index.html', 'utf8');
+  const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
+
+  check('the card offers a clip ONLY for a run that earned a standout',
+    main.includes('momentClip.show(frozenRank > 0 ? moments.moment() : null, endedFlowLevel);') &&
+    main.includes('if (rank > frozenRank && moments.freeze()) frozenRank = rank;') &&
+    // The live rank and the final line read the same five ledgers, or a run
+    // could earn a standout the clip never froze on.
+    main.includes('reads: wg.readCount,\n    });') &&
+    main.includes('frozenRank = 0;') && main.includes('momentClip.hide();'));
+  check('the buffer is off under REDUCED FLASH, and refuses a device it would cost',
+    code(cap).includes('access.reducedFlash') &&
+    code(cap).includes('if (fps < C.MIN_FPS)') &&
+    code(cap).includes('if (this._off || !running || !this.source) return;'));
+  check('one blit per captured frame, and nothing read back while the run is live',
+    (code(cap).match(/drawImage/g) || []).length === 1 &&
+    !code(cap).includes('getImageData'));
+  check('freezing copies no pixels — it moves a marker',
+    code(cap).includes('this.frozenAt = this.head;') &&
+    !code(cap).includes('this.strip.cloneNode') && !code(cap).includes('toDataURL'));
+  check('the clip carries the card\'s own furniture, burned into every frame',
+    code(clip).includes("const WORDMARK = 'DICTION DASH'") &&
+    code(clip).includes('g.fillText(WORDMARK') &&
+    // A canvas font string is CSS shorthand: var() is never resolved in one,
+    // and an unresolved face silently demotes the wordmark to 10 px default.
+    code(clip).includes("getPropertyValue('--face')") &&
+    !/g\.font\s*=\s*`[^`]*var\(/.test(code(clip)));
+  check('WebM where the device records, a local GIF where it does not',
+    code(clip).includes('new MediaRecorder(stream') && code(clip).includes("ext: 'webm'") &&
+    code(clip).includes('encodeGif(') && code(clip).includes("ext: 'gif'") &&
+    code(gif).includes("type: 'image/gif'"));
+  check('nothing leaves the device: no request anywhere on the capture path',
+    ![cap, clip, gif].some((f) => /\bfetch\(|XMLHttpRequest|WebSocket|sendBeacon/.test(code(f))));
+  check('the clip is its own control, and the tray only exists on the deep card',
+    code(clip).includes("el.setAttribute('role', 'button')") &&
+    html.includes('id="momentSlot"') &&
+    html.includes('#deathScreen #shotBtns,#deathScreen #momentSlot{display:none}'));
+  // The fallback encoder, driven for real. It is DOM-free by construction —
+  // ImageData-shaped arrays in, bytes out — which is the only reason a device
+  // that cannot record a canvas still gets a file rather than an apology.
+  {
+    const W = 8, H = 6, N = 3;
+    const frames = [];
+    for (let f = 0; f < N; f++) {
+      const px = new Uint8ClampedArray(W * H * 4);
+      for (let i = 0; i < W * H; i++) {
+        px[i * 4] = (i * 8 + f * 40) & 0xff;
+        px[i * 4 + 1] = 20; px[i * 4 + 2] = 200; px[i * 4 + 3] = 255;
+      }
+      frames.push(px);
+    }
+    const blob = encodeGif({ frames, width: W, height: H, delayMs: 100 });
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const ascii = String.fromCharCode(...bytes.slice(0, 6));
+    let gce = 0;
+    for (let i = 0; i < bytes.length - 1; i++) if (bytes[i] === 0x21 && bytes[i + 1] === 0xf9) gce++;
+    check('the GIF fallback really encodes, in node, with no DOM anywhere near it',
+      blob.type === 'image/gif' && ascii === 'GIF89a' &&
+      bytes[bytes.length - 1] === 0x3b && gce === N,
+      `${bytes.length} B, ${gce} frames, looping`);
+    const s2 = String.fromCharCode(...bytes.slice(0, 200));
+    check('the fallback loops forever, which is what makes it a loop',
+      s2.includes('NETSCAPE2.0'));
+
+    // And it DECODES. A GIF that parses as a header and then hands a viewer
+    // rubbish is the failure mode a byte-count check cannot see, so the gate
+    // reads the first frame back through the format's own LZW and compares it
+    // to the pixels that went in, inside the 5-bit cube's own error.
+    const decoded = decodeFirstFrame(bytes, W, H);
+    let worst = 0;
+    for (let i = 0; i < W * H; i++) {
+      for (let c = 0; c < 3; c++) {
+        worst = Math.max(worst, Math.abs(decoded.rgb[i * 3 + c] - frames[0][i * 4 + c]));
+      }
+    }
+    check('a decoder gets the pixels back — the fallback is a real GIF, not a shaped file',
+      decoded.count === W * H && worst <= 8, `worst channel error ${worst}/255`);
+  }
+
+  check('the phone-matrix cost gate is a named dial with a runnable audit',
+    typeof C.COST_MS === 'number' && C.COST_MS > 0 &&
+    fs.readFileSync('package.json', 'utf8').includes('"audit:capture"') &&
+    fs.readFileSync('tools/capture-audit.mjs', 'utf8').includes('C.COST_MS'));
 }
 
 console.log(out.join('\n'));

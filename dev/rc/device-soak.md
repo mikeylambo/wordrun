@@ -33,6 +33,17 @@ installing to the home screen (PWA).
 - [ ] **Stats export**: paste the snippet below into the browser console
       (or a bookmarklet) BEFORE a run, play ~60s, then send back the JSON
       it copies/prints.
+- [ ] **The clip (RC9.8)**: play until the card shows a standout line — a
+      short loop appears under AGAIN, loops cleanly, and carries the flow band
+      and the wordmark. Tap it: the share sheet offers a file (WebM on most
+      phones, GIF on the rest). An ordinary run with no standout line must
+      show no clip at all — no player, no placeholder, no button. With
+      REDUCED FLASH on, no clip on any run.
+- [ ] **The clip's cost**: the 5-minute soak above, repeated with a standout
+      run in it — the capture arms only on a device holding 45 fps, so note
+      whether it appeared and whether anything changed when it did. The
+      bench number comes from `npm run audit:capture` on a GPU host; this is
+      the device half of the same question.
 - [ ] **Safe areas**: notch/home-bar devices — the HUD, buttons and the
       TEACH text clear of both.
 - [ ] **Landscape**: rotate mid-run and on the title — intentional, not

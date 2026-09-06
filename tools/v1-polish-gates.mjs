@@ -765,9 +765,12 @@ check(audioBridge.includes("import './v1-ship-polish.js'"), 'ship-polish layer i
   check(mainCode.includes("e.target.closest('#moreStats')") &&
     uiCode.includes('id="moreStats"'),
     'MORE STATS is a real fold: the card renders the button, main.js works the hinge');
-  check(htmlCode.includes('#deathScreen #shotBtns{display:none}') &&
-    htmlCode.includes('#deathScreen.deepOpen #shotBtns{display:flex}'),
-    'the share row is a footnote to the analysis — hidden until the card is expanded');
+  // RC9.8 put the clip in the same tray: the loop is a footnote to the
+  // analysis for exactly the reasons the share row is, and folds with it.
+  check(htmlCode.includes('#deathScreen #shotBtns,#deathScreen #momentSlot{display:none}') &&
+    htmlCode.includes('#deathScreen.deepOpen #shotBtns{display:flex}') &&
+    htmlCode.includes('#deathScreen.deepOpen #momentSlot{display:block}'),
+    'the share row and the clip are footnotes to the analysis — hidden until the card is expanded');
   check(uiCode.includes('READS MAKE THE SCORE'),
     'a zero-score run names the cause under the 0, not the distance to the best');
   check(uiCode.includes("this.deathScreen.classList.remove('deepOpen')"),

@@ -247,6 +247,40 @@ export const TUNING = {
     NOTORIOUS_DAILY_BIAS: 0.5,
   },
 
+  // ── Best-moment capture (RC9.8) ─────────────────────────────────────────
+  // A rolling few seconds of the run, at a size a clip is actually watched
+  // at, kept so the results card can offer the run's best stretch as a short
+  // loop beside its still. Everything here is a BUDGET, and the budget is the
+  // whole design: a capture that costs frames is a capture that changes the
+  // run it is recording.
+  //
+  // The buffer is ONE canvas — a filmstrip of FRAMES cells — allocated once
+  // and written by GPU blits from the game canvas. Nothing is read back and
+  // no pixels are copied into JS memory until a clip is actually exported, so
+  // the cost per captured frame is one drawImage into a small target.
+  //
+  //   144 x 312 px x 4 B x 24 frames = 4.11 MB of backing store, once.
+  //   10 fps x 2.4 s = 24 frames — a loop, not a replay.
+  //
+  // It is OFF under REDUCED FLASH (a looping clip is motion the player asked
+  // not to be given) and off wherever the device cannot afford it, which is
+  // measured rather than guessed: see render/moment-capture.js.
+  CAPTURE: {
+    WIDTH: 144,                // cell width; height follows the canvas aspect
+    FPS: 10,                   // capture and playback cadence
+    SECONDS: 2.4,              // how much run the ring holds
+    MAX_MB: 6,                 // the ceiling the gate holds the budget under
+    // The device test. A run whose frames are already this slow does not get
+    // a capture at all — the clip is a souvenir and the run is the game.
+    MIN_FPS: 45,               // measured over SAMPLE frames before arming
+    SAMPLE: 90,
+    // What one frame is allowed to pay for the buffer, at p95, measured on
+    // the phone matrix by `npm run audit:capture`. The RC frame budget is
+    // 20 ms at 60 Hz (dev/rc/device-soak.md); this is what the capture may
+    // take out of it, and it is a gate rather than a hope.
+    COST_MS: 1.5,
+  },
+
   // ── Speed cues (Phase 8.5; lifted out of the render files RC8.3) ────────
   // Everything in the world that says FAST, keyed the same way the camera is:
   // speedN = (speed − RUN.FLOOR) / (RUN.CEILING − RUN.FLOOR), 0 at the bottom

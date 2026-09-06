@@ -2764,3 +2764,80 @@ out — so the fourteen new checks in `gate:music` drive the real thing headless
 rather than inspecting a wrapper. `audit:network` still reads zero: the probe
 for the real file is a same-origin HEAD that misses, which is the expected case
 and is not an error.
+
+## 1.0-RC9.8 — the best moment, as a clip
+
+The standout line has always known the run's best stretch and has never been
+able to show it. A results card that says CLEAN 41 is asking you to remember
+something you were too busy to watch. This keeps the last few seconds of the
+run rolling in a small buffer, freezes it at the instant the run's rarest feat
+lands, and offers it back on the card as a short loop beside the still.
+
+**The budget is the design.** A capture that costs frames changes the run it is
+recording, so every part of this is a ceiling first and a feature second:
+
+- **One canvas, allocated once.** A filmstrip of 24 cells at 144 px wide —
+  `144 x 312 x 4 B x 24 = 4.11 MB` on a common phone, against a 6 MB ceiling
+  the gate holds. The number is knowable BEFORE it is paid: `captureBudget()`
+  is pure, takes one number (the canvas aspect) and is printed by
+  `gate:corruption` and by the new audit on every viewport it visits.
+- **One blit per captured frame, ten a second.** A `drawImage` into a small
+  target, roughly a sixth of the frames the game draws. Nothing is read back
+  into JS memory and no pixels are copied at all until a clip is exported —
+  `getImageData` appears nowhere on the live path, and the gate keeps it that
+  way.
+- **It measures the device before it arms.** The first 90 frames of a run are a
+  measurement; under 45 fps the buffer never allocates and the run is simply a
+  run. A phone already dropping frames does not get a souvenir at the cost of
+  the thing the souvenir is about.
+- **Off entirely under REDUCED FLASH.** A short loop that plays itself is
+  motion, and the player has said no to motion. Not dimmed, not paused — never
+  allocated.
+
+**Freezing copies nothing.** It records where the ring's head was, so a frozen
+strip and a live one are the same pixels read in a different order; the ring
+keeps running, and a rarer feat later in the run re-freezes over an earlier
+one. That ordering is not a second opinion: `standoutRank` reads the same list
+`pickStandout` reads, and the gate proves across twelve ledgers that the rank
+is zero exactly when the line is null. **A run with no standout offers no clip
+— no player, no placeholder, no button.**
+
+**The card's furniture is burned in, not overlaid.** The flow band in its own
+ice cyan and the DICTION DASH wordmark are drawn into every frame of the
+export, so a clip that leaves the device leaves as a piece of this game rather
+than as an anonymous few seconds of a road. The export re-renders at twice the
+preview's size rather than recording the on-screen element, because the element
+is a preview and the file is the artefact. WebM through MediaRecorder where the
+device can record a canvas; a local GIF89a encoder beside it where it cannot —
+a histogram over a 5-bit cube and the GIF variant of LZW, no dependency and no
+upload. The encoder is DOM-free by construction (pixel arrays in, bytes out),
+so the gate does not take its word for anything: it encodes three frames in
+node and then DECODES them back through the format's own LZW, and the pixels
+return inside the cube's own error — 4 of 255 on the worst channel. A file
+that parses as a header and hands a viewer rubbish is the failure a byte count
+cannot see.
+
+**Nothing leaves the device.** Capture is a blit, encoding is local, and the
+result is a Blob the player may choose to hand to a share sheet. The clip is
+its own control — the canvas carries `role="button"`, so tapping the moving
+thing saves it and the tray does not grow a fifth item. `audit:network` still
+reads zero, and the new audit asserts zero external requests across capture,
+freeze and export as well.
+
+**`npm run audit:capture`** is the phone-matrix bench: four portrait viewports,
+the same stretch played twice under each condition — the buffer off (which is
+the shipped REDUCED FLASH path) and the buffer armed — interleaved, because a
+run gets faster as it settles and a straight A-then-B would bill that to B. It
+holds the p95 difference under `CAPTURE.COST_MS` (1.5 ms) and the absolute p95
+inside the 20 ms RC budget. Both timing assertions sit behind the same 45 fps
+floor the game itself arms behind: a host doing software rendering draws this
+game in single digits, would never run a capture, and does not get to price
+one — it says so in plain words rather than passing quietly. On this machine
+the four
+viewports report **not priced**; the budget, the refusal, the clip, the export
+and the network promise are asserted there and everywhere. The passes are
+mirrored OFF/ON/ON/OFF with a throwaway first pass, so nothing a cold frame
+pays lands on one condition rather than the other — with that in place the two
+conditions come back within a frame of each other at p50 on every viewport,
+which is the shape a fair comparison has. **[MP] runs the
+bench on a GPU host, and the two new soak items on a phone.**

@@ -26,6 +26,33 @@ export const FLOORS = {
 
 const fmt = (n) => Math.floor(n).toLocaleString('en-US');
 
+/**
+ * RC9.8 — the RANK of the best floor a run has crossed so far, or 0 for none.
+ *
+ * `pickStandout` answers "what does the card say"; this answers "has anything
+ * worth keeping just happened, and is it rarer than the last thing". The
+ * capture buffer freezes on a rise, so the clip on the card is the moment the
+ * card is about rather than the last few seconds before the runner died — and
+ * a rarer feat later in the run re-freezes over an earlier one, exactly as the
+ * rarer feat wins the line.
+ *
+ * The order IS pickStandout's order, read from one list so the two can never
+ * disagree about which feat is rarer.
+ */
+const RARITY = [
+  ({ dashRung = 0 }) => dashRung >= FLOORS.DASH_RUNG,
+  ({ earlyStreak = 0 }) => earlyStreak >= FLOORS.EARLY_STREAK,
+  ({ burst10 = 0 }) => burst10 >= FLOORS.BURST_10,
+  ({ bestChain = 0 }) => bestChain >= FLOORS.CLEAN,
+  ({ avgReadMs = 0, reads = 0 }) =>
+    reads >= FLOORS.AVG_READ_MIN_N && avgReadMs > 0 && avgReadMs <= FLOORS.AVG_READ_MS,
+];
+
+export function standoutRank(led = {}) {
+  for (let i = 0; i < RARITY.length; i++) if (RARITY[i](led)) return RARITY.length - i;
+  return 0;
+}
+
 /** One standout from a run's ledgers, or null for an ordinary run. */
 export function pickStandout({ dashRung = 0, earlyStreak = 0, burst10 = 0,
   bestChain = 0, avgReadMs = 0, reads = 0 } = {}) {
