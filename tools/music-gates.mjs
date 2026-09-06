@@ -221,5 +221,98 @@ console.log('\nMAPPING — nothing discrete runs fast enough to flash');
   ok(hz < 3, `discrete accents stay under the photosensitivity threshold — ${hz.toFixed(2)} Hz over the track`);
 }
 
+console.log('\nHIGH LAYER — one hook re-opened from the retired stem engine');
+{
+  const { HighLayerEnvelope, highLayerWanted, HIGH_BAND, HIGH_CHAIN } =
+    await import('../src/music/high-layer.js');
+  const { BAND_CHAINS, bandFor } = await import('../src/render/editorial-layout.js');
+
+  ok(HIGH_CHAIN === BAND_CHAINS[HIGH_BAND] && HIGH_CHAIN === 50 && bandFor(50) === HIGH_BAND,
+    `the layer is earned at the third editorial band — chain ${HIGH_CHAIN}, read through bandFor`);
+  ok(!highLayerWanted(0) && !highLayerWanted(49) && highLayerWanted(50) && highLayerWanted(400),
+    'wanted at 50 and above, and at nothing below it');
+
+  // Beat-aligned: an edge waits for a beat and does not move before one.
+  {
+    const e = new HighLayerEnvelope();
+    let g = 0;
+    for (let f = 0; f < 120; f++) g = e.step({ chain: 60, dt: 1 / 60, onBeat: false });
+    ok(g === 0, 'two seconds of frames past the threshold with no beat move it not at all');
+    g = e.step({ chain: 60, dt: 1 / 60, onBeat: true });
+    ok(g > 0, 'and the next beat releases it');
+    for (let f = 0; f < 60 * 3; f++) g = e.step({ chain: 60, dt: 1 / 60, onBeat: f % 40 === 0 });
+    ok(Math.abs(g - 1) < 1e-9, `it reaches full over its fade — ${g.toFixed(3)}`);
+  }
+
+  // The chain break takes it away, on a beat, faster than it arrived.
+  {
+    const e = new HighLayerEnvelope();
+    let g = 0;
+    for (let f = 0; f < 60 * 4; f++) g = e.step({ chain: 60, dt: 1 / 60, onBeat: f % 40 === 0 });
+    const up = g;
+    let frames = 0;
+    while (g > 0 && frames < 60 * 10) { frames++; g = e.step({ chain: 0, dt: 1 / 60, onBeat: frames % 40 === 0 }); }
+    ok(up === 1 && g === 0 && frames < 60 * 3,
+      `a broken chain takes it out in ${(frames / 60).toFixed(2)} s — quicker than it arrived`);
+  }
+
+  // NOT per-beat. Held at a steady chain the gain is flat, whatever the beats
+  // do: a level that pumped with the kick would be a per-beat event on the one
+  // bus that is never allowed one.
+  {
+    const e = new HighLayerEnvelope();
+    for (let f = 0; f < 60 * 6; f++) e.step({ chain: 90, dt: 1 / 60, onBeat: f % 22 === 0 });
+    let lo = 1, hi = 0;
+    for (let f = 0; f < 60 * 8; f++) {
+      const g = e.step({ chain: 90, dt: 1 / 60, onBeat: f % 22 === 0 });
+      lo = Math.min(lo, g); hi = Math.max(hi, g);
+    }
+    ok(lo === 1 && hi === 1, `held at chain 90 the gain never moves — ${lo} to ${hi} over eight seconds`);
+  }
+
+  // No track, no waiting: silence is not a reason to hold a layer down.
+  {
+    const e = new HighLayerEnvelope();
+    let g = 0;
+    for (let f = 0; f < 60 * 3; f++) g = e.step({ chain: 60, dt: 1 / 60, onBeat: false, hasClock: false });
+    ok(g === 1, 'with no clock the edges fire immediately and it still reaches full');
+  }
+
+  // A run ending drops it without waiting for anything.
+  {
+    const e = new HighLayerEnvelope();
+    for (let f = 0; f < 60 * 4; f++) e.step({ chain: 60, dt: 1 / 60, onBeat: f % 40 === 0 });
+    let g = 1, frames = 0;
+    while (g > 0 && frames < 60 * 5) { frames++; g = e.step({ chain: 60, dt: 1 / 60, onBeat: false, running: false }); }
+    ok(g === 0 && frames < 60 * 2, 'a run ending takes it out without waiting for a beat');
+  }
+
+  // The wiring: one bus, no visual, and a drop-in contract for the real file.
+  {
+    const audioSrc = fs.readFileSync('src/audio/high-layer.js', 'utf8');
+    // Live code only: the comment above the routing still names the retired
+    // engine's own bus and dial, which is the record of what is NOT here.
+    const liveAudio = audioSrc.replace(/\/\*[\s\S]*?\*\//g, '')
+      .split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
+    const mainSrc = fs.readFileSync('src/main.js', 'utf8');
+    ok(/this\.gainNode\.connect\(audio\.bus\.music\)/.test(audioSrc) &&
+      !/createGain\(\)[\s\S]{0,200}connect\(ctx\.destination\)/.test(audioSrc) &&
+      !/MUSIC_MAX/.test(liveAudio),
+      'it rides the track\'s own music bus — no second music path, no dial of its own');
+    ok(!/musicResponse\([^)]*high/i.test(mainSrc) &&
+      !/highLayer[\s\S]{0,120}(rig\.|stage\.|materialPass|flow|palette)/.test(mainSrc),
+      'nothing on screen reads its gain — the visual energy stays the run\'s and the map\'s');
+    ok(/const HIGH_URL = '\.\/audio\/music\/into-the-night\.high\.mp3';/.test(audioSrc) &&
+      fs.existsSync('public/audio/music/README.md') &&
+      fs.readFileSync('public/audio/music/README.md', 'utf8').includes('into-the-night.high.mp3'),
+      'the real file is a drop-in, and the contract for it is written down beside the track');
+    ok(!fs.existsSync('public/audio/music/into-the-night.high.mp3') &&
+      /PAD_HZ/.test(audioSrc),
+      'the placeholder stands until that file exists — the mechanism ships working, not waiting');
+    ok(!fs.existsSync('src/audio/stems.js') && !fs.existsSync('public/audio/stems'),
+      'and the retired stem engine stays retired — one hook re-opened, not the machine');
+  }
+}
+
 console.log(`\nMusic gates: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

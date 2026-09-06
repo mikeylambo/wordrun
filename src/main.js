@@ -32,6 +32,7 @@ import { ACCESS, initAccess, buildAccessPanel } from './ui/access.js';
 import { applyMaterialPass } from './render/material-pass.js';
 import { Audio } from './audio/audio.js';
 import { MusicTrack } from './music-track.js';
+import { HighLayer } from './audio/high-layer.js';
 import { musicResponse } from './render/music-response.js';
 import { Input } from './input/input.js';
 import { Storage } from './storage/storage.js';
@@ -59,6 +60,11 @@ const ui = new UI();
 const audio = new Audio();
 const music = new MusicTrack();
 music.load();
+// RC9.7: the second layer. One hook re-opened from the retired stem engine —
+// it thickens the arrangement while the chain holds the third editorial band
+// and thins out when the chain breaks. Same bus, same ducks, no visual.
+const highLayer = new HighLayer();
+highLayer.load();
 let musicState = { pulse: 0, accent: 0, shimmer: 0, drive: 0, calm: false, section: null };
 const input = new Input(canvas);
 
@@ -450,6 +456,7 @@ function startRun() {
   audio.start();
   music.attach(audio);
   music.play();
+  highLayer.attach(audio);
   launch.begin({ quick: !fromTitle, onBlack: buildRunInTheDark });
   audio.launch(!fromTitle);
 }
@@ -1535,6 +1542,11 @@ function tick(dt) {
   // The score's reading of the run. Music modulates, the run decides: the
   // intensity term is the game's, and the mapping may only tint it.
   const clock = music.update(performance.now());
+  // RC9.7: the high-flow layer. Audio only — its gain is deliberately not
+  // read by anything that draws, and musicResponse below is untouched by it.
+  highLayer.update({
+    clock, chain: sim.wordGates?.streak || 0, dt, running: running && !paused,
+  });
   musicState = musicResponse(clock, {
     intensity: Math.max(0, Math.min(1,
       0.45 * ((p.speed - TUNING.RUN.FLOOR) / (TUNING.RUN.CEILING - TUNING.RUN.FLOOR))

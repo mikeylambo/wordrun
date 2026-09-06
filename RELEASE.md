@@ -2708,3 +2708,59 @@ have proved nothing. And the Phase 0 behaviour snapshot is unchanged on all
 five scripts: the tag changes WHICH word you read and never the shape of the
 run, because real/fake, gate distance and deception family are all decided
 before a word is chosen. Every calibrated table reproduces byte-for-byte.
+
+## 1.0-RC9.7 — the second layer of music
+
+Phase J retired the four-layer stem engine and was right to: it only ever
+played synthesized placeholders, was muted the instant the real track went
+live, and no stems were ever produced. What it retired WITH the engine was a
+genuinely good idea — that the arrangement should thicken when someone is
+reading brilliantly and thin out when they lose it. This re-opens exactly one
+hook of that, and nothing else.
+
+- **One layer, earned at the third editorial band.** It fades in while the
+  reading chain holds 50 or more — `BAND_CHAINS[2]`, the band the world already
+  calls *blooming* — and fades out when the chain breaks. Read through
+  `bandFor` rather than off a raw threshold, so a chain hovering at the line
+  cannot make it flicker.
+- **Beat-aligned, and NOT per-beat.** Those are two different promises and the
+  envelope makes both. An edge waits for the next beat the clock crosses, so
+  the layer arrives musically rather than on whatever frame the fiftieth read
+  landed on — two seconds of frames past the threshold with no beat move it not
+  at all, and the next beat releases it. Between edges the gain is a straight
+  seconds ramp: held at chain 90 it measures 1 to 1 over eight seconds, whatever
+  the beats are doing. A level that pumped with the kick would be a per-beat
+  event on the one bus that is never allowed one.
+- **In slower than out.** 1.8 s to arrive and 0.9 s to leave — measured at
+  1.57 s from full to silence on a broken chain, because arriving is a state
+  being earned and leaving is a state being lost. A run ending drops it without
+  waiting for a beat at all, and with no track playing the edges fire
+  immediately: silence is not a reason to hold a layer down.
+- **The same bus, so the same everything.** It routes to `audio.bus.music`, the
+  one the score already rides, so MUSIC OFF, the drain's lowpass and every duck
+  in the mix apply for free. No second music path and no dial of its own —
+  which is precisely how the retired engine ended up with a `MUSIC_MAX` to keep
+  in sync with a mix it had left.
+- **It draws nothing.** Its gain is not read by the camera, the post chain, the
+  palette or anything else on screen; `musicResponse` is untouched. The visual
+  energy stays the run's and the score map's, and the layer has no vote. Gated
+  as an absence, which is the only way that kind of promise can be kept.
+  REDUCED FLASH governs what the screen does, and this layer's whole contract
+  is that the screen does nothing about it.
+
+**The mechanism ships working, not waiting.** With no `into-the-night.high.mp3`
+present the game synthesizes a placeholder pad — three detuned triangles
+through a dark lowpass, in the track's key, whose only amplitude is the
+envelope's — so every one of the behaviours above is live and audible today.
+The drop-in contract is written down beside the track in
+`public/audio/music/README.md`: name the file, match the length, tempo and loop
+point, keep it an OVERLAY rather than a mix, and put nothing rhythmic in its
+own envelope. `src/audio/high-layer.js` probes for it at boot and prefers it
+whenever it answers; nothing else changes. **[MP] supplies the layer; the
+placeholder stands until then.**
+
+The envelope itself is `src/music/high-layer.js` — pure, numbers in and a gain
+out — so the fourteen new checks in `gate:music` drive the real thing headlessly
+rather than inspecting a wrapper. `audit:network` still reads zero: the probe
+for the real file is a same-origin HEAD that misses, which is the expected case
+and is not an error.
