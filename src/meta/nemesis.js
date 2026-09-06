@@ -19,6 +19,8 @@
  *    players' scores incomparable while looking identical.
  */
 
+import { isNotorious } from '../words/notorious.js';
+
 const CAP = 400;            // words held, LRU by last-seen
 const BEATEN_CAP = 40;      // retired words kept for the gallery, newest first
 const LANE_EVERY = 12;      // roughly one gate in twelve
@@ -114,20 +116,31 @@ export class NemesisLedger {
   /** The word most owed a reappearance at this gate, or null. */
   due(gateIndex) {
     const t = now();
-    let best = null, bestMisses = 0;
+    let best = null;
     for (const [id, w] of Object.entries(this.words)) {
       if (w.m <= 0) continue;
       const readyByGate = w.due > 0 && gateIndex >= w.due;
       const readyByTime = w.dueAt > 0 && t >= w.dueAt;
       if (!readyByGate && !readyByTime) continue;
-      // Most-missed first, and among equals the one least recently seen —
-      // so a shelf of equally troublesome words rotates instead of one of
-      // them owning every lane gate.
-      if (w.m > bestMisses || (w.m === bestMisses && best && w.seen < this.words[best].seen)) {
-        best = id; bestMisses = w.m;
-      }
+      if (best === null || this._beats(w, this.words[best], id, best)) best = id;
     }
     return best;
+  }
+
+  /**
+   * Which of two due words the lane should show.
+   *
+   * Most-missed first; then — RC9.6 — the one carrying the notorious tag,
+   * because a word English speakers actually get wrong is worth more of this
+   * lane's scarce gates than one this player got wrong once by accident; then
+   * the least recently seen, so a shelf of equally troublesome words rotates
+   * instead of one of them owning every lane gate.
+   */
+  _beats(w, cur, id, curId) {
+    if (w.m !== cur.m) return w.m > cur.m;
+    const a = isNotorious(id), b = isNotorious(curId);
+    if (a !== b) return a;
+    return w.seen < cur.seen;
   }
 
   history(id) { return this.words[id] || null; }

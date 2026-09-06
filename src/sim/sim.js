@@ -104,6 +104,11 @@ export class Sim {
       // every profile but HARD, whose difficulty was tiers and pace and
       // nothing that made the READ harder.
       WINDOW_SCALE: diff.WINDOW_SCALE ?? 1,
+      // RC9.6: the notorious tag's two sources — the profile's own taste, and
+      // the route's length, which is what lets the DAILY's back half ask for
+      // them while pinned to NORMAL.
+      NOTORIOUS_BIAS: diff.NOTORIOUS_BIAS ?? 0,
+      GATES: this.rules.GATES | 0,
       // Phase L5+: the DAILY RUN plays the authored course; ENDLESS walks
       // seeded phrases. The chart shapes real/fake and the mutation family
       // only — words, spacing, tiers and every calibrated dial are untouched.

@@ -26,7 +26,10 @@
 
 import TUNING from '../TUNING.js';
 import { mulberry32, mixSeed } from './rng.js';
-import { pickWordCycle, makeFake, tierCount, familyForGate } from '../words/wordlist.js';
+import {
+  pickWordCycle, pickNotoriousCycle, makeFake, tierCount, familyForGate,
+} from '../words/wordlist.js';
+import { isNotorious } from '../words/notorious.js';
 import { phraseAt } from './phrases.js';
 
 const W = TUNING.WORDS;
@@ -43,6 +46,10 @@ export const DEFAULT_PROFILE = Object.freeze({
   TIER_MAX: tierCount() - 1,
   TIER_EVERY_M: W.TIER_EVERY_M,
   CHART: 'endless',
+  // RC9.6: how often this profile PREFERS a tagged word where the tier walk
+  // offered an untagged one. 0 on EASY and on ordinary NORMAL — see below.
+  NOTORIOUS_BIAS: 0,
+  GATES: 0,
   // RC9.5: the fraction of the arm window this profile answers in. 1 for
   // every profile but HARD; see TUNING.MODES.DIFFICULTY for why HARD has one.
   WINDOW_SCALE: 1,
@@ -164,11 +171,44 @@ export function latencyMultFor(answerDistance, armM = W.ARM_DISTANCE_M) {
 }
 
 /**
+ * RC9.6 — should this gate prefer a notorious word?
+ *
+ * Two sources, and neither is a tier: the PROFILE (HARD asks for them) and
+ * the CHART (the DAILY's back half asks for them, whatever profile it is
+ * pinned to — which is NORMAL, so it could not have come from the profile).
+ * EASY asks for neither, ever, which is the gate.
+ *
+ * Pure in (seed, index): the DAILY route has to be the same hundred words in
+ * the same order for everyone, so the coin cannot come from a run's rng.
+ */
+export function notoriousBiasFor(prof, index) {
+  const profBias = prof?.NOTORIOUS_BIAS ?? 0;
+  const gates = prof?.GATES | 0;
+  const backHalf = prof?.CHART === 'daily' && gates > 0 && index >= gates / 2;
+  return Math.max(profBias, backHalf ? W.NOTORIOUS_DAILY_BIAS : 0);
+}
+
+function wantsNotorious(seed, index, prof) {
+  const bias = notoriousBiasFor(prof, index);
+  if (bias <= 0) return false;
+  // A cheap integer hash of (seed, index) in its own lane, so the coin is
+  // independent of every other draw the gate makes and identical for every
+  // player on the same route.
+  const h = (((seed >>> 0) ^ 0x6e6f7400) * 2654435761 + index * 40503) >>> 0;
+  return (h % 1000) / 1000 < bias;
+}
+
+/**
  * Build a gate. `lane` may supply a word to show INSTEAD of the one the tier
  * walk chose — a substitution, never a reordering. The walk has already run
  * and produced its word by the time the swap happens, so its no-repeat
  * guarantee is untouched: the same stride visits the same list in the same
  * order whether or not a lane word is printed over the top of it.
+ *
+ * RC9.6's notorious preference is the SAME shape and for the same reason: the
+ * walk runs unconditionally, and only the printed word may differ. The
+ * substitute comes from its own coprime walk over the tier's tagged sublist,
+ * so a run of preferred gates does not repeat a word either.
  */
 export function makeGate(seed, index, prof = DEFAULT_PROFILE, lane = null) {
   const rng = mulberry32(mixSeed(mixSeed(seed, WORD_STREAM), index));
@@ -179,9 +219,17 @@ export function makeGate(seed, index, prof = DEFAULT_PROFILE, lane = null) {
   const laneRng = mulberry32(mixSeed(mixSeed(seed, WORD_STREAM), 0x7f000000 + tier));
   // The walk runs first and unconditionally, so its cursor advances exactly as
   // it would have. Only then is the printed word allowed to differ.
-  const walked = pickWordCycle(tier, index - tierStartIndex(tier, prof), laneRng);
+  const k = index - tierStartIndex(tier, prof);
+  const walked = pickWordCycle(tier, k, laneRng);
+  // The notorious preference, before the personal lane: the lane is this
+  // player's own due word and outranks a difficulty's taste in vocabulary.
+  let preferred = null;
+  if (!isNotorious(walked) && wantsNotorious(seed, index, prof)) {
+    const notRng = mulberry32(mixSeed(mixSeed(seed, WORD_STREAM), 0x7e000000 + tier));
+    preferred = pickNotoriousCycle(tier, k, notRng);
+  }
   const substitute = lane ? lane(index, tier) : null;
-  const word = substitute || walked;
+  const word = substitute || preferred || walked;
   // Phase L5+: a trap or exam phrase pins the mutation family for its whole
   // stretch — the player who names the family reads it. Unpinned gates keep
   // the shipped five-gate family walk.

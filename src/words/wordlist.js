@@ -17,6 +17,7 @@
  */
 import { EXTENDED_GUARD } from './guard.js';
 import { isBlocked } from './family-blocklist.js';
+import { notoriousIn } from './notorious.js';
 
 /**
  * Difficulty tiers, easiest first. Tier 0 is short + high-frequency; later
@@ -153,6 +154,13 @@ export const TIERS = [
     'wool', 'word', 'wore', 'work', 'world', 'worm', 'worn', 'wove', 'wrap',
     'yard', 'yarn', 'yawn', 'year', 'yell', 'yolk', 'your', 'zeal', 'zest',
     'zinc', 'zone',
+    // RC9.6 — the notorious tag. Words English speakers actually get
+    // wrong, curated and QC'd with the rest of the bank; the tag itself
+    // lives in words/notorious.js. Appended rather than merged so every
+    // word already here keeps the index the no-repeat stride walks.
+    'fiery', 'forty', 'gauge', 'gist', 'guard', 'khaki', 'naive', 'niece',
+    'often', 'piece', 'queue', 'quiet', 'quite', 'rhyme', 'seize', 'siege',
+    'truly', 'until', 'weird', 'wield', 'yacht',
   ],
 
   // Tier 2 — everyday words whose misspellings look plausible.
@@ -277,6 +285,17 @@ export const TIERS = [
     'widget', 'willow', 'window', 'winner', 'winter', 'wisdom', 'wither',
     'wizard', 'wombat', 'wonder', 'wooden', 'worthy', 'wrench', 'yellow',
     'yonder', 'zealous', 'zenith', 'zipper', 'zither',
+    // RC9.6 — the notorious tag. Words English speakers actually get
+    // wrong, curated and QC'd with the rest of the bank; the tag itself
+    // lives in words/notorious.js. Appended rather than merged so every
+    // word already here keeps the index the no-repeat stride walks.
+    'acquire', 'acquit', 'advise', 'alcohol', 'allege', 'almost', 'amateur',
+    'analyze', 'annual', 'anoint', 'ascend', 'bureau', 'caught', 'colonel',
+    'coming', 'coolly', 'descend', 'develop', 'disease', 'eighth', 'exceed',
+    'except', 'expense', 'finally', 'foresee', 'forward', 'harass', 'height',
+    'ideally', 'labeled', 'lenient', 'ninety', 'overrun', 'pharaoh', 'possess',
+    'prairie', 'realize', 'really', 'salary', 'several', 'simile', 'usable',
+    'usually', 'wholly', 'woolen',
   ],
 
   // Tier 3 — longer words, real spelling traps.
@@ -498,6 +517,14 @@ export const TIERS = [
     'withhold', 'wondrous', 'woodland', 'woodwind', 'woodwork', 'wordplay',
     'workbook', 'workshop', 'wrinkle', 'writing', 'yearbook', 'yearling',
     'yearning', 'yielding', 'youthful',
+    // RC9.6 — the notorious tag. Words English speakers actually get
+    // wrong, curated and QC'd with the rest of the bank; the tag itself
+    // lives in words/notorious.js. Appended rather than merged so every
+    // word already here keeps the index the no-repeat stride walks.
+    'allotted', 'argument', 'calibrate', 'committed', 'conceive', 'daiquiri',
+    'desiccate', 'dissipate', 'ecstatic', 'facsimile', 'foreword', 'guerrilla',
+    'hindrance', 'hypocrite', 'indicted', 'intercede', 'moccasin', 'preferred',
+    'publicly', 'recognize', 'severely', 'underrate',
   ],
 
   // Tier 4 — the classic hard spellings.
@@ -914,6 +941,13 @@ export const TIERS = [
     'woodpecker', 'workbench', 'workforce', 'workmanship', 'worshipping',
     'worthiness', 'worthwhile', 'wrestling', 'wretchedness', 'wristwatch',
     'xylophone', 'yellowhammer', 'yesterday',
+    // RC9.6 — the notorious tag. Words English speakers actually get
+    // wrong, curated and QC'd with the rest of the bank; the tag itself
+    // lives in words/notorious.js. Appended rather than merged so every
+    // word already here keeps the index the no-repeat stride walks.
+    'aggression', 'condescend', 'counterfeit', 'dispensable', 'harassment',
+    'idiosyncrasy', 'incidentally', 'phenomenon', 'precedence', 'reminiscence',
+    'subordinate', 'susceptible', 'synonymous', 'transferred', 'unforeseen',
   ],
 ];
 
@@ -1117,12 +1151,38 @@ const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
  * the birthday-problem repeats a uniform draw guarantees.
  */
 export function pickWordCycle(tier, k, rand) {
-  const words = tierWords(tier);
+  return cycleOver(tierWords(tier), k, rand);
+}
+
+function cycleOver(words, k, rand) {
   const n = words.length;
+  if (n === 0) return null;
+  if (n === 1) return words[0];
   const offset = Math.floor(rand() * n) % n;
   let stride = 1 + (Math.floor(rand() * (n - 1)) % (n - 1));
   while (gcd(stride, n) !== 1) stride = (stride % (n - 1)) + 1;
   return words[(offset + (k % n) * stride) % n];
+}
+
+// RC9.6 — the notorious sublist of each tier, memoised. The tag is a filter
+// over the tier's own pool, in the pool's own order, so a substitution walks
+// it with exactly the no-repeat discipline the tier walk uses.
+const notoriousPools = new Map();
+function notoriousPool(tier) {
+  const t = Math.max(0, Math.min(TIERS.length - 1, tier | 0));
+  if (!notoriousPools.has(t)) notoriousPools.set(t, notoriousIn(TIERS[t]));
+  return notoriousPools.get(t);
+}
+
+/** How many of a tier's words carry the tag — the gates print this. */
+export function notoriousCount(tier) { return notoriousPool(tier).length; }
+
+/**
+ * The k-th word of a seeded coprime walk through a tier's NOTORIOUS words, or
+ * null where a tier has none. Same contract as pickWordCycle, over a subset.
+ */
+export function pickNotoriousCycle(tier, k, rand) {
+  return cycleOver(notoriousPool(tier), k, rand);
 }
 
 const VOWELS = 'aeiou';

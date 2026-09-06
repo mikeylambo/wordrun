@@ -2650,3 +2650,61 @@ The behaviour snapshot moved on exactly one of its five scripts —
 it is not a decision; the decision is a phone in a hand and it has not happened
 yet. Every instrument here reprints from that one value, so changing it is one
 edit and `npm run calibrate`.
+
+## 1.0-RC9.6 — the notorious tier, which is not a tier
+
+The bank was curated for READABILITY — words whose misspelling is plausible at
+speed. What it had never been curated for is the other thing entirely: words
+English speakers actually get wrong. `separate`. `definitely`. `occurrence`.
+`rhythm`. `liaison`. There are a few hundred of them and everybody knows which.
+
+- **420 words, tagged.** `src/words/notorious.js` holds the list; every one of
+  them also lives in the tier its length and frequency put it in and is drawn
+  by the ordinary walk like any other word. That distinction is the design: a
+  sixth tier would have made these a PLACE the run visits; a tag makes them a
+  PRESSURE the run applies, and leaves the difficulty curve, the no-repeat
+  stride and the tier ramp exactly as they were. 103 of the 420 were new to
+  the bank (5,381 words now); the rest were already there and are simply
+  labelled.
+- **The same QC, and the bank's own gates found what the curation missed.**
+  Charset, 3–12 letters, deduped, past the family blocklist, present in the
+  shipped English dictionary, and inside the regenerated one-edit collision
+  guard (`build-guard`, 9,178 words). Thirteen candidates were dropped for
+  exceeding the 12-letter plate cap — `accommodation`, `pronunciation`,
+  `representative` and their kind — and four for being proper nouns in
+  lowercase. And the existing "one spelling convention" gate rejected a first
+  draft outright: it carried `manoeuvre`, `neighbour`, `licence`, `realise`,
+  `judgement` and eight more British forms into an American bank. They are the
+  American spellings now. That gate has been in the suite since Phase 11 and
+  this is the first time it has had anything to say.
+- **Where the tag lands**, over 100 gates of one seed:
+
+      easy 5% · normal 8% · hard 58% · daily front 6% back 58%
+
+  EASY carries no bias and never will — it meets the tag only at the
+  BACKGROUND rate every untagged profile does, because these are bank words
+  and a tag is a preference rather than a partition. HARD asks for them
+  outright. The DAILY opens on ordinary vocabulary and tightens through its
+  back half, which is a route that gets harder rather than a route that was
+  always hard.
+- **It substitutes and never reorders**, which is the rule the nemesis lane
+  already lives by and for the same reason: the tier walk runs unconditionally
+  and only the PRINTED word may differ. Measured rather than asserted — over a
+  hundred HARD gates the walked word is identical with the preference on and
+  off (100/100) while 50 printed words differ. The substitute comes from its
+  own coprime walk over the tier's tagged sublist, so a run of preferred gates
+  does not repeat a word either, and the fake is still `makeFake`'s decision
+  with the gate's own deception family.
+- **The nemesis lane weights the tag** without letting it outrank evidence:
+  most-missed first, then the tagged word, then least recently seen. A word
+  English speakers actually get wrong is worth more of that lane's scarce
+  gates than one this player fumbled once — but a word they have missed nine
+  times still wins.
+
+Two properties fell out and both are worth having. The DAILY is byte-identical
+across players with the tag in place — driven through `sim.start`, which
+refuses a personal lane on a route, rather than through `makeGate`, which would
+have proved nothing. And the Phase 0 behaviour snapshot is unchanged on all
+five scripts: the tag changes WHICH word you read and never the shape of the
+run, because real/fake, gate distance and deception family are all decided
+before a word is chosen. Every calibrated table reproduces byte-for-byte.

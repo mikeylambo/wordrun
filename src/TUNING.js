@@ -239,6 +239,12 @@ export const TUNING = {
     READ_WINDOW_MIN_S: 1.15,
     READ_WINDOW_HARD_MIN_S: 0.75,
     CRUISE_READS: 8,
+    // RC9.6 — how often the DAILY's BACK HALF prefers a tagged word where the
+    // tier walk offered an untagged one. The route opens on ordinary
+    // vocabulary and tightens: a hundred gates that were notorious from gate
+    // one would be a different game, not a harder second half. HARD carries
+    // its own bias in MODES.DIFFICULTY; EASY carries none, ever.
+    NOTORIOUS_DAILY_BIAS: 0.5,
   },
 
   // ── Speed cues (Phase 8.5; lifted out of the render files RC8.3) ────────
@@ -569,9 +575,22 @@ export const TUNING = {
     // it has not happened yet. The instruments are built so that changing
     // this one number reprints every table that depends on it.
     DIFFICULTY: {
-      easy: { TIER_MIN: 0, TIER_MAX: 2, TIER_EVERY_M: 1100, REDLINE_PACE: 24, WINDOW_SCALE: 1 },
-      normal: { TIER_MIN: 0, TIER_MAX: 4, TIER_EVERY_M: 700, REDLINE_PACE: 27, WINDOW_SCALE: 1 },
-      hard: { TIER_MIN: 1, TIER_MAX: 4, TIER_EVERY_M: 500, REDLINE_PACE: 30, WINDOW_SCALE: 0.88 },
+      // NOTORIOUS_BIAS (RC9.6): how often this profile prefers a word from the
+      // notorious tag where the tier walk offered an untagged one. EASY is
+      // zero and is gated at zero — the tag is a pressure, and EASY is the
+      // profile that exists not to apply one.
+      easy: {
+        TIER_MIN: 0, TIER_MAX: 2, TIER_EVERY_M: 1100, REDLINE_PACE: 24,
+        WINDOW_SCALE: 1, NOTORIOUS_BIAS: 0,
+      },
+      normal: {
+        TIER_MIN: 0, TIER_MAX: 4, TIER_EVERY_M: 700, REDLINE_PACE: 27,
+        WINDOW_SCALE: 1, NOTORIOUS_BIAS: 0,
+      },
+      hard: {
+        TIER_MIN: 1, TIER_MAX: 4, TIER_EVERY_M: 500, REDLINE_PACE: 30,
+        WINDOW_SCALE: 0.88, NOTORIOUS_BIAS: 0.5,
+      },
     },
   },
 

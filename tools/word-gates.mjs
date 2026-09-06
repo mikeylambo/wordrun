@@ -1807,6 +1807,136 @@ head('DANGER — how hard a word is to read, from the word itself');
     'a corrupt or impossible evidence row cannot produce an out-of-range band');
 }
 
+// ── RC9.6: the notorious tag ─────────────────────────────────────────────
+head('NOTORIOUS — the words people actually get wrong, tagged not tiered');
+{
+  const read = (f) => fs.readFileSync(f, 'utf8');
+  const { createRequire } = await import('node:module');
+  const require = createRequire(import.meta.url);
+  const DICT = new Set(require('an-array-of-english-words'));
+  const { NOTORIOUS, isNotorious } = await import('../src/words/notorious.js');
+  const { notoriousCount } = await import('../src/words/wordlist.js');
+  const { makeGate } = await import('../src/sim/word-gates.js');
+  const { isBlocked } = await import('../src/words/family-blocklist.js');
+
+  // The same QC the bank enforces, applied to the tag as a list of its own.
+  const bank = new Set(ALL_WORDS);
+  const bad = {
+    charset: NOTORIOUS.filter((w) => !/^[a-z]{3,12}$/.test(w)),
+    dupes: NOTORIOUS.length - new Set(NOTORIOUS).size,
+    blocked: NOTORIOUS.filter((w) => isBlocked(w)),
+    offBank: NOTORIOUS.filter((w) => !bank.has(w)),
+    notDict: NOTORIOUS.filter((w) => !DICT.has(w)),
+  };
+  check('every tagged word passes the bank\'s own QC',
+    bad.charset.length === 0 && bad.dupes === 0 && bad.blocked.length === 0 &&
+    bad.offBank.length === 0 && bad.notDict.length === 0,
+    `${NOTORIOUS.length} words: charset, 3–12 letters, deduped, past the family ` +
+    `blocklist, in the shipped dictionary, and all of them in the bank` +
+    (bad.offBank.length ? ` — OFF-BANK: ${bad.offBank.slice(0, 5).join(', ')}` : '') +
+    (bad.notDict.length ? ` — NOT A WORD: ${bad.notDict.slice(0, 5).join(', ')}` : ''));
+  check('it is a TAG, not a sixth tier',
+    tierCount() === 5 && [0, 1, 2, 3, 4].every((t) => notoriousCount(t) <= TIERS[t].length) &&
+    notoriousCount(0) === 0,
+    `${[0, 1, 2, 3, 4].map((t) => notoriousCount(t)).join(' / ')} tagged words inside the five tiers ` +
+    '— every one of them drawn by the ordinary walk like any other word');
+
+  // Where the tag actually lands. The rate on an untagged profile is the
+  // BACKGROUND rate — these are bank words, so an ordinary walk meets some.
+  const rate = (prof, from, to) => {
+    let n = 0;
+    for (let i = from; i < to; i++) if (isNotorious(makeGate(12345, i, prof).answer)) n++;
+    return Math.round((n / (to - from)) * 100);
+  };
+  const P = (d, chart = 'endless', gates = 0) => ({
+    TIER_MIN: d === 'hard' ? 1 : 0, TIER_MAX: d === 'easy' ? 2 : 4,
+    TIER_EVERY_M: d === 'easy' ? 1100 : d === 'hard' ? 500 : 700,
+    CHART: chart, GATES: gates,
+    NOTORIOUS_BIAS: TUNING.MODES.DIFFICULTY[d].NOTORIOUS_BIAS ?? 0,
+  });
+  const easy = rate(P('easy'), 0, 100);
+  const normal = rate(P('normal'), 0, 100);
+  const hard = rate(P('hard'), 0, 100);
+  const dailyFront = rate(P('normal', 'daily', 100), 0, 50);
+  const dailyBack = rate(P('normal', 'daily', 100), 50, 100);
+  out.push(`\n  where the tag lands, over 100 gates of seed 12345` +
+    `\n    easy ${easy}% · normal ${normal}% · hard ${hard}% · ` +
+    `daily front ${dailyFront}% back ${dailyBack}%`);
+
+  check('the tag never reaches EASY',
+    (TUNING.MODES.DIFFICULTY.easy.NOTORIOUS_BIAS ?? 0) === 0 && easy <= normal + 2,
+    `EASY carries no bias, and meets the tag only at the ${easy}% BACKGROUND rate every ` +
+    'untagged profile does — the words are bank words, and a tag is a preference, not a partition');
+  check('HARD prefers them, and the DAILY\'s back half does',
+    hard >= normal + 30 && dailyBack >= dailyFront + 30 && dailyFront <= normal + 2,
+    `hard ${hard}% against normal ${normal}%; the daily opens at ${dailyFront}% and tightens to ${dailyBack}%`);
+
+  // The substitution rule the nemesis lane already lives by: the walk runs
+  // unconditionally and only the PRINTED word may differ.
+  const wgSrc = read('src/sim/word-gates.js');
+  check('the preference substitutes and never reorders',
+    /const walked = pickWordCycle\(tier, k, laneRng\);/.test(wgSrc) &&
+    wgSrc.indexOf('const walked = pickWordCycle') < wgSrc.indexOf('preferred = pickNotoriousCycle') &&
+    /walked,\n/.test(wgSrc),
+    'the tier walk\'s cursor advances exactly as it would have, and `walked` is still recorded');
+  {
+    // Observed, not asserted: the walked word is identical with the bias on
+    // and off, over a hundred HARD gates.
+    const on = P('hard'), off = { ...on, NOTORIOUS_BIAS: 0 };
+    let same = 0, shown = 0;
+    for (let i = 0; i < 100; i++) {
+      const a = makeGate(12345, i, on), b = makeGate(12345, i, off);
+      if (a.walked === b.walked) same++;
+      if (a.answer !== b.answer) shown++;
+    }
+    check('and the walk is byte-identical with the preference on and off',
+      same === 100 && shown > 20,
+      `100/100 walked words identical; ${shown} printed words differ — the substitution is the only change`);
+  }
+  check('the fake is still the guard\'s decision, family and all',
+    /shown: real \? word : makeFake\(word, rng, family\)/.test(wgSrc),
+    'a tagged word is faked by exactly the machinery every other word is');
+
+  // The DAILY is the same hundred words for everyone. Driven through the SIM,
+  // not through makeGate: the guarantee is sim.start refusing a personal lane
+  // on a route, and a check that bypassed sim.start would be testing nothing.
+  {
+    const { Sim } = await import('../src/sim/sim.js');
+    const route = (lane) => {
+      const sim = new Sim(20260906);
+      sim.start(20260906, null, {
+        mode: 'standard', difficulty: 'normal', wordSalt: 0, nemesisLane: lane,
+      });
+      return Array.from({ length: 100 },
+        (_, i) => makeGate(sim.wordGates.seed, i, sim.wordGates.profile).shown).join(',');
+    };
+    // One player with a ledger full of due words, one with none at all.
+    const withLedger = route((i) => (i % 12 === 0 ? 'rhythm' : null));
+    const without = route(null);
+    check('the DAILY is byte-identical across players, tag and all',
+      withLedger === without && withLedger.split(',').length === 100,
+      '100 gates, identical for a player with a nemesis ledger and one without — ' +
+      'sim.start refuses a personal lane on a route, so the tag is the only thing shaping it');
+  }
+
+  // The nemesis lane weights them.
+  {
+    const { NemesisLedger } = await import('../src/meta/nemesis.js');
+    const mem = { store: {}, get(k) { return this.store[k] ?? null; }, set(k, v) { this.store[k] = v; } };
+    const led = new NemesisLedger(mem);
+    led.record('rhythm', false, 0);
+    led.record('carpet', false, 0);
+    led.words.carpet.seen = 1; led.words.rhythm.seen = 5;
+    led.words.carpet.due = 1; led.words.rhythm.due = 1;
+    const tie = led.due(10);
+    led.words.carpet.m = 9;
+    const beaten = led.due(10);
+    check('the nemesis lane weights the tag, without outranking a real miss count',
+      tie === 'rhythm' && beaten === 'carpet',
+      'equal misses: the tagged word wins the gate; more misses: the ledger still decides');
+  }
+}
+
 // ── RC9.1: the review that teaches ───────────────────────────────────────
 head('REVIEW — the row a stranger reads in one glance');
 {
