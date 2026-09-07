@@ -323,6 +323,51 @@ export const TUNING = {
   // It is OFF under REDUCED FLASH (a looping clip is motion the player asked
   // not to be given) and off wherever the device cannot afford it, which is
   // measured rather than guessed: see render/moment-capture.js.
+  // ── The judgment (RC11.5) ───────────────────────────────────────────────
+  // Every knob the arcade readout has, including its WORDS, so the whole thing
+  // is reachable from the dev panel and exportable as JSON. The tier ORDER is
+  // fixed by ui/judgment.js against the compression thresholds — these are the
+  // strings those tiers are said with, not a second opinion about the cuts.
+  JUDGE: {
+    LABELS: {
+      sharp: 'PERFECT',      // answered inside COMPRESSION_THRESHOLD[3] of the window
+      quick: 'GREAT',
+      clean: 'GOOD',
+      late: 'LATE',
+      // Both failure cases say the SAME word on purpose: tapping a fake and
+      // letting a real word by are different mistakes to the ledger, and the
+      // player does not need two vocabularies for "that one got away". Five
+      // words reach the screen in total.
+      wrong: 'MISSED',       // a fake, tapped
+      missed: 'MISSED',      // a real word, let by
+      passed: 'PERFECT',     // a fake, correctly let by — a read, not an absence
+    },
+    HOLD_S: 0.62,            // how long a judgment stays before it fades
+    PUNCH_MS: 170,           // the scale-in; REDUCED FLASH omits it entirely
+    PUNCH_SCALE: 1.5,        // what it punches in FROM
+    SIZE_VW: 9,              // judgment type size, vw
+    SIZE_MIN_PX: 30,
+    SIZE_MAX_PX: 52,
+    TOP_PCT: 68,             // MEASURED: the plate corridor ends at 56 % (see index.html)
+    COMBO_SIZE_VW: 7,
+    COMBO_MIN_PX: 26,
+    COMBO_MAX_PX: 40,
+    COMBO_TOP_PX: 108,
+    COMBO_PUNCH_MS: 160,
+    COMBO_PUNCH_SCALE: 1.42,
+    // The glow burst behind a judgment. Count 0 switches it off outright.
+    BURST: {
+      COUNT: 14,
+      LIFE_S: 0.52,
+      SPEED_PX: 210,         // initial outward speed
+      DRAG: 2.6,             // per second, exponential
+      SIZE_PX: 7,
+      GLOW_PX: 14,
+      GRAVITY_PX: 120,       // downward pull, so the burst falls rather than floats
+      ON_WRONG: 0.45,        // the wrong read's burst, as a fraction of the count
+    },
+  },
+
   CAPTURE: {
     WIDTH: 144,                // cell width; height follows the canvas aspect
     FPS: 10,                   // capture and playback cadence

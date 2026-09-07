@@ -14,7 +14,7 @@
 import TUNING from './TUNING.js';
 
 const CSS = `
-#devPanel{position:absolute;z-index:120;left:8px;bottom:8px;width:236px;max-height:74vh;
+#devPanel{position:absolute;z-index:120;left:8px;bottom:8px;width:310px;max-height:82vh;
   overflow-y:auto;padding:9px 10px 11px;border:1px solid rgba(140,220,255,.35);
   border-radius:3px;background:rgba(6,11,16,.93);backdrop-filter:blur(6px);
   font:500 10px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#cfe8f5;pointer-events:auto}
@@ -34,7 +34,83 @@ const CSS = `
   font:600 9px/1 ui-monospace,monospace;letter-spacing:.06em}
 #devPanel button.on{background:#67d8ff;border-color:#67d8ff;color:#06121a}
 #devPanel button:active{background:rgba(255,255,255,.16)}
+#devPanel .find{width:100%;margin:0 0 7px;padding:5px 6px;border-radius:2px;
+  border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#eafaff;
+  font:600 10px/1 ui-monospace,monospace}
+#devPanel .sec>summary{cursor:pointer;list-style:none;padding:5px 0;color:#8be4ff;
+  font:700 9px/1 ui-monospace,monospace;letter-spacing:.14em;
+  border-top:1px solid rgba(255,255,255,.09)}
+#devPanel .sec>summary::-webkit-details-marker{display:none}
+#devPanel .sec>summary::before{content:'▸ ';opacity:.7}
+#devPanel .sec[open]>summary::before{content:'▾ '}
+#devPanel .knob{display:grid;grid-template-columns:1fr auto;gap:2px 6px;
+  align-items:center;margin:0 0 4px}
+#devPanel .knob .k{color:rgba(207,232,245,.66);overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;direction:rtl;text-align:left}
+#devPanel .knob.dirty .k{color:#caff4a}
+#devPanel .knob input[type=number],#devPanel .knob input[type=text]{width:74px;
+  border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#eafaff;
+  border-radius:2px;padding:3px 4px;font:600 10px/1 ui-monospace,monospace}
+#devPanel .knob input[type=range]{grid-column:1/-1;margin:0}
+#devPanel .knob.ro input{opacity:.45;pointer-events:none}
+#devPanel .io{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+#devPanel .io button{flex:1 1 auto}
+#devPanel textarea{width:100%;height:88px;margin-top:5px;resize:vertical;
+  border:1px solid rgba(255,255,255,.2);background:rgba(6,11,16,.9);color:#cfe8f5;
+  border-radius:2px;padding:5px;font:500 9px/1.3 ui-monospace,monospace}
+#devPanel .note{color:rgba(207,232,245,.5);margin-top:4px}
 `;
+
+/**
+ * RC11.5 — EVERY tuning value, reflectively.
+ *
+ * The panel used to carry a hand-written list of nine sliders, which meant the
+ * 360 other numbers in TUNING.js were reachable only from a console. This
+ * walks the tree instead, so a knob added to TUNING appears here with no edit
+ * to this file, and the export is the diff a human can paste back into
+ * TUNING.js — not a wall of 369 values that says nothing about what moved.
+ *
+ * Frozen sub-objects (RESERVED_HUES, COSMETICS) render read-only rather than
+ * silently swallowing an edit.
+ */
+const DEFAULTS = new Map();
+function walkTuning(obj = TUNING, base = '', out = []) {
+  for (const [k, v] of Object.entries(obj)) {
+    const path = base ? `${base}.${k}` : k;
+    if (Array.isArray(v)) {
+      if (v.every((x) => typeof x === 'number' || typeof x === 'string')) {
+        v.forEach((_, i) => out.push({ path: `${path}.${i}`, frozen: Object.isFrozen(v) }));
+      } else walkTuning(v, path, out);
+    } else if (v && typeof v === 'object') {
+      walkTuning(v, path, out);
+    } else if (typeof v === 'number' || typeof v === 'boolean' || typeof v === 'string') {
+      out.push({ path, frozen: Object.isFrozen(obj) });
+    }
+  }
+  return out;
+}
+
+/** Sensible slider bounds for a number we know nothing about but its value. */
+function bounds(v) {
+  if (!Number.isFinite(v)) return null;
+  if (Number.isInteger(v) && Math.abs(v) <= 12) return { min: Math.min(0, v - 4), max: v + 8, step: 1 };
+  const mag = Math.abs(v) || 1;
+  const max = mag * (v > 0 ? 3 : 1) + (v <= 0 ? mag * 2 : 0);
+  const min = v < 0 ? v * 3 : 0;
+  const span = max - min;
+  const step = span > 200 ? 1 : span > 20 ? 0.1 : span > 2 ? 0.01 : 0.001;
+  return { min: +min.toFixed(4), max: +max.toFixed(4), step };
+}
+
+/** Every value that differs from the defaults captured at mount, by path. */
+function changed() {
+  const out = {};
+  for (const [path, was] of DEFAULTS) {
+    const now = get(path);
+    if (now !== was) out[path] = now;
+  }
+  return out;
+}
 
 /** A tuning value, addressed by path so the panel and the console agree. */
 function get(path) {
@@ -123,7 +199,7 @@ export async function mountDevPanel() {
     body.appendChild(g);
   }
 
-  // ── Numbers ─────────────────────────────────────────────────────────────
+  // ── The nine that get reached for most, kept at the top ─────────────────
   {
     const g = document.createElement('div');
     g.className = 'grp';
@@ -139,6 +215,7 @@ export async function mountDevPanel() {
         const nv = Number(input.value);
         set(s.path, nv);
         out.textContent = nv;
+        onEdit();
       });
       wrap.appendChild(input);
       g.appendChild(wrap);
@@ -146,7 +223,147 @@ export async function mountDevPanel() {
     body.appendChild(g);
   }
 
+  // ── EVERY tuning value, by section ──────────────────────────────────────
+  const leaves = walkTuning();
+  for (const l of leaves) DEFAULTS.set(l.path, get(l.path));
+
+  const rows = [];          // {path, el, sync}
+  const find = document.createElement('input');
+  find.className = 'find';
+  find.type = 'search';
+  find.placeholder = `find (${leaves.length} values)…`;
+  body.appendChild(find);
+
+  const sections = new Map();
+  for (const leaf of leaves) {
+    const top = leaf.path.split('.')[0];
+    if (!sections.has(top)) {
+      const d = document.createElement('details');
+      d.className = 'sec';
+      d.innerHTML = `<summary>${top}</summary>`;
+      body.appendChild(d);
+      sections.set(top, d);
+    }
+    sections.get(top).appendChild(makeKnob(leaf, rows, onEdit));
+  }
+
+  find.addEventListener('input', () => {
+    const q = find.value.trim().toLowerCase();
+    for (const r of rows) r.el.style.display = !q || r.path.toLowerCase().includes(q) ? '' : 'none';
+    for (const [, d] of sections) {
+      const any = [...d.querySelectorAll('.knob')].some((k) => k.style.display !== 'none');
+      d.style.display = any ? '' : 'none';
+      if (q && any) d.open = true;
+    }
+  });
+
+  // ── Export / import ─────────────────────────────────────────────────────
+  const io = document.createElement('div');
+  io.className = 'grp';
+  io.innerHTML = `<div class="lbl"><span>json</span><b data-n>0 changed</b></div>
+    <div class="io">
+      <button data-act="diff">export changed</button>
+      <button data-act="all">export all</button>
+      <button data-act="apply">apply</button>
+      <button data-act="reset">reset all</button>
+    </div>
+    <textarea spellcheck="false" placeholder='{"RUN.CEILING": 70}'></textarea>
+    <div class="note">paths are TUNING keys; apply writes them live</div>`;
+  body.appendChild(io);
+  const ta = io.querySelector('textarea');
+  const nOut = io.querySelector('[data-n]');
+
+  function onEdit() {
+    const d = changed();
+    nOut.textContent = `${Object.keys(d).length} changed`;
+    for (const r of rows) r.sync?.();
+    window.__RENDER?.judgment?.syncStyle?.();
+    window.__JUDGE?.syncStyle?.();
+  }
+
+  io.addEventListener('click', (e) => {
+    const act = e.target.closest('[data-act]')?.dataset.act;
+    if (!act) return;
+    if (act === 'diff') ta.value = JSON.stringify(changed(), null, 2);
+    else if (act === 'all') {
+      const all = {};
+      for (const [path] of DEFAULTS) all[path] = get(path);
+      ta.value = JSON.stringify(all, null, 2);
+    } else if (act === 'apply') {
+      try {
+        const obj = JSON.parse(ta.value || '{}');
+        let n = 0;
+        for (const [path, v] of Object.entries(obj)) {
+          if (!DEFAULTS.has(path)) continue;
+          set(path, v);
+          n++;
+        }
+        ta.value = `applied ${n} of ${Object.keys(obj).length}`;
+      } catch (err) { ta.value = `not JSON: ${err.message}`; }
+      onEdit();
+    } else if (act === 'reset') {
+      for (const [path, was] of DEFAULTS) set(path, was);
+      ta.value = '';
+      onEdit();
+    }
+  });
+  onEdit();
+
   return el;
+}
+
+/** One row: a label, an editable field, and a slider where a slider helps. */
+function makeKnob(leaf, rows, onEdit) {
+  const { path, frozen } = leaf;
+  const v0 = get(path);
+  const wrap = document.createElement('div');
+  wrap.className = `knob${frozen ? ' ro' : ''}`;
+  const short = path.split('.').slice(1).join('.') || path;
+  const label = document.createElement('span');
+  label.className = 'k';
+  label.textContent = short;
+  label.title = path;
+  wrap.appendChild(label);
+
+  const field = document.createElement('input');
+  const isNum = typeof v0 === 'number';
+  const isBool = typeof v0 === 'boolean';
+  field.type = isNum ? 'number' : 'text';
+  if (isNum) field.step = 'any';
+  field.value = isBool ? String(v0) : v0;
+  wrap.appendChild(field);
+
+  let range = null;
+  if (isNum) {
+    const b = bounds(v0);
+    if (b) {
+      range = document.createElement('input');
+      range.type = 'range';
+      Object.assign(range, { min: b.min, max: b.max, step: b.step, value: v0 });
+      wrap.appendChild(range);
+    }
+  }
+
+  const write = (raw) => {
+    if (frozen) return;
+    const v = isNum ? Number(raw) : isBool ? raw === 'true' : raw;
+    if (isNum && !Number.isFinite(v)) return;
+    set(path, v);
+    onEdit();
+  };
+  field.addEventListener('change', () => { write(field.value); if (range) range.value = field.value; });
+  range?.addEventListener('input', () => { write(range.value); field.value = range.value; });
+
+  rows.push({
+    path, el: wrap,
+    sync: () => {
+      const now = get(path);
+      wrap.classList.toggle('dirty', now !== DEFAULTS.get(path));
+      if (document.activeElement !== field) field.value = isBool ? String(now) : now;
+      if (range && document.activeElement !== range) range.value = now;
+    },
+  });
+  return wrap;
 }
 
 export default mountDevPanel;

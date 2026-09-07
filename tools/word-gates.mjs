@@ -770,7 +770,7 @@ head('JUDGMENT — the word on screen is the multiplier in the score');
     J.TIERS[1].at === T.COMPRESSION_THRESHOLD[2] &&
     J.TIERS[2].at === T.COMPRESSION_THRESHOLD[1] &&
     J.TIERS[3].at === 0,
-    J.TIERS.map((t) => `${t.label} at ${t.at}`).join(' · '));
+    J.TIERS.map((t) => `${J.labelFor(t.key)} at ${t.at}`).join(' · '));
 
   // Monotonic: answering earlier can never be judged worse.
   {
@@ -797,10 +797,22 @@ head('JUDGMENT — the word on screen is the multiplier in the score');
   // The labels are display strings and must stay clear of the naming cap and
   // of the semantic colours' own vocabulary.
   {
-    const labels = [...J.TIERS.map((t) => t.label), ...Object.values(J.OUTCOME).map((o) => o.label)];
-    check('no judgment label is name-shaped, and none is longer than a glance',
-      labels.every((l) => /^[A-Z]{3,8}$/.test(l)) && new Set(labels).size === labels.length,
-      labels.join(' · '));
+    // RC11.5: the labels are TUNING.JUDGE.LABELS, editable from the dev panel,
+    // so the check is on the SHAPE a label may take rather than on a fixed
+    // set — and every tier and outcome must actually have one.
+    const keys = [...J.TIERS.map((t) => t.key), ...Object.values(J.OUTCOME).map((o) => o.key)];
+    const labels = keys.map((k) => J.labelFor(k));
+    check('every tier and outcome has a label, and each is readable at a glance',
+      keys.every((k) => typeof TUNING.JUDGE.LABELS[k] === 'string') &&
+      labels.every((l) => /^[A-Z]{3,9}$/.test(l)),
+      keys.map((k, i) => `${k}=${labels[i]}`).join(' · '));
+    // PERFECT deliberately appears twice: a fake correctly let by IS a perfect
+    // read. What must never collide is a right label with a wrong one.
+    const rightSet = new Set([...J.TIERS.map((t) => J.labelFor(t.key)), J.labelFor('passed')]);
+    const wrongSet = new Set([J.labelFor('wrong'), J.labelFor('missed')]);
+    check('and no label means both a good read and a bad one',
+      [...wrongSet].every((l) => !rightSet.has(l)),
+      `right: ${[...rightSet].join('/')} · wrong: ${[...wrongSet].join('/')}`);
   }
 
   // And the chain readout has ONE owner: ui.js used to write it into an

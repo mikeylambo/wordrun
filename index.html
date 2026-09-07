@@ -113,27 +113,29 @@
      Colours are `--sem-right` / `--sem-wrong`: the semantic pair access.js
      redefines per colour-vision mode, so no new hue is introduced and none
      needs checking against the reserved set. */
-  #judge{position:absolute;left:50%;top:68%;transform:translate(-50%,-50%);z-index:26;
-    pointer-events:none;opacity:0;font:800 clamp(30px,9vw,52px)/1 var(--face);
+  #judgeBurst{position:absolute;inset:0;z-index:24;pointer-events:none}
+  #judge{position:absolute;left:50%;top:var(--judge-top,68%);transform:translate(-50%,-50%);z-index:26;
+    pointer-events:none;opacity:0;font:800 var(--judge-size,clamp(30px,9vw,52px))/1 var(--face);
     letter-spacing:.16em;margin-right:-.16em;color:var(--sem-right,#57e389);
     text-shadow:0 2px 18px rgba(4,9,13,.85),0 0 26px currentColor;
     transition:opacity .18s ease}
   #judge.on{opacity:1}
   #judge[data-kind="wrong"]{color:var(--sem-wrong,#ff2a1f)}
   #judge[data-kind="pass"]{color:rgba(232,244,251,.72);text-shadow:0 2px 14px rgba(4,9,13,.8)}
-  #judge.punch{animation:judgePunch .17s cubic-bezier(.2,1.5,.4,1)}
+  #judge.punch{animation:judgePunch var(--judge-punch-ms,170ms) cubic-bezier(.2,1.5,.4,1)}
   @keyframes judgePunch{
-    0%{transform:translate(-50%,-50%) scale(1.5)}
+    0%{transform:translate(-50%,-50%) scale(var(--judge-punch-scale,1.5))}
     100%{transform:translate(-50%,-50%) scale(1)}}
 
-  #combo{position:absolute;left:16px;top:calc(var(--safe-t) + 108px);z-index:25;pointer-events:none;opacity:0;
-    font:800 clamp(26px,7vw,40px)/1 var(--face);letter-spacing:-.02em;
+  #combo{position:absolute;left:16px;top:calc(var(--safe-t) + var(--combo-top,108px));z-index:25;
+    pointer-events:none;opacity:0;
+    font:800 var(--combo-size,clamp(26px,7vw,40px))/1 var(--face);letter-spacing:-.02em;
     color:var(--sem-right,#57e389);text-shadow:0 2px 14px rgba(4,9,13,.8),0 0 20px currentColor;
     transition:opacity .2s ease;font-variant-numeric:tabular-nums}
   #combo.on{opacity:.96}
   #combo.lost{opacity:.9;color:var(--sem-wrong,#ff2a1f);animation:comboBreak .5s ease-out}
-  #combo.punch{animation:comboPunch .16s cubic-bezier(.2,1.6,.4,1)}
-  @keyframes comboPunch{0%{transform:scale(1.42)}100%{transform:scale(1)}}
+  #combo.punch{animation:comboPunch var(--combo-punch-ms,160ms) cubic-bezier(.2,1.6,.4,1)}
+  @keyframes comboPunch{0%{transform:scale(var(--combo-punch-scale,1.42))}100%{transform:scale(1)}}
   @keyframes comboBreak{0%{transform:translateX(0)}
     22%{transform:translateX(-5px)}55%{transform:translateX(4px)}100%{transform:translateX(0)}}
 

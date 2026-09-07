@@ -347,14 +347,19 @@ try {
         comboPx: Math.round(parseFloat(getComputedStyle(combo).fontSize)),
         judgeRect: { t: Math.round(jr.top), b: Math.round(jr.bottom) },
         judgeTopFrac: jr.top / VH,
+        labels: Object.values(window.__TUNING.JUDGE.LABELS),
+        burstCanvas: !!document.getElementById('judgeBurst'),
         plateRect: pr && { t: Math.round(pr.y0), b: Math.round(pr.y1) },
         overlap: !!overlap, onScreen: jr.top >= 0 && jr.bottom <= VH,
         chain: sim.player.chain,
       };
     });
+    // The labels are TUNING strings now (JUDGE.LABELS), so the check reads
+    // them from the game rather than hard-coding a set that a panel edit could
+    // silently walk away from.
     check('a correct read names its own quality, at a size you can read at speed',
-      shot.on && /^(SHARP|QUICK|CLEAN|LATE)$/.test(shot.word) && shot.fontPx >= 28 && shot.onScreen,
-      `"${shot.word}" at ${shot.fontPx}px`);
+      shot.on && shot.labels.includes(shot.word) && shot.fontPx >= 28 && shot.onScreen,
+      `"${shot.word}" at ${shot.fontPx}px, from ${shot.labels.length} tuned labels`);
     // TWO checks, because one sampled frame is not the plate's corridor. The
     // plate TRAVELS: measured over 2400 frames at 390x844 the armed plate
     // sweeps 30-56 % of the viewport and the lookahead row 28-48 %. A single
@@ -380,6 +385,8 @@ try {
       return on;
     });
     check('and it stands down while a teaching stop is on screen', muted === false);
+    check('the glow burst has a canvas, and its whole shape is tunable',
+      shot.burstCanvas === true, 'TUNING.JUDGE.BURST drives count, life, speed, drag, size, glow, gravity');
     allErrors.push(...errors.map((e) => `[judgment] ${e}`));
     await ctx.close();
   }
@@ -571,6 +578,70 @@ try {
     check('and closing it returns to the title without starting a run',
       closed.on === false && closed.phase === 'title', `phase ${closed.phase}`);
     allErrors.push(...errors.map((e) => `[howto] ${e}`));
+    await ctx.close();
+  }
+
+  // ── 4c. the dev panel: every knob, and the JSON round trip ────────────
+  head('DEV PANEL — every tuning value, and a JSON export that round-trips');
+  {
+    const { ctx, page, errors } = await open({ fresh: false, query: '?dev=1' });
+    // Wait for the panel to FINISH mounting, not to start: #devPanel exists
+    // before its 436 knob rows and the export block are appended, and waiting
+    // on the element alone raced the build.
+    await page.waitForFunction(
+      () => !!document.querySelector('#devPanel [data-act="diff"]'), null, { timeout: 30000 });
+    const panel = await page.evaluate(() => {
+      const el = document.getElementById('devPanel');
+      const T = window.__TUNING;
+      // How many leaves does TUNING actually have? The panel must reach them all.
+      let leaves = 0;
+      const walk = (o) => {
+        for (const v of Object.values(o)) {
+          if (Array.isArray(v)) {
+            if (v.every((x) => typeof x === 'number' || typeof x === 'string')) leaves += v.length;
+            else walk(v);
+          } else if (v && typeof v === 'object') walk(v);
+          else if (['number', 'boolean', 'string'].includes(typeof v)) leaves++;
+        }
+      };
+      walk(T);
+      const btn = (a) => el.querySelector(`[data-act="${a}"]`);
+      const ta = el.querySelector('textarea');
+      btn('diff').click();
+      const emptyDiff = ta.value;
+      ta.value = JSON.stringify({ 'JUDGE.HOLD_S': 1.4, 'JUDGE.BURST.COUNT': 30, 'RUN.CEILING': 70 });
+      btn('apply').click();
+      const live = { hold: T.JUDGE.HOLD_S, burst: T.JUDGE.BURST.COUNT, ceiling: T.RUN.CEILING };
+      btn('diff').click();
+      let diff = {};
+      try { diff = JSON.parse(ta.value); } catch {}
+      btn('reset').click();
+      const after = { hold: T.JUDGE.HOLD_S, burst: T.JUDGE.BURST.COUNT, ceiling: T.RUN.CEILING };
+      return {
+        knobs: el.querySelectorAll('.knob').length,
+        sections: el.querySelectorAll('details.sec').length,
+        leaves, emptyDiff, live, diff, after,
+        cssTop: getComputedStyle(document.documentElement).getPropertyValue('--judge-top').trim(),
+      };
+    });
+    check('the panel reaches every value in TUNING, grouped by section',
+      panel.knobs === panel.leaves && panel.sections >= 15,
+      `${panel.knobs} knobs across ${panel.sections} sections, against ${panel.leaves} leaves in TUNING`);
+    check('with nothing touched, the exported diff is empty',
+      panel.emptyDiff.trim() === '{}', `"${panel.emptyDiff.trim().slice(0, 40)}"`);
+    check('applying JSON writes the live tuning object',
+      panel.live.hold === 1.4 && panel.live.burst === 30 && panel.live.ceiling === 70,
+      JSON.stringify(panel.live));
+    check('and the diff exports exactly what moved, by path',
+      Object.keys(panel.diff).length === 3 && panel.diff['JUDGE.HOLD_S'] === 1.4 &&
+      panel.diff['JUDGE.BURST.COUNT'] === 30 && panel.diff['RUN.CEILING'] === 70,
+      JSON.stringify(panel.diff));
+    check('reset puts every value back where it started',
+      panel.after.hold !== 1.4 && panel.after.burst !== 30 && panel.after.ceiling !== 70,
+      JSON.stringify(panel.after));
+    check('the judgment drives its CSS from a custom property the panel can write',
+      /%$/.test(panel.cssTop), `--judge-top ${panel.cssTop}`);
+    allErrors.push(...errors.map((e) => `[panel] ${e}`));
     await ctx.close();
   }
 
