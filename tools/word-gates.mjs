@@ -753,6 +753,68 @@ head('LATENCY — the early read is worth more, and costs the window nothing');
 }
 
 // ── Phase C: two zones, one primitive ────────────────────────────────────
+// ── RC11.4: the judgment names a number the game already priced ──────────
+head('JUDGMENT — the word on screen is the multiplier in the score');
+
+{
+  const J = await import('../src/ui/judgment.js');
+  const T = TUNING.WORDS;
+  const arm = T.ARM_DISTANCE_M;
+
+  // The whole point: the tiers ARE the compression thresholds. If they were
+  // literals here, a change to the bar's pricing would leave the word on
+  // screen saying something the score no longer agrees with.
+  check('the tiers are the compression thresholds, not a second opinion',
+    J.TIERS.length === T.COMPRESSION_THRESHOLD.length &&
+    J.TIERS[0].at === T.COMPRESSION_THRESHOLD[3] &&
+    J.TIERS[1].at === T.COMPRESSION_THRESHOLD[2] &&
+    J.TIERS[2].at === T.COMPRESSION_THRESHOLD[1] &&
+    J.TIERS[3].at === 0,
+    J.TIERS.map((t) => `${t.label} at ${t.at}`).join(' · '));
+
+  // Monotonic: answering earlier can never be judged worse.
+  {
+    let ok = true, prev = -1, offender = '';
+    for (let d = 0; d <= arm; d += 0.25) {
+      const i = J.TIERS.indexOf(J.judgeRead(d, arm));
+      const rank = J.TIERS.length - 1 - i;      // higher is better
+      if (rank < prev) { ok = false; offender = `${d.toFixed(2)}m`; }
+      prev = rank;
+    }
+    check('answering earlier never earns a worse word', ok,
+      offender ? `rank fell at ${offender}` : `walked 0..${arm} m at 0.25 m`);
+  }
+
+  // Every tier has to be REACHABLE, or it is a word no player will ever see.
+  {
+    const hit = new Set();
+    for (let d = 0; d <= arm; d += 0.1) hit.add(J.judgeRead(d, arm).key);
+    check('every tier is reachable inside the arm window',
+      hit.size === J.TIERS.length,
+      `${[...hit].join(', ')} across ${arm} m`);
+  }
+
+  // The labels are display strings and must stay clear of the naming cap and
+  // of the semantic colours' own vocabulary.
+  {
+    const labels = [...J.TIERS.map((t) => t.label), ...Object.values(J.OUTCOME).map((o) => o.label)];
+    check('no judgment label is name-shaped, and none is longer than a glance',
+      labels.every((l) => /^[A-Z]{3,8}$/.test(l)) && new Set(labels).size === labels.length,
+      labels.join(' · '));
+  }
+
+  // And the chain readout has ONE owner: ui.js used to write it into an
+  // element index.html had hidden outright.
+  {
+    const uiSrc2 = fs.readFileSync('src/ui/ui.js', 'utf8');
+    const html2 = fs.readFileSync('index.html', 'utf8');
+    check('the chain has one owner, and it is not a hidden element in ui.js',
+      !/FLOW ×|chainLost\(/.test(uiSrc2) && !/#chain\{display:none/.test(html2) &&
+      /id="combo"/.test(html2),
+      'ui/judgment.js draws it; the display:none writer is gone');
+  }
+}
+
 head('ZONES — the reject is optional, and never worse than silence');
 {
   // Bank some meter before testing the commission, or the half-meter penalty

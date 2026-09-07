@@ -57,7 +57,6 @@ export class UI {
     this.deathSeed = $('deathSeed');
     this.deathTag = $('deathTag');
     this.mute = $('mute');
-    this.chain = $('chain');
     this.bandName = $('bandName');
     this.coach = $('coach');
     this.powerHint = $('powerHint');
@@ -130,8 +129,6 @@ export class UI {
     this._flash = 0;
     this._furPhase = 0;
     this._lastChain = -1;
-    this._chainLostT = 0;
-    this._popT = 0;
     this._lastBand = null;
     this._bandT = 0;
     this._powerT = 0;
@@ -584,24 +581,10 @@ export class UI {
       }
     }
 
-    if (this._chainLostT > 0) {
-      this._chainLostT = Math.max(0, this._chainLostT - dt);
-      if (this._chainLostT === 0) {
-        this.chain.classList.remove('lost', 'on');
-        this._lastChain = -1;
-      }
-    } else if (p.chain !== this._lastChain) {
-      this._lastChain = p.chain;
-      if (p.chain > 0) {
-        this.chain.textContent = `FLOW ×${p.chain}`;
-        this.chain.classList.add('on', 'pop');
-        this._popT = 0.16;
-      } else this.chain.classList.remove('on');
-    }
-    if (this._popT > 0) {
-      this._popT = Math.max(0, this._popT - dt);
-      if (this._popT === 0) this.chain.classList.remove('pop');
-    }
+    // RC11.4: the chain readout moved to ui/judgment.js, which draws it at
+    // arcade weight beside the judgment word. This block wrote `FLOW xN` and
+    // ran two timers every frame into an element CSS had hidden outright, and
+    // the break path that animated it (`chainLost`) had no caller at all.
 
     if (running) {
       const band = bandForDistance(sim.distance);
@@ -744,13 +727,7 @@ export class UI {
   /** A wrong tap drains the world instead of flashing it (Phase 9). */
   drain() { this._drainT = 1; }
 
-  chainLost(n) {
-    if (n <= 0) return;
-    this.chain.textContent = 'FLOW BROKEN';
-    this.chain.classList.add('on', 'lost');
-    this.chain.classList.remove('pop');
-    this._chainLostT = 0.9;
-  }
+
 
   /** The continue's price, shown where the number actually is. The score
    *  drops mid-run now rather than at the recap, so the drop needs to be
@@ -1035,12 +1012,10 @@ export class UI {
     this.distTarget?.classList.remove('on', 'passed');
     this._targetOn = false;
     this._targetPassed = false;
-    this.chain.classList.remove('on', 'lost', 'pop');
     if (this.bandName) this.bandName.classList.remove('on');
     if (this.powerHint) this.powerHint.classList.remove('on', 'spending', 'teaching');
     if (this.coach) this.coach.classList.remove('on');
     this._lastChain = -1;
-    this._chainLostT = 0;
     this._lastBand = null;
     this._wasArmed = false;
     this._bandT = 0;

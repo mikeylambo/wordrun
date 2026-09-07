@@ -300,6 +300,90 @@ try {
     await ctx.close();
   }
 
+  // ── 2b. the judgment, which may never fight the plate ─────────────────
+  head('JUDGMENT — arcade weight, and never over the word');
+  {
+    const { ctx, page, errors } = await open({ width: 390, height: 844, touch: true, fresh: false });
+    await page.evaluate(() => window.__START());
+    await page.waitForFunction(() => window.__SIM.phase === 'running', null, { timeout: 15000 });
+    const shot = await page.evaluate(async () => {
+      const sim = window.__SIM;
+      // FOUR correct reads, not one: the combo hides at a chain of 1, so a
+      // single read would let the chain check pass without ever drawing the
+      // thing it claims to be checking.
+      let guard = 0, got = 0;
+      while (guard++ < 20000 && got < 4) {
+        const g = sim.wordGates.current();
+        if (sim.wordGates.armed(sim.player.d) && g.real && !g.resolved) {
+          window.__STEP(1, { confirm: true });
+          got++;
+        } else window.__STEP(1, {});
+      }
+      window.__TICK(2, 1 / 60);
+      const judge = document.getElementById('judge');
+      const combo = document.getElementById('combo');
+      const jr = judge.getBoundingClientRect();
+      const VW = document.documentElement.clientWidth;
+      const VH = document.documentElement.clientHeight;
+      // The armed plate's own screen rect, projected the way the game draws it.
+      const plate = window.__RENDER.wordGateActors.current.mesh;
+      const cam = window.__RENDER.stage.camera;
+      let pr = null;
+      if (plate.visible) {
+        const xs = [], ys = [];
+        const V = plate.position.constructor;
+        for (const [px, py] of [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]) {
+          const v = new V(px, py, 0).applyMatrix4(plate.matrixWorld).project(cam);
+          xs.push((v.x * 0.5 + 0.5) * VW); ys.push((-v.y * 0.5 + 0.5) * VH);
+        }
+        pr = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+      }
+      const overlap = pr && !(jr.right < pr.x0 || jr.left > pr.x1 || jr.bottom < pr.y0 || jr.top > pr.y1);
+      return {
+        word: (judge.textContent || '').trim(), on: judge.classList.contains('on'),
+        fontPx: Math.round(parseFloat(getComputedStyle(judge).fontSize)),
+        combo: (combo.textContent || '').trim(),
+        comboOn: combo.classList.contains('on'),
+        comboPx: Math.round(parseFloat(getComputedStyle(combo).fontSize)),
+        judgeRect: { t: Math.round(jr.top), b: Math.round(jr.bottom) },
+        judgeTopFrac: jr.top / VH,
+        plateRect: pr && { t: Math.round(pr.y0), b: Math.round(pr.y1) },
+        overlap: !!overlap, onScreen: jr.top >= 0 && jr.bottom <= VH,
+        chain: sim.player.chain,
+      };
+    });
+    check('a correct read names its own quality, at a size you can read at speed',
+      shot.on && /^(SHARP|QUICK|CLEAN|LATE)$/.test(shot.word) && shot.fontPx >= 28 && shot.onScreen,
+      `"${shot.word}" at ${shot.fontPx}px`);
+    // TWO checks, because one sampled frame is not the plate's corridor. The
+    // plate TRAVELS: measured over 2400 frames at 390x844 the armed plate
+    // sweeps 30-56 % of the viewport and the lookahead row 28-48 %. A single
+    // frame's non-overlap passed at 46 % and the very next sample failed.
+    const PLATE_FLOOR = 0.58;   // the corridor's measured bottom, written down
+    check('the judgment sits below the plate corridor, not merely beside one plate',
+      shot.judgeTopFrac >= PLATE_FLOOR,
+      `top at ${(shot.judgeTopFrac * 100).toFixed(1)}% against a pinned ${(PLATE_FLOOR * 100).toFixed(0)}% floor`);
+    check('and it does not overlap the armed plate in the sampled frame',
+      shot.overlap === false,
+      shot.plateRect
+        ? `judgment ${shot.judgeRect.t}-${shot.judgeRect.b}px, plate ${shot.plateRect.t}-${shot.plateRect.b}px`
+        : 'no plate armed at the sampled frame');
+    check('the chain reads as a count, at arcade weight',
+      shot.chain > 1 && shot.comboOn && /^×\d+$/.test(shot.combo) && shot.comboPx >= 24,
+      `chain ${shot.chain} drawn as "${shot.combo}" at ${shot.comboPx}px`);
+    // Teaching outranks flash.
+    const muted = await page.evaluate(() => {
+      window.__SIM.teach.active = 'real';
+      window.__TICK(2, 1 / 60);
+      const on = document.getElementById('judge').classList.contains('on');
+      window.__SIM.teach.active = null;
+      return on;
+    });
+    check('and it stands down while a teaching stop is on screen', muted === false);
+    allErrors.push(...errors.map((e) => `[judgment] ${e}`));
+    await ctx.close();
+  }
+
   // ── 3. touch / portrait ────────────────────────────────────────────────
   head('TOUCH — the portrait phone frame stays usable');
   {

@@ -30,6 +30,7 @@ import { modalityFor, stopLine } from './ui/teach-copy.js';
 import { breathAt } from './ui/breath.js';
 import { PadReader, padConnected } from './input/gamepad.js';
 import { ControllerNav } from './ui/controller-nav.js';
+import { Judgment } from './ui/judgment.js';
 import { BellRenderer } from './render/bells.js';
 import { stringStep } from './audio/ladder.js';
 import { flowFactor, flowGlow, flowLevel } from './render/flow-curve.js';
@@ -154,6 +155,11 @@ function chartForRun() {
 // the menus by focusing and activating the real buttons.
 const pad = new PadReader();
 const controllerNav = new ControllerNav(pad);
+// RC11.4 — the judgment word and the chain, at arcade weight. One owner for
+// both: ui.js used to write the chain into an element CSS had hidden.
+const judgment = new Judgment();
+const dashFlareEl = document.getElementById('dashFlare');
+const meterLabelEl = document.getElementById('meterLabel');
 // The bells the runner collects. The sim owns the field and the pickup
 // (sim.bells); this only draws it. Created after the material pass so its
 // baked-in gold emissive is left alone by the pass's material sweep.
@@ -606,6 +612,7 @@ function buildRunInTheDark() {
   frozenRank = 0;
   learnedWords = 0;
   ui.resetCoach();   // RC10.8: the bar lesson gets one showing per run
+  judgment.reset();  // RC11.4: no judgment or chain carries into a new run
   moments.begin(ACCESS);
   momentClip.hide();
   earlyStreak = 0;
@@ -1417,6 +1424,9 @@ function drainSimEvents() {
         rig.settle();
         break;
       case 'word_correct': {
+        judgment.read({ correct: true, answered: e.answered !== false,
+          answerDistance: e.answerDistance, armM: sim.wordGates.armDistance(),
+          chain: e.chain, real: e.real }, ACCESS.reducedFlash);
         {
           const t = tierTally[e.tier] || (tierTally[e.tier] = { a: 0, c: 0 });
           t.a++; t.c++;
@@ -1483,6 +1493,9 @@ function drainSimEvents() {
         break;
       }
       case 'word_wrong': {
+        judgment.read({ correct: false, answered: e.answered !== false,
+          answerDistance: e.answerDistance, armM: sim.wordGates.armDistance(),
+          chain: 0, real: e.real }, ACCESS.reducedFlash);
         const t = tierTally[e.tier] || (tierTally[e.tier] = { a: 0, c: 0 });
         t.a++;
         nemesis.record(e.answer, false, e.index);
@@ -1720,6 +1733,24 @@ function tick(dt) {
   ui.setDashLine(dashPending ? stopLine('dash', teachModality) : '');
   ui.setGuidedActive(stopsOn);
   ui.setStopActive(!!sim.teach.active);
+  // RC11.4 — teaching outranks flash. While a stop is frozen or the coach is
+  // speaking, the judgment stands down rather than sharing the frame with the
+  // one thing a new player has to read.
+  judgment.setMuted(!!sim.teach.active || stopsOn && !!dashPending);
+  judgment.update(dt);
+  // The DASH as an event: the label breathes when the meter is full, and the
+  // frame's edge lights for as long as the dash is live. REDUCED FLASH keeps
+  // the colour and drops the animation, like every other motion term.
+  if (dashFlareEl) {
+    const live = running && p.overdrive;
+    dashFlareEl.classList.toggle('on', live && !ACCESS.reducedFlash);
+    dashFlareEl.style.opacity = live && ACCESS.reducedFlash ? '0.5' : '';
+  }
+  if (meterLabelEl) {
+    meterLabelEl.classList.toggle('ready',
+      running && !p.overdrive && !ACCESS.reducedFlash &&
+      p.boostMeter >= TUNING.BOOST.MIN_ACTIVATE);
+  }
   // RC9.9 — the held breath. A stop freezes the sim outright, which is right
   // and which also leaves a still frame that a player cannot tell from a
   // hang. The five things that are STILL TRUE through the freeze — the stop's
