@@ -382,8 +382,14 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
   const pylonCode = codeOf('src/render/speed-fantasy.js');
   check(!/this\.pole\b/.test(propCode) && !/c\.type === FEATURE\.GATE/.test(propCode),
     'props.js places no verge posts — the dead path is gone, not duplicated');
-  check(/corridorX\(/.test(pylonCode) && /R\.TRACK_HALF_W/.test(pylonCode),
-    'the one set of posts stands on the ribbon edge, the same line the rail and the grid end on');
+  // RC11: the rail is geometry now and owns where that line is, so the posts
+  // ask it instead of rebuilding the edge from the ribbon's half-width — which
+  // is how they came to stand 0.9 m OUTBOARD of it, flanking nothing.
+  check(/import \{ railX \} from '\.\/rails\.js';/.test(pylonCode) &&
+    /railX\(this\.terrain, d, side\)/.test(pylonCode) &&
+    /corridorX\(/.test(codeOf('src/render/rails.js')) &&
+    /R\.TRACK_HALF_W/.test(codeOf('src/render/rails.js')),
+    'the one set of posts stands on the rail line, from the one function that owns it');
 
   // 4. "Score doesn't cut in-game after choosing a continue, only on the end
   //    screen." The multiplier was applied once, at the recap, so the HUD kept

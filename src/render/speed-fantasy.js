@@ -18,6 +18,7 @@
 
 import * as THREE from 'three';
 import TUNING from '../TUNING.js';
+import { railX } from './rails.js';
 
 const R = TUNING.RUN;
 const CU = TUNING.CUES;
@@ -118,10 +119,13 @@ export class TrackPylons {
     let i = 0;
     for (let k = 0; k < PYLONS_PER_SIDE; k++) {
       const d = (first + k) * PYLON_SPACING;
-      const line = this.terrain.corridorX(d);
-      const edge = R.TRACK_HALF_W + 0.9;
       for (const side of [-1, 1]) {
-        const x = line + side * edge;
+        // RC11: a stanchion stands ON the rail line, from the one function
+        // that owns where that line is. It used to sit 0.9 m OUTBOARD of the
+        // ribbon edge — 1.15 m outboard of the painted band it was supposed to
+        // flank — so the two edges of the road disagreed by more than a metre
+        // and each frame drew both opinions.
+        const x = railX(this.terrain, d, side);
         // Phase L: the stanchions stand on the routed surface, not on y=0.
         this._m.makeTranslation(x, this.terrain.heightAt(x, d), -d);
         this.mesh.setMatrixAt(i++, this._m);

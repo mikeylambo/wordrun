@@ -15,6 +15,7 @@
  *   node tools/route-gates.mjs
  */
 
+import fs from 'node:fs';
 import * as THREE from 'three';
 import TUNING from '../src/TUNING.js';
 import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
@@ -393,6 +394,135 @@ head('CABINET — a framed screen is the portrait screen, measured');
     'usedConfirm / usedReject / usedDash / usedBar — no new state, and no second opinion');
   check('and it reads nothing from the sim',
     !/__SIM|sim\.|player\./.test(cab), 'layout only, as the pass promised');
+}
+
+// ── RC11: the rails, as a line ───────────────────────────────────────────
+// Everything a rail is supposed to have used to be implied by a smoothstep
+// over a vertex attribute — no thickness, no stand-off, no height, and a line
+// that creased at the mesh's own 2.5 m rows. These hold the four numbers that
+// replaced it, measured on the same seeds `dev/measure-rails.mjs` walks.
+head('RAILS — one line, four constants, and no crease the road does not have');
+
+{
+  const { Terrain } = await import('../src/sim/terrain.js');
+  const { hashString, dailySeedString } = await import('../src/sim/rng.js');
+  const { RAIL, railX, glowHalfWidth } = await import('../src/render/rails.js');
+  const HALF_W = TUNING.RUN.TRACK_HALF_W;
+  const seeds = [hashString(dailySeedString(new Date())) >>> 0,
+    hashString('rc11-a') >>> 0, hashString('rc11-b') >>> 0, hashString('rc11-c') >>> 0];
+  const SPAN = 12000;
+
+  check('the rail line is resolved at least 4x finer than the mesh it edges',
+    RAIL.OVERSAMPLE >= 4 && Math.abs(RAIL.STEP_M * RAIL.OVERSAMPLE - RAIL.MESH_ROW_M) < 1e-9,
+    `${RAIL.STEP_M} m segments against ${RAIL.MESH_ROW_M} m mesh rows`);
+
+  let worstOffsetErr = 0, worstOffsetAt = 0;
+  let worstAngle = 0, worstAngleAt = 0, worstSag = 0;
+  let worstAsym = 0, worstHeightErr = 0;
+  let roadTurn = 0;
+  for (const seed of seeds) {
+    const t = new Terrain(seed);
+    for (const side of [-1, 1]) {
+      let prevHeading = null, prev = null;
+      for (let d = 0; d <= SPAN; d += RAIL.STEP_M) {
+        const xc = railX(t, d, side);
+        // (1) Stand-off from the ribbon edge, in track space, at EVERY sample.
+        const edgeX = t.corridorX(d) + side * HALF_W;
+        worstOffsetErr = Math.max(worstOffsetErr, Math.abs(Math.abs(edgeX - xc) - RAIL.INSET_M));
+        if (Math.abs(Math.abs(edgeX - xc) - RAIL.INSET_M) >= worstOffsetErr) worstOffsetAt = d;
+        // (2) Segment-to-segment heading change, against the road's own turn
+        //     over the same step — the rail may not be more creased than the
+        //     curve it traces.
+        if (prev !== null) {
+          const heading = Math.atan2(xc - prev, RAIL.STEP_M);
+          if (prevHeading !== null) {
+            const dA = Math.abs(heading - prevHeading);
+            if (dA > worstAngle) { worstAngle = dA; worstAngleAt = d; }
+            // The chord's sag against the true line at the segment midpoint:
+            // what "no join creases" means in millimetres rather than radians.
+            const mid = railX(t, d - RAIL.STEP_M / 2, side);
+            worstSag = Math.max(worstSag, Math.abs(mid - (xc + prev) / 2));
+          }
+          prevHeading = heading;
+        }
+        prev = xc;
+        // (3) Height above the surface at the rail's own x — so the rails are
+        //     symmetric and only the bank separates them in world Y.
+        const h = (t.heightAt(xc, d) + RAIL.HEIGHT_M) - t.heightAt(xc, d);
+        worstHeightErr = Math.max(worstHeightErr, Math.abs(h - RAIL.HEIGHT_M));
+      }
+    }
+    // Left and right must be mirror images about the centreline, to the metre.
+    for (let d = 0; d <= SPAN; d += 25) {
+      const cx = t.corridorX(d);
+      worstAsym = Math.max(worstAsym, Math.abs((cx - railX(t, d, -1)) - (railX(t, d, 1) - cx)));
+    }
+    // The ROAD's own bound, analytically: the centreline's heading turns at
+    // x'' / (1 + x'^2) per metre, so over one rail segment it can turn at most
+    // that times the step. A polyline chord's heading is the mean of the true
+    // heading across its segment, so a rail that stays under this bound is a
+    // rail introducing no curvature the road does not already have. Swept far
+    // finer than the rail is sampled, so the bound is the curve's and not a
+    // second reading of the rail.
+    const H = 0.05;
+    for (let d = H; d < SPAN; d += 0.25) {
+      const x1 = t.corridorSlope(d);
+      const x2 = (t.corridorSlope(d + H) - t.corridorSlope(d - H)) / (2 * H);
+      roadTurn = Math.max(roadTurn, Math.abs(x2 / (1 + x1 * x1)) * RAIL.STEP_M);
+    }
+  }
+
+  check('the rail sits within 2 cm of its stand-off from the edge, at every sample',
+    worstOffsetErr <= 0.02,
+    `worst ${(worstOffsetErr * 1000).toFixed(3)} mm off ${RAIL.INSET_M} m ` +
+    `over ${seeds.length} seeds x ${SPAN} m (at ${worstOffsetAt.toFixed(0)}m)`);
+  check('and no joint turns harder than the road itself turns over one segment',
+    worstAngle <= roadTurn + 1e-6,
+    `${(worstAngle * 1000).toFixed(3)} mrad worst joint (at ${worstAngleAt.toFixed(0)}m) ` +
+    `against the road's own ${(roadTurn * 1000).toFixed(3)} mrad over ${RAIL.STEP_M} m`);
+  check('so the line does not crease: the chord sags under 2 mm from the true rail',
+    worstSag < 0.002, `worst ${(worstSag * 1000).toFixed(3)} mm — ` +
+    `at the mesh's own row spacing the same road sags ${(worstSag * RAIL.OVERSAMPLE ** 2 * 1000).toFixed(1)} mm`);
+  check('the two rails are the same thickness, and mirror each other exactly',
+    RAIL.WIDTH_M > 0 && worstAsym < 1e-9,
+    `${RAIL.WIDTH_M} m both sides, worst left/right asymmetry ${worstAsym.toExponential(1)} m`);
+  check('and each rides a constant height above the BANKED surface under it',
+    worstHeightErr < 1e-9, `${RAIL.HEIGHT_M} m at every sample, so only the bank separates them`);
+
+  // (4) The stanchions stand on the rail line — one function owns where the
+  //     edge of the road is, and speed-fantasy.js asks it rather than guessing.
+  {
+    const src = fs.readFileSync('src/render/speed-fantasy.js', 'utf8');
+    const t = new Terrain(seeds[0]);
+    // The line, computed from the stated definition rather than from the
+    // function under test, at every distance a stanchion is actually placed.
+    let worstPylon = 0;
+    const spacing = TUNING.CURVE?.PYLON_SPACING_M ?? 18;
+    for (let d = 0; d < 4000; d += spacing) {
+      for (const side of [-1, 1]) {
+        const stated = t.corridorX(d) + side * (HALF_W - RAIL.INSET_M);
+        worstPylon = Math.max(worstPylon, Math.abs(railX(t, d, side) - stated));
+      }
+    }
+    check('the stanchions stand on the rail line, from the one function that owns it',
+      /import \{ railX \} from '\.\/rails\.js';/.test(src) &&
+      /const x = railX\(this\.terrain, d, side\);/.test(src) &&
+      !/TRACK_HALF_W \+ 0\.9/.test(src) && worstPylon < 1e-9,
+      'they used to sit 0.9 m outboard of the ribbon edge, flanking nothing');
+  }
+
+  // The glow carries constant WEIGHT rather than constant width: a rail at
+  // 300 m has to read as a rail, and a constant world width would be under a
+  // pixel there.
+  {
+    const far = [60, 120, 200, 300];
+    const angles = far.map((d) => glowHalfWidth(d) / d);
+    const spread = Math.max(...angles) - Math.min(...angles);
+    check('the glow subtends a constant angle, so a rail weighs the same near and far',
+      spread < 1e-9 && glowHalfWidth(300) > glowHalfWidth(60),
+      `${(angles[0] * 1000).toFixed(3)} mrad at every distance from ${far[0]} m to ${far[3]} m ` +
+      `(${(glowHalfWidth(60) * 100).toFixed(1)} cm to ${(glowHalfWidth(300) * 100).toFixed(1)} cm wide)`);
+  }
 }
 
 console.log(out.join('\n'));

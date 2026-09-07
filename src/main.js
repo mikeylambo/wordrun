@@ -21,6 +21,7 @@ import { WordGateActors, plateFontReady } from './render/word-gates.js';
 import { DataworldPass } from './render/dataworld.js';
 import { StreakBurst } from './render/streak-burst.js';
 import { WindStreaks, TrackPylons } from './render/speed-fantasy.js';
+import { TrackRails } from './render/rails.js';
 import { EditorialWorld } from './render/editorial-world.js';
 import { LaunchSequence } from './render/launch-sequence.js';
 import { AttractMode } from './render/attract.js';
@@ -111,6 +112,8 @@ const streakBurst = new StreakBurst(stage.scene);
 stage.scene.add(stage.camera);
 const windStreaks = new WindStreaks(stage.camera);
 const trackPylons = new TrackPylons(stage.scene, sim.terrain);
+// RC11: the rails are geometry now, and the stanchions stand on their line.
+const trackRails = new TrackRails(stage.scene, sim.terrain);
 // Phase M: the Editorial World — the page geometry beside the track, set
 // denser as the run's band rises and struck through as the Redline closes.
 const editorialWorld = new EditorialWorld(stage.scene, sim.terrain);
@@ -1591,6 +1594,8 @@ function tick(dt) {
   windStreaks.update(paused ? 0 : dt, running ? (p.effSpeed || p.speed) : 0, p.overdrive);
   trackPylons.terrain = sim.terrain;
   trackPylons.update(pv.d);
+  if (trackRails.terrain !== sim.terrain) trackRails.reset(sim.terrain);
+  trackRails.update(pv.d);
   editorialWorld.terrain = sim.terrain;
   launch.update(dt);
   // RC6 attract: a title with nothing on it and nobody in it. Any sheet, the
@@ -1662,6 +1667,7 @@ function tick(dt) {
   materialPass.terrain.userData.uP9Flow.value = flowF;
   dataworld.setFlow(flowF);
   trackPylons.setFlow(flowF);
+  trackRails.setFlow(flowF);
   editorialWorld.setFlow(flowF);
   playerActor.flow = flowF;
   playerActor.dashChain = p.overdrive ? p.dashChain : 0; // Phase I: the tail reads the rung

@@ -3608,3 +3608,68 @@ rules were rewritten rather than deleted, and the new rules are held: a run
 that answers nothing lights no bell on any seed, and a first-timer reading the
 guided opening lights a string inside four clean reads — measured worst case,
 two.
+
+## 1.0-RC11 — the ribbon
+
+The concept phase for the road itself. The rails come first, because they are
+the edge every later decision about the surface has to be drawn against.
+
+### The rails were never rails
+
+They were a smoothstep on the terrain shader's `lane` attribute —
+`smoothstep(0.8, 0.97, abs(vP4Lane))` — painted flat on the ribbon, so
+everything a rail is supposed to have was implied by a ramp over a vertex
+attribute instead of stated anywhere. Walked at 0.25 m over 12 km on the DAILY
+and three ENDLESS seeds (`node dev/measure-rails.mjs --before`):
+
+```
+                       offset from edge   thickness   height   worst joint
+  painted band              0.805 m        1.190 m    0.000 m   36.06 mrad
+  rail geometry             0.250 m        0.180 m    0.280 m    9.04 mrad
+```
+
+Identical on every seed and both sides, because none of it was reading the
+road — it was reading a constant times the ribbon's half-width. The joint
+figure is the one that mattered: the band lived on the mesh, so it inherited
+the mesh's 2.5 m rows and turned **36 mrad — better than two degrees — at a
+single joint**, on every seed. That is a crease, and it is the thing a rail
+cannot have, because a rail is the one line in the frame the eye uses to read
+where the road is going.
+
+### Four constants, and a line that resolves the curve
+
+`src/render/rails.js` states all four rather than implying them:
+
+- **`INSET_M` 0.25** — the stand-off from the ribbon edge, constant, both
+  sides, held to within 2 cm at every sample (measured worst: 0.000 mm).
+- **`WIDTH_M` 0.18** — thickness in world units, identical left and right,
+  with the two rails mirroring each other about the centreline to 1.8e-15 m.
+- **`HEIGHT_M` 0.28** — above the **banked** surface at the rail's own x, so
+  the only thing that separates the two rails in world Y is the bank itself.
+- **`STEP_M` 0.625** — `CHUNK_LEN / (mesh rows × 4)`. The line is resolved
+  four times finer than the road it edges, which takes the worst joint from
+  36.06 mrad to **9.04 mrad** and the chord's sag against the true rail from
+  11.5 mm to **0.72 mm**.
+
+The gate on the joint is not a number someone liked: it is the road's own
+curvature. A centreline's heading turns at `x'' / (1 + x'²)` per metre, swept
+far finer than the rail is sampled, and the rail may not turn harder than that
+over one segment. It measures 9.181 mrad against a bound of 9.182 — the rail
+introduces no curvature the road does not already have, and it is at the bound
+because it *is* the road, traced.
+
+**The glow is the one thing deliberately not constant in world units.** Its
+half-width subtends a fixed 1.2 mrad, so it grows from 7.2 cm at 60 m to 36 cm
+at 300 m and carries the same weight on screen at both. A rail of constant
+world width fades to a sub-pixel flicker exactly where a rail is doing its job.
+
+### And the stanchions were flanking nothing
+
+The verge posts sat at `TRACK_HALF_W + 0.9` — 0.9 m outboard of the ribbon
+edge, and 1.15 m outboard of the painted band they were supposed to flank. Two
+files held two opinions about where the edge of the road is and every frame
+drew both. `railX` is now the only one, and `speed-fantasy.js` asks it.
+
+Eight new checks in `gate:route` and the v1 polish check rewritten to the new
+owner. Nothing about the surface, the palette or the plate has moved yet —
+that is what the stills are for.
