@@ -8,7 +8,7 @@
 
 import TUNING from '../TUNING.js';
 import { corruptionIntensity } from '../render/corruption-curve.js';
-import { chimeStep, ladderHz, STRING_RUNGS } from './ladder.js';
+import { chimeStep, ladderHz, stringHz, STRING_RUNGS } from './ladder.js';
 
 const A = TUNING.AUDIO;
 const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
@@ -516,7 +516,7 @@ export class Audio {
    * the bell's; only the pitches now belong to the melody the chime started.
    */
   bell(step = 0) {
-    const f = ladderHz(step);
+    const f = stringHz(step);
     this._tone({ type: 'sine', f0: f, f1: f * 1.004, dur: 0.34, vol: 0.075, bus: this.bus.ui });
     this._tone({ type: 'triangle', f0: f * 2.01, f1: f * 2.02, dur: 0.18, vol: 0.025, bus: this.bus.ui, delay: 0.006 });
     if ((step % STRING_RUNGS) === STRING_RUNGS - 1) this._tone({ type: 'sine', f0: f * 0.5, f1: f * 0.5, dur: 0.44, vol: 0.035, bus: this.bus.ui, delay: 0.025 });

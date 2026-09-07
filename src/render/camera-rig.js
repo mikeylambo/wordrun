@@ -162,8 +162,16 @@ export class CameraRig {
     // beyond its gated ceiling. REDUCED FLASH damps it with the other
     // motion terms; the plate billboards on camera.quaternion, so total
     // camera roll IS the plate's screen rotation and stays measured.
-    const trackRoll = killT > 0 || !terrain?.rollAt
-      ? 0 : Math.atan(terrain.rollAt(p.d)) * C.TRACK_ROLL_SYMPATHY * motion;
+    // RC11.2: lean into the surface the MESH IS BUILT FROM, not into one of
+    // its two terms. `rollAt` is the segment bank; `crossSlopeAt` is that bank
+    // minus the ribbon's turn-lean, and the lean is what the player is looking
+    // at on every curve. Cancelling a fraction of the bank while cancelling
+    // none of the lean is how a road that banks 10 % of the time came to reach
+    // the eye tilted 71 % of the time.
+    const tilt = (C.TRACK_ROLL_READS_CROSS && terrain?.crossSlopeAt)
+      ? terrain.crossSlopeAt(p.d) : terrain?.rollAt?.(p.d);
+    const trackRoll = killT > 0 || tilt == null
+      ? 0 : Math.atan(tilt) * C.TRACK_ROLL_SYMPATHY * motion;
     let wantRoll = (killT > 0 ? 0 : -p.heading * 0.075) - trackRoll;
     if (p.airborne) {
       // A hint of trick rotation is enough to make air expressive without

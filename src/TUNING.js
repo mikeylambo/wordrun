@@ -998,6 +998,16 @@ export const TUNING = {
     // as a camera bolted to a gimbal. The plate's screen rotation equals
     // total camera roll and is gated (route-gates) at ≤ 4.5°.
     TRACK_ROLL_SYMPATHY: 0.35,
+    // RC11.2 — WHICH tilt the rig leans into. It read `rollAt`, the segment
+    // bank, while the mesh is built from `crossSlopeAt` — the bank MINUS the
+    // ribbon's turn-lean. That is the same mismatch RC10.8 found in the route
+    // gates, in a second place: the camera was cancelling 35 % of one of the
+    // two terms and 0 % of the other, and the other applies everywhere the
+    // road curves rather than only on the 10 % of it that is a bank segment.
+    // Measured over 20 km x 3 seeds, 71 % of the route reached the eye with
+    // more than a degree of tilt and 25 % with more than three. Reading the
+    // surface the renderer actually draws takes that to 60 % and 7 %.
+    TRACK_ROLL_READS_CROSS: true,
   },
 
   // ── Fog / draw distance ─────────────────────────────────────────────────

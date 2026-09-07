@@ -48,10 +48,15 @@ check(!fs.existsSync('src/v1-ship-polish.js') &&
 // anything the player did. There is now ONE table, in audio/ladder.js, and the
 // bell sings the five rungs above wherever the chime just landed. The bright
 // partials that made a bell carry over the beds are untouched.
+// RC11.2: still the one ladder, but the bell reads `stringHz` — the same
+// table an octave down. RC10.9 had both voices in one register and the bells
+// were discordant with the music off; the register is part of the pitch and
+// belongs to the same file that owns the notes.
 check(bellSrc.includes('f * 2.02, f1: f * 2.015') && bellSrc.includes('vol: 0.038') &&
-  !/const intervals =/.test(bellSrc) && bellSrc.includes('const f = ladderHz(step);') &&
-  (read('src/audio/ladder.js').match(/export const LADDER = /g) || []).length === 1,
-  'the bell\'s bright upper partials are part of the bell, and its pitches come from the ONE ladder');
+  !/const intervals =/.test(bellSrc) && bellSrc.includes('const f = stringHz(step);') &&
+  (read('src/audio/ladder.js').match(/export const LADDER = /g) || []).length === 1 &&
+  /export const STRING_OCTAVES_DOWN/.test(read('src/audio/ladder.js')),
+  'the bell\'s bright upper partials are part of the bell, and its pitch AND register come from the ONE ladder');
 
 // Phase 15/16 retired the tree and rock recordings; RC10.1 retired the code
 // that reached for them. It could never sound — nothing solid spawns — so the

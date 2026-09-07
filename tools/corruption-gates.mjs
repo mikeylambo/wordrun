@@ -1230,6 +1230,33 @@ head('CUES — excellent play crests in ONE band, and a wrong read drops it');
       allAscending && everContinues && topShared,
       offender || 'five rungs above wherever the chime just landed, ascending, ' +
       `parking on the ladder's top five past chain ${LD.STRING_TOP_START - 1}`);
+    // RC11.2: same notes, DIFFERENT REGISTER. RC10.9 put both voices in one
+    // octave and the bells were discordant the moment the music was off — at
+    // the cap the string parked on 2220..3956 Hz, the band the ear is most
+    // sensitive in, seven of them inside two seconds, with the chime up there
+    // too on every read. Two voices in one octave is a pile, not counterpoint.
+    {
+      let clear = true, worst = 0, worstAt = 0;
+      for (let chain = 0; chain <= 160; chain++) {
+        const chime = LD.ladderHz(LD.chimeStep(chain));
+        for (let i = 0; i < LD.STRING_RUNGS; i++) {
+          const hz = LD.stringHz(LD.stringStep(chain, i));
+          // Every bell must sit at or below the chime it answers, and its
+          // pitch class must still be the chime's ladder (checked above).
+          if (hz > chime + 1e-6) { clear = false; }
+          worst = Math.max(worst, hz);
+          if (hz === worst) worstAt = chain;
+        }
+      }
+      check('the string sings UNDER the chime, never in its octave',
+        clear && LD.STRING_OCTAVES_DOWN >= 1 && worst < 2200,
+        `${LD.STRING_OCTAVES_DOWN} octave down: the highest bell in the game is ` +
+        `${worst.toFixed(0)} Hz (chain ${worstAt}), against ${LD.ladderHz(LD.TOP_STEP).toFixed(0)} Hz ` +
+        'for the chime — out of the 2-4 kHz band the two used to share');
+      const audioSrc2 = fs.readFileSync('src/audio/audio.js', 'utf8');
+      check('and the bell reads that pitch from the ladder, not from a second opinion',
+        /const f = stringHz\(step\);/.test(audioSrc2), 'one file owns the register too');
+    }
     // And nothing may keep a private copy of the notes.
     const audioSrc = fs.readFileSync('src/audio/audio.js', 'utf8');
     const mainSrc = fs.readFileSync('src/main.js', 'utf8');

@@ -46,6 +46,29 @@ export function ladderHz(step) {
   return ROOT_HZ * Math.pow(2, ladderSemis(step) / 12);
 }
 
+/**
+ * RC11.2 — the string sings the chime's melody an OCTAVE BELOW it.
+ *
+ * RC10.9 put both voices in the same register and the result was discordant
+ * the moment the music was off. At the chain cap the string parks on the
+ * ladder's top five rungs — 2220, 2640, 2963, 3326, 3956 Hz — which is the
+ * band the ear is most sensitive in, seven bells ring through it in under two
+ * seconds, and the chime is up there too on every read. Two voices in one
+ * octave is not counterpoint; it is a pile.
+ *
+ * Down an octave they are the same notes and the same pitch classes, coupled
+ * to the chain exactly as before, but the string sits UNDER the chime instead
+ * of on top of it — 1110 to 1978 Hz at the cap, 370 to 660 cold — which is
+ * how a countermelody has always worked and is close to the warm register the
+ * bell rang in before RC10.9 moved it.
+ */
+export const STRING_OCTAVES_DOWN = 1;
+
+/** The pitch a BELL rings at ladder position `step`. */
+export function stringHz(step) {
+  return ladderHz(step) / Math.pow(2, STRING_OCTAVES_DOWN);
+}
+
 /** The ladder's last position — where both voices stop climbing. */
 export const TOP_STEP = TUNING.BOOST.CHAIN_CAP + TUNING.SCORE.DASH_CHAIN_MULT.length - 1;
 
@@ -82,4 +105,4 @@ export function stringStep(chain = 0, i = 0) {
 }
 
 export default { LADDER, ROOT_HZ, MAX_OCTAVE, STRING_RUNGS, TOP_STEP, STRING_TOP_START,
-  ladderSemis, ladderHz, chimeStep, stringStep };
+  STRING_OCTAVES_DOWN, ladderSemis, ladderHz, stringHz, chimeStep, stringStep };
