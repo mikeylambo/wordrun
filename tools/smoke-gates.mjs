@@ -584,6 +584,31 @@ try {
   // ── 4c. the dev panel: every knob, and the JSON round trip ────────────
   head('DEV PANEL — every tuning value, and a JSON export that round-trips');
   {
+    // A playtester should not have to retype a URL to change a look. The panel
+    // is absent on a normal load and backtick brings it up — checked here
+    // because the chunk is dynamic: a broken import fails silently otherwise.
+    const { ctx, page, errors } = await open({ fresh: false });
+    const before = await page.evaluate(() => !!document.getElementById('devPanel'));
+    await page.keyboard.press('Backquote');
+    await page.waitForFunction(
+      () => !!document.querySelector('#devPanel [data-act="diff"]'), null, { timeout: 30000 })
+      .catch(() => {});
+    const shown = await page.evaluate(() => {
+      const el = document.getElementById('devPanel');
+      return !!el && !el.hidden && el.getBoundingClientRect().width > 0;
+    });
+    await page.keyboard.press('Backquote');
+    const hidden = await page.evaluate(() => {
+      const el = document.getElementById('devPanel');
+      return !!el && (el.hidden || el.getBoundingClientRect().width === 0);
+    });
+    check('backtick opens the tuning panel on a normal load, and closes it again',
+      !before && shown && hidden,
+      `absent on boot ${!before} · shown ${shown} · hidden again ${hidden}`);
+    allErrors.push(...errors.map((e) => `[panel-key] ${e}`));
+    await ctx.close();
+  }
+  {
     const { ctx, page, errors } = await open({ fresh: false, query: '?dev=1' });
     // Wait for the panel to FINISH mounting, not to start: #devPanel exists
     // before its 436 knob rows and the export block are appended, and waiting
@@ -642,6 +667,90 @@ try {
     check('the judgment drives its CSS from a custom property the panel can write',
       /%$/.test(panel.cssTop), `--judge-top ${panel.cssTop}`);
     allErrors.push(...errors.map((e) => `[panel] ${e}`));
+    await ctx.close();
+  }
+
+  // ── 4d. readouts: a score is the one string the player writes the length of
+  head('READOUTS — no number leaves the frame, at any size, on any screen');
+  {
+    // The bug this covers shipped: on a windowed desktop the results headline
+    // was sized in `vw` (the WINDOW) while it lived in the cabinet strip, and
+    // a seven-figure score rendered 98px off the screen — the player saw
+    // "L70,820". Two viewports the report came from, plus a phone, against
+    // magnitudes a long DAILY reaches.
+    const VIEWS = [[390, 844], [1280, 800], [1440, 700]];
+    const SCORES = [1172, 170820, 12409931];
+    const bad = [];
+    const shrank = [];
+    for (const [w, h] of VIEWS) {
+      const { ctx, page, errors } = await open({ width: w, height: h, fresh: false });
+      for (const score of SCORES) {
+        const r = await page.evaluate((sc) => {
+          const txt = sc.toLocaleString('en-US');
+          window.__UI.showDeath(true);
+          document.getElementById('deathScreen').classList.add('rc2Poster');
+          document.getElementById('finalDist').textContent = txt;
+          document.getElementById('dist').textContent = txt;
+          window.__UI.refit();
+          const app = document.getElementById('app').getBoundingClientRect();
+          const range = document.createRange();
+          const over = [];
+          for (const el of document.querySelectorAll('#hud *, #deathScreen *')) {
+            if (!el.firstChild || el.offsetParent === null) continue;
+            if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
+            range.selectNodeContents(el);
+            const t = range.getBoundingClientRect();
+            if (!t.width) continue;
+            const px = Math.round(Math.max(app.left - t.left, t.right - app.right));
+            if (px > 0) over.push(`${el.id || el.className}+${px}px`);
+          }
+          const big = document.getElementById('finalDist').parentElement;
+          return { over, px: Math.round(parseFloat(getComputedStyle(big).fontSize)) };
+        }, score);
+        if (r.over.length) bad.push(`${w}x${h}@${score}: ${r.over.join(',')}`);
+        shrank.push(`${w}x${h}: ${r.px}px`);
+      }
+      allErrors.push(...errors.map((e) => `[readouts] ${e}`));
+      await ctx.close();
+    }
+    check('nothing in the HUD or the results card leaves the play frame',
+      bad.length === 0, bad.slice(0, 3).join(' | ') || `${VIEWS.length * SCORES.length} combinations clean`);
+    // A fit that never engages would also report "clean", so prove it moved:
+    // the same card at 4 digits and at 8 must not be the same size.
+    const first = shrank.filter((_, i) => i % SCORES.length === 0);
+    const last = shrank.filter((_, i) => i % SCORES.length === SCORES.length - 1);
+    check('and the headline actually gives ground as the number grows',
+      first.every((v, i) => parseInt(v.split(': ')[1]) > parseInt(last[i].split(': ')[1])),
+      first.map((v, i) => `${v.split(':')[0]} ${v.split(': ')[1]} → ${last[i].split(': ')[1]}`).join(' · '));
+  }
+
+  // ── 4e. full screen ────────────────────────────────────────────────────
+  head('FULL SCREEN — the biggest legibility gain a desktop player can reach');
+  {
+    const { ctx, page, errors } = await open({ fresh: false });
+    // Headless may refuse the request itself, and whether it grants it is the
+    // browser's business — what must be true is that the key and the chip
+    // both ASK. So record the call rather than the outcome.
+    await page.evaluate(() => {
+      window.__fsCalls = 0;
+      Element.prototype.requestFullscreen = function () { window.__fsCalls++; return Promise.resolve(); };
+    });
+    await page.keyboard.press('KeyF');
+    const byKey = await page.evaluate(() => window.__fsCalls);
+    check('F asks the browser for full screen', byKey === 1, `${byKey} request(s)`);
+    const chip = await page.evaluate(() => {
+      document.getElementById('accessBtn')?.click();
+      const rows = [...document.querySelectorAll('#accessPanel .accessRow')];
+      const row = rows.find((r) => r.textContent.startsWith('FULL SCREEN'));
+      if (!row) return { found: false };
+      row.querySelector('.modeChip')?.click();
+      return { found: true, calls: window.__fsCalls,
+        chips: [...row.querySelectorAll('.modeChip')].map((b) => b.textContent) };
+    });
+    check('and SETTINGS carries the same switch, for a player who never finds the key',
+      chip.found && chip.calls === 2 && chip.chips.join('/') === 'ON/OFF',
+      chip.found ? `chips ${chip.chips.join('/')}, ${chip.calls} total requests` : 'no FULL SCREEN row');
+    allErrors.push(...errors.map((e) => `[fullscreen] ${e}`));
     await ctx.close();
   }
 

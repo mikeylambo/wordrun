@@ -1487,6 +1487,69 @@ head('MOMENT — the run\'s best stretch, bounded, frozen, and offered once');
     fs.readFileSync('tools/capture-audit.mjs', 'utf8').includes('C.COST_MS'));
 }
 
+// ── The cabinet ─────────────────────────────────────────────────────────────
+// On a landscape window the play area is a fixed-aspect strip inside a bezel,
+// so `vw` sizes type against a rectangle the type does not live in: a headline
+// at 20vw of a 1280px window rendered at 118px inside a 295px card and put a
+// seven-figure score 98px off the screen. index.html restates its own `vw`
+// sizes in `cqw` inside the cabinet media query; a stylesheet injected from JS
+// has no such block, so it must reach for `cqw` in the first place — which
+// resolves to the viewport when there is no container, and so is correct on a
+// phone too.
+head('CABINET — type is sized against the play area, never the window');
+{
+  const srcFiles = [];
+  const walkSrc = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${e.name}`;
+      if (e.isDirectory()) walkSrc(full);
+      else if (e.name.endsWith('.js')) srcFiles.push(full);
+    }
+  };
+  walkSrc('src');
+  const offenders = [];
+  for (const f of srcFiles) {
+    const text = fs.readFileSync(f, 'utf8');
+    for (const m of text.matchAll(/font-size\s*:[^;}"'`]*?\d[\d.]*vw/g)) {
+      offenders.push(`${f}: ${m[0].trim()}`);
+    }
+  }
+  check('no stylesheet injected from JS sizes type in vw',
+    offenders.length === 0, offenders.join(' | ') || 'all cqw');
+
+  // The two `.big` sizes are the same headline at two moments, and a poster
+  // rule that outgrew the cabinet is precisely how the clipping shipped.
+  const html = fs.readFileSync('index.html', 'utf8');
+  const cabinet = html.slice(html.indexOf('@media (min-aspect-ratio: 1/1)'));
+  // Every id-selected rule OUTSIDE the cabinet block that sizes type in vw
+  // must be restated inside it — found by walking the rules, not by naming
+  // the two we happen to know about.
+  const outside = html.slice(0, html.indexOf('@media (min-aspect-ratio: 1/1)'));
+  const vwSized = new Set();
+  for (const m of outside.matchAll(/(#[A-Za-z][\w-]*|\.big)\s*\{([^}]*)\}/g)) {
+    if (/font-size\s*:[^;]*\d[\d.]*vw/.test(m[2])) vwSized.add(m[1]);
+  }
+  const missing = [...vwSized].filter((sel) => !new RegExp(`\\${sel[0] === '#' ? '#' : '.'}${sel.slice(1)}\\s*\\{[^}]*font-size`).test(cabinet));
+  check('every vw-sized readout in index.html is restated in cqw for the cabinet',
+    vwSized.size > 0 && missing.length === 0,
+    missing.length ? `not restated: ${missing.join(', ')}` : `${[...vwSized].join(', ')}`);
+}
+
+// ── Numbers that fit ────────────────────────────────────────────────────────
+head('READOUTS — a score is the one string whose length the player writes');
+{
+  const fit = fs.readFileSync('src/ui/fit.js', 'utf8');
+  const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
+  check('the fit measures the text and never guesses a glyph advance',
+    fit.includes('selectNodeContents') && !/0\.\d+\s*\*\s*len/.test(fit));
+  check('it only ever shrinks — a readout that fits keeps the size the design gave it',
+    fit.includes('if (!(w > avail)) return base;'));
+  check('both readouts are fitted, and refit when the frame changes shape',
+    ui.includes('fitHeadline()') && ui.includes('refit()') && ui.includes("addEventListener('resize'"));
+  check('the live score measures on a digit rollover, not on every score change',
+    ui.includes('txt.length !== this._distLen'));
+}
+
 console.log(out.join('\n'));
 console.log(`\n${PASS} passed, ${FAIL} failed`);
 if (FAIL) process.exit(1);

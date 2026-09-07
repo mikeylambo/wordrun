@@ -14,6 +14,7 @@ import {
   MODALITY, confirmLesson, rejectLesson, barLesson, dashReadyLine, PASS_LESSON,
 } from './teach-copy.js';
 import { setBandLine } from './guided.js';
+import { fitNumber, parentBox, runwayToEdge } from './fit.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -34,6 +35,14 @@ export class UI {
   constructor() {
     this.hud = $('hud');
     this.dist = $('dist');
+    this._distLen = 0;
+    this._bigLen = 0;
+    // Both numbers are sized against a measured box, so a box that changes
+    // shape invalidates them. `resize` covers a window drag, a rotation and
+    // entering or leaving full screen; the frame is settled by the next frame.
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', () => requestAnimationFrame(() => this.refit()));
+    }
     this.bestVal = $('bestVal');
     this.distSub = $('distSub');
     this.distTarget = $('distTarget');
@@ -251,7 +260,26 @@ export class UI {
   }
 
   showTitle(on) { this.titleScreen.classList.toggle('on', on); }
-  showDeath(on) { this.deathScreen.classList.toggle('on', on); }
+  showDeath(on) { this.deathScreen.classList.toggle('on', on); if (on) this.fitHeadline(); }
+
+  /**
+   * The results headline, sized to the card it is in.
+   * `.big` and not `#finalDist`: the unit suffix inside it is set in `em`, so
+   * scaling the block keeps the number and its unit in proportion.
+   */
+  fitHeadline() {
+    const big = this.finalDist?.parentElement;
+    if (big) fitNumber(big, parentBox(big));
+  }
+
+  /**
+   * The frame changed shape — a rotation, a window drag, entering full screen.
+   * Both numbers were sized against a box that no longer exists.
+   */
+  refit() {
+    this.fitHeadline();
+    if (this.dist) fitNumber(this.dist, runwayToEdge(this.dist));
+  }
   showHud(on) { this.hud.classList.toggle('on', on); }
 
   /** Which controls this player has ever actually used. Persisted, so the
@@ -441,7 +469,15 @@ export class UI {
     const sc = sim.score;
     if (sc !== this._lastScore) {
       this._lastScore = sc;
-      this.dist.textContent = sc.toLocaleString('en-US');
+      const txt = sc.toLocaleString('en-US');
+      this.dist.textContent = txt;
+      // Only when the number gets LONGER does the type have to move, so the
+      // measurement happens on a digit rollover and not on the other 999 of
+      // every thousand score changes.
+      if (txt.length !== this._distLen) {
+        this._distLen = txt.length;
+        fitNumber(this.dist, runwayToEdge(this.dist));
+      }
     }
     // The sub-line answers whichever question the mode actually poses. On the
     // DAILY RUN's fixed route every finisher travels the same ground, so
@@ -699,10 +735,15 @@ export class UI {
     if (c.beats >= COUNT_BEATS) {
       c.done = true;
       this.finalDist.textContent = c.score.toLocaleString('en-US');
+      this.fitHeadline();
       this.deathScreen.classList.add('settled');
       return;
     }
     this.finalDist.textContent = countValue(c.score, c.beats).toLocaleString('en-US');
+    if (this.finalDist.textContent.length !== this._bigLen) {
+      this._bigLen = this.finalDist.textContent.length;
+      this.fitHeadline();
+    }
     const tick = Math.floor(c.beats);
     if (tick !== c.lastTick && !ACCESS.reducedFlash) {
       c.lastTick = tick;
@@ -760,6 +801,8 @@ export class UI {
     // steps it each frame via _updateCount and lands it exactly on the score.
     this._count = { score: Math.floor(score ?? 0), beats: 0, lastBeat: null, lastTick: -1, done: false };
     this.finalDist.textContent = '0';
+    this._bigLen = 1;
+    this.fitHeadline();
     // The card enters in the flow band the run ended on: the headline's glow
     // carries the earned brightness, and main.js holds the world behind the
     // card at the same level.

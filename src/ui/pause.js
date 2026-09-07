@@ -22,7 +22,7 @@ export class PauseUI {
       #rc2Pause button.menu.secondary{opacity:.78}
       #deathScreen.rc2Poster{justify-content:flex-end!important;padding-bottom:max(7vh,48px)!important;gap:9px!important}
       #deathScreen.rc2Poster #shot,#deathScreen.rc2Poster #deathStats,#deathScreen.rc2Poster #deathSeed{display:none!important}
-      #deathScreen.rc2Poster #deathTag{font-size:11px;letter-spacing:.42em}#deathScreen.rc2Poster .big{font-size:clamp(64px,20vw,118px)}
+      #deathScreen.rc2Poster #deathTag{font-size:11px;letter-spacing:.42em}#deathScreen.rc2Poster .big{font-size:clamp(64px,20cqw,118px)}
     `;
     document.head.appendChild(style);
 

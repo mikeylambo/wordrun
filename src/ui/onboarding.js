@@ -42,7 +42,7 @@ export class OnboardingUI {
       @media (orientation:landscape) and (max-height:620px){
         #rc7Onboarding{align-items:flex-start;overflow-y:auto;padding:max(10px,env(safe-area-inset-top,0px)) max(20px,calc(env(safe-area-inset-right,0px) + 20px)) max(10px,env(safe-area-inset-bottom,0px)) max(20px,calc(env(safe-area-inset-left,0px) + 20px))}
         #rc7Onboarding .card{width:min(92vw,900px);margin:auto;text-align:center}
-        #rc7Onboarding h2{font-size:clamp(20px,4.5vw,30px);line-height:1;margin:0 0 10px}
+        #rc7Onboarding h2{font-size:clamp(20px,4.5cqw,30px);line-height:1;margin:0 0 10px}
         #rc7Onboarding .rules{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;margin:0 0 8px}
         #rc7Onboarding .rule{grid-template-columns:90px minmax(0,1fr);gap:10px;padding:6px 0;min-height:34px}
         #rc7Onboarding .rule b{font-size:9px;line-height:1.3}

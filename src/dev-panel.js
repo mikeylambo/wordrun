@@ -18,6 +18,7 @@ const CSS = `
   overflow-y:auto;padding:9px 10px 11px;border:1px solid rgba(140,220,255,.35);
   border-radius:3px;background:rgba(6,11,16,.93);backdrop-filter:blur(6px);
   font:500 10px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#cfe8f5;pointer-events:auto}
+#devPanel[hidden]{display:none}
 #devPanel.min{width:auto;max-height:none;overflow:visible;padding:6px 9px}
 #devPanel.min .body{display:none}
 #devPanel h4{margin:0 0 7px;font:700 9px/1 ui-monospace,monospace;letter-spacing:.16em;

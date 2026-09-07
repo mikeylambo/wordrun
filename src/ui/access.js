@@ -107,6 +107,28 @@ function apply() {
   `);
 }
 
+/**
+ * Ask for (or leave) full screen.
+ *
+ * The play area is a fixed-aspect cabinet inside the window, so on a desktop a
+ * windowed browser spends most of its pixels on bezel: full screen is the
+ * single biggest legibility gain available to a keyboard player, and it costs
+ * no new system. `#app` is not the element that goes full screen — the bezel
+ * and the marquee are part of the presentation — so the document element does.
+ * Rejection is normal (an iOS browser, a policy) and is not an error: the chip
+ * simply reports what the browser did.
+ */
+export function setFullscreen(on) {
+  const el = document.documentElement;
+  const p = on
+    ? (document.fullscreenElement ? null : el.requestFullscreen?.({ navigationUI: 'hide' }))
+    : (document.fullscreenElement ? document.exitFullscreen?.() : null);
+  p?.catch?.(() => {});
+}
+
+/** The switch, without caring which way it is currently thrown. */
+export function toggleFullscreen() { setFullscreen(!document.fullscreenElement); }
+
 export function initAccess() {
   const saved = Storage.accessPrefs();
   ACCESS.reducedFlash = !!saved.reducedFlash;
@@ -237,6 +259,12 @@ export function buildAccessPanel(hooks = {}) {
   syncs.push(
     chipRow('LOOK', [[false, 'STANDARD'], [true, 'BROADCAST']],
       () => ACCESS.broadcastLook, (v) => { ACCESS.broadcastLook = v === 'true' || v === true; }),
+    // Full screen is NOT persisted and deliberately not in ACCESS: a browser
+    // only grants it inside a user gesture, so a remembered "on" could not be
+    // honoured on the next boot and the switch would lie. The chip reads the
+    // browser's own state instead, which is the truth on every surface.
+    chipRow('FULL SCREEN', [[true, 'ON'], [false, 'OFF']],
+      () => !!document.fullscreenElement, (v) => setFullscreen(v === 'true' || v === true)),
     chipRow('FLASHING LIGHT', [[false, 'FULL'], [true, 'REDUCED']],
       () => ACCESS.reducedFlash, (v) => { ACCESS.reducedFlash = v === 'true' || v === true; }),
     // RC10.2: the one legibility switch becomes two dials. WORD SPACING is
@@ -287,6 +315,9 @@ export function buildAccessPanel(hooks = {}) {
 
   const sync = () => { for (const s of syncs) s(); };
   sync();
+  // F, the browser's own Esc and the chip all reach the same state, so the
+  // chip follows the browser rather than remembering what it last asked for.
+  document.addEventListener('fullscreenchange', sync);
   const open = () => { panel.classList.add('on'); sync(); hooks.onOpen?.(); };
   btn.addEventListener('click', (e) => { e.stopPropagation(); open(); });
   // Playtest: the settings were reachable only from the title, so a player who

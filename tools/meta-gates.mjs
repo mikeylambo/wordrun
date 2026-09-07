@@ -1471,7 +1471,11 @@ head('SCORE — how well you ran, not how long');
   // in ENDLESS, position on the route in the DAILY RUN, where every finisher
   // covers the same ground and metres therefore say nothing about the player.
   check('the score is the headline and the sub-line answers the mode',
-    uiSrc3.includes('this.dist.textContent = sc.toLocaleString') &&
+    // RC11.6: the score is still written from `sim.score`, but through a local
+    // now — the readout is measured and shrunk on a digit rollover, so the
+    // string has to exist before it is set.
+    /const sc = sim\.score;/.test(uiSrc3) &&
+    /const txt = sc\.toLocaleString\('en-US'\);\s*\n\s*this\.dist\.textContent = txt;/.test(uiSrc3) &&
     uiSrc3.includes('`${Math.min(sim.wordGates.next, routeGates)} / ${routeGates}`') &&
     uiSrc3.includes('`${Math.floor(sim.distance)} M`') &&
     htmlSrc.includes('id="distSub"'));

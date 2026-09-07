@@ -35,7 +35,7 @@ import { BellRenderer } from './render/bells.js';
 import { stringStep } from './audio/ladder.js';
 import { flowFactor, flowGlow, flowLevel } from './render/flow-curve.js';
 import { viewPlayer, viewBeast } from './render/view-pose.js';
-import { ACCESS, initAccess, buildAccessPanel } from './ui/access.js';
+import { ACCESS, initAccess, buildAccessPanel, toggleFullscreen } from './ui/access.js';
 import { applyMaterialPass } from './render/material-pass.js';
 import { Audio } from './audio/audio.js';
 import { MusicTrack } from './music-track.js';
@@ -1125,6 +1125,21 @@ window.addEventListener('pointerup', (e) => {
   onAdvance();
 });
 window.addEventListener('keydown', (e) => {
+  // Backtick opens the tuning panel — first, so it works from the title, a
+  // live run or a pause. Never while a field has focus: the panel's own
+  // search box and JSON box are places you type a backtick on purpose.
+  if (e.code === 'Backquote' && !e.repeat && !/^(INPUT|TEXTAREA)$/.test(e.target?.tagName || '')) {
+    e.preventDefault();
+    toggleDevPanel();
+    return;
+  }
+  // F is the arcade convention and the one key a desktop player tries. Not
+  // while a field has focus, and not while onboarding owns the screen.
+  if (e.code === 'KeyF' && !e.repeat && !/^(INPUT|TEXTAREA)$/.test(e.target?.tagName || '')) {
+    e.preventDefault();
+    toggleFullscreen();
+    return;
+  }
   if (onboarding?.visible) return;
   // Any key ends the attract loop, exactly as any touch does.
   if (attract.active) { attract.exit(); return; }
@@ -1869,10 +1884,24 @@ window.__RENDER = {
   wordGateActors, dataworld, streakBurst, bells: bellRenderer, editorialWorld, judgment,
 };
 // The tuning panel, for playtesting where there is no console. A dynamic
-// import so it lands in its own chunk: a normal load never fetches it.
-if (new URLSearchParams(location.search).get('dev') === '1') {
-  import('./dev-panel.js').then((m) => m.mountDevPanel()).catch(() => {});
+// import so it lands in its own chunk: a normal load never fetches it, and
+// a phone that never presses the key never pays for it. `?dev=1` opens it on
+// boot; backtick toggles it any time on a keyboard, because a playtester
+// changing a look does not want to retype a URL and lose the run.
+let devPanelEl = null;
+let devPanelLoading = false;
+function toggleDevPanel() {
+  if (devPanelEl) { devPanelEl.hidden = !devPanelEl.hidden; return; }
+  if (devPanelLoading) return;
+  devPanelLoading = true;
+  import('./dev-panel.js')
+    .then((m) => m.mountDevPanel())
+    .then(() => { devPanelEl = document.getElementById('devPanel'); })
+    .catch(() => {})
+    .finally(() => { devPanelLoading = false; });
 }
+window.__DEV_PANEL = toggleDevPanel;
+if (new URLSearchParams(location.search).get('dev') === '1') toggleDevPanel();
 
 // RC10.8 — `?profile=1`: the road's own numbers under the runner. A player
 // reported dips and there was no way to look; this names the segment, the
