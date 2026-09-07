@@ -39,11 +39,21 @@ installing to the home screen (PWA).
       phones, GIF on the rest). An ordinary run with no standout line must
       show no clip at all — no player, no placeholder, no button. With
       REDUCED FLASH on, no clip on any run.
-- [ ] **The clip's cost**: the 5-minute soak above, repeated with a standout
-      run in it — the capture arms only on a device holding 45 fps, so note
-      whether it appeared and whether anything changed when it did. The
-      bench number comes from `npm run audit:capture` on a GPU host; this is
-      the device half of the same question.
+- [ ] **The clip's cost — measured, not felt.** Open **`?soak=1`** on the
+      phone (append it to the build URL). It plays five mirrored passes with
+      the buffer off and armed, about forty seconds, and prints the verdicts
+      on screen: the p50/p95 with and without the capture, the difference
+      against the 1.5 ms budget, whether p95 stayed inside the 20 ms RC
+      budget, the buffer's size, the arm-or-refuse decision, the clip export,
+      and whether anything left the device. Keep the screen awake while it
+      runs. **This is the number `npm run audit:capture` has never been able
+      to produce** — that runner drives the same code across emulated phones
+      but has no GPU, so it reports the timing rows as *not priced*. A device
+      under 45 fps reports them unjudged too, which is itself the answer.
+      Send back a screenshot of the report.
+- [ ] **The clip by hand**: the 5-minute soak above, repeated with a standout
+      run in it — note whether the clip appeared and whether anything changed
+      when it did.
 - [ ] **Safe areas**: notch/home-bar devices — the HUD, buttons and the
       TEACH text clear of both.
 - [ ] **Landscape**: rotate mid-run and on the title — intentional, not

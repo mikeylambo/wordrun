@@ -210,6 +210,24 @@ head('NAMING — five approved names, machine-enforced');
   check('the approved-name ceiling holds at exactly four',
     APPROVED.length === 4, APPROVED.join(' · '));
 
+  // RC11.9: the cap is a CEILING, not a target — and one of the four was
+  // never spent. The store copy said "outrun the Redline", the results card
+  // said RUN OVER, and the rules a player actually reads named neither: they
+  // taught the verbs, the hearts and the dash, and never said what was
+  // chasing them or what ending a run meant. A player learned the controls
+  // and not the stakes. One rule, on the line that already explains speed,
+  // because speed is the only thing the Redline is about.
+  {
+    const rules = fs.readFileSync('src/ui/onboarding.js', 'utf8');
+    const card = rules.slice(rules.indexOf('<h2>HOW TO PLAY</h2>'),
+      rules.indexOf('data-act="start"'));
+    check('the one named antagonist is named to the player, in the rules they read',
+      /the Redline/.test(card), 'HOW TO PLAY names the Redline');
+    check('and the rules say what happens when it reaches you',
+      /run is over/i.test(card) && /slows you down/.test(card),
+      'the causal chain is on one line: a wrong read slows you, the Redline closes, the run ends');
+  }
+
   // Gate 1: every retired stage name is gone from code, docs and copy —
   // scan the whole tracked tree except this gate file (which must carry the
   // list to enforce it).
@@ -1481,10 +1499,14 @@ head('MOMENT — the run\'s best stretch, bounded, frozen, and offered once');
       decoded.count === W * H && worst <= 8, `worst channel error ${worst}/255`);
   }
 
+  // RC11.9: the dial is applied where the protocol lives (src/dev/soak.js),
+  // which is the file both the phone and the matrix runner execute — the
+  // audit is the driver now and reads no dials of its own.
   check('the phone-matrix cost gate is a named dial with a runnable audit',
     typeof C.COST_MS === 'number' && C.COST_MS > 0 &&
     fs.readFileSync('package.json', 'utf8').includes('"audit:capture"') &&
-    fs.readFileSync('tools/capture-audit.mjs', 'utf8').includes('C.COST_MS'));
+    fs.readFileSync('src/dev/soak.js', 'utf8').includes('C.COST_MS') &&
+    fs.readFileSync('tools/capture-audit.mjs', 'utf8').includes('window.__SOAK.verdicts'));
 }
 
 // ── The cabinet ─────────────────────────────────────────────────────────────
@@ -1567,6 +1589,38 @@ head('READOUTS — a score is the one string whose length the player writes');
     panel.includes('document.body.appendChild(el)') &&
     !panel.includes("document.getElementById('app').appendChild(el)") &&
     /#devPanel\{position:fixed/.test(panel));
+}
+
+// ── The device soak ─────────────────────────────────────────────────────────
+// `audit:capture` prices the rolling capture and has never produced a number
+// that means anything, because it only ever ran here: headless software GL
+// draws the game under the MIN_FPS floor the game itself arms behind, so the
+// audit correctly refuses to judge. The measurement was never the problem —
+// the host was. The protocol lives in the app now and a phone reaches it by
+// opening `?soak=1`; the audit drives the same functions. Two callers, one
+// implementation, so the number a phone shows and the number CI prints cannot
+// drift apart — and that is exactly the property worth fencing.
+head('SOAK — one protocol, a phone and a matrix runner');
+{
+  const soak = fs.readFileSync('src/dev/soak.js', 'utf8');
+  const audit = fs.readFileSync('tools/capture-audit.mjs', 'utf8');
+  const main = fs.readFileSync('src/main.js', 'utf8');
+  check('the sampler, the mirrored passes and the verdicts live in one file',
+    /export function sample\(/.test(soak) && /export async function price\(/.test(soak) &&
+    /export function verdicts\(/.test(soak));
+  check('and the node audit drives that file rather than carrying its own copy',
+    /window\.__SOAK\.price\(\)/.test(audit) && /window\.__SOAK\.verdicts\(/.test(audit) &&
+    !/requestAnimationFrame/.test(audit),
+    'no sampler in tools/capture-audit.mjs');
+  check('a phone reaches it with a URL — no cable, no adb, iOS included',
+    /soak.*===.*'1'/.test(main) && /import\('\.\/dev\/soak\.js'\)/.test(main) &&
+    /export async function mountSoak\(/.test(soak));
+  check('the passes are mirrored, so a warm-up is not billed to one condition',
+    /await offPass\(\), n1 = await onPass\(\)/.test(soak) &&
+    /await onPass\(\), o2 = await offPass\(\)/.test(soak));
+  check('a device under the arming floor is reported unjudged, never passed',
+    /r\.hostFps >= C\.MIN_FPS/.test(soak) && /ok: null/.test(soak),
+    'the two timing rows are withheld, not defaulted to green');
 }
 
 console.log(out.join('\n'));

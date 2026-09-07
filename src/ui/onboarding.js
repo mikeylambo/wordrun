@@ -85,7 +85,9 @@ export class OnboardingUI {
           <div class="rule"><b>${yes}</b> if the word is spelled correctly.
             A misspelled word can simply pass — or say so with <b>${no}</b>.</div>
           <div class="rule">Every word you read right makes you <i>faster</i>.
-            Every one you get wrong slows you down.</div>
+            Every one you get wrong slows you down — and <b>the Redline</b> is
+            always coming up the track behind you. Let it reach you and the
+            run is over.</div>
           <div class="rule">You have <i>three hearts</i>, and any wrong read costs one.
             Read <i>${HEART_STREAK} in a row</i> to win one back.</div>
           <div class="rule"><b>${dash}</b> when the ${charge} is full to tear down the track.</div>

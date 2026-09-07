@@ -1909,6 +1909,17 @@ if (new URLSearchParams(location.search).get('dev') === '1') toggleDevPanel();
 // grade, the roll AND the cross-slope the mesh actually renders, marking
 // anything over the RC8.2 ceiling. Dev only, dynamic import, draws into its
 // own corner and takes no input.
+// RC11.9 — `?soak=1`: the capture audit, run BY the device instead of at it.
+// The measurement is plain browser work; the only thing the headless host
+// could never supply was a real GPU. See src/dev/soak.js.
+const SOAK = new URLSearchParams(location.search).get('soak');
+if (SOAK) {
+  // `?soak=1` paints the report for a person holding a phone. Any other value
+  // loads the same module and stops there, exposing window.__SOAK for the node
+  // audit to drive across the emulated matrix — one protocol, two callers.
+  import('./dev/soak.js').then((m) => { if (SOAK === '1') m.mountSoak(); }).catch(() => {});
+}
+
 let profileOverlay = null;
 if (new URLSearchParams(location.search).get('profile') === '1') {
   import('./dev/profile-overlay.js')
