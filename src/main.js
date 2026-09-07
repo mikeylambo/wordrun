@@ -1841,7 +1841,7 @@ window.__TUNING = TUNING;
 window.__UI = ui;
 window.__RENDER = {
   stage, terrainMesh, props, landmarks, rig, playerActor, beastActor, ghostActor, spray, materialPass,
-  wordGateActors, dataworld, streakBurst, bells: bellRenderer, editorialWorld,
+  wordGateActors, dataworld, streakBurst, bells: bellRenderer, editorialWorld, trackRails,
 };
 // The tuning panel, for playtesting where there is no console. A dynamic
 // import so it lands in its own chunk: a normal load never fetches it.

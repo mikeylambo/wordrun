@@ -467,6 +467,13 @@ export function clearStills() {
 }
 window.__STILLS = { apply: applyStills, clear: clearStills, band: stillBand };
 
+// RC11 concept — `?ribbon=1` arms the ribbon lab beside (or instead of) the
+// page. Its own file, its own arm, so neither concept can quietly become a
+// dependency of the other.
+if (new URLSearchParams(location.search).get('ribbon') === '1') {
+  import('./ribbon-lab.js').catch((e) => console.error('ribbon lab:', e.message));
+}
+
 // `?dev=1&stills=1` arms the page on load, following the chain. (Not
 // `draft=`: that key is the challenge link's seed.)
 if (new URLSearchParams(location.search).get('stills') === '1') {
