@@ -474,7 +474,7 @@
      hyperlegible face the plate already uses, a size floor on the smallest
      lines, and the extreme display tracking eased where it is applied to a
      sentence rather than to a label. Deliberately NOT a global --face swap:
-     the cabinet, the marquee and the HUD are chrome laid out to the display
+     the cabinet and the HUD are chrome laid out to the display
      face's metrics, and re-setting them would move furniture to fix reading.
      One class, written by access.js's apply(), and nothing else. */
   #app.readable #coach,
@@ -549,7 +549,7 @@
     body{background:var(--bezel)}
     /* Nothing paints outside the screen. The launch veil's streaks are drawn
        far wider than the frame on purpose (they have to cross a landscape
-       phone), and unclipped they crossed the bezel and the marquee with it. */
+       phone), and unclipped they crossed the bezel with them. */
     #app{overflow:hidden;container-type:size}
     /* Type that was sized against the WINDOW is sized against the CABINET.
        `vw` meant "of the play area" in every one of these and the two were
@@ -571,20 +571,15 @@
        instead of guessing at a laptop's. Undefined outside this block, which
        is correct: on a phone there is no bezel to sit in. */
     :root{
-      --marquee-h:clamp(38px,7vh,64px);
-      --app-w:min(100vw, calc((100dvh - clamp(38px,7vh,64px)) * var(--cab-aspect)));
+      --app-w:min(100vw, calc(100dvh * var(--cab-aspect)));
       --bezel-w:calc((100vw - var(--app-w)) / 2);
     }
     #app{
-      --marquee-h:clamp(38px,7vh,64px);
       width:var(--app-w);
-      height:calc(100dvh - var(--marquee-h));
-      top:var(--marquee-h);left:50%;transform:translateX(-50%);
+      height:100dvh;
+      top:0;left:50%;transform:translateX(-50%);
       box-shadow:0 0 0 1px rgba(140,190,215,.10),0 0 90px rgba(0,0,0,.75);
     }
-    /* The marquee: the game's name above the screen, lit, always there —
-       the one thing a cabinet says when nobody is playing it. */
-    body > #marquee{display:flex}
   }
   /* The bezel and the frame's proportion, as tokens.
      390x844 (0.4621) is the viewport every reading measurement in this build
@@ -598,16 +593,15 @@
      narrower than that, is untouched. */
   :root{--bezel:#080c10;--cab-aspect:0.80}
   /* Full screen means full screen. A player who asks for it is asking for the
-     window's pixels, not for a wider bezel; the marquee stays, because the
-     name over the screen is the one thing the cabinet says when nobody is
-     playing. (The FOV widens with the aspect here, costing 4% of plate size
-     against the cabinet — and still far more plate than any phone.) */
+     window's pixels, not for a wider bezel. (The FOV widens with the aspect
+     here, costing 4% of plate size against the cabinet — and still far more
+     plate than any phone.) */
   html:fullscreen #app,html:-webkit-full-screen #app{width:100vw}
-  #marquee{display:none;position:fixed;top:0;left:0;right:0;height:clamp(38px,7vh,64px);
-    align-items:center;justify-content:center;pointer-events:none;z-index:2;
-    background:var(--bezel)}
-  #marquee b{font:800 clamp(13px,2.1vh,20px)/1 var(--face);letter-spacing:.30em;
-    margin-right:-.30em;color:rgba(191,234,255,.62);text-shadow:0 0 26px rgba(103,216,255,.35)}
+  /* RC11.8: the marquee is gone. A lit name over the screen is what a cabinet
+     does when nobody is playing — but this cabinet's attract loop and title
+     already carry the wordmark, so the header only ever repeated the word
+     directly beneath it, and it charged 64px of the play area for the echo.
+     The bezel holds nothing now, which is also the simplest thing it can be. */
   /* ── The keyboard legend ──────────────────────────────────────────────
      Where the touch buttons would be, because that is where a player's eye
      goes looking for the controls. Each glyph dims for good once its control
@@ -627,7 +621,6 @@
 </style>
 </head>
 <body>
-<div id="marquee" aria-hidden="true"><b>DICTION DASH</b></div>
 <div id="app">
   <canvas id="gl"></canvas>
   <div id="grade"></div>

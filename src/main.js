@@ -124,8 +124,9 @@ const attract = new AttractMode({
   sim,
   playerActor,
   loadGhost: () => Storage.loadGhost(SEED),
-  bestScore: () => Storage.bestFor(SEED),
-  onEnter: () => { ui.showHud(true); },
+  // RC11.8: the attract raises no HUD. A score, hearts and a dash meter over a
+  // road with no word on it are the readouts of a run nobody is having.
+  onEnter: () => { ui.showHud(false); },
   onExit: () => { ui.showHud(false); },
 });
 const guided = new GuidedTeach();

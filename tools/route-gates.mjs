@@ -20,6 +20,7 @@ import TUNING from '../src/TUNING.js';
 import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
 import { makeGate } from '../src/sim/word-gates.js';
 import { CameraRig } from '../src/render/camera-rig.js';
+import { AttractMode } from '../src/render/attract.js';
 
 let PASS = 0, FAIL = 0;
 const out = [];
@@ -294,16 +295,12 @@ head('CABINET — a framed screen is the portrait screen, measured');
   const fs = await import('node:fs');
   const html = fs.readFileSync('index.html', 'utf8');
 
-  // The frame's proportion and the marquee's height, read out of the
-  // stylesheet rather than restated here — if the CSS moves, this moves.
+  // The frame's proportion, read out of the stylesheet rather than restated
+  // here — if the CSS moves, this moves.
   const aspect = Number((html.match(/--cab-aspect:([0-9.]+)/) || [])[1]);
-  const marqueeH = (w, h) => Math.max(38, Math.min(64, h * 0.07));
-  /** The stage box the cabinet gives a window of w x h. */
-  const stageBox = (w, h) => {
-    const m = marqueeH(w, h);
-    const sh = h - m;
-    return { w: Math.min(w, sh * aspect), h: sh };
-  };
+  /** The stage box the cabinet gives a window of w x h. Full height since
+      RC11.8 retired the marquee, so the stage is the window's own height. */
+  const stageBox = (w, h) => ({ w: Math.min(w, h * aspect), h });
 
   // RC11.7: the cabinet is WIDER than the phone now — 0.80 against 0.4621 —
   // because a desktop that plays a 469px column in a 1920px window is a phone
@@ -378,13 +375,51 @@ head('CABINET — a framed screen is the portrait screen, measured');
     !/setSize\(window\.innerWidth/.test(fs.readFileSync('src/rc7-feel.js', 'utf8')),
     'and the RC7.1 render-budget governor resizes THROUGH stage.resize(), not around it');
 
-  // Nothing in the bezel is interactive, and nothing paints into it.
-  const bodyChildren = [...(html.match(/^  <(?:div|canvas|button|script)[^>]*id="([^"]+)"/gm) || [])];
-  check('the bezel holds one element and it takes no input',
-    /#marquee\{[^}]*pointer-events:none/.test(html) &&
-    /<div id="marquee" aria-hidden="true">/.test(html) &&
-    !/id="marquee"[\s\S]{0,200}<button/.test(html),
-    'the marquee is a lit name, aria-hidden and pointer-events:none — a cabinet header, not a control');
+  // Nothing in the bezel is interactive, because nothing is in the bezel.
+  // RC11.8 retired the marquee: the wordmark it lit sat directly above the
+  // wordmark on the title, so the header only ever repeated the word beneath
+  // it — and charged the play area 64px for the echo. The bezel is empty
+  // ground now, which is both the ask and the simplest thing it can be.
+  const bodyIds = [...html.matchAll(/^<(?:div|canvas|button|main|section)[^>]*id="([^"]+)"/gm)]
+    .map((m) => m[1]);
+  check('the bezel holds nothing at all — every element in the build lives on the stage',
+    !/id="marquee"/.test(html) && !/#marquee\{/.test(html) &&
+    bodyIds.every((id) => id === 'app'),
+    bodyIds.length ? `body children: ${bodyIds.join(', ')}` : 'no top-level element but #app');
+  // ── RC11.8: the attract shows the run, not a number ────────────────────
+  // It used to raise the HUD and climb the score in proportion to how far
+  // through the recording it had come — a figure counting up beside a road
+  // with no word, no bell and no read on it. Driven headlessly here rather
+  // than asserted from the source, because "the score does not move" is a
+  // behaviour and the old one was three lines that looked perfectly innocent.
+  {
+    const sim = new Sim(SEEDS[0]);
+    sim.start(SEEDS[0], null, { mode: 'endless', difficulty: 'normal' });
+    sim.player.score = 0;
+    let visible = null;
+    const attract = new AttractMode({
+      sim,
+      playerActor: { setVisible: (v) => { visible = v; } },
+      loadGhost: () => null,
+      onEnter: () => {}, onExit: () => {},
+    });
+    attract.enter();
+    let moved = 0;
+    for (let i = 0; i < 60 * 30; i++) {
+      const before = sim.player.score;
+      attract.update(DT, true);
+      if (sim.player.score !== before) moved++;
+    }
+    check('the attract runs the road and never moves the score',
+      attract.active && moved === 0 && sim.player.score === 0 && sim.player.d > 0,
+      `${moved} score changes over 30s, ${sim.player.d.toFixed(0)} m travelled`);
+    check('and with no ghost on record the runner is still on the track',
+      visible === true, `player figure visible: ${visible}`);
+    check('the loop raises no HUD — a score, hearts and a meter belong to a run',
+      /onEnter: \(\) => \{ ui\.showHud\(false\); \}/.test(fs.readFileSync('src/main.js', 'utf8')) &&
+      !/bestScore/.test(fs.readFileSync('src/render/attract.js', 'utf8')));
+  }
+
   check('and nothing paints outside the screen',
     /@media \(min-aspect-ratio: 1\/1\)\{[\s\S]{0,900}#app\{overflow:hidden;container-type:size\}/.test(html) &&
     !/document\.body\.appendChild/.test(fs.readFileSync('src/ui/guided.js', 'utf8')) &&

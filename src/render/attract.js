@@ -3,8 +3,14 @@
  *
  * A cabinet is never idle. Ten seconds after the title goes quiet the road
  * starts running behind the wordmark: the player's own BEST RUN ghost runs
- * its recorded line with the HUD score climbing beside it, and the first
- * touch of any kind puts the machine back in the player's hands.
+ * its recorded line, and the first touch of any kind puts the machine back in
+ * the player's hands.
+ *
+ * RC11.8 — IT SHOWS THE RUN, NOT A SCORE. The loop used to raise the HUD and
+ * climb the score in proportion to how far through the recording it had come.
+ * Nothing on screen was earning it: no word plate, no bell, no read — a number
+ * counting up beside an empty road, which reads as a demo faking a game rather
+ * than a game showing itself. The figure on the track is the whole attract now.
  *
  * It is PRESENTATION over the existing pieces, not a second game. There is
  * no second sim: the ghost this plays is the one the run recorder already
@@ -16,8 +22,7 @@
  * title (sim.start() resets the pose regardless; this only keeps the frame
  * between them honest).
  *
- * With no ghost recorded yet, the road runs empty: the camera travels, and
- * the score stays at zero because nothing has scored.
+ * With no ghost recorded yet, the road simply runs empty: the camera travels.
  */
 
 const IDLE_SECONDS = 10;
@@ -35,19 +40,16 @@ export class AttractMode {
    * @param sim           the live sim — read for terrain, written ONLY as pose
    * @param playerActor   hidden while the ghost is the figure on the road
    * @param loadGhost     () => serialized best ghost, or null
-   * @param bestScore     () => the score that ghost earned, or 0
-   * @param onEnter/onExit presentation hooks (the HUD, owned by main.js)
+   * @param onEnter/onExit presentation hooks, owned by main.js
    */
-  constructor({ sim, playerActor, loadGhost, bestScore, onEnter, onExit }) {
+  constructor({ sim, playerActor, loadGhost, onEnter, onExit }) {
     this.sim = sim;
     this.playerActor = playerActor;
     this.loadGhost = loadGhost;
-    this.bestScore = bestScore;
     this.onEnter = onEnter;
     this.onExit = onExit;
     this.idle = 0;
     this.active = false;
-    this._best = 0;
   }
 
   /** One frame. `eligible` is true only on a title with nothing else on it. */
@@ -71,11 +73,12 @@ export class AttractMode {
     this.idle = 0;
     const p = this.sim.player;
     this._rest = { d: p.d, x: p.x, y: p.y, score: p.score };
-    this._best = this.bestScore?.() || 0;
     this._loadReplay();
-    // The ghost IS the runner here. Two figures on one line would read as a
-    // race the player is not in.
-    this.playerActor?.setVisible(false);
+    // With a ghost on record the ghost IS the runner: two figures on one line
+    // would read as a race the player is not in. With no ghost, the player's
+    // own figure stays on the road — the ask is a running character, and an
+    // empty road running by itself is scenery, not an attract.
+    this.playerActor?.setVisible(!this.sim.ghost?.active);
     p.score = 0;
     this.onEnter?.();
   }
@@ -117,16 +120,13 @@ export class AttractMode {
       // the moment the recording runs out instead.
       if (g.yanking || g.done) {
         this._loadReplay();
-        p.score = 0;
+        // A replay that cannot reload leaves the road empty; the player's
+        // figure comes back so there is still someone running on it.
+        this.playerActor?.setVisible(!g.active);
         this.sim.viewPrev = null;   // do not interpolate across the cut
         return;
       }
       p.d = g.d; p.x = g.x; p.y = g.y;
-      // The score climbs the way it climbed on the night it was set: in
-      // proportion to how far through that run the replay has come.
-      const dur = g.duration || 0;
-      const k = dur > 0 ? Math.max(0, Math.min(1, g.t / dur)) : 0;
-      p.score = Math.floor(this._best * k);
       return;
     }
     // No ghost on record: the road simply runs.

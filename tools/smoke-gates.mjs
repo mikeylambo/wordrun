@@ -733,6 +733,54 @@ try {
       first.map((v, i) => `${v.split(':')[0]} ${v.split(': ')[1]} → ${last[i].split(': ')[1]}`).join(' · '));
   }
 
+  // ── 4d-bis. the profile: two columns, and no scroll on a desktop ───────
+  head('PROFILE — everything a player came to look at, on one screen');
+  {
+    const { ctx, page, errors } = await open({ width: 1280, height: 800, fresh: false });
+    const real = await page.evaluate(() => {
+      document.dispatchEvent(new CustomEvent('dictiondash:show-curve'));
+      const el = document.getElementById('curveScreen');
+      return { on: el?.classList.contains('on'),
+        cols: el?.querySelectorAll('#curveBody .pCol').length || 0 };
+    });
+    check('PROFILE opens, and its blocks are laid out in two columns',
+      real.on && real.cols === 2, `open ${real.on}, ${real.cols} columns`);
+
+    // A real profile here is a fresh one. The layout has to hold at the OTHER
+    // end — a player two weeks in with a full mastery board, three cleared
+    // objectives and a long beaten roll — so the worst case is written in.
+    const fit = await page.evaluate(() => {
+      const beaten = (n) => Array.from({ length: Math.min(6, n) }, (_, i) =>
+        `<div class="bRow"><span class="bW">commencement</span><span class="bMeta">${i % 3 + 1} misses · ${i}d ago</span></div>`).join('')
+        + (n > 6 ? `<p class="note">and ${n - 6} more.</p>` : '');
+      const spark = '<span><svg class="spark" viewBox="0 0 100 26" preserveAspectRatio="none">'
+        + '<line class="base" x1="2" y1="25" x2="98" y2="25"/><polyline points="2,20 20,15 40,18 60,10 80,12 98,6"/></svg></span>';
+      const left = '<div class="cRow cTop"><span class="cK">BEST</span><span class="cV">111,487<i class="cBank">◆ 1,240</i></span></div>'
+        + '<div class="cHead">1,204 WORDS LEARNED</div><div class="objList">'
+        + [1, 2, 3, 4, 5].map((i) => `<div class="objRow"><span class="ol">TIER ${i}</span><span class="ob"><i style="width:${20 * i}%"></i></span><span class="ov">${120 * i}/${881 + i}</span></div>`).join('')
+        + '</div><p class="note">A word counts once you read it right and are not owed it again. Miss it and it comes back.</p>'
+        + '<div class="cHead">3 OF 3 GOALS TODAY</div><div class="goalList">'
+        + ['1000M', '×6 CHAIN', '25 READS'].map((l) => `<div class="goalCheck done"><i>✓</i><span class="goalChip done">${l}</span></div>`).join('') + '</div>';
+      const right = '<div class="cHead">OBJECTIVES</div><div class="objList">'
+        + [['100 DASH', 15], ['300 M CLEAN', 15], ['20 READS', 20]].map(([l, r]) => `<div class="objRow"><span class="ol">${l}</span><span class="ob"><i style="width:57%"></i></span><span class="ov">◆${r}</span></div>`).join('') + '</div>'
+        + [0, 1, 2, 3, 4].map((t) => `<div class="cRow"><span class="cK">TIER ${t}</span>${spark}<span class="cV"><s class="up">+7</s>${57 + t * 8}%</span></div>`).join('')
+        + `<div class="cRow"><span class="cK">READ TIME</span>${spark}<span class="cV"><s class="up">−40ms</s>0.29s</span></div>`
+        + '<p class="note">Last two weeks. A gap is a day not played.</p>'
+        + '<div class="cHead">BEATEN — 40</div>' + beaten(40);
+      const el = document.getElementById('curveScreen');
+      el.classList.add('on');
+      el.querySelector('#curveBody').innerHTML = `<div class="pCol">${left}</div><div class="pCol">${right}</div>`;
+      const card = el.querySelector('.card');
+      return { v: card.scrollHeight - card.clientHeight, h: card.scrollWidth - card.clientWidth,
+        card: `${card.clientWidth}x${card.clientHeight}` };
+    });
+    check('and a two-week player\'s full profile needs no scrolling on a desktop',
+      fit.v <= 0 && fit.h <= 0,
+      `card ${fit.card}${fit.v > 0 ? `, ${fit.v}px of vertical scroll` : ''}${fit.h > 0 ? `, ${fit.h}px horizontal` : ''}`);
+    allErrors.push(...errors.map((e) => `[profile] ${e}`));
+    await ctx.close();
+  }
+
   // ── 4e. full screen ────────────────────────────────────────────────────
   head('FULL SCREEN — the biggest legibility gain a desktop player can reach');
   {

@@ -19,14 +19,29 @@ const CSS = `
 #curveScreen .goalCheck .goalChip{font-size:11px;letter-spacing:.14em;color:rgba(232,244,251,.5)}
 #curveScreen .goalCheck .goalChip.done{color:#bff0ff;font-weight:700}
 #curveScreen{position:absolute;inset:0;z-index:78;display:none;align-items:center;justify-content:center;
-  padding:24px;background:rgba(6,11,16,.94);backdrop-filter:blur(8px);color:#eaf6fc}
+  padding:16px;background:rgba(6,11,16,.94);backdrop-filter:blur(8px);color:#eaf6fc}
 #curveScreen.on{display:flex}
-#curveScreen .card{width:min(92vw,400px);max-height:82vh;overflow-y:auto;text-align:left}
+#curveScreen .card{width:min(92%,400px);max-height:100%;overflow-y:auto;overflow-x:hidden;text-align:left}
 #curveScreen h3{font:800 11px/1 var(--face);letter-spacing:.26em;color:#8be4ff;margin:0 0 16px;text-align:center}
+/* Two columns wherever the frame can hold them. The profile is six blocks
+   that never needed to be one tall strip: in a 595px cabinet the single
+   column overflowed by 145px before a player had beaten a single word, and
+   the whole point of this screen is looking at your progress, not scrolling
+   past it. The blocks are emitted as two explicit columns rather than left to
+   CSS multi-column, which would balance a heading away from its rows. */
+#curveScreen #curveBody{display:grid;gap:0 26px}
+#curveScreen .pCol{min-width:0}
+@media (min-width:560px){
+  #curveScreen .card{width:min(94%,720px)}
+  #curveScreen #curveBody{grid-template-columns:1fr 1fr;align-items:start}
+  /* The first block in a column already has the card's own top margin. */
+  #curveScreen .pCol > :first-child{margin-top:0}
+}
 #curveScreen .cRow{display:grid;grid-template-columns:60px 1fr 76px;gap:10px;align-items:center;
   padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)}
 #curveScreen .cK{font:600 8px/1.4 var(--face);letter-spacing:.2em;color:var(--dimmer)}
 #curveScreen .spark{display:block;width:100%;height:26px;overflow:visible}
+#curveScreen .cRow > span{min-width:0}
 #curveScreen .spark polyline{fill:none;stroke:var(--ice);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
 #curveScreen .spark .dot{fill:var(--ice)}
 #curveScreen .spark .base{stroke:rgba(103,216,255,.14);stroke-width:1}
@@ -45,6 +60,15 @@ const CSS = `
 
 const SPARK_W = 100;
 const SPARK_H = 26;
+/* The end dots are drawn AT the first and last x. Stretched to a column by
+   `preserveAspectRatio:none` a radius of 1.9 user units became ~5 real pixels
+   outside the box on each side, and that — not the rows — is where the card's
+   horizontal scrollbar came from. The line is inset by the radius instead of
+   the box being told to hide it, so nothing is clipped either. */
+const SPARK_R = 2;
+
+/** How many beaten words the roll shows before it summarises the rest. */
+const BEATEN_SHOWN = 6;
 
 /**
  * A thin polyline over a values array (0..1 pre-normalised), oldest → newest.
@@ -55,7 +79,7 @@ const SPARK_H = 26;
 function spark(norm) {
   const n = norm.length;
   if (n < 2) return '';
-  const x = (i) => (n === 1 ? 0 : (i / (n - 1)) * SPARK_W);
+  const x = (i) => (n === 1 ? SPARK_R : SPARK_R + (i / (n - 1)) * (SPARK_W - 2 * SPARK_R));
   const y = (v) => SPARK_H - 1 - v * (SPARK_H - 2);
   const segments = [];
   let run = [];
@@ -72,7 +96,7 @@ function spark(norm) {
       ? `<circle class="dot" cx="${pts[0].split(',')[0]}" cy="${pts[0].split(',')[1]}" r="1.6"/>`
       : `<polyline points="${pts.join(' ')}"/>`).join('');
   return `<svg class="spark" viewBox="0 0 ${SPARK_W} ${SPARK_H}" preserveAspectRatio="none" aria-hidden="true">`
-    + `<line class="base" x1="0" y1="${SPARK_H - 1}" x2="${SPARK_W}" y2="${SPARK_H - 1}"/>`
+    + `<line class="base" x1="${SPARK_R}" y1="${SPARK_H - 1}" x2="${SPARK_W - SPARK_R}" y2="${SPARK_H - 1}"/>`
     + `${polys}<circle class="dot" cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="1.9"/></svg>`;
 }
 
@@ -117,7 +141,11 @@ export function buildCurveScreen(getData) {
 
   const render = () => {
     const { series, beaten, daily, objectives, currency, best, mastery } = getData() || {};
-    const rows = [];
+    // Two columns, filled by hand. `left` is who you are — the bank, the words
+    // learned, today's three goals. `right` is what is moving — the rotating
+    // objectives, the fortnight of curves, and the words you have beaten.
+    const left = [], right = [];
+    const rows = left;
     const hasTrend = series && series.tiers.length > 0;
 
     // RC6: progression lives here now, not over the score a player just set.
@@ -169,13 +197,19 @@ export function buildCurveScreen(getData) {
           + `<span class="ob"><i style="width:${pct}%"></i></span>`
           + `<span class="ov">◆${o.reward}</span></div>`);
       }
-      rows.push('<div class="cHead">OBJECTIVES</div>');
-      rows.push(`<div class="objList">${bits.join('')}</div>`);
+      right.push('<div class="cHead">OBJECTIVES</div>');
+      right.push(`<div class="objList">${bits.join('')}</div>`);
     }
 
+    /** The two columns, as the body's markup. */
+    const paint = () => {
+      body.innerHTML = `<div class="pCol">${left.join('')}</div>`
+        + `<div class="pCol">${right.join('')}</div>`;
+    };
+
     if (!hasTrend && (!beaten || beaten.length === 0) && !(mastery?.total > 0)) {
-      if (!rows.length) rows.push('<p class="note">Play a few runs and this fills in.</p>');
-      body.innerHTML = rows.join('');
+      if (!left.length && !right.length) left.push('<p class="note">Play a few runs and this fills in.</p>');
+      paint();
       return;
     }
 
@@ -184,7 +218,7 @@ export function buildCurveScreen(getData) {
         const vals = series.accuracy[tier];
         const { first, last } = firstLast(vals);
         if (last == null) continue;
-        rows.push(`<div class="cRow"><span class="cK">TIER ${tier}</span>` +
+        right.push(`<div class="cRow"><span class="cK">TIER ${tier}</span>` +
           `<span>${spark(vals.map((v) => (v == null ? null : v / 100)))}</span>` +
           `<span class="cV">${delta(first != null ? last - first : null)}${last}%</span></div>`);
       }
@@ -198,24 +232,31 @@ export function buildCurveScreen(getData) {
         // Invert: a lower time sits HIGHER on the line (better = up).
         const norm = rt.map((v) => (v == null ? null : 1 - (v - lo) / span));
         const { first, last } = firstLast(rt);
-        rows.push(`<div class="cRow"><span class="cK">READ TIME</span>` +
+        right.push(`<div class="cRow"><span class="cK">READ TIME</span>` +
           `<span>${spark(norm)}</span>` +
           `<span class="cV">${delta(first != null ? last - first : null, 'ms', true)}` +
           `${(last / 1000).toFixed(2)}s</span></div>`);
       }
-      rows.push(`<p class="note">Last two weeks. A gap is a day not played.</p>`);
+      right.push(`<p class="note">Last two weeks. A gap is a day not played.</p>`);
     }
 
     if (beaten && beaten.length) {
-      rows.push(`<div class="cHead">BEATEN — ${beaten.length}</div>`);
-      for (const b of beaten) {
+      // The one unbounded list on the screen: a player who keeps playing beats
+      // words forever, and an ever-growing column is what made this a scroll
+      // no layout could win. The count is the achievement and it stays whole;
+      // the roll shows the most recent BEATEN_SHOWN and says how many more.
+      right.push(`<div class="cHead">BEATEN — ${beaten.length}</div>`);
+      for (const b of beaten.slice(0, BEATEN_SHOWN)) {
         const miss = `${b.m} miss${b.m === 1 ? '' : 'es'}`;
-        rows.push(`<div class="bRow"><span class="bW">${b.id}</span>` +
+        right.push(`<div class="bRow"><span class="bW">${b.id}</span>` +
           `<span class="bMeta">${miss} · ${relDate(b.at)}</span></div>`);
+      }
+      if (beaten.length > BEATEN_SHOWN) {
+        right.push(`<p class="note">and ${beaten.length - BEATEN_SHOWN} more.</p>`);
       }
     }
 
-    body.innerHTML = rows.join('');
+    paint();
   };
 
   el.addEventListener('click', (e) => {
