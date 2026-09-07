@@ -394,9 +394,14 @@ head('FLOW — brilliance is earned; loss is darkness');
     indexHtml.includes("mix-blend-mode:saturation") && indexHtml.includes('#drainDim') &&
     !/#drain\{[^}]*(255,\s*4?\d,)/.test(indexHtml));
   const audio = fs.readFileSync('src/audio/audio.js', 'utf8');
+  // RC10.9: the ladder table moved to audio/ladder.js, where the bell string
+  // reads the same one. The chime still climbs with the chain; it no longer
+  // owns the only copy of the notes it climbs.
+  const ladderSrc = fs.readFileSync('src/audio/ladder.js', 'utf8');
   check('the mix darkens with the drain and the chime climbs with the chain',
     audio.includes('duckFilter') && /gate\(chain = 0(, early = 0(, dashChain = 0)?)?\)/.test(audio) &&
-    audio.includes('[0, 2, 4, 7, 9]'));
+    audio.includes('chimeStep(chain, dashChain)') &&
+    /export const LADDER = Object\.freeze\(\[0, 2, 4, 7, 9\]\);/.test(ladderSrc));
 }
 
 // ── Accessibility (Phase 11) ─────────────────────────────────────────────
@@ -1174,10 +1179,66 @@ head('CUES — excellent play crests in ONE band, and a wrong read drops it');
     const chime = L.crestChain(L.CUES.find((c) => c.key === 'chime rung'));
     const surge = L.crestChain(L.CUES.find((c) => c.key === 'surge'));
     const score = L.crestChain(L.CUES.find((c) => c.key === 'score multiplier'));
+    const string = L.crestChain(L.CUES.find((c) => c.key === 'bell string'));
     check('the counted ladders keep their own shorter reach, deliberately',
-      chime <= 20 && surge <= 20 && score === TUNING.BOOST.CHAIN_CAP,
+      chime <= 20 && surge <= 20 && score === TUNING.BOOST.CHAIN_CAP && string <= 20,
       `chime ${chime} (the ear stops hearing new rungs), surge ${surge} ` +
-      `(${TUNING.BOOST.SURGE_READS} reads past the cap), score ${score} (a calibrated dial)`);
+      `(${TUNING.BOOST.SURGE_READS} reads past the cap), score ${score} (a calibrated dial), ` +
+      `bell string ${string} (one bell per link)`);
+    check('and the bell string is the one cue that is also an object in the world',
+      L.ladderAt(0)['bell string'] === 0 && L.ladderAt(1)['bell string'] > 0,
+      'nothing in the track at chain 0; the first read lights it');
+  }
+
+  // ── RC10.9: the two pentatonic ladders, driven against each other ───────
+  // They used to be two: the chime on [0,2,4,7,9] from 660 Hz keyed to the
+  // CHAIN, the bell on [0,4,7,11,14] from 622.25 Hz keyed to how many bells
+  // this run had happened to pass — a semitone apart, in different modes, one
+  // of them on a distance schedule. Two melodies in two keys is not two cues.
+  {
+    const LD = await import('../src/audio/ladder.js');
+    const semisOf = (hz) => Math.round(12 * Math.log2(hz / LD.ROOT_HZ));
+    const inKey = (hz) => LD.LADDER.includes(((semisOf(hz) % 12) + 12) % 12);
+    let allInKey = true, allAscending = true, everContinues = false, offender = '';
+    let topShared = true;
+    for (let chain = 0; chain <= 160; chain++) {
+      const chime = LD.ladderHz(LD.chimeStep(chain));
+      if (!inKey(chime)) { allInKey = false; offender = `chime at ${chain}`; }
+      const notes = [];
+      for (let i = 0; i < LD.STRING_RUNGS; i++) {
+        const step = LD.stringStep(chain, i);
+        const hz = LD.ladderHz(step);
+        if (!inKey(hz)) { allInKey = false; offender = `string ${i} at ${chain}`; }
+        notes.push(step);
+      }
+      if (notes.some((v, i) => i > 0 && v <= notes[i - 1])) {
+        allAscending = false; offender = `string at ${chain}`;
+      }
+      // While the chime has headroom the string is strictly above it; at the
+      // top they share the ladder's last five rungs, which is the same thing
+      // said with nowhere left to climb.
+      if (LD.chimeStep(chain) < LD.STRING_TOP_START) {
+        if (notes[0] > LD.chimeStep(chain)) everContinues = true;
+        else { allAscending = false; offender = `string does not continue at ${chain}`; }
+      } else if (notes[LD.STRING_RUNGS - 1] !== LD.TOP_STEP) {
+        topShared = false; offender = `string does not top out at ${chain}`;
+      }
+    }
+    check('both voices sing the same pentatonic from the same root, at every chain',
+      allInKey, offender || `root ${LD.ROOT_HZ} Hz, [${LD.LADDER.join(', ')}], chain 0..160`);
+    check('and a lit string CONTINUES the chime rather than running beside it',
+      allAscending && everContinues && topShared,
+      offender || 'five rungs above wherever the chime just landed, ascending, ' +
+      `parking on the ladder's top five past chain ${LD.STRING_TOP_START - 1}`);
+    // And nothing may keep a private copy of the notes.
+    const audioSrc = fs.readFileSync('src/audio/audio.js', 'utf8');
+    const mainSrc = fs.readFileSync('src/main.js', 'utf8');
+    check('there is exactly ONE ladder table in the game, and both voices read it',
+      !/\[0, ?4, ?7, ?11, ?14\]/.test(audioSrc) && !/622\.25/.test(audioSrc) &&
+      !/\[0, ?2, ?4, ?7, ?9\]/.test(audioSrc) &&
+      audioSrc.includes("from './ladder.js'") &&
+      mainSrc.includes('audio.bell(stringStep(e.chain, e.i))'),
+      'the bell pitch is a function of the chain, never of how far the run has come');
   }
 
   // A WRONG READ DROPS THEM IN ONE FRAME. The chain is zeroed by the sim, so

@@ -8,7 +8,7 @@
     "phase": "dead",
     "hearts": 0,
     "maxHearts": 3,
-    "bellsCollected": 25,
+    "bellsCollected": 8,
     "deathCause": "wipeout",
     "score": 13007,
     "obstaclesHit": 4,
@@ -17,7 +17,7 @@
     "counts": {
       "heart_lost": 4,
       "heart_restore": 1,
-      "bell": 25,
+      "bell": 8,
       "wipeout": 1,
       "word_correct": 9,
       "word_wrong": 4
@@ -33,7 +33,7 @@
     "phase": "dead",
     "hearts": 0,
     "maxHearts": 3,
-    "bellsCollected": 14,
+    "bellsCollected": 4,
     "deathCause": "wipeout",
     "score": 5298,
     "obstaclesHit": 3,
@@ -42,7 +42,7 @@
     "counts": {
       "heart_lost": 3,
       "heart_restore": 0,
-      "bell": 14,
+      "bell": 4,
       "wipeout": 1,
       "word_correct": 4,
       "word_wrong": 3
@@ -58,7 +58,7 @@
     "phase": "running",
     "hearts": 3,
     "maxHearts": 3,
-    "bellsCollected": 287,
+    "bellsCollected": 280,
     "deathCause": null,
     "score": 919036,
     "obstaclesHit": 0,
@@ -67,7 +67,7 @@
     "counts": {
       "heart_lost": 0,
       "heart_restore": 0,
-      "bell": 287,
+      "bell": 280,
       "wipeout": 0,
       "word_correct": 182,
       "word_wrong": 0
@@ -83,7 +83,7 @@
     "phase": "running",
     "hearts": 3,
     "maxHearts": 3,
-    "bellsCollected": 167,
+    "bellsCollected": 160,
     "deathCause": null,
     "score": 395876,
     "obstaclesHit": 0,
@@ -92,7 +92,7 @@
     "counts": {
       "heart_lost": 0,
       "heart_restore": 0,
-      "bell": 167,
+      "bell": 160,
       "wipeout": 0,
       "word_correct": 100,
       "word_wrong": 0
@@ -108,7 +108,7 @@
     "phase": "running",
     "hearts": 3,
     "maxHearts": 3,
-    "bellsCollected": 280,
+    "bellsCollected": 269,
     "deathCause": null,
     "score": 871109,
     "obstaclesHit": 1,
@@ -117,7 +117,7 @@
     "counts": {
       "heart_lost": 1,
       "heart_restore": 1,
-      "bell": 280,
+      "bell": 269,
       "wipeout": 0,
       "word_correct": 177,
       "word_wrong": 1

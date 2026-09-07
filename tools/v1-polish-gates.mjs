@@ -42,9 +42,16 @@ check(contact.includes('baseReset') && contact.includes('__v1AllPhysicalLocks?.c
 check(!fs.existsSync('src/v1-ship-polish.js') &&
   !/^import .*v1-ship-polish/m.test(read('src/rc9-audio.js')),
   'the ship-polish layer is deleted, not merely unimported — no prototype is reassigned at boot');
+// RC10.9: the bell's own interval table is gone. It was the second pentatonic
+// ladder in the game — [0, 4, 7, 11, 14] rooted a semitone under the chime's
+// [0, 2, 4, 7, 9], and keyed to how many bells a run had passed rather than to
+// anything the player did. There is now ONE table, in audio/ladder.js, and the
+// bell sings the five rungs above wherever the chime just landed. The bright
+// partials that made a bell carry over the beds are untouched.
 check(bellSrc.includes('f * 2.02, f1: f * 2.015') && bellSrc.includes('vol: 0.038') &&
-  (bellSrc.match(/const intervals = \[0, 4, 7, 11, 14\]/g) || []).length === 1,
-  'the bell\'s bright upper partials are part of the bell, from ONE interval table');
+  !/const intervals =/.test(bellSrc) && bellSrc.includes('const f = ladderHz(step);') &&
+  (read('src/audio/ladder.js').match(/export const LADDER = /g) || []).length === 1,
+  'the bell\'s bright upper partials are part of the bell, and its pitches come from the ONE ladder');
 
 // Phase 15/16 retired the tree and rock recordings; RC10.1 retired the code
 // that reached for them. It could never sound — nothing solid spawns — so the

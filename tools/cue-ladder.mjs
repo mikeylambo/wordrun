@@ -1,10 +1,10 @@
 /**
  * RC10.8 — every performance cue, on one ladder.
  *
- * Eight cues answer the reading chain and each was tuned alone: the flow
+ * Nine cues answer the reading chain and each was tuned alone: the flow
  * curve, the runner's comet tail, the chime's pentatonic ladder, the dash
- * rungs, the surge, the Editorial world's bands, the music layer and the
- * runner's own posture. Laid side by side against chain 0..150 they did not
+ * rungs, the surge, the Editorial world's bands, the music layer, the runner's
+ * own posture and — since RC10.9 — the bell string in the track ahead. Laid side by side against chain 0..150 they did not
  * agree about what "excellent" means — and a table nobody had ever printed is
  * exactly where that hides.
  *
@@ -41,6 +41,7 @@ import TUNING from '../src/TUNING.js';
 import { flowLevel } from '../src/render/flow-curve.js';
 import { BAND_CHAINS, bandFor } from '../src/render/editorial-layout.js';
 import { highLayerWanted } from '../src/music/high-layer.js';
+import { litFraction } from '../src/design/bells.js';
 
 /** The top of the ladder — the last editorial band, where the table ends. */
 export const CREST_CHAIN = BAND_CHAINS[BAND_CHAINS.length - 1];   // 150
@@ -97,6 +98,14 @@ export const CUES = Object.freeze([
     key: 'runner economy',
     // actors.js: economy opens as the flow factor passes 1.25 of 1.75.
     at: (chain) => clamp01((0.78 + (1.75 - 0.78) * flowLevel(chain) - 1.25) / 0.5),
+  }),
+  Object.freeze({
+    key: 'bell string',
+    // RC10.9: how much of a string the chain has lit. A counted ladder, one
+    // bell per link, so it belongs with the chime and the surge rather than
+    // with the continuous world cues — and it is the ONLY cue that is also an
+    // object in the world the player runs through.
+    at: (chain) => litFraction(chain),
   }),
 ]);
 

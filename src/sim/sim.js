@@ -60,6 +60,8 @@ export class Sim {
     this.hearts = HEARTS.MAX;
     this.bellsCollected = 0;
     this.bellCharge = 0;
+    this.chainMetres = 0;
+    this._lastVitalsD = 0;
     this._lastCleanStreak = 0;
     this.deathCause = null;
   }
@@ -142,6 +144,8 @@ export class Sim {
     this.hearts = HEARTS.MAX;
     this.bellsCollected = 0;
     this.bellCharge = 0;
+    this.chainMetres = 0;
+    this._lastVitalsD = 0;
     this._lastCleanStreak = 0;
     this.deathCause = null;
     this.bells.reset(this.seed, this.terrain);
@@ -339,22 +343,27 @@ export class Sim {
     }
 
     const heartRepair = this.rules?.HEART_REPAIR !== false;
-    const picked = this.bells.collectNear(this.player);
+    // RC10.9: only a LIT bell exists, and the chain is what lights it. The
+    // event carries the chain and the bell's place in its string so the mix
+    // can ring the chain chime's own ladder one rung higher — the pitch is the
+    // audio layer's business, the chain is the sim's.
+    const chain = this.player.chain | 0;
+    const picked = this.bells.collectNear(this.player, chain);
     for (const bell of picked) {
       this.bellsCollected++;
-      // Phase I: no meter gain while a dash is live (spent whole); the bell
-      // still counts and still banks currency.
-      if (!this.player.overdrive) {
-        this.player.boostMeter = Math.min(
-          TUNING.BOOST.METER_MAX,
-          this.player.boostMeter + HEARTS.POWER_PER_BELL
-        );
-      }
+      // RC10.9: NO boost meter. It was ~13 % of the dash economy paid on a
+      // distance schedule to a pickup that could not be missed, which is a
+      // dash the reading did not buy. CORRECT_FILL absorbed it (6 -> 6.8) so
+      // the charge table still reads 5 early reads at chain 0 and 2 at the cap.
       this.events.push({
         t: 'bell', id: bell.id, x: bell.x, d: bell.d,
-        charge: this.bellsCollected, power: HEARTS.POWER_PER_BELL,
+        charge: this.bellsCollected, i: bell.i, chain,
       });
     }
+    // RC10.9: metres run with a chain standing. The bell strings measure it in
+    // the world; the objective ladder measures it on the card.
+    if (chain > 0) this.chainMetres += Math.max(0, this.player.d - this._lastVitalsD);
+    this._lastVitalsD = this.player.d;
 
     const streak = this.wordGates.streak;
     const need = HEARTS.STREAK_REPAIR_BY_HEARTS[this.hearts] ?? HEARTS.STREAK_REPAIR_DEFAULT;
@@ -426,6 +435,7 @@ export class Sim {
       maxHearts: this.maxHearts,
       bellsCollected: this.bellsCollected,
       bellCharge: this.bellCharge,
+      chainMetres: this.chainMetres,
       chaseMode: this.beast.mode,
       deathCause: this.deathCause,
     };

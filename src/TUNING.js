@@ -220,8 +220,9 @@ export const TUNING = {
     // read at the line — the knife edge Phase D left. 3.5 puts it over
     // (1.07x at forty, 1.42x at fifty) without 4.0's overshoot (1.21x at
     // forty, where the route's back half starts to look optional). The rate
-    // also fills the dash: from empty at chain 0 that is 5 early reads
-    // instead of 6; at the chain cap it is 2 either way.
+    // also fills the dash: from empty at chain 0 that is 5 early reads, and 2
+    // at the chain cap. RC10.9 raised CORRECT_FILL to absorb the meter the
+    // bells used to pay and chose the value so those two numbers did not move.
     EARLY_MULT: 3.5,           // answering the instant it arms
     OPENING_GATES: 6,
     OPENING_MAX_FAKE_RUN: 2,
@@ -243,7 +244,21 @@ export const TUNING = {
     TIER_EVERY_M: 700,         // +1 tier per this many metres, clamped
     // Speed consequences live in TUNING.RUN (Phase 7); words keep only the
     // meter economy here.
-    CORRECT_FILL: 6,           // boost meter per correct read (chain-multiplied)
+    // RC10.9 — 6 -> 6.8, absorbing the meter the bells used to pay.
+    //
+    // Bells filled the dash on a DISTANCE schedule that could not be missed:
+    // measured over the DAILY seed, 13.2 % of a 85 %-reader's whole meter and
+    // 11.9 % of a 95 %-reader's, arriving whether or not a single word was
+    // read correctly. That is a dash the reading did not buy, and it diluted
+    // the only verb this game has. The bells now pay banked currency alone;
+    // this is where their share went, onto the read.
+    //
+    // The dial is chosen so the CHARGE TABLE does not move: `ceil(100 / (F x
+    // EARLY_MULT))` must stay 5 early reads at chain 0 and 2 at the cap, which
+    // holds for F in [5.714, 7.143). 6.8 sits inside it and is +13.3 %, the
+    // share the bells were paying — so a reader charges a dash in the same
+    // number of reads, and every one of them is now a read.
+    CORRECT_FILL: 6.8,         // boost meter per correct read (chain-multiplied)
     WRONG_METER_LOSS: 0.5,     // = BOOST.FLUB_METER_LOSS
     // Legibility floors (the falsifiable question, made checkable): at speed
     // v the reading window is ARM_DISTANCE_M / v seconds. Phase 8's curve

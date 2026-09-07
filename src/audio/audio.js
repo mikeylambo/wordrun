@@ -8,6 +8,7 @@
 
 import TUNING from '../TUNING.js';
 import { corruptionIntensity } from '../render/corruption-curve.js';
+import { chimeStep, ladderHz, STRING_RUNGS } from './ladder.js';
 
 const A = TUNING.AUDIO;
 const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
@@ -429,18 +430,16 @@ export class Audio {
    * the confirmation this game has always made.
    */
   gate(chain = 0, early = 0, dashChain = 0) {
-    const steps = [0, 2, 4, 7, 9];
     // Phase I: each dash-chain rung climbs the pentatonic ladder one more
     // step — the same melody, higher, for exactly as long as the chain holds.
     // RC8.3: the rung cap is the LADDER's length, not a literal 4. A sixth
     // rung that sounded identical to the fifth would be a rung the ear could
     // not hear, which is the one thing this cue exists to do.
-    const topRung = TUNING.SCORE.DASH_CHAIN_MULT.length - 1;
-    const c = Math.max(0, Math.min(TUNING.BOOST.CHAIN_CAP + topRung,
-      (chain | 0) + Math.max(0, Math.min(topRung, dashChain | 0))));
+    // RC10.9: the table, the root and the cap moved to audio/ladder.js, where
+    // the bell string reads the same ones. The pitches here are unchanged.
+    const c = chimeStep(chain, dashChain);
     const e = Math.max(0, Math.min(1, early));
-    const semis = steps[c % 5] + 12 * Math.floor(c / 5);
-    const f0 = 660 * Math.pow(2, semis / 12);
+    const f0 = ladderHz(c);
     this._tone({ f0, f1: f0 * 1.5, dur: 0.13 - 0.03 * e, vol: 0.10 + 0.045 * e, bus: this.bus.ui });
     if (c >= 5) this._tone({ type: 'sine', f0: f0 * 2, f1: f0 * 2.02, dur: 0.1, vol: 0.035, bus: this.bus.ui, delay: 0.01 });
     if (e > 0.35) {
@@ -508,13 +507,19 @@ export class Audio {
   // hit() with none of its impact burst — the rulebook asymmetry, audible.
   slip() { this._tone({ type: 'triangle', f0: 420, f1: 210, dur: 0.22, vol: 0.09, bus: this.bus.ui }); }
 
+  /**
+   * A bell in a lit string. RC10.9: `step` is a position on the SAME ladder
+   * the correct-read chime climbs, handed in by the caller from the chain
+   * (see audio/ladder.js `stringStep`). It used to be `bellsCollected % 5` on
+   * a table of its own, rooted a semitone below the chime — two pentatonic
+   * ladders in two keys, one of them keyed to distance. The timbre is still
+   * the bell's; only the pitches now belong to the melody the chime started.
+   */
   bell(step = 0) {
-    const intervals = [0, 4, 7, 11, 14];
-    const semis = intervals[step % intervals.length];
-    const f = 622.25 * Math.pow(2, semis / 12);
+    const f = ladderHz(step);
     this._tone({ type: 'sine', f0: f, f1: f * 1.004, dur: 0.34, vol: 0.075, bus: this.bus.ui });
     this._tone({ type: 'triangle', f0: f * 2.01, f1: f * 2.02, dur: 0.18, vol: 0.025, bus: this.bus.ui, delay: 0.006 });
-    if (step === 4) this._tone({ type: 'sine', f0: f * 0.5, f1: f * 0.5, dur: 0.44, vol: 0.035, bus: this.bus.ui, delay: 0.025 });
+    if ((step % STRING_RUNGS) === STRING_RUNGS - 1) this._tone({ type: 'sine', f0: f * 0.5, f1: f * 0.5, dur: 0.44, vol: 0.035, bus: this.bus.ui, delay: 0.025 });
     // RC10.1: the bright acoustic-looking partials that let a bell carry over
     // the beds. They lived in a runtime patch of this method — the patch and
     // the method disagreed about the interval table, which is exactly the

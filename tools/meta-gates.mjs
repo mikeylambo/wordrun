@@ -175,7 +175,7 @@ head('META — bells sit on the travel line and feed the balance');
   // laid in the straight-ribbon frame while the track wound ±15.5m — wired
   // to hearts and meter on paper, uncollectible in play. Every bell must
   // now sit inside the pickup window of the line the runner travels.
-  const { BellField, BELL_LINES } = await import('../src/design/bells.js');
+  const { BellField, BELL_LINES, litCount } = await import('../src/design/bells.js');
   const { Terrain } = await import('../src/sim/terrain.js');
   for (const seed of [999, 12345, 8675309]) {
     const t = new Terrain(seed);
@@ -187,16 +187,43 @@ head('META — bells sit on the travel line and feed the balance');
       `${bells.length} bells, worst ${worst.toFixed(2)}m off-line (window ${BELL_LINES.PICKUP_X}m)`);
   }
 
-  // And an auto-following runner actually collects them: walk the line at
-  // pace and sweep collectNear the way sim.step does each step.
+  // And an auto-following runner collects them — but ONLY while a chain is
+  // live (RC10.9). Walk the line at pace and sweep collectNear the way
+  // sim.step does each step, once holding nothing and once holding a chain.
   const t = new Terrain(999);
-  const f = new BellField(999, t);
-  let collected = 0;
-  for (let d = 0; d < 2000; d += 27 / 60) {
-    collected += f.collectNear({ d, x: t.corridorX(d) }).length;
-  }
-  check('a runner simply following the line collects the strings',
-    collected >= 30, `${collected} collected over 2km`);
+  const walk = (chain) => {
+    const f = new BellField(999, t);
+    let collected = 0;
+    for (let d = 0; d < 2000; d += 27 / 60) {
+      collected += f.collectNear({ d, x: t.corridorX(d) }, chain).length;
+    }
+    return collected;
+  };
+  const cold = walk(0);
+  const warm = walk(BELL_LINES.LIT_FULL_CHAIN);
+  check('a runner holding NO chain collects nothing — an unlit bell is not a bell',
+    cold === 0, `${cold} collected over 2km at chain 0`);
+  check('and a runner holding a chain collects the strings on the line he is already on',
+    warm >= 30, `${warm} collected over 2km at chain ${BELL_LINES.LIT_FULL_CHAIN}`);
+  // The chain draws the string: every link lights one more bell, up to a
+  // whole string, and the ladder is monotonic with nothing skipped.
+  const counts = [];
+  for (let c = 0; c <= BELL_LINES.LIT_FULL_CHAIN + 4; c++) counts.push(litCount(c));
+  check('every link lights one more of the string, and the string tops out whole',
+    counts[0] === 0 && counts[1] === 1 &&
+    counts.every((v, i) => i === 0 || v >= counts[i - 1]) &&
+    Math.max(...counts) === BELL_LINES.COUNT,
+    `chain 0..${BELL_LINES.LIT_FULL_CHAIN + 4} lights ${counts.join('/')} of ${BELL_LINES.COUNT}`);
+  // Positions may never read the player: the field is seeded from the route
+  // alone, so the DAILY lays out identically for everyone who runs it.
+  const layout = (chain) => {
+    const f = new BellField(999, t);
+    return f.around(3000, 2900, 2900)
+      .map((b) => `${b.id}:${b.x.toFixed(6)}:${b.d.toFixed(6)}`).join('|');
+  };
+  check('and WHERE a bell is never reads the player — only whether it is lit',
+    layout(0) === layout(9) && layout(0).length > 500,
+    'the field is seeded from the route, so the DAILY is the same string of lights for everyone');
 }
 
 // ── Modes (Phase 10): two rule sets × three difficulties ─────────────────
@@ -249,9 +276,14 @@ head('MODES — rules, difficulty, and separated boards');
   // The bell drip paid ~4.7 hearts per kilometre with no player input, so a
   // 70% run lost 23 hearts and got all 23 back — ENDLESS could not be lost
   // by misreading, which is exactly why it had no stakes.
-  check('bells no longer repair hearts — they pay meter and currency only',
+  // Phase 23 took the hearts; RC10.9 took the meter. What is left is banked
+  // currency, which is the only thing a pickup on an auto-followed line can
+  // honestly pay — and it is now earned, because an unlit bell does not exist.
+  check('bells pay banked currency and NOTHING else — no hearts, no meter',
     !simSrc.includes('bellCharge++') && !/BELLS_PER_HEART/.test(simSrc + bells) &&
-    simSrc.includes('boostMeter + HEARTS.POWER_PER_BELL'));
+    !/POWER_PER_BELL/.test(simSrc + bells) &&
+    !/t: 'bell'[\s\S]{0,400}?boostMeter/.test(simSrc) &&
+    /collectNear\(this\.player, chain\)/.test(simSrc));
   check('a clean reading streak is what brings a heart back',
     simSrc.includes('this.wordGates.streak') && simSrc.includes('STREAK_REPAIR_BY_HEARTS') &&
     simSrc.includes("t: 'heart_restore'"));

@@ -1,3 +1,4 @@
+import TUNING from '../TUNING.js';
 import { makeRng, mixSeed } from '../sim/rng.js';
 
 export const HEARTS = {
@@ -25,11 +26,11 @@ export const HEARTS = {
   STREAK_REPAIR_BY_HEARTS: [3, 3, 5],
   STREAK_REPAIR_DEFAULT: 5,
 
-  // The bells keep the meter drip and the banked currency. This is only the
-  // five-note cadence their pickup sound climbs, which is why it survived the
-  // heart-repair rule it used to be named for.
-  BELL_TONE_CYCLE: 5,
-  POWER_PER_BELL: 1.25,
+  // RC10.9: the bells keep the banked currency and nothing else. The five-note
+  // cadence they ring is no longer a constant here at all — it is the chain
+  // chime's own ladder, continued (src/audio/ladder.js), which is the point of
+  // the change. The boost-meter dial went with the meter it paid; the read
+  // absorbed its share (TUNING.WORDS.CORRECT_FILL) and now pays all of it.
 };
 
 export const BELL_LINES = {
@@ -51,15 +52,62 @@ export const BELL_LINES = {
   PICKUP_D: 1.9,
   HAZARD_PAD: 2.8,
   LOOK_AHEAD: 13,
+
+  // RC10.9 — how much of a string the chain has earned. Measured, a bell was
+  // collected on 100 % of runs at every accuracy: no steering verb exists, the
+  // string rides `corridorX` and weaves 0.25–0.8 m inside a 2.6 m window, so
+  // the count was the odometer with a pickup's costume on. Phase 23 had
+  // already made this argument once and taken HEARTS off them for it — "a fail
+  // state should not be refilled by something the player has no say in" — and
+  // then left the meter and the currency exactly where they were.
+  //
+  // A bell now lights only while a chain is live, and the chain says how much
+  // of the string lights. Nothing about WHERE a bell is has changed: the field
+  // is still seeded from the route alone, so the DAILY lays out identically
+  // for everyone and only the lit state reads the player.
+  // The whole string at the chain cap. With COUNT 7 against a cap of 8 this
+  // lands on the simplest rule the game could have: ONE BELL PER LINK.
+  LIT_FULL_CHAIN: TUNING.BOOST.CHAIN_CAP,
 };
 
 /**
- * Bells are the run's ambient pickup: a route-shaped drip of boost meter and
- * banked currency. With no steering verb they are deliberately NOT a skill
- * test — they sit on the line the runner already travels; the reward is
- * rhythm, not aim. Phase 23 took the heart repair off them for exactly that
- * reason: a fail state should not be refilled by something the player has no
- * say in.
+ * How many of a string's bells the chain has lit, leading end first — so the
+ * string grows FORWARD along the track as the chain builds, and a player who
+ * has just started a chain sees it reaching further ahead with each read.
+ *
+ * Zero at chain 0, by construction and by gate: an unlit bell is not a bell.
+ * One at the very first link, so a first read is visibly answered by the world
+ * rather than by a threshold nobody was told about.
+ */
+export function litCount(chain = 0) {
+  const c = Math.max(0, chain | 0);
+  if (c === 0) return 0;
+  const full = Math.max(1, BELL_LINES.LIT_FULL_CHAIN);
+  return Math.min(BELL_LINES.COUNT, Math.ceil(BELL_LINES.COUNT * Math.min(c, full) / full));
+}
+
+/** The same thing 0..1, for whatever wants to draw it. */
+export function litFraction(chain = 0) {
+  return litCount(chain) / BELL_LINES.COUNT;
+}
+
+/** Is this particular bell lit right now? Position is seeded; this is not. */
+export function bellLit(bell, chain = 0) {
+  return (bell?.i | 0) < litCount(chain);
+}
+
+/**
+ * Bells are the CHAIN, made visible in the track ahead. The field is seeded
+ * from the route and nothing else — every player meets the same strings in the
+ * same places, and the DAILY is identical for everyone — but a bell only lights
+ * while a chain is live, and the chain says how much of its string lights.
+ *
+ * With no steering verb they are deliberately NOT a test of aim; they sit on
+ * the line the runner already travels. RC10.9 moved what they test from the
+ * hand to the reading: collection stays automatic, having anything to collect
+ * does not. They pay banked currency and nothing else — no hearts (Phase 23),
+ * no boost meter (RC10.9), because a dash the reading did not buy is a dash
+ * that dilutes the only verb this game has.
  */
 export class BellField {
   constructor(seed = 0, terrain = null) {
@@ -155,10 +203,20 @@ export class BellField {
     return out;
   }
 
-  collectNear(player) {
+  /**
+   * RC10.9: a bell must be LIT to be collected. An unlit bell is not missed
+   * and not consumed — it simply falls behind unlit, and the same string lights
+   * for the next player who arrives at it holding a chain. That is the whole
+   * change: collection is still automatic, because there is nothing to steer;
+   * what is no longer automatic is having anything to collect.
+   */
+  collectNear(player, chain = 0) {
+    const lit = litCount(chain);
+    if (lit <= 0) return [];
     const nearby = this.around(player.d, 6, 8);
     const picked = [];
     for (const bell of nearby) {
+      if (bell.i >= lit) continue;
       if (Math.abs(player.d - bell.d) > BELL_LINES.PICKUP_D) continue;
       if (Math.abs(player.x - bell.x) > BELL_LINES.PICKUP_X) continue;
       this.collected.add(bell.id);

@@ -3506,3 +3506,105 @@ past the cap, the score multiplier at the calibrated dial. And the drop is held
 too — a wrong read zeroes the chain, so every cue is at its floor on the very
 next frame, with the Editorial world the one deliberate exception: it falls one
 layer rather than to nothing, because the world remembers what still stands.
+
+## 1.0-RC10.9 — the bells earn their keep
+
+The oldest system in the game was the only one never put on RC10.8's ladder,
+and it was the one that most needed to be. Driven on the DAILY seed at every
+accuracy from 70 % to 100 %, the bell count came back **equal to the spawn
+count, every time**. There is no steering verb; the runner auto-follows
+`corridorX`, the string rides that same line with a 0.25–0.8 m weave, and the
+pickup window is ±2.6 m. A bell could not be missed. It was an odometer in a
+pickup's costume, and it was paying:
+
+- **~13 % of the dash economy** on a distance schedule — 13.2 % of an 85 %
+  reader's whole boost meter, 11.9 % of a 95 % reader's, arriving whether or
+  not one word was read correctly. A dash the reading did not buy.
+- **The entire shop**, at 1 ◆ per bell — so `◆` was `distance × 23.7`, and
+  cosmetics were priced in kilometres travelled rather than words read.
+- **An objective that was another objective.** `230 BELLS` and `9700 M` are
+  the same ask; the pool shipped both.
+- **A second pentatonic ladder.** The chime climbed `[0, 2, 4, 7, 9]` from
+  660 Hz on the CHAIN; the bell climbed `[0, 4, 7, 11, 14]` from 622.25 Hz on
+  how many bells the run had happened to pass. A semitone apart, different
+  modes, one of them keyed to nothing the player did. Two melodies in two keys
+  is not two cues.
+
+Phase 23 had already made this argument once — it took the heart repair off
+the bells because "a fail state should not be refilled by something the player
+has no say in" — and then left the meter and the currency exactly where they
+were. RC10.9 finishes the sentence.
+
+### The chain lights the string
+
+A bell exists only while a chain is live, and the chain says how much of its
+string exists. With seven bells to a string against a chain cap of eight, the
+rule lands on the simplest thing it could have been: **one bell per link**,
+lighting from the leading end, so a string reaches further up the track with
+every clean read and the world answers the eleventh read as well as the first.
+At chain 0 there is no string at all — nothing dimmed, nothing teased, just
+bare track, which is what makes the first read light it.
+
+**Where a bell is has not changed by one metre.** The field is still seeded
+from the route and reads nothing about the player, so the DAILY is the same
+string of lights for everyone who runs it; only the lit state reads the chain.
+A gate holds exactly that, comparing the field's placements at chain 0 against
+chain 9 and requiring them byte-identical.
+
+Collection is still automatic. That was never the skill and it was never going
+to be — what is no longer automatic is having anything to collect.
+
+### The economy, moved onto the verb
+
+Bells pay banked currency and nothing else. `CORRECT_FILL` **6 → 6.8** absorbs
+the meter they used to pay, and 6.8 is not a taste: `ceil(100 / (F × 3.5))`
+must stay at 5 early reads from empty at chain 0 and 2 at the cap, which holds
+for F in [5.714, 7.143). 6.8 sits inside it and is +13.3 % — the share the
+bells were paying. So a dash still costs the same number of reads, and every
+one of them is now a read. The calibration table confirms it: 16 dashes for
+the 85 %, 95 % and 100 % readers, the same as before, at the same median
+reads-per-dash.
+
+What the currency does now is *discriminate*, which the odometer never did:
+
+```
+ acc | distance | earned | the odometer would have paid | kept
+  70% |    1982m |     12 |                          47 |  26%
+  85% |   17687m |    171 |                         420 |  41%
+  95% |   21790m |    414 |                         517 |  80%
+ 100% |   23296m |    545 |                         553 |  99%
+```
+
+`230 BELLS` is replaced by `M IN CHAIN` — metres run with a chain standing.
+Same shape of ask, a long ladder filled by playing, but it only accrues while
+the reading is clean, and it is exactly what a lit string draws in the world,
+so the card and the track now measure one thing. The distance ladder stays.
+
+### One ladder, two voices
+
+`src/audio/ladder.js` holds the whole of it: one table, one root, one cap. The
+chime's pitches are unchanged to the hertz. The string is the **five rungs
+immediately above wherever the chime just landed** — hearing a lit string is
+hearing what the next five reads will sound like, which is the only thing a
+pickup on an auto-followed line can honestly be. Past the chain cap it parks
+on the ladder's top five rungs, because it cannot climb past the two octaves
+the chime is confined to, and those are the rungs the chime itself reaches
+while a dash chain is running.
+
+Three checks drive both voices against each other across chain 0–160: every
+note either sings is in the same pentatonic from the same root; the string
+ascends and strictly continues the chime wherever the chime has headroom; and
+no file keeps a private copy of the notes — the bell's pitch is a function of
+the chain, never of how far the run has come. The bell string joins the cue
+table as its ninth row.
+
+### What did not move
+
+The behaviour snapshot regenerated with a single field changed: `bellsCollected`
+and its event count. Every score, every heart, every distance, every word count
+in all seven frozen runs is byte-identical (a clean reader keeps 280 of 287
+bells — the seven before the first chain). Two gates that asserted the old
+rules were rewritten rather than deleted, and the new rules are held: a run
+that answers nothing lights no bell on any seed, and a first-timer reading the
+guided opening lights a string inside four clean reads — measured worst case,
+two.

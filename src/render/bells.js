@@ -15,6 +15,7 @@
  */
 
 import * as THREE from 'three';
+import { litCount, litFraction } from '../design/bells.js';
 
 export class BellRenderer {
   constructor(scene, terrain, field) {
@@ -23,6 +24,7 @@ export class BellRenderer {
     this.max = 56;
     this.lastT = -Infinity;
     this.lastD = -Infinity;
+    this.lastChain = -1;
     this.dummy = new THREE.Object3D();
 
     // Phase V (playtest: "bell colour on the track needs to change"): the
@@ -77,21 +79,45 @@ export class BellRenderer {
     this.halo.count = 0;
     this.lastT = -Infinity;
     this.lastD = -Infinity;
+    this.lastChain = -1;
   }
 
-  update(distance, t) {
-    if (t - this.lastT < 0.05 && Math.abs(distance - this.lastD) < 7) return;
+  /**
+   * RC10.9: the chain draws the string. `chain` decides how many of each
+   * string's seven bells exist to be seen at all (design/bells.js `litCount`
+   * — the same function the sim collects by, so the eye and the ledger can
+   * never disagree), and how brightly. Positions are untouched: they are
+   * seeded from the route and read nothing about the player.
+   */
+  update(distance, t, chain = 0) {
+    if (t - this.lastT < 0.05 && Math.abs(distance - this.lastD) < 7
+      && chain === this.lastChain) return;
     this.lastT = t;
     this.lastD = distance;
+    this.lastChain = chain;
 
-    const bells = this.field.around(distance, 35, 360).slice(0, this.max);
+    const lit = litCount(chain);
+    if (lit <= 0) {
+      // Chain 0: there is no string. Nothing is dimmed and nothing is teased —
+      // the track is simply bare, which is what makes the first read light it.
+      this.body.count = 0; this.clapper.count = 0; this.halo.count = 0;
+      return;
+    }
+    // A longer chain is a brighter string as well as a longer one, so the
+    // world answers the eleventh clean read and not only the first.
+    const f = litFraction(chain);
+    this.body.material.emissiveIntensity = 1.5 + 1.1 * f;
+    this.halo.material.opacity = 0.20 + 0.22 * f;
+
+    const bells = this.field.around(distance, 35, 360)
+      .filter((b) => b.i < lit).slice(0, this.max);
     let n = 0;
     for (const bell of bells) {
       const bob = Math.sin(t * 2.6 + bell.phase) * 0.065;
       const y = this.terrain.heightAt(bell.x, bell.d) + 1.5 + bob;
       this.dummy.position.set(bell.x, y, -bell.d);
       this.dummy.rotation.set(0, t + bell.phase, 0);
-      this.dummy.scale.setScalar(1);
+      this.dummy.scale.setScalar(0.86 + 0.14 * f);
       this.dummy.updateMatrix();
       this.body.setMatrixAt(n, this.dummy.matrix);
       this.halo.setMatrixAt(n, this.dummy.matrix);

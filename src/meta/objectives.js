@@ -56,11 +56,18 @@ export const POOL = [
     progress: (t, r) => Math.min(1, (r.correct ?? 0) / t),
   },
   {
-    id: 'bells',
-    steps: [20, 40, 70, 110, 160, 230],
-    label: (t) => `${t} BELLS`,
-    met: (t, r) => (r.bells ?? 0) >= t,
-    progress: (t, r) => Math.min(1, (r.bells ?? 0) / t),
+    // RC10.9 — was `230 BELLS`, which was `9700 M` said twice: bells arrived at
+    // 23.7 per kilometre on an auto-followed line and were collected on 100 %
+    // of runs at every accuracy, so the ladder measured travel and called it a
+    // pickup. Metres run with a chain STANDING is the same shape of ask — a
+    // long ladder you fill by playing — that only pays while the reading is
+    // clean. It is also exactly what a lit bell string draws in the world, so
+    // the card and the track are now measuring one thing.
+    id: 'chainheld',
+    steps: [400, 800, 1400, 2200, 3200, 4500],
+    label: (t) => `${t} M IN CHAIN`,
+    met: (t, r) => (r.chainMetres ?? 0) >= t,
+    progress: (t, r) => Math.min(1, (r.chainMetres ?? 0) / t),
   },
   {
     // Never tapped a fake. Missing a real is allowed — the two mistakes are

@@ -283,6 +283,42 @@ head('TRACK — routed, winding, auto-followed (Phase L)');
     'a self-derived bound can only say the ramp is smooth, never that the road is readable');
 }
 
+// ── RC10.9: the bells are the chain, made visible ────────────────────────
+// Two things have to be true at once, and they pull against each other: a
+// bell may not exist without a chain (or the count is the odometer again),
+// and a first-timer must meet one almost immediately (or the world looks
+// broken to the only player who has nothing to compare it against).
+head('BELLS — lit by the chain, and lit early enough to be understood');
+
+{
+  const seeds = [DAILY, ...SEEDS.slice(1, 5)];
+  let worstFirst = 0, worstSeed = 0, silent = 0, litRuns = 0;
+  for (const seed of seeds) {
+    // A player who answers nothing: never a chain, so never a bell.
+    const cold = run(seed, 60 * 90, () => ({ confirm: false }));
+    silent += cold.bellsCollected;
+    // A first-timer through the guided opening, reading correctly.
+    let firstAt = null, reads = 0;
+    const sim = new Sim(seed);
+    sim.start(seed, null, { mode: 'standard' });
+    const input = emptyInput();
+    for (let i = 0; i < 60 * 240 && sim.phase === PHASE.RUNNING; i++) {
+      input.confirm = reader(sim);
+      const before = sim.bellsCollected;
+      sim.step(input);
+      reads = sim.wordGates.correctCount;
+      if (firstAt === null && sim.bellsCollected > before) firstAt = reads;
+    }
+    if (firstAt !== null) { litRuns++; if (firstAt > worstFirst) { worstFirst = firstAt; worstSeed = seed; } }
+  }
+  check('a run with no chain lights no bell, on any seed — an unlit bell is not a bell',
+    silent === 0, `${silent} bells collected across ${seeds.length} runs answering nothing`);
+  check('and a first-timer reading the guided opening lights a string inside four clean reads',
+    litRuns === seeds.length && worstFirst > 0 && worstFirst <= 4,
+    `worst ${worstFirst} clean read(s) to the first bell (seed ${worstSeed >>> 0}), ` +
+    `over ${litRuns}/${seeds.length} seeds`);
+}
+
 head('SPEED — deterministic consequence, floored and ceilinged');
 
 {

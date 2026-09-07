@@ -31,7 +31,7 @@ import { breathAt } from './ui/breath.js';
 import { PadReader, padConnected } from './input/gamepad.js';
 import { ControllerNav } from './ui/controller-nav.js';
 import { BellRenderer } from './render/bells.js';
-import { HEARTS } from './design/bells.js';
+import { stringStep } from './audio/ladder.js';
 import { flowFactor, flowGlow, flowLevel } from './render/flow-curve.js';
 import { viewPlayer, viewBeast } from './render/view-pose.js';
 import { ACCESS, initAccess, buildAccessPanel } from './ui/access.js';
@@ -883,7 +883,7 @@ function finalizeRun() {
     falseTaps: wg.falseTaps,
     correct: wg.correctCount,
     bestChain: sim.player.bestChain,
-    bells: sim.bellsCollected || 0,
+    chainMetres: sim.chainMetres || 0,
     streak: dailyCard.streak,
     dashMeterSpent: sim.player.boostSpent,
   });
@@ -1357,7 +1357,10 @@ function drainSimEvents() {
       // sim.hearts in ui.update; these are only the sounds.
       case 'heart_lost': audio.heartLost(); break;
       case 'heart_restore': audio.heartRestore(); break;
-      case 'bell': audio.bell((((e.charge | 0) - 1) % HEARTS.BELL_TONE_CYCLE + HEARTS.BELL_TONE_CYCLE) % HEARTS.BELL_TONE_CYCLE); break;
+      // RC10.9: the string continues the chain chime's ladder, so the pitch
+      // comes from the chain and the bell's place in its string — never from
+      // how many bells this run has happened to pass.
+      case 'bell': audio.bell(stringStep(e.chain, e.i)); break;
       case 'overdrive_on':
         learn('Dash');
         // The DASH lands as one event across three channels (Phase 16):
@@ -1576,7 +1579,7 @@ function tick(dt) {
   terrainMesh.pump();
   props.update(pv.d);
   if (bellRenderer.terrain !== sim.terrain) bellRenderer.reset(sim.terrain);
-  bellRenderer.update(pv.d, performance.now() / 1000);
+  bellRenderer.update(pv.d, performance.now() / 1000, sim.player.chain | 0);
   landmarks.update(pv.d);
   wordGateActors.update(dt, pv.d, stage.camera);
   streakBurst.update(paused ? 0 : dt, stage.camera);
