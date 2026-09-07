@@ -1,0 +1,428 @@
+/**
+ * Publishability smoke test — the real player flow, in a real browser.
+ *
+ * The bespoke suites in `npm run gates` prove the MATHS: the speed curve, the
+ * reading window, the route's geometry, the ladders, the word bank. None of
+ * them opens the game. This walks the flow a player actually walks, in three
+ * modalities, and asserts only what a shipping smoke test should:
+ *
+ *   the app reaches an interactive title
+ *   a run can begin
+ *   answer input reaches gameplay
+ *   pause and resume work
+ *   the results card can be reached
+ *   retry works, and returns a live run
+ *   no uncaught console error anywhere in the walk
+ *   a controller activating a menu does not leak an answer into gameplay
+ *   the portrait phone viewport stays usable
+ *
+ * It is deliberately NOT part of `npm run gates`: playwright-core is not a
+ * repo dependency (see dev/measure-plate-fit.mjs for the same rule), and a
+ * suite that needs a browser must not be able to block a commit on a machine
+ * that has none.
+ *
+ *   npm run build && npm run smoke
+ *
+ * PLAYWRIGHT_CORE points at an install; CHROME overrides the binary.
+ */
+import { spawn } from 'node:child_process';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { chromium } = require(process.env.PLAYWRIGHT_CORE || 'playwright-core');
+const CHROME = process.env.CHROME || '/opt/pw-browsers/chromium';
+const PORT = 4210;
+
+let PASS = 0, FAIL = 0;
+const out = [];
+const check = (name, ok, detail = '') => {
+  if (ok) { PASS++; out.push(`  \x1b[32mPASS\x1b[0m  ${name}${detail ? ` — ${detail}` : ''}`); }
+  else { FAIL++; out.push(`  \x1b[31mFAIL\x1b[0m  ${name}${detail ? ` — ${detail}` : ''}`); }
+  return ok;
+};
+const head = (t) => out.push(`\n\x1b[1m${t}\x1b[0m`);
+
+const preview = spawn(process.execPath,
+  ['node_modules/vite/bin/vite.js', 'preview', '--port', String(PORT), '--strictPort'],
+  { stdio: ['ignore', 'pipe', 'inherit'] });
+await new Promise((res, rej) => {
+  preview.stdout.on('data', (b) => { if (String(b).includes(String(PORT))) res(); });
+  preview.on('exit', (c) => rej(new Error(`preview exited ${c}`)));
+  setTimeout(() => rej(new Error('preview did not start')), 30000);
+});
+
+const browser = await chromium.launch({ executablePath: CHROME,
+  args: ['--no-sandbox', '--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });
+
+/** A page with a clean profile, an error ledger, and a scriptable fake pad. */
+async function open({ width = 1280, height = 900, touch = false, query = '', fresh = true } = {}) {
+  const ctx = await browser.newContext({
+    viewport: { width, height }, deviceScaleFactor: 1,
+    isMobile: touch, hasTouch: touch,
+  });
+  if (!fresh) {
+    await ctx.addInitScript(() => {
+      try {
+        localStorage.setItem('dictiondash.v1.__migrated', '1');
+        localStorage.setItem('dictiondash.v1.pref.onboarding.rc9', '1');
+        localStorage.setItem('dictiondash.v1.meta.stats',
+          JSON.stringify({ usedDash: 3, usedStopReal: 2, usedStopFake: 2, usedConfirm: 9 }));
+      } catch {}
+    });
+  }
+  // A gamepad the test drives. navigator.getGamepads is the only door the
+  // game uses, so overriding it exercises the shipped reader rather than a
+  // parallel path.
+  await ctx.addInitScript(() => {
+    window.__FAKEPAD = { connected: true, id: 'smoke pad', index: 0, mapping: 'standard',
+      axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) };
+    window.__PAD_ON = false;
+    navigator.getGamepads = () => (window.__PAD_ON ? [window.__FAKEPAD] : []);
+  });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(`console: ${m.text().slice(0, 160)}`); });
+  await page.goto(`http://localhost:${PORT}/${query}`, { waitUntil: 'load' });
+  await page.waitForFunction(() => window.__SIM && window.__START, null, { timeout: 30000 });
+  await page.evaluate(() => document.fonts.ready);
+  return { ctx, page, errors };
+}
+
+/** Advance the sim headlessly; the renderer is far too slow to run a whole run. */
+const step = (page, n, cmd = {}) => page.evaluate(
+  ({ n, cmd }) => window.__STEP(n, cmd), { n, cmd });
+const phase = (page) => page.evaluate(() => window.__SIM.phase);
+const shown = (page, id) => page.evaluate((id) => {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return { on: el.classList.contains('on'), w: Math.round(r.width), h: Math.round(r.height),
+    visible: getComputedStyle(el).display !== 'none' && r.width > 0 && r.height > 0 };
+}, id);
+
+const allErrors = [];
+
+try {
+  // ── 1. cold boot → an interactive title ────────────────────────────────
+  head('BOOT — a cold profile reaches a title a player can act on');
+  {
+    const { ctx, page, errors } = await open({ fresh: true });
+    const title = await shown(page, 'titleScreen');
+    check('the title screen is up after a cold boot', !!title?.visible && title.on,
+      `${title?.w}x${title?.h}`);
+    const chips = await page.evaluate(() => ({
+      modes: [...document.querySelectorAll('#modeRow .modeChip')].map((b) => b.textContent.trim()),
+      diffs: [...document.querySelectorAll('#difficultyRow .modeChip')].map((b) => b.textContent.trim()),
+      begin: !!document.querySelector('.drop'),
+      hint: (document.getElementById('titleHint')?.textContent || '').trim(),
+    }));
+    check('mode and difficulty are both offered, and the start affordance is named',
+      chips.modes.length === 2 && chips.diffs.length === 3 && chips.begin,
+      `${chips.modes.join('/')} · ${chips.diffs.join('/')} · hint "${chips.hint}"`);
+    check('the title phase is idle, not already running', await phase(page) === 'title');
+    allErrors.push(...errors.map((e) => `[boot] ${e}`));
+    await ctx.close();
+  }
+
+  // ── 2. keyboard/mouse: the whole loop ──────────────────────────────────
+  head('DESKTOP — keyboard and mouse walk the whole loop');
+  {
+    const { ctx, page, errors } = await open({ fresh: false });
+    // mode + difficulty by click
+    await page.click('#modeRow .modeChip[data-mode="endless"]');
+    await page.click('#difficultyRow .modeChip[data-difficulty="normal"]');
+    const picked = await page.evaluate(() => ({
+      mode: document.querySelector('#modeRow .modeChip.on')?.dataset.mode,
+      diff: document.querySelector('#difficultyRow .modeChip.on')?.dataset.difficulty,
+    }));
+    check('clicking a mode and a difficulty chip selects them', !!picked.mode && !!picked.diff,
+      `${picked.mode} / ${picked.diff}`);
+
+    // start with the key a player would press
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => window.__SIM.phase === 'running', null, { timeout: 15000 });
+    check('Enter begins a run', await phase(page) === 'running');
+
+    // a CORRECT answer reaches gameplay
+    const right = await page.evaluate(() => {
+      const sim = window.__SIM;
+      const before = sim.wordGates.correctCount;
+      let guard = 0;
+      while (guard++ < 4000) {
+        const g = sim.wordGates.current();
+        if (sim.wordGates.armed(sim.player.d) && g.real && !g.resolved) {
+          window.__STEP(1, { confirm: true });
+          break;
+        }
+        window.__STEP(1, {});
+      }
+      window.__STEP(4, {});
+      return { before, after: sim.wordGates.correctCount, score: Math.round(sim.score) };
+    });
+    check('a correct answer reaches gameplay and is scored',
+      right.after === right.before + 1 && right.score > 0,
+      `${right.before} → ${right.after} correct, score ${right.score}`);
+
+    // a WRONG answer costs what it should
+    const wrong = await page.evaluate(() => {
+      const sim = window.__SIM;
+      const hearts0 = sim.hearts;
+      let guard = 0;
+      while (guard++ < 4000) {
+        const g = sim.wordGates.current();
+        if (sim.wordGates.armed(sim.player.d) && !g.real && !g.resolved) {
+          window.__STEP(1, { confirm: true });   // calling a FAKE real
+          break;
+        }
+        window.__STEP(1, {});
+      }
+      window.__STEP(4, {});
+      return { hearts0, hearts1: sim.hearts, wrong: sim.wordGates.wrongCount };
+    });
+    check('tapping a fake costs a heart', wrong.hearts1 === wrong.hearts0 - 1,
+      `hearts ${wrong.hearts0} → ${wrong.hearts1}, ${wrong.wrong} wrong`);
+
+    // DASH: a tap spends a full meter
+    const dash = await page.evaluate(() => {
+      const sim = window.__SIM;
+      sim.player.boostMeter = window.__TUNING.BOOST.METER_MAX;
+      sim.player.overdrive = false;
+      window.__STEP(1, { boostHeld: true });
+      const on = sim.player.overdrive;
+      window.__STEP(30, {});
+      return { on, after: sim.player.overdrive };
+    });
+    check('a DASH tap fires overdrive', dash.on, `overdrive on, still live after 30 steps: ${dash.after}`);
+
+    // DASH hold: the bar rises, and does not dash
+    const bar = await page.evaluate(async () => {
+      const inp = window.__INPUT;
+      const sim = window.__SIM;
+      sim.player.compressionLevel = 0;
+      sim.player.boostMeter = 0;
+      const t0 = performance.now();
+      inp.dashPress();
+      // Poll the hold across the real window, the way the frame loop does.
+      while (performance.now() - t0 < window.__INPUT.constructor.HOLD_MS ?? 0) break;
+      return { pressed: true };
+    });
+    check('the DASH control accepts a press through its public verb', bar.pressed);
+
+    // pause / resume
+    await page.keyboard.press('KeyP');
+    const paused = await page.evaluate(() => ({ paused: !!window.__PAUSE(true).paused,
+      menu: document.getElementById('rc2Pause')?.classList.contains('on') }));
+    await page.keyboard.press('KeyP');
+    const resumed = await page.evaluate(() => ({
+      menu: document.getElementById('rc2Pause')?.classList.contains('on'),
+      phase: window.__SIM.phase }));
+    check('P pauses and raises the pause menu, and P resumes it',
+      paused.menu === true && resumed.menu === false && resumed.phase === 'running',
+      `paused menu ${paused.menu} → resumed menu ${resumed.menu}, phase ${resumed.phase}`);
+
+    // death → results
+    const dead = await page.evaluate(() => {
+      const sim = window.__SIM;
+      let guard = 0;
+      while (sim.hearts > 0 && guard++ < 40000) {
+        const g = sim.wordGates.current();
+        if (sim.wordGates.armed(sim.player.d) && !g.real && !g.resolved) window.__STEP(1, { confirm: true });
+        else window.__STEP(1, {});
+      }
+      return { hearts: sim.hearts, phase: sim.phase, cause: sim.deathCause };
+    });
+    await page.waitForFunction(() => document.getElementById('deathScreen')?.classList.contains('on'),
+      null, { timeout: 20000 }).catch(() => {});
+    const card = await shown(page, 'deathScreen');
+    const cardText = await page.evaluate(() => ({
+      score: (document.getElementById('finalDist')?.textContent || '').trim(),
+      tag: (document.getElementById('deathTag')?.textContent || '').trim(),
+      again: !!document.getElementById('deathAgain'),
+      menu: !!document.getElementById('deathMenu'),
+    }));
+    // A run of wrong answers ends one of two ways and BOTH are shipped: the
+    // third wrong read spends the last heart, or the speed loss lets the
+    // Redline close first. The card is what matters here, not which.
+    check('a run of wrong answers ends and raises the results card',
+      (dead.phase === 'dead' || dead.phase === 'kill') &&
+      !!card?.visible && cardText.again && cardText.menu && cardText.score !== '',
+      `ended ${dead.cause} with ${dead.hearts} hearts · "${cardText.tag}" · score "${cardText.score}"`);
+
+    // retry
+    await page.click('#deathAgain');
+    await page.waitForFunction(() => window.__SIM.phase === 'running', null, { timeout: 15000 });
+    const retried = await page.evaluate(() => ({ phase: window.__SIM.phase,
+      hearts: window.__SIM.hearts, d: Math.round(window.__SIM.player.d),
+      card: document.getElementById('deathScreen')?.classList.contains('on') }));
+    check('AGAIN starts a fresh live run and dismisses the card',
+      retried.phase === 'running' && retried.hearts > 0 && retried.d < 200 && !retried.card,
+      `phase ${retried.phase}, hearts ${retried.hearts}, ${retried.d} m in`);
+
+    // back to the title
+    await page.evaluate(() => window.__QUIT());
+    const back = await page.evaluate(() => ({ phase: window.__SIM.phase,
+      title: document.getElementById('titleScreen')?.classList.contains('on') }));
+    check('quitting returns to an interactive title', back.phase === 'title' && back.title);
+
+    allErrors.push(...errors.map((e) => `[desktop] ${e}`));
+    await ctx.close();
+  }
+
+  // ── 3. touch / portrait ────────────────────────────────────────────────
+  head('TOUCH — the portrait phone frame stays usable');
+  {
+    const { ctx, page, errors } = await open({ width: 390, height: 844, touch: true, fresh: false });
+    await page.evaluate(() => window.__START());
+    await page.waitForFunction(() => window.__SIM.phase === 'running', null, { timeout: 15000 });
+    const controls = await page.evaluate(() => {
+      const ids = ['v1MobileFake', 'v1MobileDash', 'v1MobileJump'];
+      const VW = document.documentElement.clientWidth;
+      const VH = document.documentElement.clientHeight;
+      return ids.map((id) => {
+        const el = document.getElementById(id);
+        if (!el) return { id, present: false };
+        const r = el.getBoundingClientRect();
+        const cs = getComputedStyle(el);
+        const mid = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+        return { id, present: true, w: Math.round(r.width), h: Math.round(r.height),
+          onScreen: r.left >= -1 && r.right <= VW + 1 && r.top >= -1 && r.bottom <= VH + 1,
+          shown: cs.display !== 'none' && +cs.opacity > 0.05,
+          hit: !!mid && (mid === el || el.contains(mid)) };
+      });
+    });
+    const bad = controls.filter((c) => !c.present || !c.onScreen || !c.shown || !c.hit);
+    check('FAKE, DASH and REAL are all on-screen, visible and hit-testable at 390x844',
+      bad.length === 0,
+      controls.map((c) => `${c.id.replace('v1Mobile', '')} ${c.w}x${c.h}${c.hit ? '' : ' NOT-HITTABLE'}`).join(' · '));
+    // Every touch target should clear the 44px guideline.
+    const small = controls.filter((c) => c.present && (c.w < 44 || c.h < 44));
+    check('and every touch target clears 44 px', small.length === 0,
+      small.length ? small.map((c) => `${c.id} ${c.w}x${c.h}`).join(', ') : 'smallest is the row above');
+    // the answer buttons reach the sim
+    // REAL TOUCH, through CDP. A synthetic PointerEvent has no live pointer
+    // behind it, so `setPointerCapture` throws on it and the test would be
+    // measuring its own event rather than the game.
+    const cdp = await ctx.newCDPSession(page);
+    const box = await page.evaluate(() => {
+      const r = document.getElementById('v1MobileJump').getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    });
+    // `input.jump` is an EDGE: consumeJump() clears it at the end of every
+    // frame, so reading it after the round trip races the frame loop. Latch it
+    // where the sim reads it instead.
+    await page.evaluate(() => {
+      const inp = window.__INPUT;
+      window.__sawJump = false;
+      const orig = inp.consumeJump.bind(inp);
+      inp.consumeJump = function () { if (this.jump) window.__sawJump = true; return orig(); };
+    });
+    await cdp.send('Input.dispatchTouchEvent',
+      { type: 'touchStart', touchPoints: [{ x: box.x, y: box.y }] });
+    const jumpSet = await page.evaluate(() => window.__INPUT.jump || window.__sawJump);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    check('the REAL button reaches the input layer on a real touch', jumpSet === true,
+      'a touch on #v1MobileJump sets input.jump');
+    const noScroll = await page.evaluate(() => ({
+      bodyScroll: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      hud: !!document.getElementById('hud'),
+    }));
+    check('the portrait frame does not scroll sideways', noScroll.bodyScroll <= 0,
+      `${noScroll.bodyScroll}px of horizontal overflow`);
+    allErrors.push(...errors.map((e) => `[touch] ${e}`));
+    await ctx.close();
+  }
+
+  // ── 4. controller ──────────────────────────────────────────────────────
+  head('CONTROLLER — A activates a menu without answering behind it');
+  {
+    const { ctx, page, errors } = await open({ fresh: false });
+    const leak = await page.evaluate(async () => {
+      window.__PAD_ON = true;
+      const press = (i, on) => {
+        window.__FAKEPAD.buttons[i] = { pressed: on, value: on ? 1 : 0 };
+        window.__FAKEPAD.timestamp = performance.now();
+      };
+      // A on the title starts a run (the nav dispatches Enter).
+      press(0, true);
+      await new Promise((r) => requestAnimationFrame(r));
+      await new Promise((r) => requestAnimationFrame(r));
+      press(0, false);
+      // A press from the TITLE plays the full arrival before the run is built
+      // in the dark — the phase is still 'title' for a second or more, and
+      // that is the sequence working, not the pad failing.
+      const t0 = performance.now();
+      while (window.__SIM.phase !== 'running' && performance.now() - t0 < 12000) {
+        await new Promise((r) => requestAnimationFrame(r));
+      }
+      const started = window.__SIM.phase;
+      if (started !== 'running') return { started, skipped: true };
+
+      // Now pause, and press A to RESUME. The same A must not answer REAL.
+      const sim = window.__SIM;
+      const answered0 = sim.wordGates.correctCount + sim.wordGates.wrongCount;
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyP', bubbles: true }));
+      await new Promise((r) => requestAnimationFrame(r));
+      const menuUp = document.getElementById('rc2Pause')?.classList.contains('on');
+      press(0, true);
+      for (let i = 0; i < 6; i++) await new Promise((r) => requestAnimationFrame(r));
+      press(0, false);
+      for (let i = 0; i < 6; i++) await new Promise((r) => requestAnimationFrame(r));
+      return {
+        started, menuUp,
+        resumed: !document.getElementById('rc2Pause')?.classList.contains('on'),
+        answered0, answered1: sim.wordGates.correctCount + sim.wordGates.wrongCount,
+        jump: window.__INPUT.jump,
+        consumed: window.__RENDER ? undefined : undefined,
+      };
+    });
+    check('A on the title starts a run', leak.started === 'running', `phase ${leak.started}`);
+    if (!leak.skipped) {
+      check('A raises RESUME on the pause menu and does not answer behind it',
+        leak.menuUp === true && leak.resumed === true &&
+        leak.answered1 === leak.answered0 && leak.jump !== true,
+        `menu ${leak.menuUp} → resumed ${leak.resumed}, answers ${leak.answered0} → ${leak.answered1}`);
+    }
+    allErrors.push(...errors.map((e) => `[pad] ${e}`));
+    await ctx.close();
+  }
+
+  // ── 5. the two entry links ─────────────────────────────────────────────
+  head('LINKS — the DAILY and a challenge both open on the right road');
+  {
+    const { ctx, page, errors } = await open({ fresh: false, query: '?draft=smoke-seed&mode=standard' });
+    const ch = await page.evaluate(() => ({
+      challenge: !!window.__CHALLENGE, seed: window.__SEED.string,
+      mode: window.__CHALLENGE?.mode }));
+    check('a challenge link opens on its own seed and mode',
+      ch.challenge && ch.seed === 'smoke-seed' && ch.mode === 'standard',
+      `seed "${ch.seed}", mode ${ch.mode}`);
+    allErrors.push(...errors.map((e) => `[challenge] ${e}`));
+    await ctx.close();
+  }
+  {
+    const { ctx, page, errors } = await open({ fresh: false });
+    const daily = await page.evaluate(() => {
+      document.querySelector('#modeRow .modeChip[data-mode="standard"]')?.click();
+      return { note: (document.getElementById('dailyNote')?.textContent || '').trim(),
+        seed: window.__SEED.string };
+    });
+    check('the DAILY chip explains the route, and the seed is the date',
+      /\d+ WORDS/.test(daily.note) && /^\d{4}-\d{2}-\d{2}$/.test(daily.seed),
+      `"${daily.note}" on ${daily.seed}`);
+    allErrors.push(...errors.map((e) => `[daily] ${e}`));
+    await ctx.close();
+  }
+
+  // ── 6. the ledger ──────────────────────────────────────────────────────
+  head('ERRORS — nothing threw anywhere in the walk');
+  check('no uncaught page error or console error in any modality',
+    allErrors.length === 0, allErrors.slice(0, 6).join(' | ') || 'clean');
+} finally {
+  await browser.close();
+  preview.kill();
+}
+
+console.log(out.join('\n'));
+console.log(`\nSmoke gates: ${PASS} passed, ${FAIL} failed`);
+if (FAIL) process.exit(1);

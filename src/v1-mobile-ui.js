@@ -143,13 +143,20 @@ function ensureMobileUi() {
   const fakeDown = (e) => {
     if (fakePointer !== null) return;
     fakePointer = e.pointerId;
-    fake.setPointerCapture?.(e.pointerId);
-    fake.classList.add('held');
+    // RC11.3: THE ANSWER FIRST, capture second, and capture inside a try.
+    // RC10.8 found this on the DASH button and fixed only that one of the
+    // four call sites: `setPointerCapture` throws when the pointer is no
+    // longer live (a system gesture took it, a call arrived), and it used to
+    // throw BEFORE `input.reject` was set — so the press was swallowed AND
+    // `fakePointer` stayed set, wedging the button until a release that can
+    // never come. An answer must never depend on a nicety.
     const input = globalThis.__INPUT;
     if (input) {
       input.reject = true;
-      if (!input._firedFirst) { input._firedFirst = true; input.onFirstGesture?.(); }
+      input.fireFirstGesture?.();
     }
+    fake.classList.add('held');
+    try { fake.setPointerCapture?.(e.pointerId); } catch { /* not a live pointer */ }
     e.preventDefault();
   };
   const fakeUp = (e) => {
@@ -166,17 +173,16 @@ function ensureMobileUi() {
   const jumpDown = (e) => {
     if (jumpPointer !== null) return;
     jumpPointer = e.pointerId;
-    jump.setPointerCapture?.(e.pointerId);
-    jump.classList.add('held');
+    // RC11.3: the answer first, capture second, and capture inside a try —
+    // the same fix as FAKE above and as RC10.8 made on DASH.
     const input = globalThis.__INPUT;
     const player = globalThis.__SIM?.player;
     if (input) {
       input.jump = true;
-      if (!input._firedFirst) {
-        input._firedFirst = true;
-        input.onFirstGesture?.();
-      }
+      input.fireFirstGesture?.();
     }
+    jump.classList.add('held');
+    try { jump.setPointerCapture?.(e.pointerId); } catch { /* not a live pointer */ }
     e.preventDefault();
     e.stopPropagation();
   };

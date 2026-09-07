@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import './presentation-bridge.js';
 import '../rc9-audio.js';
 import '../rc7-feel.js';
 import '../rc81-ui.js';

@@ -152,8 +152,13 @@ export class Input {
     const opt = { passive: false };
 
     t.addEventListener('pointerdown', (e) => {
-      if (!this._firedFirst) { this._firedFirst = true; this.onFirstGesture?.(); }
-      t.setPointerCapture?.(e.pointerId);
+      this.fireFirstGesture();
+      // RC11.3: the LAST of the four `setPointerCapture` call sites RC10.8
+      // left unguarded. It throws when the pointer is no longer live, and an
+      // uncaught throw here abandons the whole pointerdown — the meta map
+      // never gets the entry, so the matching pointerup finds nothing and the
+      // gesture is lost. Capture is a nicety; tracking the pointer is not.
+      try { t.setPointerCapture?.(e.pointerId); } catch { /* not a live pointer */ }
       this.pointerMeta.set(e.pointerId, {
         x: e.clientX, y: e.clientY, type: e.pointerType || 'mouse',
         downX: e.clientX, downY: e.clientY, downT: performance.now(),
