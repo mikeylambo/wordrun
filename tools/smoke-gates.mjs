@@ -55,20 +55,23 @@ const browser = await chromium.launch({ executablePath: CHROME,
   args: ['--no-sandbox', '--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });
 
 /** A page with a clean profile, an error ledger, and a scriptable fake pad. */
-async function open({ width = 1280, height = 900, touch = false, query = '', fresh = true } = {}) {
+async function open({ width = 1280, height = 900, touch = false, query = '', fresh = true,
+  currency = 0 } = {}) {
   const ctx = await browser.newContext({
     viewport: { width, height }, deviceScaleFactor: 1,
     isMobile: touch, hasTouch: touch,
   });
   if (!fresh) {
-    await ctx.addInitScript(() => {
+    await ctx.addInitScript((cur) => {
+      window.__SMOKE_CURRENCY = cur;
       try {
         localStorage.setItem('dictiondash.v1.__migrated', '1');
         localStorage.setItem('dictiondash.v1.pref.onboarding.rc9', '1');
         localStorage.setItem('dictiondash.v1.meta.stats',
-          JSON.stringify({ usedDash: 3, usedStopReal: 2, usedStopFake: 2, usedConfirm: 9 }));
+          JSON.stringify({ usedDash: 3, usedStopReal: 2, usedStopFake: 2, usedConfirm: 9,
+            currency: cur }));
       } catch {}
-    });
+    }, currency);
   }
   // A gamepad the test drives. navigator.getGamepads is the only door the
   // game uses, so overriding it exercises the shipped reader rather than a
@@ -208,6 +211,34 @@ try {
       return { pressed: true };
     });
     check('the DASH control accepts a press through its public verb', bar.pressed);
+
+    // The DASH HOLD is a different verb on the same control, and the one a
+    // player is most likely to discover by accident. A press past HOLD_MS must
+    // raise the bar and must NOT dash.
+    const held = await page.evaluate(async () => {
+      const inp = window.__INPUT;
+      const sim = window.__SIM;
+      sim.player.compressionLevel = 0;
+      sim.player.boostMeter = 0;
+      inp.dashEdge = false;
+      inp.raiseBar = false;
+      const HOLD = inp.constructor.HOLD_MS ?? 520;
+      inp.dashPress();
+      const t0 = performance.now();
+      let raised = false;
+      // Drive the frame loop the way the game does until the window is past.
+      while (performance.now() - t0 < HOLD + 260) {
+        window.__TICK(1, 1 / 60);
+        if (sim.player.compressionLevel > 0) raised = true;
+        await new Promise((r) => setTimeout(r, 8));
+      }
+      inp.dashRelease();
+      window.__TICK(6, 1 / 60);
+      return { raised: raised || sim.player.compressionLevel > 0,
+        level: sim.player.compressionLevel, dashed: sim.player.overdrive };
+    });
+    check('holding the DASH control raises the bar and does not dash',
+      held.raised && !held.dashed, `level ${held.level}, overdrive ${held.dashed}`);
 
     // pause / resume
     await page.keyboard.press('KeyP');
@@ -384,6 +415,78 @@ try {
         `menu ${leak.menuUp} → resumed ${leak.resumed}, answers ${leak.answered0} → ${leak.answered1}`);
     }
     allErrors.push(...errors.map((e) => `[pad] ${e}`));
+    await ctx.close();
+  }
+
+  // ── 4b. the priced continue, and the reference card ───────────────────
+  head('OFFERS — the continue is priced, refusable, and never silent');
+  {
+    // The profile opens already able to afford a continue. Seeding it after
+    // load and reloading does NOT work: the init script runs again on reload
+    // and writes the stats key back over the seeded balance.
+    const { ctx, page, errors } = await open({ fresh: false, currency: 99999 });
+    await page.evaluate(() => window.__START());
+    await page.waitForFunction(() => window.__SIM.phase === 'running', null, { timeout: 15000 });
+    const died = await page.evaluate(() => {
+      const sim = window.__SIM;
+      let guard = 0;
+      while (sim.hearts > 0 && guard++ < 40000) {
+        const g = sim.wordGates.current();
+        if (sim.wordGates.armed(sim.player.d) && !g.real && !g.resolved) window.__STEP(1, { confirm: true });
+        else window.__STEP(1, {});
+      }
+      return { phase: sim.phase };
+    });
+    await page.waitForFunction(
+      () => document.getElementById('continueOffer')?.classList.contains('on') ||
+            document.getElementById('deathScreen')?.classList.contains('on'),
+      null, { timeout: 20000 }).catch(() => {});
+    const state = await page.evaluate(() => ({
+      offer: document.getElementById('continueOffer')?.classList.contains('on'),
+      buy: (document.getElementById('continueBuy')?.textContent || '').trim(),
+      balance: (document.getElementById('continueBalance')?.textContent || '').trim(),
+      pass: !!document.getElementById('continuePass'),
+      card: document.getElementById('deathScreen')?.classList.contains('on'),
+    }));
+    check('a player who can afford it IS offered a continue, priced, with the balance shown',
+      state.offer === true && /\u25c6\s*\d/.test(state.buy) && /\d/.test(state.balance) && state.pass,
+      state.offer ? `"${state.buy}" · "${state.balance}"` : 'NO OFFER — the card came up instead');
+    if (state.offer) {
+      await page.click('#continuePass');
+      await page.waitForFunction(() => document.getElementById('deathScreen')?.classList.contains('on'),
+        null, { timeout: 15000 }).catch(() => {});
+      const after = await page.evaluate(() => ({
+        offer: document.getElementById('continueOffer')?.classList.contains('on'),
+        card: document.getElementById('deathScreen')?.classList.contains('on') }));
+      check('declining the offer falls through to the results card',
+        after.offer === false && after.card === true);
+    }
+    allErrors.push(...errors.map((e) => `[continue] ${e}`));
+    await ctx.close();
+  }
+  {
+    const { ctx, page, errors } = await open({ fresh: false });
+    const card = await page.evaluate(async () => {
+      document.dispatchEvent(new Event('dictiondash:show-how'));
+      await new Promise((r) => setTimeout(r, 400));
+      const el = document.getElementById('rc7Onboarding');
+      return { on: !!el?.classList.contains('on'),
+        rules: el ? el.querySelectorAll('.rule').length : 0,
+        start: (el?.querySelector('[data-act="start"]')?.textContent || '').trim() };
+    });
+    check('HOW TO PLAY opens the reference card with its rules and a way out',
+      card.on && card.rules >= 5 && !!card.start,
+      `${card.rules} rules, dismissed by "${card.start}"`);
+    const closed = await page.evaluate(async () => {
+      document.querySelector('#rc7Onboarding [data-act="start"]')
+        ?.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
+      await new Promise((r) => setTimeout(r, 300));
+      return { on: !!document.getElementById('rc7Onboarding')?.classList.contains('on'),
+        phase: window.__SIM.phase };
+    });
+    check('and closing it returns to the title without starting a run',
+      closed.on === false && closed.phase === 'title', `phase ${closed.phase}`);
+    allErrors.push(...errors.map((e) => `[howto] ${e}`));
     await ctx.close();
   }
 
