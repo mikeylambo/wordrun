@@ -1,0 +1,190 @@
+{
+  "stills": [
+    {
+      "file": "R1-chain0-ribbon.png",
+      "seed": "2026-09-02",
+      "gateIndex": 4,
+      "plateAheadM": 38,
+      "word": "eve",
+      "real": true,
+      "chain": 0,
+      "speed": 36,
+      "gap": 48.1,
+      "fov": 77.7,
+      "cameraBack": -13,
+      "cameraHeight": 14,
+      "surfaceSat": 0.18,
+      "surfaceGain": 0.22,
+      "ruleGain": 0.1,
+      "plate": {
+        "devicePx": {
+          "w": 262.1,
+          "h": 65.6
+        },
+        "plateMeanLuma": 0.1795,
+        "plateMinLuma": 0.1001,
+        "platePeakLuma": 0.9718,
+        "surfaceBelowMeanLuma": 0.2467,
+        "roadPeakLuma": 1,
+        "roadMeanLuma": 0.2419,
+        "contrastPlateVsSurfaceBelow": 1.29,
+        "contrastPlateInkVsBacking": 6.81,
+        "contrastPlateVsBrightestRoad": 6.99
+      },
+      "frames": 167,
+      "d": 390
+    },
+    {
+      "file": "R2-chain25-ribbon.png",
+      "seed": "2026-09-02",
+      "gateIndex": 4,
+      "plateAheadM": 38,
+      "word": "eve",
+      "real": true,
+      "chain": 25,
+      "speed": 36,
+      "gap": 48.1,
+      "fov": 78.2,
+      "cameraBack": -13,
+      "cameraHeight": 14,
+      "surfaceSat": 0.59,
+      "surfaceGain": 0.46,
+      "ruleGain": 0.25,
+      "plate": {
+        "devicePx": {
+          "w": 259.6,
+          "h": 64.9
+        },
+        "plateMeanLuma": 0.1846,
+        "plateMinLuma": 0.1001,
+        "platePeakLuma": 0.9892,
+        "surfaceBelowMeanLuma": 0.4598,
+        "roadPeakLuma": 1,
+        "roadMeanLuma": 0.441,
+        "contrastPlateVsSurfaceBelow": 2.17,
+        "contrastPlateInkVsBacking": 6.92,
+        "contrastPlateVsBrightestRoad": 6.99
+      },
+      "frames": 167,
+      "d": 390
+    },
+    {
+      "file": "R3-chain150-crest-ribbon.png",
+      "seed": "2026-09-02",
+      "gateIndex": 4,
+      "plateAheadM": 38,
+      "word": "eve",
+      "real": true,
+      "chain": 150,
+      "speed": 36,
+      "gap": 48.1,
+      "fov": 78.2,
+      "cameraBack": -13,
+      "cameraHeight": 14,
+      "surfaceSat": 1,
+      "surfaceGain": 0.7,
+      "ruleGain": 0.4,
+      "plate": {
+        "devicePx": {
+          "w": 259.8,
+          "h": 65
+        },
+        "plateMeanLuma": 0.1893,
+        "plateMinLuma": 0.1007,
+        "platePeakLuma": 0.9718,
+        "surfaceBelowMeanLuma": 0.5753,
+        "roadPeakLuma": 1,
+        "roadMeanLuma": 0.5943,
+        "contrastPlateVsSurfaceBelow": 2.61,
+        "contrastPlateInkVsBacking": 6.78,
+        "contrastPlateVsBrightestRoad": 6.97
+      },
+      "frames": 167,
+      "d": 390
+    }
+  ],
+  "hueGate": {
+    "reserved": [
+      {
+        "deg": 3,
+        "why": "the Redline danger accent"
+      },
+      {
+        "deg": 28,
+        "why": "the deuteranopia danger accent"
+      },
+      {
+        "deg": 24,
+        "why": "the protanopia danger accent"
+      },
+      {
+        "deg": 350,
+        "why": "the tritanopia wrong-read cue"
+      },
+      {
+        "deg": 262,
+        "why": "streak-burst escalation tier 2"
+      },
+      {
+        "deg": 45,
+        "why": "streak-burst escalation tier 3"
+      }
+    ],
+    "minSeparation": 25,
+    "stops": [
+      {
+        "name": "violet",
+        "hue": 295,
+        "sat": 0.72,
+        "val": 0.78,
+        "clearance": 33,
+        "legal": true
+      },
+      {
+        "name": "(step over the tier-2 arc)",
+        "hue": 237,
+        "sat": 0.78,
+        "val": 0.8,
+        "step": true,
+        "clearance": 25,
+        "legal": true
+      },
+      {
+        "name": "blue",
+        "hue": 225,
+        "sat": 0.84,
+        "val": 0.86,
+        "clearance": 37,
+        "legal": true
+      },
+      {
+        "name": "cyan",
+        "hue": 192,
+        "sat": 0.86,
+        "val": 0.98,
+        "clearance": 70,
+        "legal": true
+      },
+      {
+        "name": "teal",
+        "hue": 168,
+        "sat": 0.74,
+        "val": 0.9,
+        "clearance": 94,
+        "legal": true
+      },
+      {
+        "name": "gold",
+        "hue": 74,
+        "sat": 0.8,
+        "val": 1,
+        "clearance": 29,
+        "legal": true
+      }
+    ],
+    "sampled": 360,
+    "worstClearance": 25,
+    "worstHue": 237,
+    "allLegal": true
+  }
+}
