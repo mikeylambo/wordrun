@@ -662,10 +662,18 @@ export const TUNING = {
     // rather than declaring them is what stops HARD's difficulty and HARD's
     // legibility drifting apart.
     //
-    // 0.88 IS PROVISIONAL. It is the value the tables below were generated
-    // from and it is not a decision: the decision is a phone in a hand, and
-    // it has not happened yet. The instruments are built so that changing
-    // this one number reprints every table that depends on it.
+    // 0.88 IS SETTLED (RC11.1). The decision was always a phone in a hand, and
+    // the phone has now been in one: HARD played end to end, and the verdict
+    // was that it is not distinguishable from NORMAL except that it makes
+    // answering EARLY the natural move — which is the calibration table's own
+    // prediction rather than a surprise. "A reader inside HARD's own floor
+    // loses nothing to the window" is gated, and a competent reader noticing
+    // nothing is that gate passing, not a null result: the window punishes
+    // hesitation and it is not supposed to punish anything else.
+    //
+    // Nothing moved as a result, which is the point of writing it down. The
+    // instruments still reprint every table from this one number if it ever
+    // does move.
     DIFFICULTY: {
       // NOTORIOUS_BIAS (RC9.6): how often this profile prefers a word from the
       // notorious tag where the tier walk offered an untagged one. EASY is

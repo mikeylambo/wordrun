@@ -433,7 +433,7 @@ check('and the plate is untouched by the scale — the word is drawn the same on
 check('EASY and NORMAL are untouched, and the scale can never lengthen a window',
   (M.DIFFICULTY.easy.WINDOW_SCALE ?? 1) === 1 && (M.DIFFICULTY.normal.WINDOW_SCALE ?? 1) === 1 &&
   tables.window.every((r) => r.scale <= 1) && M.DIFFICULTY.hard.WINDOW_SCALE < 1,
-  `HARD alone at ${M.DIFFICULTY.hard.WINDOW_SCALE} — PROVISIONAL until it is played on a phone`);
+  `HARD alone at ${M.DIFFICULTY.hard.WINDOW_SCALE} — played on a phone and settled (RC11.1)`);
 check('HARD at 85 % still clears the daily route, and 70 % still does not',
   row('hard', 0.85).dailyCleared && !row('hard', 0.70).dailyCleared,
   `85 % ${row('hard', 0.85).dailyGates} gates ${row('hard', 0.85).dailyDeath || 'finish'} · ` +

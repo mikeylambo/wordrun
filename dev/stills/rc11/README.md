@@ -1,9 +1,26 @@
 # RC11 — THE RIBBON: three concept stills
 
-**The decision is open. Pick or redirect from these three frames; nothing has
-entered the renderer.** Everything below was shot with `dev/ribbon-lab.js`, a
-dev-only layer armed by `?ribbon=1` and never bundled, and every number was
-read back from the running page by `dev/shoot-ribbon-stills.mjs`.
+## DECIDED — NOT TAKEN (RC11.1)
+
+**The look stays as it is: no emissive surface, no palette ramp, no drop under
+the road.** These frames were shot, measured and declined. Nothing had to be
+undone because nothing entered the renderer, which was the condition the
+concept was built under — `dev/ribbon-lab.js` is dev-only, armed by
+`?ribbon=1`, imported by nothing in `src/` and bundled into no build.
+
+They are kept as the record of a decision that was MADE rather than deferred.
+Do not re-open this from the pictures alone; the reasons the concept did not
+land are in *what does not work* at the foot of this file, and any future
+attempt should start from those four rather than from a blank frame.
+
+*(The rails are a separate matter and they stay — see RELEASE.md RC11. The road
+had no rail geometry at all before RC11, only a smoothstep on a vertex
+attribute; that was a defect with a measurement, not a look proposal.)*
+
+---
+
+Everything below was shot with `dev/ribbon-lab.js` and every number was read
+back from the running page by `dev/shoot-ribbon-stills.mjs`.
 
 Same road, gate, read moment, speed and frame as the Phase K set — the DAILY
 route for 2026-09-02 pinned with `?draft=` (it hashes to the identical seed),

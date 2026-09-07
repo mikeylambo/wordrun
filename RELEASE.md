@@ -2649,7 +2649,8 @@ The behaviour snapshot moved on exactly one of its five scripts —
 **0.88 is PROVISIONAL.** It is the number these tables were generated from and
 it is not a decision; the decision is a phone in a hand and it has not happened
 yet. Every instrument here reprints from that one value, so changing it is one
-edit and `npm run calibrate`.
+edit and `npm run calibrate`. *(Settled in RC11.1 — see below. It did not
+move.)*
 
 ## 1.0-RC9.6 — the notorious tier, which is not a tier
 
@@ -3298,7 +3299,8 @@ a file is all it is.
   semantics permanently — scores set under a window that later moves can never
   be compared to scores set after it — so no score may be written anywhere
   until 0.88 is played on a phone and fixed. That playtest is [MP]'s and it is
-  the single thing standing between this and a live board.
+  the single thing standing between this and a live board. *(Done in RC11.1.
+  0.88 stands, and this blocker is cleared.)*
 - **Zero network at play time is a standing constraint, not a preference.**
   The carve-out had to be a decision rather than a slip, so it is one: the run
   and the results card stay at zero, and a board is reachable only from its own
@@ -3673,3 +3675,61 @@ drew both. `railX` is now the only one, and `speed-fantasy.js` asks it.
 Eight new checks in `gate:route` and the v1 polish check rewritten to the new
 owner. Nothing about the surface, the palette or the plate has moved yet —
 that is what the stills are for.
+
+
+## 1.0-RC11.1 — two decisions, both of them "no change"
+
+The two things that were waiting on a human have been decided, and neither
+moved a dial. Writing that down is the whole entry: an open question that gets
+answered and left unrecorded is an open question again next session.
+
+### HARD's 0.88 is settled, and the board blocker is cleared
+
+RC9.5 shipped HARD's window scale at 0.88 and refused to call it a decision:
+"the decision is a phone in a hand, and it has not happened yet." RC10.7 then
+made it the single thing standing between this game and a live board, because
+a board freezes difficulty semantics permanently and a scale that moves after
+scores exist can never be reconciled with them.
+
+**The phone has now been in a hand.** HARD played end to end, and the verdict
+was that it is not really distinguishable from NORMAL — except that it makes
+answering EARLY the natural move, which the player liked.
+
+That is the calibration table's own prediction, not a surprise, and it is why
+this counts as a pass rather than a null result. `gate:calibration` has held
+for two phases that *a reader inside HARD's own floor loses nothing to the
+window* — 0.60 s of reading is under HARD's 0.66 s ceiling floor — because the
+shorter window is there to punish hesitation and is not supposed to punish
+anything else. A competent reader noticing only that it rewards committing
+sooner is that gate being right.
+
+So **0.88 stands, nothing was recalibrated, and boards are unblocked.** The
+`PROVISIONAL` note in `TUNING.js` is replaced by the verdict, and
+`gate:calibration` now says settled where it used to say provisional. Switching
+the board on is still the two values from RC10.7 and nothing else.
+
+One thing the playtest raises without settling: if HARD is this hard to tell
+from NORMAL, **its separate board may not be earning its own row**. That is a
+board-shape question rather than a difficulty one, it costs nothing to leave as
+it is, and it should be answered by looking at two live boards rather than by
+guessing at one.
+
+### The ribbon is not taken
+
+RC11's three concept stills were shot, measured and declined. The look stays as
+it is: **no emissive surface, no palette ramp, no drop under the road.**
+
+Nothing has to be undone, because nothing entered the renderer — that was the
+condition the concept was built under. `dev/ribbon-lab.js` and
+`dev/shoot-ribbon-stills.mjs` are dev-only, armed by `?ribbon=1`, imported by
+nothing in `src/`, and bundled into no build. The frames and their numbers stay
+in `dev/stills/rc11/` as the record of a decision that was made rather than
+deferred, and its README now says so at the top, so no later session re-opens
+it by finding three unlabelled pictures.
+
+**What stays from RC11 is the rails**, and they stay because they were never a
+look proposal: the road had no rail geometry at all, only a smoothstep on a
+vertex attribute that creased 36 mrad at every 2.5 m mesh row and stanchions
+standing 0.9 m outboard of the band they were meant to flank. That is a defect
+with a measurement, fixed and gated. It does change what the edge of the road
+looks like slightly, which is worth knowing rather than discovering later.
