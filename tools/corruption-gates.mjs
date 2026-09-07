@@ -1530,6 +1530,17 @@ head('CABINET — type is sized against the play area, never the window');
     if (/font-size\s*:[^;]*\d[\d.]*vw/.test(m[2])) vwSized.add(m[1]);
   }
   const missing = [...vwSized].filter((sel) => !new RegExp(`\\${sel[0] === '#' ? '#' : '.'}${sel.slice(1)}\\s*\\{[^}]*font-size`).test(cabinet));
+  // A desktop is a screen, not a phone held at arm's length. The cabinet is
+  // allowed to be narrower than the window — that is what stops an ultrawide
+  // from becoming a letterbox — but not by so much that the game reads as a
+  // phone in a black room. A pinned floor, not a ratio derived from the dial
+  // it fences: the dial could then move and the gate would still say yes.
+  const aspect = Number((html.match(/--cab-aspect:([\d.]+)/) || [])[1]);
+  check('the cabinet uses the screen it is given',
+    aspect >= 0.62, `--cab-aspect ${aspect} (floor 0.62; the phone it replaced: 0.4621)`);
+  check('and full screen means the whole window, not a wider bezel',
+    /html:fullscreen #app[^{]*\{width:100vw\}/.test(html));
+
   check('every vw-sized readout in index.html is restated in cqw for the cabinet',
     vwSized.size > 0 && missing.length === 0,
     missing.length ? `not restated: ${missing.join(', ')}` : `${[...vwSized].join(', ')}`);
@@ -1548,6 +1559,14 @@ head('READOUTS — a score is the one string whose length the player writes');
     ui.includes('fitHeadline()') && ui.includes('refit()') && ui.includes("addEventListener('resize'"));
   check('the live score measures on a digit rollover, not on every score change',
     ui.includes('txt.length !== this._distLen'));
+
+  // The tuning panel is 310px of controls. Inside a cabinet strip it covered
+  // the game it exists to tune; the bezel it sits in is 550px of nothing.
+  const panel = fs.readFileSync('src/dev-panel.js', 'utf8');
+  check('the tuning panel mounts to the bezel, not over the play area',
+    panel.includes('document.body.appendChild(el)') &&
+    !panel.includes("document.getElementById('app').appendChild(el)") &&
+    /#devPanel\{position:fixed/.test(panel));
 }
 
 console.log(out.join('\n'));

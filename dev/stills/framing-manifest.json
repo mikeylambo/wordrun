@@ -1,0 +1,50 @@
+[
+  {
+    "file": "F1-cabinet-0.4621.png",
+    "aspect": 0.4621,
+    "note": "ships today — the phone, framed",
+    "app": "469x1016",
+    "platePxPerM": 17.18,
+    "bezelEachSide": 725,
+    "word": "paw",
+    "chain": 22,
+    "fov": 75.8,
+    "camAspect": 0.462
+  },
+  {
+    "file": "F2-wide-0.62.png",
+    "aspect": 0.62,
+    "note": "a third wider",
+    "app": "630x1016",
+    "platePxPerM": 17.18,
+    "bezelEachSide": 645,
+    "word": "paw",
+    "chain": 22,
+    "fov": 75.8,
+    "camAspect": 0.62
+  },
+  {
+    "file": "F3-wide-0.80.png",
+    "aspect": 0.8,
+    "note": "nearly 4:5",
+    "app": "813x1016",
+    "platePxPerM": 17.18,
+    "bezelEachSide": 554,
+    "word": "paw",
+    "chain": 22,
+    "fov": 75.8,
+    "camAspect": 0.8
+  },
+  {
+    "file": "F4-fullbleed.png",
+    "aspect": 99,
+    "note": "the whole window, no bezel",
+    "app": "1920x1016",
+    "platePxPerM": 16.54,
+    "bezelEachSide": 0,
+    "word": "paw",
+    "chain": 22,
+    "fov": 77.9,
+    "camAspect": 1.89
+  }
+]

@@ -305,8 +305,13 @@ head('CABINET — a framed screen is the portrait screen, measured');
     return { w: Math.min(w, sh * aspect), h: sh };
   };
 
-  check('the frame carries the proportion every reading measurement was taken at',
-    Math.abs(aspect - VIEW_W / VIEW_H) < 5e-4,
+  // RC11.7: the cabinet is WIDER than the phone now — 0.80 against 0.4621 —
+  // because a desktop that plays a 469px column in a 1920px window is a phone
+  // in a black room. What must never happen is the frame going NARROWER than
+  // the viewport the reading standard was measured at: the camera's FOV is
+  // vertical, so a narrower frame cannot shrink the plate but can crop it.
+  check('the frame is never narrower than the viewport the reading standard was measured at',
+    aspect >= VIEW_W / VIEW_H - 5e-4,
     `--cab-aspect ${aspect} against the ${VIEW_W}x${VIEW_H} standard (${(VIEW_W / VIEW_H).toFixed(4)})`);
 
   // The plate at the read moment, projected through the shipped rig at the
@@ -337,7 +342,7 @@ head('CABINET — a framed screen is the portrait screen, measured');
         // divide back out to get the plate as a FRACTION of the frame, which
         // is the number that has to be identical.
         const r = plateOnScreen(camera, sim.terrain, cur.d);
-        out = { fw: r.w / (VIEW_W * DPR), fh: r.h / (VIEW_H * DPR), fov: camera.fov };
+        out = { fw: r.w / (VIEW_W * DPR), fh: r.h / (VIEW_H * DPR), fov: camera.fov, aspect: aspectRatio };
       }
       if (armed) { input.confirm = !!cur.real; input.reject = !cur.real; }
     }
@@ -348,14 +353,22 @@ head('CABINET — a framed screen is the portrait screen, measured');
   const framed = platePair(stageBox(1280, 800).w / stageBox(1280, 800).h);
   const ultra = platePair(stageBox(1920, 720).w / stageBox(1920, 720).h);
   const same = (a, b) => Math.abs(a - b) <= 1e-3;
-  check('the plate at the read moment is identical portrait and framed',
+  // The plate's WIDTH as a fraction of the frame necessarily falls as the
+  // frame widens — the frame grew, the plate did not. The invariant that
+  // actually protects the read is the plate's SIZE IN PIXELS at a given frame
+  // height, and with a vertical FOV that is `fh` (already a share of height)
+  // and `fw * aspect` (the share of height the width spans). Both are
+  // identical across every framing, which is the same statement the old
+  // "same rectangle" made before the cabinet was allowed to be wider.
+  const inHeights = (p) => ({ w: p.fw * p.aspect, h: p.fh });
+  const px = (p) => `${(p.fw * p.aspect * VIEW_H).toFixed(1)}x${(p.fh * VIEW_H).toFixed(1)}px`;
+  check('the plate at the read moment is the same rectangle of pixels in every framing',
     !!portrait && !!framed && !!ultra &&
-    same(portrait.fw, framed.fw) && same(portrait.fh, framed.fh) &&
-    same(portrait.fw, ultra.fw) && same(portrait.fh, ultra.fh) &&
+    same(inHeights(portrait).w, inHeights(framed).w) && same(portrait.fh, framed.fh) &&
+    same(inHeights(portrait).w, inHeights(ultra).w) && same(portrait.fh, ultra.fh) &&
     same(portrait.fov, framed.fov),
-    portrait ? `${(portrait.fw * 100).toFixed(2)}% x ${(portrait.fh * 100).toFixed(2)}% of the frame ` +
-      `at 390x844, ${(framed.fw * 100).toFixed(2)}% x ${(framed.fh * 100).toFixed(2)}% framed in 1280x800, ` +
-      `${(ultra.fw * 100).toFixed(2)}% x ${(ultra.fh * 100).toFixed(2)}% in 1920x720 — same rectangle` : 'no read moment sampled');
+    portrait ? `${px(portrait)} at 390x844, ${px(framed)} framed in 1280x800, ` +
+      `${px(ultra)} in 1920x720 — on an 844-tall frame` : 'no read moment sampled');
 
   // And it is identical because the CAMERA is told about the canvas, not the
   // window. That was the one code change the cabinet needed.

@@ -14,7 +14,8 @@
 import TUNING from './TUNING.js';
 
 const CSS = `
-#devPanel{position:absolute;z-index:120;left:8px;bottom:8px;width:310px;max-height:82vh;
+#devPanel{position:fixed;z-index:1200;left:8px;bottom:8px;max-height:92vh;
+  width:min(310px, calc(var(--bezel-w, 100vw) - 16px));
   overflow-y:auto;padding:9px 10px 11px;border:1px solid rgba(140,220,255,.35);
   border-radius:3px;background:rgba(6,11,16,.93);backdrop-filter:blur(6px);
   font:500 10px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#cfe8f5;pointer-events:auto}
@@ -144,7 +145,12 @@ export async function mountDevPanel() {
   const el = document.createElement('div');
   el.id = 'devPanel';
   el.innerHTML = `<h4><span>TUNING</span><span data-min>—</span></h4><div class="body"></div>`;
-  document.getElementById('app').appendChild(el);
+  // The BEZEL, not the play area. #app is a fixed-aspect cabinet strip: on a
+  // desktop the panel is nearly as wide as the game and covered all of it,
+  // while hundreds of pixels of empty bezel sat either side. Mounting to the
+  // body also escapes #app's transform, which would otherwise capture a
+  // `position:fixed` panel into the cabinet's coordinate space.
+  document.body.appendChild(el);
   const body = el.querySelector('.body');
 
   el.querySelector('[data-min]').addEventListener('click', (e) => {

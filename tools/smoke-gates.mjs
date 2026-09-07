@@ -666,6 +666,15 @@ try {
       JSON.stringify(panel.after));
     check('the judgment drives its CSS from a custom property the panel can write',
       /%$/.test(panel.cssTop), `--judge-top ${panel.cssTop}`);
+    // 310px of controls inside a cabinet strip covered the game they tune.
+    const geo = await page.evaluate(() => {
+      const p = document.getElementById('devPanel').getBoundingClientRect();
+      const a = document.getElementById('app').getBoundingClientRect();
+      return { overlap: Math.round(Math.max(0, Math.min(p.right, a.right) - Math.max(p.left, a.left))),
+        panel: `${Math.round(p.left)}..${Math.round(p.right)}`, app: `${Math.round(a.left)}..${Math.round(a.right)}` };
+    });
+    check('and it sits in the bezel, clear of the play area',
+      geo.overlap === 0, `panel ${geo.panel}, play area ${geo.app}`);
     allErrors.push(...errors.map((e) => `[panel] ${e}`));
     await ctx.close();
   }

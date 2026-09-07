@@ -566,9 +566,18 @@
     /* The legend stands where the touch buttons would, so the bar marks take
        the row above it exactly as they take the row above the DASH button. */
     #barMarks{bottom:calc(var(--safe-b) + 132px)}
+    /* The frame's geometry as tokens, so anything that has to live BESIDE the
+       cabinet (the tuning panel) can be exactly as wide as the bezel allows
+       instead of guessing at a laptop's. Undefined outside this block, which
+       is correct: on a phone there is no bezel to sit in. */
+    :root{
+      --marquee-h:clamp(38px,7vh,64px);
+      --app-w:min(100vw, calc((100dvh - clamp(38px,7vh,64px)) * var(--cab-aspect)));
+      --bezel-w:calc((100vw - var(--app-w)) / 2);
+    }
     #app{
       --marquee-h:clamp(38px,7vh,64px);
-      width:min(100vw, calc((100dvh - var(--marquee-h)) * var(--cab-aspect)));
+      width:var(--app-w);
       height:calc(100dvh - var(--marquee-h));
       top:var(--marquee-h);left:50%;transform:translateX(-50%);
       box-shadow:0 0 0 1px rgba(140,190,215,.10),0 0 90px rgba(0,0,0,.75);
@@ -577,9 +586,23 @@
        the one thing a cabinet says when nobody is playing it. */
     body > #marquee{display:flex}
   }
-  /* The bezel and the frame's proportion, as tokens: 390x844 is the viewport
-     every reading measurement in this build was taken at. */
-  :root{--bezel:#080c10;--cab-aspect:0.4621}
+  /* The bezel and the frame's proportion, as tokens.
+     390x844 (0.4621) is the viewport every reading measurement in this build
+     was taken at, and it was the cabinet's proportion too — which meant a
+     1920x1080 desktop played a 469px column with 725px of dead bezel either
+     side, in full screen included. The camera's FOV is VERTICAL, so at a fixed
+     frame height a wider frame renders a word plate at EXACTLY the same size
+     and only reveals more of the world beside the road: measured at 17.18
+     px/m at 0.4621, 0.62 and 0.80 alike. So the cabinet widens to 0.80 — the
+     screen it can fill without becoming a letterbox — and the phone, which is
+     narrower than that, is untouched. */
+  :root{--bezel:#080c10;--cab-aspect:0.80}
+  /* Full screen means full screen. A player who asks for it is asking for the
+     window's pixels, not for a wider bezel; the marquee stays, because the
+     name over the screen is the one thing the cabinet says when nobody is
+     playing. (The FOV widens with the aspect here, costing 4% of plate size
+     against the cabinet — and still far more plate than any phone.) */
+  html:fullscreen #app,html:-webkit-full-screen #app{width:100vw}
   #marquee{display:none;position:fixed;top:0;left:0;right:0;height:clamp(38px,7vh,64px);
     align-items:center;justify-content:center;pointer-events:none;z-index:2;
     background:var(--bezel)}
