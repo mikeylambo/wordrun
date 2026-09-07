@@ -1,0 +1,50 @@
+[
+  {
+    "file": "S-A-shipped.png",
+    "d": 2249.8,
+    "roll": 0.1,
+    "edgeBank": 0.35,
+    "readsCross": false,
+    "surfaceTiltDeg": 10.34,
+    "bankDeg": 5.69,
+    "leanDeg": 4.74,
+    "cameraRollDeg": 0.05,
+    "apparentSlantDeg": 8.35
+  },
+  {
+    "file": "S-B-camera-reads-crossslope.png",
+    "d": 2249.8,
+    "roll": 0.1,
+    "edgeBank": 0.35,
+    "readsCross": true,
+    "surfaceTiltDeg": 10.34,
+    "bankDeg": 5.69,
+    "leanDeg": 4.74,
+    "cameraRollDeg": -1.58,
+    "apparentSlantDeg": 6.72
+  },
+  {
+    "file": "S-C-no-turn-lean.png",
+    "d": 2249.8,
+    "roll": 0.1,
+    "edgeBank": 0,
+    "readsCross": true,
+    "surfaceTiltDeg": 5.69,
+    "bankDeg": 5.69,
+    "leanDeg": 0,
+    "cameraRollDeg": 0.05,
+    "apparentSlantDeg": 3.7
+  },
+  {
+    "file": "S-D-half-of-both.png",
+    "d": 2249.8,
+    "roll": 0.06,
+    "edgeBank": 0.175,
+    "readsCross": true,
+    "surfaceTiltDeg": 5.78,
+    "bankDeg": 3.42,
+    "leanDeg": 2.37,
+    "cameraRollDeg": -0.04,
+    "apparentSlantDeg": 3.76
+  }
+]
