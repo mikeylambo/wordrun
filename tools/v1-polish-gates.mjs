@@ -703,6 +703,36 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
     'and the track ribbon samples at its own rate, wrapping at the length the buffer actually is');
 }
 
+// ── The Phase 7 landmarks stay dead ──────────────────────────────────────
+//
+// They were retired as ART in Phase 7 and left as PLUMBING for months: a
+// 20-line no-op class still imported, constructed, handed a terrain, reset
+// and update()-ed every frame; a prototype override for a method the stub
+// did not have; and a dataworld header still naming the bridge, towers,
+// arches and distance boards it converted. The comment outlived the code
+// long enough to send a later session hunting for geometry that had not
+// existed for months, which is the exact failure the one-file rule exists
+// to prevent. These make the removal stick.
+{
+  const mainCode = read('src/main.js');
+  const housePad = read('src/v1-house-pad.js');
+  const world = read('src/render/dataworld.js');
+
+  check(!fs.existsSync('src/render/landmarks.js'),
+    'the retired Landmarks class is gone, not kept as a no-op that still ticks');
+  check(!/render\/landmarks\.js/.test(mainCode + housePad) &&
+    !/\blandmarks\./.test(mainCode),
+    'and nothing imports, constructs or updates it — no plumbing to a system that draws nothing');
+  check(!/Landmarks\.prototype/.test(housePad.replace(/^\s*\/\/.*$/gm, '')),
+    'the house pad no longer overrides a method the retired stub never had');
+  check(!/\(bridge, towers, arches, distance boards\) are authored/.test(world),
+    'and the dataworld pass documents what is in the scene, not a list deleted in Phase 7');
+
+  // The half that is NOT dead, kept honest rather than quietly forgotten.
+  check(/heightAt/.test(housePad) && /PLAYABLE CORRIDOR/.test(housePad),
+    'the terrace under the vanished house is still live, and says so where someone will read it');
+}
+
 // ── N6: the runner model sheet, translated ───────────────────────────────
 //
 // The approved sheet (dev/reference/runner-model-v1.md) says three things

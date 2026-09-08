@@ -16,7 +16,6 @@ import { Props } from './render/props.js';
 import { PlayerActor, BeastActor, GhostActor } from './render/actors.js';
 import { CameraRig } from './render/camera-rig.js';
 import { Spray } from './render/fx.js';
-import { Landmarks } from './render/landmarks.js';
 import { WordGateActors, plateFontReady } from './render/word-gates.js';
 import { DataworldPass } from './render/dataworld.js';
 import { StreakBurst } from './render/streak-burst.js';
@@ -97,7 +96,6 @@ const SEED_STRING = CHALLENGE ? CHALLENGE.seedString : dailySeedString();
 const sim = new Sim(SEED);
 const terrainMesh = new TerrainMesh(stage.scene, sim.terrain);
 const props = new Props(stage.scene, sim.terrain);
-const landmarks = new Landmarks(stage.scene, sim.terrain);
 const playerActor = new PlayerActor(stage.scene);
 const beastActor = new BeastActor(stage.scene);
 const ghostActor = new GhostActor(stage.scene);
@@ -579,7 +577,6 @@ function buildRunInTheDark() {
   if (CHALLENGE) sim.player.compressionLevel = CHALLENGE.bar | 0;
   terrainMesh.terrain = sim.terrain;
   props.terrain = sim.terrain;
-  landmarks.terrain = sim.terrain;
 
   terrainMesh.reset();
   terrainMesh.update(0);
@@ -587,8 +584,6 @@ function buildRunInTheDark() {
   props.reset();
   props.update(0, true);
   bellRenderer.reset(sim.terrain);
-  landmarks.reset();
-  landmarks.update(0);
 
   rig.reset();
   beastActor.reset();
@@ -1609,7 +1604,6 @@ function tick(dt) {
   props.update(pv.d);
   if (bellRenderer.terrain !== sim.terrain) bellRenderer.reset(sim.terrain);
   bellRenderer.update(pv.d, performance.now() / 1000, sim.player.chain | 0);
-  landmarks.update(pv.d);
   wordGateActors.update(dt, pv.d, stage.camera);
   streakBurst.update(paused ? 0 : dt, stage.camera);
   dataworld.update(dt);
@@ -1881,7 +1875,7 @@ window.__MUSIC = () => ({
 window.__TUNING = TUNING;
 window.__UI = ui;
 window.__RENDER = {
-  stage, terrainMesh, props, landmarks, rig, playerActor, beastActor, ghostActor, spray, materialPass,
+  stage, terrainMesh, props, rig, playerActor, beastActor, ghostActor, spray, materialPass,
   wordGateActors, dataworld, streakBurst, bells: bellRenderer, editorialWorld, judgment,
 };
 // The tuning panel, for playtesting where there is no console. A dynamic

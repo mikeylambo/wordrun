@@ -1,11 +1,25 @@
 import { Terrain } from './sim/terrain.js';
-import { Landmarks } from './render/landmarks.js';
 
-// The opening house is intentionally off to the left of the piste. Historically
-// every landmark was vertically anchored from x=0, while the house itself sits
-// around x=-11. A random height feature at ~170m could therefore leave it
-// visibly bridging a trench. Give the opening landmark a small authored terrace
-// and reserve that footprint from generated clutter.
+// An authored terrace under a house that no longer exists.
+//
+// The opening house sat off to the left of the piste at x=-11, and every
+// landmark was vertically anchored from x=0, so a random height feature at
+// ~170m could leave it visibly bridging a trench. This gave it a small
+// authored terrace and reserved that footprint from generated clutter.
+//
+// Phase 7 retired the landmark set pieces — bridge, towers, arches, distance
+// boards and the house — but only the ART was removed. The terrace was not,
+// and it is not inert: it still flattens the surface through heightAt,
+// sampleGrid and chunk on every query, and measured against the unpatched
+// base it still moves the PLAYABLE CORRIDOR by up to 0.15m around d=170.
+// Every run is shaped, slightly, by a building nobody can see.
+//
+// It stays for now because removing it is a terrain change and the Phase 0
+// behaviour snapshot is the right place for that decision to be taken
+// deliberately, not as a side effect of a cleanup. The half of this file
+// that patched Landmarks IS gone: `Landmarks.prototype._layout` never
+// existed after Phase 7, so `baseLayout` was undefined and the override
+// could not have run; the entries list it searched was always empty.
 const HOUSE = Object.freeze({
   x: -11,
   d: 170,
@@ -84,32 +98,10 @@ if (!Terrain.prototype.__v1HouseTerrace) {
   };
 }
 
-if (!Landmarks.prototype.__v1HouseTerrace) {
-  Landmarks.prototype.__v1HouseTerrace = true;
-  const baseLayout = Landmarks.prototype._layout;
-
-  Landmarks.prototype._layout = function layoutV1House(entry) {
-    if (entry?.def?.id !== 'house') return baseLayout.call(this, entry);
-
-    const { def, group } = entry;
-    // The house body's lowest visible face is already +0.5m in local space.
-    // Lower only this landmark anchor so the timber actually meets the terrace.
-    group.position.set(0, padHeight(this.terrain) - HOUSE.bodyBottom, -def.d);
-    entry.laidOut = true;
-  };
-}
-
-// If the module arrives after an initial title-frame layout, force the existing
-// instance to pick up the authored anchor on its next update.
-const existing = globalThis.__RENDER?.landmarks;
-if (existing?.entries) {
-  const house = existing.entries.find((e) => e.def?.id === 'house');
-  if (house) house.laidOut = false;
-}
-
 globalThis.__DASH_V1_HOUSE_PAD = {
   authoredTerrace: true,
   generatedClutterReserved: true,
+  landmarkAnchorRetired: true,
   anchorX: HOUSE.x,
   distance: HOUSE.d,
   trueTerrainSurface: true,

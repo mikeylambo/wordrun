@@ -1,12 +1,17 @@
 /**
  * Dataworld pass — converts every world set piece into neon line-art.
  *
- * The landmark meshes (bridge, towers, arches, distance boards) are authored
- * inherited props. Rather than re-modelling them, this pass drops each mesh to a
- * near-black body and traces its silhouette with glowing edges — the
- * "error-absorbent" line-art conversion. Meshes appear lazily as their code
- * paths stream them in, so the pass sweeps the scene on a slow cadence and
- * tags what it has already converted.
+ * Any lit mesh in the scene is dropped to a near-black body and its silhouette
+ * traced with glowing edges — the "error-absorbent" line-art conversion.
+ * Meshes appear lazily as their code paths stream them in, so the pass sweeps
+ * the scene on a slow cadence and tags what it has already converted.
+ *
+ * This header used to name the landmark set pieces it converted — bridge,
+ * towers, arches, distance boards. Phase 7 deleted all of them, and the
+ * sentence survived for long enough to send a later session looking for
+ * geometry that had not existed for months. The pass is written against what
+ * is in the scene, not against a list; that is why it still works, and this
+ * paragraph is here so the next reader trusts the code over the comment.
  *
  * Presentation only: no sim reads, no gameplay writes.
  */
