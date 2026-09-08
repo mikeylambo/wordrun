@@ -59,10 +59,27 @@ function ensureMobileUi() {
        REAL button beside it, for the button that does the exciting thing.
        Now it is full-strength with a lit rim; the ready class adds a pulse
        while the dash is unlearned, and REDUCED FLASH withholds it. */
-    #v1MobileDash.armed{opacity:1;box-shadow:0 0 30px rgba(103,216,255,.42),0 4px 20px rgba(4,9,13,.18)}
-    #v1MobileDash.armed::before{border-color:rgba(140,230,255,.7);background:rgba(12,30,40,.68)}
+    /* N11: pushed further. Under a coarse pointer the bottom charge bar is
+       hidden, so this ring is the ONLY thing on a phone that says the dash is
+       ready — and it was saying it with a 30px halo at 0.42, quieter than the
+       desktop bar it replaces. It now wears a lit rim, a wide halo and a
+       second falloff beyond that, and the charged arc itself goes white-hot
+       rather than staying the same cyan it charges in.
+       All of that is on the ARMED class, which is the state — so it survives
+       REDUCED FLASH and survives the pulse retiring once the verb is learned.
+       Only the breathing is on ready, and its trough is lifted to meet the
+       new baseline so the pulse never reads as a dip below it. */
+    #v1MobileDash.armed{opacity:1;
+      background:conic-gradient(rgba(198,246,255,1) var(--dash-angle,0deg),rgba(238,248,252,.14) var(--dash-angle,0deg));
+      box-shadow:0 0 0 2px rgba(150,235,255,.55),0 0 46px rgba(103,216,255,.62),
+        0 0 92px rgba(103,216,255,.26),0 4px 20px rgba(4,9,13,.18)}
+    #v1MobileDash.armed::before{border-color:rgba(180,242,255,.85);background:rgba(12,30,40,.68)}
     #v1MobileDash.ready{animation:dashButtonReady 1.15s ease-in-out infinite}
-    @keyframes dashButtonReady{0%,100%{box-shadow:0 0 22px rgba(103,216,255,.32),0 4px 20px rgba(4,9,13,.18);transform:scale(1)}50%{box-shadow:0 0 44px rgba(103,216,255,.78),0 4px 20px rgba(4,9,13,.22);transform:scale(1.045)}}
+    @keyframes dashButtonReady{
+      0%,100%{box-shadow:0 0 0 2px rgba(150,235,255,.55),0 0 46px rgba(103,216,255,.62),
+        0 0 92px rgba(103,216,255,.26),0 4px 20px rgba(4,9,13,.18);transform:scale(1)}
+      50%{box-shadow:0 0 0 3px rgba(206,250,255,.9),0 0 76px rgba(140,232,255,.95),
+        0 0 140px rgba(103,216,255,.42),0 4px 20px rgba(4,9,13,.22);transform:scale(1.05)}}
     /* RC7: the stop's ring. It marks the control the teach band's line names
        — the only addition to a frozen frame besides that line. REDUCED FLASH
        keeps the ring and drops its pulse: the mark is the information, the

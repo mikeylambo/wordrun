@@ -715,8 +715,8 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
   // the other three sat at the HUD's own 18px padding — two pixels proud of
   // the column it belongs to, with an offset that had to guess a height of
   // clamp(38px..66px) plus an optional target line plus a heart row.
-  check(/<div id="vitalsSlot"><\/div><div id="combo" aria-hidden="true"><\/div><\/div>/.test(html),
-    'the chain multiplier is IN the column with the score, the metres and the hearts');
+  check(/<div id="dist">0<\/div><div id="vitalsSlot"><\/div><div id="distSub">0 M<\/div><div id="distTarget"><\/div><div id="combo" aria-hidden="true"><\/div>/.test(html),
+    'the column cascades: headline, hearts, metres, multiplier — all four in one flow');
   check(!/#combo\{[^}]*position:absolute/.test(html) && !/#combo\{[^}]*left:/.test(html),
     'and it has no left edge of its own to drift from theirs');
   check(!/--combo-top/.test(html + judge + tuning) && /COMBO_GAP_PX/.test(tuning) &&
@@ -734,6 +734,23 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
   check(/classList\.toggle\('charged', armed && !ACCESS\.reducedFlash\)/.test(liveUi) &&
     /classList\.toggle\('armed', armed\)/.test(liveUi),
     'REDUCED FLASH loses the breath and keeps the glow — every bit of the information survives it');
+}
+
+// ── N11: the touch build's only charge tell, pushed to match ─────────────
+{
+  const mobile = read('src/v1-mobile-ui.js');
+  // The bottom bar is display:none under a coarse pointer, so on a phone
+  // this ring is the whole mechanic — and it was quieter than the desktop
+  // bar it stands in for.
+  check(/#v1MobileDash\.armed\{[^}]*conic-gradient\(rgba\(198,246,255,1\)/.test(mobile),
+    'a full charge turns the ring itself white-hot, not the cyan it charged in');
+  check(/#v1MobileDash\.armed\{[^}]*0 0 0 2px[^}]*0 0 46px[^}]*0 0 92px/.test(mobile),
+    'and it wears a lit rim, a halo and a falloff beyond it');
+  check(/dashButtonReady\{[\s\S]{0,200}0%,100%\{box-shadow:0 0 0 2px rgba\(150,235,255,\.55\),0 0 46px/.test(mobile),
+    "the pulse's trough is lifted to meet the new baseline, so breathing never reads as a dip");
+  check(/classList\.toggle\('armed', armed && !held\)/.test(mobile) &&
+    /classList\.toggle\('ready', armed && !held && !learned && !ACCESS\.reducedFlash\)/.test(mobile),
+    'the glow is on the STATE and the breath is on the teach — REDUCED FLASH and a learned player both keep the glow');
 }
 
 // ── N9: the rest of the world's emissives, and the one that stays dark ───
