@@ -703,6 +703,26 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
     'and the track ribbon samples at its own rate, wrapping at the length the buffer actually is');
 }
 
+// ── N8: the ribbon is a light, not a painted line ────────────────────────
+//
+// Measured, the shipped ribbon never crossed 1.0 radiance: the grid peaked
+// at ~0.56 and the rails at ~0.99 even at full flow. Nothing was ever bright
+// enough for the tone map to roll to white or for the bright pass to bite,
+// which is why turning bloom strength up changed almost nothing — 0.62 and
+// 0.85 were the same frame. A bloom cannot invent a highlight the shader
+// never made.
+{
+  const pass = read('src/render/material-pass.js');
+  check(/float p4Core = smoothstep\(0\.90, 0\.995, abs\(vP4Lane\)\);/.test(pass),
+    'the rail has a narrow core at its very edge, inside the coloured halation');
+  check(/vec3\(0\.70, 0\.92, 1\.0\) \* p4Core[\s\S]{0,80}uP9Flow \* uP9Flow/.test(pass),
+    'it is white — no hue, so it competes with no semantic colour — and QUADRATIC in flow, because brilliance is earned');
+  check(/uP4Hot/.test(pass) && /uP4Hot: \{ value: 1\.6 \}|uP4Hot = \{ value: 1\.6 \}/.test(pass),
+    'and it is a live uniform, so it can be swept from a still driver instead of guessed at');
+  check(!/dictiondash-p30-track-space-grid-v2/.test(pass),
+    'the program cache key moved with the shader — a stale key serves the old one');
+}
+
 // ── N7: the frame the reference asks for ─────────────────────────────────
 {
   const attract = read('src/render/attract.js');
@@ -741,34 +761,39 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
     'and both carry the measurement that justified them, not just the number');
 }
 
-// ── The Phase 7 landmarks stay dead ──────────────────────────────────────
+// ── The Phase 7 landmarks stay dead, and so does their terrace ───────────
 //
 // They were retired as ART in Phase 7 and left as PLUMBING for months: a
-// 20-line no-op class still imported, constructed, handed a terrain, reset
-// and update()-ed every frame; a prototype override for a method the stub
-// did not have; and a dataworld header still naming the bridge, towers,
-// arches and distance boards it converted. The comment outlived the code
-// long enough to send a later session hunting for geometry that had not
-// existed for months, which is the exact failure the one-file rule exists
-// to prevent. These make the removal stick.
+// 20-line no-op class still imported, constructed and update()-ed every
+// frame; a prototype override for a method the stub did not have; a
+// dataworld header still naming the meshes it converted; and — the one that
+// was not inert — an authored terrace flattening the road under the house.
+//
+// The terrace called `terrain.baseHeight(HOUSE.x, HOUSE.d)`. `baseHeight`
+// takes ONE argument, `d`. So it levelled the road at d~170 to the elevation
+// at d = -11, eleven metres behind the start line: an arbitrary height, in
+// the playable corridor, at gate one of every run. Measured on a daily-style
+// seed it put a 0.68m dip in the centreline where the road otherwise wobbles
+// 0.043m. It is gone, and the Phase 0 snapshot passes UNCHANGED — the sim
+// never reads terrain height (the Phase L contract), so a dip a player could
+// see cost nothing a gate could.
 {
   const mainCode = read('src/main.js');
-  const housePad = read('src/v1-house-pad.js');
+  const audio = read('src/rc9-audio.js');
   const world = read('src/render/dataworld.js');
+  const terrain = read('src/sim/terrain.js');
 
-  check(!fs.existsSync('src/render/landmarks.js'),
-    'the retired Landmarks class is gone, not kept as a no-op that still ticks');
-  check(!/render\/landmarks\.js/.test(mainCode + housePad) &&
-    !/\blandmarks\./.test(mainCode),
-    'and nothing imports, constructs or updates it — no plumbing to a system that draws nothing');
-  check(!/Landmarks\.prototype/.test(housePad.replace(/^\s*\/\/.*$/gm, '')),
-    'the house pad no longer overrides a method the retired stub never had');
+  check(!fs.existsSync('src/render/landmarks.js') && !fs.existsSync('src/v1-house-pad.js'),
+    'the retired Landmarks class and the terrace under its vanished house are both gone');
+  check(!/render\/landmarks\.js/.test(mainCode) && !/\blandmarks\./.test(mainCode) &&
+    !/v1-house-pad/.test(audio),
+    'and nothing imports, constructs, updates or loads either of them');
   check(!/\(bridge, towers, arches, distance boards\) are authored/.test(world),
-    'and the dataworld pass documents what is in the scene, not a list deleted in Phase 7');
+    'the dataworld pass documents what is in the scene, not a list deleted in Phase 7');
 
-  // The half that is NOT dead, kept honest rather than quietly forgotten.
-  check(/heightAt/.test(housePad) && /PLAYABLE CORRIDOR/.test(housePad),
-    'the terrace under the vanished house is still live, and says so where someone will read it');
+  // The call that made the dip is impossible to write again without noticing.
+  check(/baseHeight\(d\) \{ return this\.elevAt\(d \?\? 0\); \}/.test(terrain),
+    'baseHeight still takes exactly one argument — the terrace passed it two and got d = -11');
 }
 
 // ── N6: the runner model sheet, translated ───────────────────────────────

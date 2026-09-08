@@ -114,20 +114,45 @@ function terrainMaterial() {
         vec3 p4GridCol = mix(vec3(0.05, 0.34, 0.46), vec3(0.30, 0.16, 0.52), p4Hue);
         p4GridCol = mix(p4GridCol, vec3(0.05, 0.44, 0.30), p4Hue2 * 0.55);
         vec3 p4RailCol = mix(vec3(0.10, 0.62, 0.80), vec3(0.52, 0.26, 0.86), p4Hue2);
-        totalEmissiveRadiance += p4GridCol * p4Line * 0.62 * uP9Flow;
-        totalEmissiveRadiance += p4RailCol * p4Rail * 1.15 * uP9Flow;`)
+        // N8 — the ribbon has a HOT CORE now.
+        //
+        // Measured, the shipped ribbon never crossed 1.0: the grid peaked at
+        // ~0.56 radiance and the rails at ~0.99 even at full flow. Nothing in
+        // the frame was ever bright enough for the tone map to roll to white
+        // or for the bright pass to bite on, which is why the road read as
+        // painted lines rather than light, and why turning bloom strength up
+        // changed almost nothing — there was nothing above the threshold to
+        // bleed. A bloom cannot invent a highlight that the shader never made.
+        //
+        // So the rail gets a narrow white core at its very edge, deliberately
+        // over-driven past 1.0. The coloured rail stays the halation around
+        // it and keeps its hue drift; the core carries no hue at all, so it
+        // competes with no semantic colour and cannot drift into a reserved
+        // one. It is QUADRATIC in flow because brilliance is earned in this
+        // game: at chain zero it is a hairline, and at the cap it is the
+        // white-hot edge the key art has.
+        float p4Core = smoothstep(0.90, 0.995, abs(vP4Lane));
+        totalEmissiveRadiance += p4GridCol * p4Line * 0.88 * uP9Flow;
+        totalEmissiveRadiance += p4RailCol * p4Rail * 1.40 * uP9Flow;
+        totalEmissiveRadiance += vec3(0.70, 0.92, 1.0) * p4Core
+          * uP4Hot * uP9Flow * uP9Flow * 0.62;`)
       .replace('#include <common>\nvarying float vP4Lane;',
-        '#include <common>\nuniform float uP9Flow;\nuniform float uP4HalfW;\nuniform float uP4Cell;\nvarying float vP4Lane;');
+        '#include <common>\nuniform float uP9Flow;\nuniform float uP4HalfW;\nuniform float uP4Cell;\nuniform float uP4Hot;\nvarying float vP4Lane;');
     shader.uniforms.uP4HalfW = terrain.userData.uP4HalfW;
+    shader.uniforms.uP4Hot = terrain.userData.uP4Hot;
     shader.uniforms.uP4Cell = terrain.userData.uP4Cell;
   };
   terrain.userData.uP9Flow = { value: 1 };
+  // A live dial, so the hot core can be swept from a still driver instead of
+  // guessed at — the last time a constant was reset every frame, a whole
+  // sweep measured nothing.
+  terrain.userData.uP4Hot = { value: 1.6 };
   terrain.userData.uP4HalfW = { value: TUNING.RUN.TRACK_HALF_W };
   // RC8.3: the grid cell IS the ground frequency — how often a rung sweeps
   // under the runner — so it is a speed cue and lives with the others in
   // TUNING.CUES rather than as a 6.0 buried in a shader string.
   terrain.userData.uP4Cell = { value: TUNING.CUES.GRID_CELL_M };
-  terrain.customProgramCacheKey = () => 'dictiondash-p30-track-space-grid-v2';
+  terrain.customProgramCacheKey = () => 'dictiondash-n8-track-space-grid-hot-core';
   return terrain;
 }
 

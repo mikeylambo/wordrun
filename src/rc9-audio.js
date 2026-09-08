@@ -5,7 +5,6 @@ import './v1-contact.js';
 import './v1-chase.js';
 import './v1-viewport.js';
 import './v1-final-mix.js';
-import './v1-house-pad.js';
 import './v1-mixer.js';
 import './v1-approved-mix.js';
 
