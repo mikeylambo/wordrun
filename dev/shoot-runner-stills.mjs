@@ -30,6 +30,9 @@ const SHOTS = [
   { file: 'R3-dash.png', chain: 30, gap: 48, speed: 46, overdrive: true },
   { file: 'R4-dread-redline-close.png', chain: 12, gap: 11, speed: 34 },
   { file: 'R5-ghost-beside-player.png', chain: 20, gap: 48, speed: 36, ghost: true },
+  // The two poses on the sheet that are not the run cycle.
+  { file: 'R8-land.png', chain: 20, gap: 48, speed: 34, land: true },
+  { file: 'R9-idle.png', chain: 0, gap: 60, speed: 0, idle: true },
 ];
 
 const preview = spawn(process.execPath,
@@ -99,6 +102,16 @@ try {
       hold();
       window.__RENDER.playerActor._phase = 1.9;
       window.__TICK(1, 1 / 600);
+      if (s.land) {
+        // A leap, then the frame just after touchdown: the absorption.
+        for (let f = 0; f < 24; f++) { hold(); sim.player.airborne = true; window.__TICK(1, 1 / 60); }
+        sim.player.airborne = false;
+        for (let f = 0; f < 5; f++) { hold(); window.__TICK(1, 1 / 60); }
+      }
+      if (s.idle) {
+        // At rest on the road, which is the state the title is played over.
+        for (let f = 0; f < 90; f++) { sim.player.speed = 0; window.__TICK(1, 1 / 60); }
+      }
       if (s.ghost) {
         // A ghost alongside, one stride out of step, so the two figures can
         // be compared in the same frame at the same size.
@@ -130,6 +143,18 @@ try {
       const sim = window.__SIM;
       const cam = r.stage.camera;
       r.ghostActor.root.visible = false;
+      // Back to a RUNNING pose: the last state shot left him standing, and
+      // a silhouette test of an idle figure tests nothing about the run.
+      r.playerActor._idle = 0;
+      r.playerActor._phase = 1.9;
+      sim.player.speed = 34;
+      window.__TICK(1, 1 / 600);
+      if (asSolid) {
+        // And with the bloom OFF. This frame is a hard-edged shape test;
+        // bleeding the white ground over the black figure softens exactly
+        // the edge the test exists to judge.
+        r.stage.bright.strength = 0;
+      }
       if (asSolid) {
         r.stage.scene.fog = null;
         r.stage.renderer.setClearColor(0xffffff, 1);

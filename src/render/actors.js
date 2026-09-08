@@ -137,28 +137,44 @@ function mass(mats, geo, rim = 1.1) {
 function limb(mats, x, y, upperLen, lowerLen, upperThick, lowerThick) {
   const joint = new THREE.Group();
   joint.position.set(x, y, 0);
-  joint.add(mass(mats, new THREE.SphereGeometry(upperThick * 0.94, 9, 6), 0));
+  // The deltoid / hip cap is a plate of its own now, rimmed: the torso
+  // occludes the inside of it, so what survives is the seam where the arm
+  // meets the shoulder and the leg meets the glute. Exactly the line the
+  // sheet draws there, for one extra draw and no new material.
+  joint.add(mass(mats, new THREE.SphereGeometry(upperThick * 1.06, 10, 7), 1.075));
 
-  const upper = mass(mats,
-    new THREE.CylinderGeometry(upperThick, upperThick * 0.70, upperLen, 9), 1.085);
-  upper.position.y = -upperLen / 2;
-  joint.add(upper);
+  // N6 — every bright line on a limb in the reference is a GAP between two
+  // muscle masses, not a stroke painted on one. So the bones are plates with
+  // real gaps, and the rim that already outlines each mass draws the seam
+  // for free. A smooth rod with a highlight down it never reads as anatomy;
+  // two plates and the dark between them always do.
+  const upperA = mass(mats,
+    new THREE.CylinderGeometry(upperThick, upperThick * 0.90, upperLen * 0.46, 9), 1.08);
+  upperA.position.y = -upperLen * 0.23;
+  const upperB = mass(mats,
+    new THREE.CylinderGeometry(upperThick * 0.85, upperThick * 0.70, upperLen * 0.50, 9), 1.08);
+  upperB.position.y = -upperLen * 0.75;
+  joint.add(upperA, upperB);
 
   const mid = new THREE.Group();
   mid.position.y = -upperLen;
-  mid.add(mass(mats, new THREE.SphereGeometry(lowerThick * 0.99, 9, 6), 0));
+  mid.add(mass(mats, new THREE.SphereGeometry(lowerThick * 1.02, 9, 6), 1.07));
 
-  // The lower bone tapers almost to a point — the stroke's exit.
-  const lower = mass(mats,
-    new THREE.CylinderGeometry(lowerThick, lowerThick * 0.40, lowerLen, 9), 1.085);
-  lower.position.y = -lowerLen / 2;
-  mid.add(lower);
+  // The belly of the calf/forearm, then the taper — which still draws almost
+  // to a point at the ankle and the wrist.
+  const lowerA = mass(mats,
+    new THREE.CylinderGeometry(lowerThick, lowerThick * 0.88, lowerLen * 0.42, 9), 1.08);
+  lowerA.position.y = -lowerLen * 0.21;
+  const lowerB = mass(mats,
+    new THREE.CylinderGeometry(lowerThick * 0.82, lowerThick * 0.40, lowerLen * 0.54, 9), 1.08);
+  lowerB.position.y = -lowerLen * 0.73;
+  mid.add(lowerA, lowerB);
 
   const end = new THREE.Group();
   end.position.y = -lowerLen;
   mid.add(end);
   joint.add(mid);
-  return { joint, mid, end, upper, lower };
+  return { joint, mid, end, upper: upperA, lower: lowerB };
 }
 
 /**
@@ -181,6 +197,7 @@ function buildRunner(ghost = false) {
   const bodyMat = authored(massMat(ghost ? GHOST_DARK : BODY_DARK, ghost ? 0.85 : 1));
   const limbMat = authored(rimMat(limbColor, 0.62 * baseOpacity));
   const coreMat = authored(glow(coreColor, 0.7 * baseOpacity));
+  coreMat.side = THREE.DoubleSide;   // seams, the chevron and the soles are thin
   const mats = { body: bodyMat, rim: limbMat };
 
   // Everything above the legs leans as one piece — the sprinter's angle.
@@ -188,10 +205,13 @@ function buildRunner(ghost = false) {
   hips.position.y = F.HIP_Y;
   g.add(hips);
 
-  const pelvis = mass(mats, new THREE.SphereGeometry(F.PELVIS, 10, 7), 1.09);
-  pelvis.scale.set(1.0, 0.66, 0.72);
-  pelvis.position.y = 0.01;
-  hips.add(pelvis);
+  // Two glute plates with the centre seam between them, not one pelvis mass.
+  for (const side of [-1, 1]) {
+    const glute = mass(mats, new THREE.SphereGeometry(F.PELVIS * 0.50, 10, 7), 1.085);
+    glute.scale.set(1.06, 0.92, 0.86);
+    glute.position.set(side * F.PELVIS * 0.52, 0.005, 0.015);
+    hips.add(glute);
+  }
 
   const chest = new THREE.Group();
   chest.position.y = 0.1;
@@ -238,16 +258,30 @@ function buildRunner(ghost = false) {
   crest.rotation.x = 1.15;
   chest.add(crest);
 
+  // The mark. On the sheet it is the logo worn on the sternum, and in play
+  // it is behind him and free — but the runner is seen front-on in the
+  // attract loop, on the arrival, and in every frame anyone ever captures
+  // to share, and in all of those he should be recognisably this game's.
+  const chevron = new THREE.Group();
+  chevron.position.set(0, 0.40, -F.CHEST * 0.72);
+  for (const side of [-1, 1]) {
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.0135, 0.0135, 0.15, 6), coreMat);
+    bar.position.x = side * 0.041;
+    bar.rotation.z = side * 0.62;
+    chevron.add(bar);
+  }
+  chest.add(chevron);
+
   // The core light the player actually sees: he is viewed from behind, so
   // the structural glow lives on the SPINE and across the back of the yoke.
   const spine = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.0135, 0.0165, 0.46, 8), coreMat);
-  spine.position.set(0, 0.31, F.CHEST * 0.74);
+    new THREE.CylinderGeometry(0.011, 0.013, 0.40, 8), coreMat);
+  spine.position.set(0, 0.34, F.CHEST * 0.74);
   spine.rotation.x = -0.06;
   chest.add(spine);
 
   const yokeLine = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.0125, 0.0125, F.SHOULDER_SPAN * 0.62, 8), coreMat);
+    new THREE.CylinderGeometry(0.0098, 0.0098, F.SHOULDER_SPAN * 0.52, 8), coreMat);
   yokeLine.rotation.z = Math.PI / 2;
   yokeLine.position.set(0, 0.545, 0.092);
   chest.add(yokeLine);
@@ -263,7 +297,7 @@ function buildRunner(ghost = false) {
   // Hands stay abstract: bright endpoints. At gameplay distance fingers are
   // noise, and a point of light is what the eye tracks anyway.
   for (const arm of [armL, armR]) {
-    const hand = new THREE.Mesh(new THREE.SphereGeometry(F.FOREARM * 0.86, 8, 6), coreMat);
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(F.FOREARM * 0.62, 8, 6), coreMat);
     arm.end.add(hand);
   }
 
@@ -281,19 +315,31 @@ function buildRunner(ghost = false) {
     foot.scale.set(0.92, 1, 0.44);
     foot.position.set(0, -0.024, -0.038);
     leg.end.add(foot);
-    const spark = new THREE.Mesh(new THREE.SphereGeometry(F.CALF * 0.44, 8, 6), coreMat);
+    const spark = new THREE.Mesh(new THREE.SphereGeometry(F.CALF * 0.40, 8, 6), coreMat);
     leg.end.add(spark);
+    // The sole. The rear foot turns its underside to the camera at the top
+    // of every stride, so this is the brightest thing on the figure for a
+    // sixth of the cycle and the only light that ever touches the road.
+    const sole = new THREE.Mesh(
+      new THREE.PlaneGeometry(F.CALF * 0.86, F.FOOT_LEN * 0.60), coreMat);
+    sole.rotation.x = Math.PI / 2;
+    sole.position.set(0, -0.050, -0.030);
+    leg.end.add(sole);
   }
 
-  // The light-being shell: a soft halo around the torso keeps the figure
-  // reading as a construct of glow rather than a mannequin.
-  // Detail 1, not 0: at twenty triangles the shell's facets read as a hard
-  // polygon behind the figure any time he is large in frame (the attract
-  // loop, the arrival, a capture). Eighty triangles is still nothing.
+  // The halo was a bloom drawn by hand — a big additive lozenge standing in
+  // for a glow the renderer could not do. The renderer does it now (see
+  // bright-pass.js), and the two together washed the figure to a flat teal
+  // and cut a hard line across his shins where the lozenge ended. So it
+  // stays, because it is what setPalette tints and what carries the runner's
+  // colour at distances where a few bloomed pixels would not, but it hugs
+  // the whole body instead of hovering over the top half of it, at less than
+  // half the strength. Detail 1, not 0: the facets of a twenty-triangle
+  // shell read as a hard polygon whenever the figure is large in frame.
   const halo = new THREE.Mesh(new THREE.IcosahedronGeometry(0.5, 1),
-    authored(glow(haloColor, 0.22 * baseOpacity)));
-  halo.scale.set(1.0, 1.55, 1.0);
-  halo.position.y = 1.28;
+    authored(glow(haloColor, 0.10 * baseOpacity)));
+  halo.scale.set(0.92, 2.05, 0.92);
+  halo.position.y = 1.02;
   g.add(halo);
 
   const pool = new THREE.Mesh(new THREE.CircleGeometry(0.55, 18),
@@ -352,6 +398,9 @@ export function advanceStride(phase, dD, speedN) {
   return phase + dD * (Math.PI * 2) / strideLength(speedN);
 }
 
+/** Blend one rotation toward a target by weight t. */
+const toward = (o, axis, v, t) => { o.rotation[axis] += (v - o.rotation[axis]) * t; };
+
 /**
  * The shared run cycle — drives one rig from a phase angle. Used by the
  * player and the ghost so the two figures stride identically.
@@ -379,6 +428,8 @@ function poseRunner(r, phase, speedN, airborne, dt, style = {}) {
   const hipDrop = style.hipDrop ?? 0;
   const driveMul = style.driveMul ?? 1;        // the arms, independent of the legs
   const shoulderRise = style.shoulderRise ?? 0;
+  const land = style.land ?? 0;
+  const idle = style.idle ?? 0;
   const swing = (0.75 + speedN * 0.35) * swingMul;
   const sL = Math.sin(phase);
   const sR = Math.sin(phase + Math.PI);
@@ -439,6 +490,50 @@ function poseRunner(r, phase, speedN, airborne, dt, style = {}) {
   // spends less of it (economy of motion); the dash drops the whole pelvis.
   r.hips.position.y = 0.98 - hipDrop +
     Math.abs(Math.sin(phase)) * (0.035 + speedN * 0.03) * bobMul;
+
+  // N6 — the two poses on the sheet that are not the run cycle. Both are
+  // BLENDED over it by weight rather than swapped in, so the figure can
+  // never snap between states, and both are zero for the ghost.
+  if (land > 0.001) {
+    // LAND: the absorption. Hips drop, both knees fold under the weight,
+    // the arms come forward to catch the balance. Hardest at touchdown.
+    const t = land * land;
+    r.hips.position.y += (FIGURE.HIP_Y - 0.19 - r.hips.position.y) * t;
+    toward(r.legL.joint, 'x', 0.24, t);
+    toward(r.legR.joint, 'x', -0.06, t);
+    toward(r.legL.mid, 'x', -1.02, t);
+    toward(r.legR.mid, 'x', -0.86, t);
+    toward(r.legL.end, 'x', 0.30, t);
+    toward(r.legR.end, 'x', 0.24, t);
+    toward(r.armL.joint, 'x', 0.40, t);
+    toward(r.armR.joint, 'x', 0.34, t);
+    toward(r.armL.mid, 'x', 1.10, t);
+    toward(r.armR.mid, 'x', 1.10, t);
+    toward(r.chest, 'y', 0, t);
+    toward(r.chest, 'z', 0, t);
+    toward(r.hips, 'y', 0, t);
+  }
+
+  if (idle > 0.001) {
+    // IDLE: a figure at rest STANDS. Weight on one leg, arms hanging, and
+    // the chest rising on a slow breath so he is alive rather than paused.
+    const t = idle;
+    r.hips.position.y += (FIGURE.HIP_Y + Math.sin(style.breath ?? 0) * 0.006
+      - r.hips.position.y) * t;
+    toward(r.legL.joint, 'x', 0.05, t);
+    toward(r.legR.joint, 'x', -0.05, t);
+    toward(r.legL.mid, 'x', -0.10, t);
+    toward(r.legR.mid, 'x', -0.07, t);
+    toward(r.legL.end, 'x', 0, t);
+    toward(r.legR.end, 'x', 0, t);
+    toward(r.armL.joint, 'x', -0.10, t);
+    toward(r.armR.joint, 'x', -0.10, t);
+    toward(r.armL.mid, 'x', 0.28, t);
+    toward(r.armR.mid, 'x', 0.28, t);
+    toward(r.chest, 'y', 0, t);
+    toward(r.chest, 'z', 0, t);
+    toward(r.hips, 'y', 0, t);
+  }
 }
 
 export class PlayerActor {
@@ -456,6 +551,8 @@ export class PlayerActor {
     this._blink = 0;
     this._phase = 0;
     this._ignite = 0;
+    this._airT = 0;
+    this._idle = 0;
 
     // RC8's contact shadow, and RC7.1's track sampling rate, both of which
     // used to be bolted onto this class from other files by reassigning
@@ -554,7 +651,11 @@ export class PlayerActor {
     const target = Math.max(0, Math.min(1, (flow - 0.78) / 0.97));
     this._ignite += (target - this._ignite) * (1 - Math.exp(-4.2 * dt));
     const lit = this._ignite;
-    this.bodyMat.color.lerpColors(this.dark, this.lit, lit * lit);
+    // Capped short of the rim's colour on purpose: if the mass is allowed to
+    // reach it, the plate seams that make him anatomy disappear into one
+    // white blob at exactly the moment the player has earned the best look
+    // at him. The hero silhouette is bright, not featureless.
+    this.bodyMat.color.lerpColors(this.dark, this.lit, lit * lit * 0.76);
     this.limbMat.opacity = Math.min(1, (0.55 + lit * 0.45) * this.baseOpacity * blink);
     this.coreMat.opacity = Math.min(1, (0.6 + lit * 0.4) * this.baseOpacity * blink);
     return lit;
@@ -595,6 +696,19 @@ export class PlayerActor {
     const norm = Math.max(0, Math.min(1, (p.speed - R.FLOOR) / (R.CEILING - R.FLOOR)));
     const speedN = norm * 1.35 + (p.overdrive ? 0.5 : 0);
 
+    // N6 — LAND: the absorption after a leap. Presentation only. The timer
+    // starts from what the SIM says about the ground and drains on its own;
+    // this file still never writes a player field.
+    const LAND_T = 0.28;
+    if (p.airborne) this._airT = LAND_T;
+    else this._airT = Math.max(0, this._airT - dt);
+
+    // N6 — IDLE: the stand. It reads SPEED, never the stride clock, because
+    // a teach stop freezes a sprinter mid-stride on purpose (RC9.9) and has
+    // to keep doing exactly that. A frozen run is not an idle one.
+    const idleTo = (!p.airborne && p.speed < R.FLOOR * 0.35) ? 1 : 0;
+    this._idle += (idleTo - this._idle) * (1 - Math.exp(-6 * dt));
+
     // The nerve is a POSTURE input now (E3), so it is read before the pose.
     const nerve = Math.max(0, Math.min(1, 1 - beastGap / 45));
     // E3 — the runner's states, all pure functions of sim state:
@@ -611,6 +725,9 @@ export class PlayerActor {
       hipDrop: (p.overdrive ? 0.09 : 0) + nerve * 0.035,
       driveMul: (p.overdrive ? 1.34 : 1) * (1 - econ * 0.12),
       shoulderRise: nerve * 0.045,
+      land: this._airT / LAND_T,
+      idle: this._idle,
+      breath: this.t * 1.9,
     };
 
     // The run cycle is driven by distance, so stride matches the ground —
@@ -620,8 +737,9 @@ export class PlayerActor {
 
     // Sprinter's lean deepens with speed; Overdrive is nearly horizontal
     // fury, and the Redline close adds its own tension to the spine (E3).
+    // ...and stands back up as he comes to rest.
     this.chest.rotation.x = -(0.16 + speedN * 0.22 +
-      (p.overdrive ? 0.14 : 0) + nerve * 0.08);
+      (p.overdrive ? 0.14 : 0) + nerve * 0.08) * (1 - this._idle * 0.8);
 
     // The figure still pulses like a cursor: calm far from the Redline,
     // frantic close to it — the nerve tell carried over from Phase 5.
@@ -633,12 +751,12 @@ export class PlayerActor {
     const lit = this._ignition(dt, blink);
     const flow = this.flow ?? 1;
     this.halo.material.opacity =
-      Math.min(0.6, 0.22 * this.baseOpacity * (0.8 + speedN * 0.35) * blink * flow);
+      Math.min(0.26, 0.10 * this.baseOpacity * (0.8 + speedN * 0.35) * blink * flow);
     this.pool.material.opacity = (0.16 + lit * 0.16) * this.baseOpacity;
     // The halo stretches into a teardrop with speed — the whole construct
     // reads as motion even in a still frame.
-    this.halo.scale.set(1.0 + speedN * 0.1, 1.55 + speedN * 0.12, 1.0 + speedN * 0.55);
-    this.halo.position.z = speedN * 0.5;
+    this.halo.scale.set(0.92 + speedN * 0.1, 2.05 + speedN * 0.12, 0.92 + speedN * 0.55);
+    this.halo.position.z = speedN * 0.42;
 
     // Comet tail: length and brightness ride the top half of the range.
     const tailN = Math.max(0, norm - 0.25) / 0.75;

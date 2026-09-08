@@ -13,6 +13,7 @@ import { PALETTE, LIGHT } from './palette.js';
 import { bandForDistance } from './art-direction.js';
 import { EndgameSky } from './endgame-sky.js';
 import { BroadcastPass } from './broadcast-pass.js';
+import { BrightPass } from './bright-pass.js';
 import { ACCESS } from '../ui/access.js';
 
 export class Stage {
@@ -142,6 +143,10 @@ export class Stage {
     // bare render. This branch is the system's one integration point — the
     // pass is never installed by wrapping a live render function.
     if (ACCESS.broadcastLook) {
+      if (this.bright) {
+        this.bright.dispose(this.renderer);
+        this.bright = null;
+      }
       if (!this.broadcast) this.broadcast = new BroadcastPass(this.renderer);
       this.broadcast.render(this.renderer, this.scene, this.camera, ACCESS.reducedFlash);
       return;
@@ -150,6 +155,11 @@ export class Stage {
       this.broadcast.dispose(this.renderer);
       this.broadcast = null;
     }
-    this.renderer.render(this.scene, this.camera);
+    // The default look is no longer a bare render: everything that matters
+    // in this game is a light, and until the bright pass landed none of them
+    // bled. Same one integration point, same rule — constructed here, never
+    // wrapped around a live render.
+    if (!this.bright) this.bright = new BrightPass(this.renderer);
+    this.bright.render(this.renderer, this.scene, this.camera, ACCESS.reducedFlash);
   }
 }

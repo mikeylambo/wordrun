@@ -656,8 +656,8 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
     'the limbs are anatomy, not rods: thigh heavier than calf, upper arm than forearm');
   check(F.THIGH_LEN + F.SHIN_LEN >= F.HIP_Y * 0.94 && F.HEAD * 2 < F.SHOULDER_SPAN * 0.55,
     'long powerful legs under a small, anonymous head');
-  check(/CylinderGeometry\(lowerThick, lowerThick \* 0\.40/.test(actors) &&
-    /CylinderGeometry\(upperThick, upperThick \* 0\.70/.test(actors),
+  check(/CylinderGeometry\(lowerThick \* 0\.82, lowerThick \* 0\.40/.test(actors) &&
+    /CylinderGeometry\(upperThick \* 0\.85, upperThick \* 0\.70/.test(actors),
     'and every bone is still a calligraphic stroke, tapering toward its far end');
   check(actors.includes('const crest = new THREE.Mesh') &&
     /crest\.rotation\.x = 1\.15/.test(actors),
@@ -701,6 +701,92 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
   check(actors.includes('% TRACK_SEGMENTS') && !feel.includes('patchTracks') &&
     !actors.includes('% 180'),
     'and the track ribbon samples at its own rate, wrapping at the length the buffer actually is');
+}
+
+// ── N6: the runner model sheet, translated ───────────────────────────────
+//
+// The approved sheet (dev/reference/runner-model-v1.md) says three things
+// the figure did not: he is PANELLED, not smooth; he wears the chevron; and
+// his soles are lit. It also draws two poses that are not the run cycle.
+{
+  const actors = read('src/render/actors.js');
+
+  // Every bright line on a limb in the reference is a GAP between two muscle
+  // masses. So the bones are plates with real gaps and the rim already
+  // outlining each mass draws the seam — no painted-on highlights.
+  check(/const upperA = mass\(/.test(actors) && /const upperB = mass\(/.test(actors) &&
+    /const lowerA = mass\(/.test(actors) && /const lowerB = mass\(/.test(actors),
+    'each bone is two plates with a seam between them, not one smooth rod');
+  check(/const glute = mass\(/.test(actors) && !/const pelvis = mass\(/.test(actors),
+    'and the pelvis is two glute plates with a centre seam, like the back view');
+  check(/joint\.add\(mass\(mats, new THREE\.SphereGeometry\(upperThick \* 1\.06[^)]*\), 1\.075\)\)/.test(actors),
+    'the deltoid and hip caps are rimmed plates — the torso occludes all but the seam');
+
+  check(/const chevron = new THREE\.Group\(\)/.test(actors) &&
+    /bar\.rotation\.z = side \* 0\.62/.test(actors),
+    'he wears the chevron on the sternum — free in play, and he is seen front-on elsewhere');
+  check(/const sole = new THREE\.Mesh\(/.test(actors) && /sole\.rotation\.x = Math\.PI \/ 2/.test(actors),
+    'the soles are lit: the closest light to the camera, and the only one that touches the road');
+
+  // The two extra poses, blended over the cycle rather than swapped in.
+  check(actors.includes('const land = style.land ?? 0;') &&
+    actors.includes('const idle = style.idle ?? 0;') &&
+    /toward\(o, axis, v, t\)|const toward = /.test(actors),
+    'LAND and IDLE are blends over the run cycle — the figure never snaps between poses');
+  check(/const idleTo = \(!p\.airborne && p\.speed < R\.FLOOR \* 0\.35\) \? 1 : 0;/.test(actors),
+    'and IDLE reads SPEED, never the stride clock — a teach stop still freezes him mid-stride (RC9.9)');
+  check(actors.includes('if (p.airborne) this._airT = LAND_T;'),
+    'the landing timer is started by what the sim SAYS about the ground, never written back to it');
+
+  // The halo was a bloom drawn by hand. There is a real one now.
+  check(/glow\(haloColor, 0\.10 \* baseOpacity\)/.test(actors) &&
+    actors.includes('Math.min(0.26, 0.10 * this.baseOpacity'),
+    'and the hand-drawn halo stands down to less than half strength now the renderer blooms');
+}
+
+// ── N6: bloom, in the DEFAULT look, and not at the plate's expense ────────
+{
+  const bright = read('src/render/bright-pass.js');
+  const stage = read('src/render/scene.js');
+  const plate = read('src/render/word-gates.js');
+
+  check(stage.includes('if (!this.bright) this.bright = new BrightPass(this.renderer);') &&
+    !/ACCESS\.\w+ \?[\s\S]{0,80}new BrightPass/.test(stage),
+    'the glow is on by default — it is not another opt-in look nobody finds');
+  check(/if \(this\.bright\) \{[\s\S]{0,120}this\.bright\.dispose/.test(stage),
+    'and BROADCAST tears it down rather than stacking two looks');
+
+  // three applies its tone map only when a material draws straight to the
+  // canvas. A pass that renders the scene into a target and forgets that
+  // ships a different grade for every pixel and blames the bloom.
+  check(bright.includes('vec3 aces(vec3 c)') && bright.includes('uExposure / 0.6') &&
+    bright.includes('this.comp.mesh.material.toneMapped = false'),
+    'the composite carries the ACES tone map itself, at the live exposure');
+  check(bright.includes('#include <colorspace_fragment>'),
+    'and the sRGB write, so strength 0 is the frame the game already shipped');
+
+  // The one rule this change could quietly spend.
+  check(plate.includes('export const PLATE_LAYER = 1;') &&
+    plate.includes('this.mesh.layers.enable(PLATE_LAYER)'),
+    'the word plate declares its own layer');
+  check(bright.includes("import { PLATE_LAYER } from './word-gates.js'") &&
+    bright.includes('camera.layers.set(PLATE_LAYER)') &&
+    /uThreshold, uThreshold \+ uKnee, l\) \* keep/.test(bright) &&
+    /texture2D\(tBloom, vUv\)\.rgb \* uStrength \* keep/.test(bright),
+    'and it neither emits bloom nor receives it — measured, the bleed cost it 11% of its edge contrast');
+  check(/const bg = scene\.background;[\s\S]{0,200}scene\.background = null;/.test(bright) &&
+    /scene\.background = bg;/.test(bright),
+    'the mask render puts the scene background back — a solid sky would mask the whole frame');
+  check(/const layers = camera\.layers\.mask;[\s\S]{0,400}camera\.layers\.mask = layers;/.test(bright),
+    'and it restores the camera layers, so the next frame still draws the world');
+
+  check(bright.includes('ACCESS_STRENGTH') && bright.includes('ACCESS_RADIUS') &&
+    /reducedFlash[\s\S]{0,90}ACCESS_STRENGTH/.test(bright),
+    'REDUCED FLASH owns the glow, as it does in BROADCAST — damped, never ignored');
+  check(bright.includes('this.threshold = BLOOM.THRESHOLD;') &&
+    bright.includes('this.strength = BLOOM.STRENGTH;') &&
+    !/uStrength\.value = reducedFlash \? BLOOM\.ACCESS_STRENGTH : BLOOM\.STRENGTH/.test(bright),
+    'the dials are instance fields render() damps, not constants it overwrites — a sweep whose knob resets measures nothing');
 }
 
 // ── N4: the bookends — the authored launch and the FINISH arrival ─────────
