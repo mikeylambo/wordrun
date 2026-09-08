@@ -565,6 +565,12 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
     'the stumble is one pitch forward that recovers with the stagger');
   check(!/p\.(speed|d|x|y|chain)\s*=/.test(actors),
     'and the actor never writes a sim field — posture reads, forward motion is the sim\'s');
+  check(actors.includes('driveMul: (p.overdrive ? 1.34 : 1)') &&
+    actors.includes('r.armL.mid.rotation.x = 1.42 + sR * 0.38 * driveMul'),
+    'the dash tightens the leg swing and DRIVES the arms — the speed-skater start, not a flail');
+  check(actors.includes('shoulderRise: nerve * 0.045') &&
+    actors.includes('r.chest.position.y = 0.1 + shoulderRise'),
+    'and dread lifts the shoulders toward the ears — a tell you feel before you name it');
   const ghostCall = actors.slice(actors.lastIndexOf('poseRunner('));
   check(/poseRunner\(this, this\._phase, speedN, false, dt\)/.test(ghostCall),
     'the ghost strides exactly as it always has — no style, no states');
@@ -627,19 +633,74 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
     'a missed real borrows the drain — the slip is no longer weightless');
 }
 
-// ── N3: the runner's silhouette — a deliberate figure, not a mannequin ────
+// ── N3/N5: the runner's silhouette — the cover figure, built in code ──────
+//
+// N3 asserted carved geometry constants, which meant the silhouette could not
+// be tuned without the build going red for it, and asserted nothing about
+// whether the thing was shaped like a person. These read the PROPORTIONS the
+// figure exports and check the relationships that make it an athlete: broad
+// across the shoulders, narrow at the waist, heaviest in the thigh, long in
+// the leg. Tune freely; go back to a rod-limbed mannequin and the build stops.
 {
   const actors = read('src/render/actors.js');
+  const F = Object.fromEntries([...actors.matchAll(/^  ([A-Z_]+): ([\d.]+),/gm)]
+    .map((m) => [m[1], Number(m[2])]));
+
   check(!actors.includes('BoxGeometry'),
     'no box primitive survives in the runner — the mannequin cannot creep back');
-  check(/CylinderGeometry\(thick \* 0\.40, thick \* 0\.14/.test(actors),
-    'the limbs are calligraphic strokes, tapering almost to a point');
+  check(Object.keys(F).length >= 14 && Object.values(F).every((v) => v > 0),
+    `the figure's proportions are one readable block, not scattered magic numbers (${Object.keys(F).length} named)`);
+  check(F.SHOULDER_SPAN / 2 > F.CHEST && F.CHEST > F.WAIST,
+    'broad shoulder yoke tapering into a narrow waist — the V that makes him an athlete');
+  check(F.THIGH > F.CALF * 1.25 && F.UPPER_ARM > F.FOREARM * 1.25,
+    'the limbs are anatomy, not rods: thigh heavier than calf, upper arm than forearm');
+  check(F.THIGH_LEN + F.SHIN_LEN >= F.HIP_Y * 0.94 && F.HEAD * 2 < F.SHOULDER_SPAN * 0.55,
+    'long powerful legs under a small, anonymous head');
+  check(/CylinderGeometry\(lowerThick, lowerThick \* 0\.40/.test(actors) &&
+    /CylinderGeometry\(upperThick, upperThick \* 0\.70/.test(actors),
+    'and every bone is still a calligraphic stroke, tapering toward its far end');
   check(actors.includes('const crest = new THREE.Mesh') &&
     /crest\.rotation\.x = 1\.15/.test(actors),
     'the head carries the one identity mark — the crest swept back off the crown');
   check(actors.includes('function poseRunner(r, phase, speedN, airborne, dt, style = {})') &&
     actors.includes('hips, chest, head, halo, pool, tail'),
     'the rig contract is untouched — every E3 posture and the ghost pose identically');
+
+  // N5: the read is inverted. He is a DARK MASS wearing light, and the light
+  // is the chain — the same flow number the world already spends.
+  const dark = Number(/const BODY_DARK = 0x([0-9a-f]{6})/.exec(actors)?.[1] ?? 'ffffff', 16);
+  const lum = ((dark >> 16 & 255) * 0.2126 + (dark >> 8 & 255) * 0.7152 + (dark & 255) * 0.0722) / 255;
+  check(lum < 0.1 && actors.includes('const massMat =') && !/massMat[\s\S]{0,220}AdditiveBlending/.test(actors),
+    `the body is a near-black mass on a normal blend — additive light cannot make a silhouette (luma ${lum.toFixed(3)})`);
+  check(/const rimMat = [\s\S]{0,220}side: THREE\.BackSide/.test(actors) &&
+    /const rimMat = [\s\S]{0,220}AdditiveBlending/.test(actors),
+    'and its rim is the same geometry grown and drawn back-face-only — an outline at any size');
+  check(/_ignition\(dt, blink\)/.test(actors) &&
+    /this\.flow \?\? 1[\s\S]{0,200}this\._ignite \+=/.test(actors),
+    'the figure lights up from FLOW — no new meter, no new system, the chain was already the number');
+  check(/this\._ignite \+= \(target - this\._ignite\) \* \(1 - Math\.exp/.test(actors),
+    'and it is eased, so a broken chain lets the light recede rather than shatter');
+
+  // The two hinges that were backwards. A knee that folds forward is
+  // invisible on a stick figure and the only thing you see on a body.
+  check(/r\.legL\.mid\.rotation\.x = -\(/.test(actors) && /r\.legR\.mid\.rotation\.x = -\(/.test(actors),
+    'knees FOLD — the heel goes back toward the backside, which is the way a knee works');
+  check(/r\.armL\.mid\.rotation\.x = 1\.42 \+/.test(actors) && /r\.armR\.mid\.rotation\.x = 1\.42 \+/.test(actors),
+    'elbows FLEX — the hand comes forward, and tightens on the drive');
+  check(actors.includes('r.chest.rotation.y = -sL * 0.11 * swingMul') &&
+    actors.includes('r.hips.rotation.y = sL * 0.055'),
+    'the spine counter-rotates against the legs — most of what makes a run read from behind');
+  check(/r\.legL\.end\.rotation\.x = /.test(actors) && /r\.legR\.end\.rotation\.x = /.test(actors),
+    'and he has ankles: a limb that ends at the shin floats, a limb that ends in a foot lands');
+
+  // One file per system: the runner's own parts are not bolted on elsewhere.
+  const mat = read('src/render/material-pass.js');
+  const feel = read('src/rc7-feel.js');
+  check(actors.includes('this.shadow = new THREE.Mesh') && !mat.includes('attachPlayerContact'),
+    'the contact shadow is PlayerActor\'s own mesh, not a runtime patch from the material pass');
+  check(actors.includes('% TRACK_SEGMENTS') && !feel.includes('patchTracks') &&
+    !actors.includes('% 180'),
+    'and the track ribbon samples at its own rate, wrapping at the length the buffer actually is');
 }
 
 // ── N4: the bookends — the authored launch and the FINISH arrival ─────────

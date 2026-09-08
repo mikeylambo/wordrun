@@ -165,25 +165,6 @@ function makeContact(scene, radius, opacity) {
   return mesh;
 }
 
-function attachPlayerContact(scene, playerActor) {
-  if (!playerActor || playerActor.__rc8ContactPatched) return null;
-  playerActor.__rc8ContactPatched = true;
-  const shadow = makeContact(scene, 0.82, 0.12);
-  shadow.scale.set(1.15, 0.62, 1);
-  const base = playerActor.update.bind(playerActor);
-  playerActor.update = function updateRC8Contact(p, slope, dt, beastGap) {
-    base(p, slope, dt, beastGap);
-    const ground = p.terrain.heightAt(p.x, p.d);
-    const air = Math.max(0, p.y - ground);
-    shadow.position.set(p.x, ground + 0.035, -p.d);
-    shadow.material.opacity = 0.12 * Math.max(0.18, 1 - air / 8);
-    const s = 1 + Math.min(0.55, air * 0.045);
-    shadow.scale.set(1.15 * s, 0.62 * s, 1);
-    shadow.visible = !p.dead || air < 2;
-  };
-  return shadow;
-}
-
 function attachBeastContact(scene, beastActor) {
   if (!beastActor || beastActor.__rc8ContactPatched) return null;
   beastActor.__rc8ContactPatched = true;
@@ -225,7 +206,6 @@ export function applyMaterialPass(scene, terrainMesh, actors = {}) {
   });
 
   applyPlayerMaterials(actors.playerActor);
-  const playerContact = attachPlayerContact(scene, actors.playerActor);
 
   const rim = new THREE.DirectionalLight(0xbfe9ff, 0.34);
   rim.position.set(-35, 28, 25);
@@ -234,7 +214,10 @@ export function applyMaterialPass(scene, terrainMesh, actors = {}) {
   fill.position.set(24, 14, -18);
   scene.add(fill);
 
-  const contact = { player: playerContact, beast: null };
+  // The runner's contact shadow is PlayerActor's own mesh now — this pass
+  // used to bolt it on by reassigning `update` at runtime, which put a whole
+  // visible system in a file about materials. One file per system.
+  const contact = { player: actors.playerActor?.shadow ?? null, beast: null };
   requestAnimationFrame(() => requestAnimationFrame(() => {
     applyBeastMaterials(actors.beastActor);
     contact.beast = attachBeastContact(scene, actors.beastActor);
