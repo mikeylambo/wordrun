@@ -401,7 +401,18 @@ export const TUNING = {
   CUES: {
     // Wind streaks. Silent below START, a torrent at the ceiling.
     STREAK_START: 0.30,        // speedN the streaks fade in from (was 0.40)
-    STREAK_OPACITY: 0.55,      // peak opacity of the streak lines (was 0.50)
+    // N9: 0.55 -> 1.35. Measured, the streaks peaked at 0.550 radiance —
+    // they could never roll to white and were never more than a smudge in
+    // the bright pass. On an ADDITIVE material this number is a multiplier
+    // on the colour before it is added, so past 1.0 is legal and is exactly
+    // what the reference's speed streaking is made of.
+    STREAK_OPACITY: 1.35,      // peak multiplier on the streak lines
+    // ...and the accessibility path they never had. The camera scales every
+    // speed-keyed term by ACCESS_MOTION_SCALE because "an aggressive
+    // speed-keyed rig is a nausea vector"; the streaks are the strongest
+    // motion cue in the frame and had no REDUCED FLASH handling at all,
+    // which was survivable at 0.55 and would not be at 1.35.
+    ACCESS_STREAK_SCALE: 0.45,
     STREAK_LEN_M: 8,           // streak length added across the range
     STREAK_RUSH: 1.35,         // world m/s past the camera, per m/s of speed
     STREAK_DASH: 0.35,         // sustained bump to speedN while dashing

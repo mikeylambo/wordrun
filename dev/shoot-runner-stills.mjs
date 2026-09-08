@@ -125,6 +125,14 @@ try {
           d: sim.player.d + 1.1, opacity: 0.42 }, 1 / 600);
         window.__RENDER.stage.render();
       }
+      // rAF is off in this driver, so the title's own fade never completes —
+      // and the game's title logic puts the element back during the settle
+      // ticks, so this has to be the LAST thing before the shutter, not the
+      // first. These are records of the FIGURE; the menu is not part of it.
+      if (!s.idle) {
+        const el = document.getElementById('titleScreen');
+        if (el) el.style.display = 'none';
+      }
       const p = sim.player;
       return { chain: p.chain, speed: +p.speed.toFixed(1), gap: +sim.beast.gap.toFixed(1),
         overdrive: !!p.overdrive, flow: +(window.__RENDER.playerActor.flow ?? 1).toFixed(2),

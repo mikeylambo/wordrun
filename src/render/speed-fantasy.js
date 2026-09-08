@@ -18,6 +18,7 @@
 
 import * as THREE from 'three';
 import TUNING from '../TUNING.js';
+import { ACCESS } from '../ui/access.js';
 
 const R = TUNING.RUN;
 const CU = TUNING.CUES;
@@ -63,7 +64,8 @@ export class WindStreaks {
     // dash burst can push the streaks up from nothing even at a walking pace
     // — deliberately: the player must SEE the mechanic the first time.
     const vis = Math.max(0, (n - CU.STREAK_START) / (1 - CU.STREAK_START));
-    this.lines.material.opacity = Math.min(1, vis) * CU.STREAK_OPACITY;
+    this.lines.material.opacity = Math.min(1, vis) * CU.STREAK_OPACITY *
+      (ACCESS.reducedFlash ? CU.ACCESS_STREAK_SCALE : 1);
     this.lines.visible = vis > 0.001;
     if (!this.lines.visible) return;
 
@@ -110,7 +112,24 @@ export class TrackPylons {
   /** Flow (Phase 9): the stanchions are the marquee bulbs — they carry
    *  the arcade pulse hardest of anything in the world. */
   setFlow(factor) {
-    this.mat.opacity = Math.min(1, 0.45 + 0.38 * factor);
+    // N9 — no Math.min here, and that is the whole point.
+    //
+    // Additive blending multiplies the colour by this before adding it, so a
+    // value past 1.0 is legal and is exactly what carries a stanchion past
+    // the tone map's shoulder into white. Measured, the old clamp pinned it
+    // at 1.000 while flow was already asking for 1.115: the one element in
+    // the world whose own note says it "carries the arcade pulse hardest of
+    // anything" stopped pulsing at precisely the chain that earned it.
+    //
+    // The curve is re-fitted so the RESTING brightness is unchanged — 0.748
+    // at chain zero, where it was 0.746 — and the headroom is all above.
+    // Brilliance stays earned; it just stops being confiscated at the top.
+    //
+    // It works because the bright pass renders into a HALF-FLOAT target: GL
+    // clamps blend factors to [0,1] for fixed-point buffers and does not for
+    // floating-point ones. Under the opt-in BROADCAST look, whose target is
+    // 8-bit, this degrades back to the old ceiling rather than breaking.
+    this.mat.opacity = 0.14 + 0.78 * factor;
   }
 
   update(playerD) {

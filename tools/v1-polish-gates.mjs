@@ -703,6 +703,67 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
     'and the track ribbon samples at its own rate, wrapping at the length the buffer actually is');
 }
 
+// ── N9: the rest of the world's emissives, and the one that stays dark ───
+{
+  const fantasy = read('src/render/speed-fantasy.js');
+  const tuning = read('src/TUNING.js');
+  const world = read('src/render/editorial-world.js');
+  const bands = read('src/render/art-direction.js');
+  const layout = read('src/render/editorial-layout.js');
+
+  // The pylons carry the marquee pulse, and a Math.min(1, ..) was taking the
+  // top of it away: flow asked for 1.115 and got 1.000. On an ADDITIVE
+  // material that number multiplies the colour before it is added, so past
+  // 1.0 is legal — and only reaches the screen because the bright pass
+  // renders into a half-float target.
+  check(!/this\.mat\.opacity = Math\.min\(1,/.test(fantasy) &&
+    /this\.mat\.opacity = 0\.14 \+ 0\.78 \* factor;/.test(fantasy),
+    'the stanchions are not clamped at 1.0 — the marquee still pulses at the chain that earned it');
+  check(Math.abs((0.14 + 0.78 * 0.78) - (0.45 + 0.38 * 0.78)) < 0.005,
+    'and the RESTING brightness is unchanged — the headroom is all above it, brilliance stays earned');
+
+  // Raising the strongest motion cue in the frame without an accessibility
+  // path would have been a nausea vector with a brighter coat of paint.
+  check(/import \{ ACCESS \} from '\.\.\/ui\/access\.js'/.test(fantasy) &&
+    /ACCESS\.reducedFlash \? CU\.ACCESS_STREAK_SCALE : 1/.test(fantasy),
+    'the wind streaks finally answer to REDUCED FLASH, which they never did');
+  check(/STREAK_OPACITY: 1\.35/.test(tuning) && /ACCESS_STREAK_SCALE: 0\.45/.test(tuning),
+    'and they cross 1.0 so they can roll to white, with the same 0.45 the camera damps its motion by');
+
+  // THE ONE THAT DOES NOT GET PUSHED. The editorial page is the surface the
+  // word plate sits on, so it is the one emissive in the world that was
+  // measured and then deliberately left alone.
+  //
+  // The first version of this gate asserted the page "never rolls to white".
+  // That was false, and the gate caught it: five of the twenty-one bands are
+  // DAYLIGHT — 30km onward, FINISH and past it — where sky, snow and crest
+  // are all near-white, and the greeked type reaches 1.70 because the whole
+  // world does. Bright ink on a bright page is correct there. Relative to
+  // its own band the page is in fact least dominant in exactly those bands;
+  // it is the DARK bands where type outruns the snow it is printed on, and
+  // there it peaks at 0.47.
+  //
+  // So this fences the dials rather than a derived number that turned out to
+  // mean nothing: a later pass reaching for "more light" cannot raise the
+  // page's own multipliers, and the plate's real contrast is measured
+  // empirically in dev/shoot-bloom-compare.mjs, not asserted here.
+  const n = (src, re, l) => {
+    const m = re.exec(src);
+    if (!m) throw new Error(`N9 gate cannot parse ${l} — the source moved`);
+    return m;
+  };
+  const ruleC = n(world, /matRule\.color[^;]*multiplyScalar\(([\d.]+) \+ ([\d.]+)/, 'rules');
+  const typeC = n(world, /matType\.color[^;]*multiplyScalar\(([\d.]+) \+ ([\d.]+)/, 'type');
+  const ink = Math.max(...JSON.parse(/export const INK = (\[[^\]]+\])/.exec(layout)[1]));
+  const ruleMax = Number(ruleC[1]) + Number(ruleC[2]) * ink;
+  const typeMax = Number(typeC[1]) + Number(typeC[2]) * ink;
+  check(ruleMax <= 1.30001 && typeMax <= 1.70001,
+    `the page under the plate keeps its authored ceiling — rules x${ruleMax.toFixed(2)}, type x${typeMax.toFixed(2)} of the band crest`);
+  check(/matRule\.opacity = [\d.]+ \+ [\d.]+ \* ink;/.test(world) &&
+    /Math\.min\(1, this\.matType\.opacity \* glow\)/.test(world),
+    'and its alpha stays clamped — it is normal-blended, where past 1.0 subtracts the background rather than adding light');
+}
+
 // ── N8: the ribbon is a light, not a painted line ────────────────────────
 //
 // Measured, the shipped ribbon never crossed 1.0 radiance: the grid peaked
