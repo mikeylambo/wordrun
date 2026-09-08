@@ -250,7 +250,7 @@
   .screen.on{opacity:1;visibility:visible}
   #titleScreen{justify-content:space-between;background:linear-gradient(180deg,rgba(2,5,9,.5) 0%,transparent 30%,transparent 46%,rgba(2,5,9,.72) 68%,rgba(2,5,9,.92) 100%)}
   .title-lockup{margin-top:max(9vh,58px)}
-  #titleWordmark{display:block;width:min(72%,880px);height:auto;max-height:clamp(74px,17vw,190px);margin:0 auto;overflow:visible;filter:drop-shadow(0 0 22px rgba(103,216,255,.35))}
+  #titleWordmark{display:block;width:min(72%,880px);height:auto;max-height:clamp(140px,36vw,380px);margin:0 auto;overflow:visible;filter:drop-shadow(0 0 22px rgba(103,216,255,.35))}
   #titleHint{margin-top:14px;font-size:8px;font-weight:600;letter-spacing:var(--tag);color:var(--dim)}
   .drop-lockup{margin-bottom:2vh;display:flex;flex-direction:column;align-items:center;gap:18px}
   /* The one thing to do on this screen, sized like it. */
@@ -558,7 +558,7 @@
     #dist{font-size:clamp(30px,11cqw,66px)}
     #bandName{font-size:clamp(16px,5cqw,28px)}
     .big{font-size:clamp(56px,23cqw,140px)}
-    #titleWordmark{max-height:clamp(60px,17cqw,190px)}
+    #titleWordmark{max-height:clamp(112px,34cqw,380px)}
     #keyLegend{gap:clamp(14px,6cqw,44px)}
     /* The DASH meter keeps the row above the legend, the way it keeps the row
        above the DASH button on a phone. */
@@ -649,11 +649,40 @@
            uses the same bundled Archivo as the rest of the UI, and costs one
            request less. The chromatic echo — cyan behind, Redline red behind
            that — is the identity. -->
-      <svg id="titleWordmark" viewBox="0 0 1545 300" role="img" aria-label="DICTION DASH" preserveAspectRatio="xMidYMid meet">
-        <g font-family="var(--face)" font-size="190" font-weight="800" letter-spacing="-4" text-anchor="middle">
-          <text x="762" y="200" fill="#67d8ff" opacity="0.5">DICTION DASH</text>
-          <text x="768" y="203" fill="#ff2a1f" opacity="0.28">DICTION DASH</text>
-          <text x="774" y="206" fill="#f4fbff">DICTION DASH</text>
+      <svg id="titleWordmark" viewBox="0 0 900 450" role="img" aria-label="DICTION DASH" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id="wmChevron" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0" stop-color="#3fb6e8"/>
+            <stop offset="0.55" stop-color="#7fe2ff"/>
+            <stop offset="1" stop-color="#eafcff"/>
+          </linearGradient>
+        </defs>
+        <!-- Two lines, and the A of DASH is the chevron, exactly as the
+             approved key art sets it. The D and the SH are drawn as separate
+             runs so the A can be a PATH rather than a glyph, and their x
+             positions are the real Archivo advances measured off this page's
+             own bundled face (D ends at 136.08, S starts at 273.81 at
+             font-size 190 with the -4 tracking), so the mark keeps the word's
+             true kerning instead of three hand-nudged pieces. -->
+        <g font-family="var(--face)" font-weight="800" letter-spacing="-4">
+          <g font-size="190" text-anchor="middle">
+            <text x="446" y="182" fill="#67d8ff" opacity="0.5">DICTION</text>
+            <text x="450" y="185" fill="#ff2a1f" opacity="0.28">DICTION</text>
+            <text x="454" y="188" fill="#f4fbff">DICTION</text>
+          </g>
+          <g transform="translate(88.45,407) scale(1.32)" font-size="190">
+            <g fill="#67d8ff" opacity="0.5" transform="translate(-3,-2.3)">
+              <text x="0" y="0">D</text><text x="273.81" y="0">SH</text>
+            </g>
+            <g fill="#ff2a1f" opacity="0.28" transform="translate(0,0)">
+              <text x="0" y="0">D</text><text x="273.81" y="0">SH</text>
+            </g>
+            <g fill="#f4fbff" transform="translate(3,2.3)">
+              <text x="0" y="0">D</text><text x="273.81" y="0">SH</text>
+            </g>
+            <path d="M136.08,0 L168.08,0 L204.96,-73.9 L241.83,0 L273.83,0 L204.96,-138 Z"
+                  fill="url(#wmChevron)"/>
+          </g>
         </g>
       </svg><div id="titleHint"></div></div>
     <div class="drop-lockup"><div class="drop">BEGIN RUN</div><div id="modeRows"><div class="modeRow" id="modeRow"><button class="modeChip" type="button" data-mode="endless">ENDLESS</button><button class="modeChip" type="button" data-mode="standard">DAILY RUN</button></div><div class="modeRow" id="difficultyRow"><button class="modeChip" type="button" data-difficulty="easy">EASY</button><button class="modeChip" type="button" data-difficulty="normal">NORMAL</button><button class="modeChip" type="button" data-difficulty="hard">HARD</button></div></div><div id="titleGoals"><div id="dailyNote"></div><div class="goalRow" id="titleGoalRow"></div><div id="titleStreak"></div><div id="titleMastery"></div></div><div class="seed" id="seedLine"></div></div>

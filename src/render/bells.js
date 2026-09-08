@@ -47,17 +47,36 @@ export class BellRenderer {
     // additive halo — the classic pickup glow, one extra instanced draw
     // call, lighting-independent so it survives the darkest bands.
     const glow = new THREE.MeshBasicMaterial({
-      color: 0xcaff4a, transparent: true, opacity: 0.28, depthWrite: false,
+      color: 0xcaff4a, transparent: true, opacity: 0.22, depthWrite: false,
       blending: THREE.AdditiveBlending, fog: true,
     });
+    // N7: a bell, not a cone. Six-sided and straight, seen from behind and
+    // above at speed, it read as a flat chartreuse triangle inside a flat
+    // chartreuse circle — the weakest-looking object in the frame. A lathed
+    // profile costs the same one instanced draw and gives it the silhouette
+    // the name promises: crown, shoulder, waist, and a flared lip. The HUE
+    // is untouched and must stay untouched — chartreuse ~78° was chosen
+    // against the 25° hue-separation gate before it was drawn, and this is
+    // a shape change only.
+    const bellProfile = [
+      [0.045, 0.62], [0.075, 0.60], [0.062, 0.565],   // the crown loop
+      [0.135, 0.545], [0.215, 0.44], [0.275, 0.30],   // shoulder into the waist
+      [0.335, 0.145], [0.395, 0.04], [0.415, 0.0],    // the flare, out to the lip
+    ].map(([r, y]) => new THREE.Vector2(r, y));
     this.body = new THREE.InstancedMesh(
-      new THREE.ConeGeometry(0.40, 0.60, 6, 1, false), bright, this.max
+      new THREE.LatheGeometry(bellProfile, 10), bright, this.max
     );
     this.clapper = new THREE.InstancedMesh(
       new THREE.SphereGeometry(0.10, 5, 3), dark, this.max
     );
+    // N7: 0.72 -> 0.46. At 0.72 the halo was a sphere nearly twice the bell's
+    // width, and with the bright pass now blooming it as well it read as a
+    // flat chartreuse disc with a shape lost somewhere inside it — which is
+    // exactly what a bell looked like on the track. The halo still exists and
+    // is still lighting-independent, because that is what carries the pickup
+    // through the darkest bands; it just stops being the whole object.
     this.halo = new THREE.InstancedMesh(
-      new THREE.SphereGeometry(0.72, 10, 7), glow, this.max
+      new THREE.SphereGeometry(0.46, 10, 7), glow, this.max
     );
     this.body.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.clapper.instanceMatrix.setUsage(THREE.DynamicDrawUsage);

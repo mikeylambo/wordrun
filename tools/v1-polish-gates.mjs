@@ -703,6 +703,44 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
     'and the track ribbon samples at its own rate, wrapping at the length the buffer actually is');
 }
 
+// ── N7: the frame the reference asks for ─────────────────────────────────
+{
+  const attract = read('src/render/attract.js');
+  const html = read('index.html');
+  const bells = read('src/render/bells.js');
+  const camera = read('src/TUNING.js');
+
+  // The attract loop ran down world x = 0 while the corridor wound away from
+  // it — 21.4m off a 7m half-width track at worst, which put the camera in
+  // the side of a terrain band on the first screen a new player sees.
+  check(/p\.x \+= \(target - p\.x\)/.test(attract) && !/p\.x = 0;/.test(attract),
+    'the attract loop rides the CORRIDOR, like every other system that follows the track');
+  check(/corridorSlope/.test(attract) && (attract.match(/p\.heading = /g) || []).length >= 3,
+    'and it carries a heading — on the empty road, on the ghost replay, and back out on exit');
+
+  // The mark, as the approved key art sets it.
+  check(/<svg id="titleWordmark"/.test(html) && /font-family="var\(--face\)"/.test(html),
+    'the wordmark is still inline, so it can use the page\'s own bundled face');
+  check(/id="wmChevron"/.test(html) && /<path d="M136\.08,0/.test(html) &&
+    />DICTION</.test(html) && />SH</.test(html),
+    'and the A of DASH is the chevron, on the real Archivo advances, not a nudged guess');
+
+  // The bell was a six-sided cone inside a halo twice its width: a flat
+  // chartreuse triangle in a flat chartreuse disc.
+  check(/LatheGeometry\(bellProfile/.test(bells) && !/ConeGeometry/.test(bells),
+    'a bell has a crown, a shoulder and a flared lip — it is not a cone');
+  check(/SphereGeometry\(0\.46/.test(bells) && bells.includes('0xcaff4a'),
+    'its halo stops being the whole object now the renderer blooms — and the HUE is untouched');
+
+  // The rig was tuned around the plate and the runner was never the
+  // constraint. Both were measured; both went up.
+  check(/BACK_SPEED_GAIN: -0\.30/.test(camera) && /FOV_MAX: 88/.test(camera),
+    'the boom closes further and the lens stops shorter — runner 45->61px AND plate 103x26->125x31');
+  check(/N7[\s\S]{0,900}BACK_SPEED_GAIN: -0\.30/.test(camera) &&
+    /N7[\s\S]{0,900}FOV_MAX: 88/.test(camera),
+    'and both carry the measurement that justified them, not just the number');
+}
+
 // ── The Phase 7 landmarks stay dead ──────────────────────────────────────
 //
 // They were retired as ART in Phase 7 and left as PLUMBING for months: a
@@ -1471,9 +1509,10 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
   check(attractSrc.includes('IDLE_SECONDS = 10') &&
     !/sim\.step\(|sim\.advance\(|wordGates|beast/.test(attractSrc),
     'attract is presentation: ten idle seconds, and it never steps the sim');
-  check(attractSrc.includes('this._rest = { d: p.d, x: p.x, y: p.y, score: p.score };') &&
-    /exit\(\) \{[\s\S]{0,600}p\.d = this\._rest\.d/.test(attractSrc),
-    'attract restores the resting pose it found — the title it returns to is the one it left');
+  check(attractSrc.includes('this._rest = { d: p.d, x: p.x, y: p.y, heading: p.heading, score: p.score };') &&
+    /exit\(\) \{[\s\S]{0,600}p\.d = this\._rest\.d/.test(attractSrc) &&
+    /p\.heading = this\._rest\.heading/.test(attractSrc),
+    'attract restores the resting pose it found — including the FACING, now that it sets one');
   check(attractSrc.includes('if (g.yanking || g.done)') &&
     attractSrc.includes('MIN_REPLAY_SECONDS'),
     'the replay never plays the death yank backwards, and a too-short ghost shows the empty road');

@@ -35,6 +35,8 @@ const EMPTY_SPEED = 26;
 // attempt therefore shows the empty road, exactly as no ghost at all does.
 const MIN_REPLAY_SECONDS = 6;
 
+import TUNING from '../TUNING.js';
+
 export class AttractMode {
   /**
    * @param sim           the live sim — read for terrain, written ONLY as pose
@@ -72,7 +74,7 @@ export class AttractMode {
     this.active = true;
     this.idle = 0;
     const p = this.sim.player;
-    this._rest = { d: p.d, x: p.x, y: p.y, score: p.score };
+    this._rest = { d: p.d, x: p.x, y: p.y, heading: p.heading, score: p.score };
     this._loadReplay();
     // With a ghost on record the ghost IS the runner: two figures on one line
     // would read as a race the player is not in. With no ghost, the player's
@@ -92,7 +94,7 @@ export class AttractMode {
     this.playerActor?.setVisible(true);
     if (this._rest) {
       p.d = this._rest.d; p.x = this._rest.x; p.y = this._rest.y;
-      p.score = this._rest.score;
+      p.heading = this._rest.heading; p.score = this._rest.score;
       this._rest = null;
     }
     // A pose that jumped this frame must not be interpolated from the last
@@ -127,12 +129,32 @@ export class AttractMode {
         return;
       }
       p.d = g.d; p.x = g.x; p.y = g.y;
+      // The recording carries the line but not the facing, and the camera
+      // takes its roll from the heading — so read it off the corridor here
+      // too, or the replay runs the right path pointing the wrong way.
+      const t = this.sim.terrain;
+      p.heading = Math.atan(t.corridorSlope ? t.corridorSlope(p.d) : 0);
       return;
     }
-    // No ghost on record: the road simply runs.
+    // No ghost on record: the road simply runs — down the CORRIDOR, the same
+    // way a real run does.
+    //
+    // It used to run down world x = 0, which is not the track. The corridor
+    // WINDS: every other system rides `corridorX(d)` — the player's own
+    // auto-follow, the verge pylons, the word plates, the bells — and this
+    // one line did not. So the figure walked dead straight while the road
+    // curved out from under him, and because the camera follows this pose,
+    // a title left alone for half a minute ended up staring at the side of a
+    // terrain band with the runner stranded off the piste. The bug only ever
+    // showed on a profile with no ghost worth replaying, which is exactly the
+    // profile a new player has, on the screen they see first.
+    const R = TUNING.RUN;
+    const terrain = this.sim.terrain;
     p.d += EMPTY_SPEED * dt;
-    p.x = 0;
-    p.y = this.sim.terrain.heightAt(0, p.d);
+    const target = terrain.corridorX(p.d + R.FOLLOW_AHEAD);
+    p.x += (target - p.x) * (1 - Math.exp(-R.FOLLOW_RESPONSE * dt));
+    p.heading = Math.atan(terrain.corridorSlope ? terrain.corridorSlope(p.d) : 0);
+    p.y = terrain.heightAt(p.x, p.d);
   }
 }
 

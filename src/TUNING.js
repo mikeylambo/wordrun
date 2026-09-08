@@ -970,7 +970,15 @@ export const TUNING = {
   CAMERA: {
     FOV: 68,
     BACK: 10.5,                // metres behind the runner
-    BACK_SPEED_GAIN: -0.17,    // CLOSES IN as you accelerate (Phase 22; RC8.3 -0.16 → -0.17)
+    // N7: -0.17 -> -0.30. The rig was tuned around the WORD PLATE and the
+    // runner was never the constraint, so at the ceiling he was 45px tall —
+    // every seam, the ignition and the whole silhouette invisible in the one
+    // state the game most wants to look good. Perspective is the lever: he
+    // sits ~7m from the camera and the plate ~38m, so a metre of boom grows
+    // him about ten times as much as it grows the plate. Measured at the
+    // ceiling: runner 45.4 -> 61.2 px, and the plate GAINS too, 103x26 ->
+    // 125x31. Nothing was spent to buy this.
+    BACK_SPEED_GAIN: -0.30,    // CLOSES IN as you accelerate (Phase 22; RC8.3 -0.16 → -0.17; N7 → -0.30)
     // Phase 7 flat-track retune: the downhill grade used to pitch the view
     // for free. On a flat world the camera rides higher and aims lower —
     // ~21 degrees down — so the winding ribbon lays out ahead instead of
@@ -1018,7 +1026,14 @@ export const TUNING = {
     // cruising (88 degrees, under it) and only bites in the one case that
     // needed catching. Legibility outranks spectacle; this is where that is
     // enforced rather than asserted.
-    FOV_MAX: 96,
+    // N7: 96 -> 88. The cap was set to stop a 106-degree fisheye that shrank
+    // the plate to 93x23 at the far read — but the shipped DASH frame sat at
+    // 103x26, barely clear of the thing the cap exists to prevent, because
+    // during ANY dash the stack is pinned to the cap. Eight degrees back is
+    // the single biggest legibility gain available here, and it grows the
+    // runner by a quarter at the same time. The dash still kicks: cruise
+    // without one is ~79 degrees, so the lens still opens ~9 on the spend.
+    FOV_MAX: 88,
     // REDUCED FLASH is a motion setting as much as a flash one: an aggressive
     // speed-keyed rig is a nausea vector. This scales every speed-keyed camera
     // term — the close-in, the drop, the lens stretch, the tremor — without

@@ -32,7 +32,7 @@
     "BOOST.SURGE_READS": 6,
     "BOOST.SURGE_EARLY_FRAC": 0.5,
     "CAMERA.FOV": 68,
-    "CAMERA.FOV_MAX": 96,
+    "CAMERA.FOV_MAX": 88,
     "CAMERA.SURGE_FOV": 5.5,
     "CAMERA.FOV_SPEED_GAIN": 1.12,
     "CAMERA.FOV_BOOST": 22,
@@ -374,9 +374,9 @@
         "speed": 27,
         "base": 95.13,
         "surge": 5.5,
-        "fov": 96,
+        "fov": 88,
         "clamped": true,
-        "surgeVisible": 0.87
+        "surgeVisible": 0
       },
       {
         "where": "start",
@@ -385,9 +385,9 @@
         "speed": 27,
         "base": 95.13,
         "surge": 2.48,
-        "fov": 96,
+        "fov": 88,
         "clamped": true,
-        "surgeVisible": 0.87
+        "surgeVisible": 0
       },
       {
         "where": "cruise",
@@ -418,7 +418,7 @@
         "speed": 47.4,
         "base": 105.75,
         "surge": 5.5,
-        "fov": 96,
+        "fov": 88,
         "clamped": true,
         "surgeVisible": 0
       },
@@ -429,7 +429,7 @@
         "speed": 47.4,
         "base": 105.75,
         "surge": 2.48,
-        "fov": 96,
+        "fov": 88,
         "clamped": true,
         "surgeVisible": 0
       },
@@ -440,9 +440,9 @@
         "speed": 64,
         "base": 90.4,
         "surge": 5.5,
-        "fov": 95.9,
-        "clamped": false,
-        "surgeVisible": 5.5
+        "fov": 88,
+        "clamped": true,
+        "surgeVisible": 0
       },
       {
         "where": "ceiling",
@@ -451,9 +451,9 @@
         "speed": 64,
         "base": 90.4,
         "surge": 2.48,
-        "fov": 92.88,
-        "clamped": false,
-        "surgeVisible": 2.47
+        "fov": 88,
+        "clamped": true,
+        "surgeVisible": 0
       },
       {
         "where": "ceiling",
@@ -462,7 +462,7 @@
         "speed": 64,
         "base": 114.4,
         "surge": 5.5,
-        "fov": 96,
+        "fov": 88,
         "clamped": true,
         "surgeVisible": 0
       },
@@ -473,7 +473,7 @@
         "speed": 64,
         "base": 114.4,
         "surge": 2.48,
-        "fov": 96,
+        "fov": 88,
         "clamped": true,
         "surgeVisible": 0
       }
