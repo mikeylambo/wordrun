@@ -48,7 +48,7 @@
   #hud{position:absolute;inset:0;z-index:20;pointer-events:none;padding:calc(var(--safe-t) + 16px) 18px calc(var(--safe-b) + 18px);display:flex;flex-direction:column;justify-content:space-between;opacity:0;transition:opacity .25s ease}
   #hud.on{opacity:1}.row{display:flex;align-items:flex-start;justify-content:space-between}
   #dist{font-size:clamp(38px,11vw,66px);font-weight:800;line-height:.86;letter-spacing:-.045em;color:#f4fbff;text-shadow:0 0 18px rgba(103,216,255,.3),0 1px 2px rgba(2,6,10,.85)}
-  #distSub{margin-top:3px;font-size:10px;font-weight:700;letter-spacing:.2em;color:var(--dim)}
+  #distSub{margin-top:5px;font-size:10px;font-weight:700;letter-spacing:.2em;color:var(--dim)}
   /* RC9.2 — the score to beat, on a challenge run and nowhere else. A second
      quiet figure under the metre caption: smaller than the caption, so it
      never competes with the score it is measured against, and it turns the
@@ -62,7 +62,7 @@
      above them is clamp(38px..66px) tall, so on a wide viewport the headline
      grew straight through them. They live in the column's flow now and cannot
      collide with it at any size. */
-  #vitalsSlot{margin-top:10px;min-height:22px}
+  #vitalsSlot{margin-top:13px;min-height:22px}
   /* Hearts — the fail state, one pip per life. Built and driven by ui.js
      (Phase 0: relocated here from the deleted rc5.js style injection). The
      danger colour is overridden per colour-vision palette in ui/access.js. */
@@ -127,8 +127,15 @@
     0%{transform:translate(-50%,-50%) scale(var(--judge-punch-scale,1.5))}
     100%{transform:translate(-50%,-50%) scale(1)}}
 
-  #combo{position:absolute;left:16px;top:calc(var(--safe-t) + var(--combo-top,108px));z-index:25;
-    pointer-events:none;opacity:0;
+  /* The chain multiplier sits IN the column with the score, the metres and
+     the hearts. It used to be absolutely positioned at left:16px with a
+     hand-set top of 108px, while everything above it sat at the HUD's own
+     18px padding — so it hung two pixels proud of a stack it belonged to,
+     and its offset had to guess a height that is clamp(38px..66px) plus an
+     optional target line plus a heart row. It is in the flow now: one left
+     edge for the whole cluster, and nothing to keep in sync. */
+  #combo{margin-top:var(--combo-gap,10px);min-height:calc(var(--combo-size,34px) * 1.05);
+    pointer-events:none;opacity:0;transform-origin:left center;
     font:800 var(--combo-size,clamp(26px,7vw,40px))/1 var(--face);letter-spacing:-.02em;
     color:var(--sem-right,#57e389);text-shadow:0 2px 14px rgba(4,9,13,.8),0 0 20px currentColor;
     transition:opacity .2s ease;font-variant-numeric:tabular-nums}
@@ -196,9 +203,20 @@
     -webkit-mask-image:repeating-linear-gradient(90deg,#000 0 calc(100%/var(--cells) - var(--gap)),transparent calc(100%/var(--cells) - var(--gap)) calc(100%/var(--cells)));
     mask-image:repeating-linear-gradient(90deg,#000 0 calc(100%/var(--cells) - var(--gap)),transparent calc(100%/var(--cells) - var(--gap)) calc(100%/var(--cells)));
     transition:height .16s ease,background .16s ease}
-  .meter-zone.armed #meterWrap{height:10px;background:rgba(28,49,61,.3)}
+  /* MIN_ACTIVATE equals METER_MAX, so `armed` IS full: a charge that can only
+     be spent whole. It said so with 3px of height and a 7px shadow, which is
+     a state change, not an event. The bar is lit now — the STATIC glow is on
+     `armed`, so REDUCED FLASH keeps every bit of the information, and only
+     the breathing lives on `charged`, which ui.js withholds from it. */
+  .meter-zone.armed #meterWrap{height:10px;background:rgba(28,49,61,.34);
+    box-shadow:0 0 20px rgba(103,216,255,.3),0 0 4px rgba(103,216,255,.45)}
   #meter{height:100%;width:0%;background:linear-gradient(90deg,#2f6d86,var(--ice) 62%,#bdefff);transition:width .07s linear}
-  .meter-zone.armed #meter{background:linear-gradient(90deg,#3f90ad,var(--ice) 55%,#e6fbff);filter:drop-shadow(0 0 7px rgba(103,216,255,.5))}
+  .meter-zone.armed #meter{background:linear-gradient(90deg,#3f90ad,var(--ice) 55%,#e6fbff);
+    filter:drop-shadow(0 0 11px rgba(140,232,255,.8)) drop-shadow(0 0 24px rgba(103,216,255,.34))}
+  .meter-zone.charged #meter{animation:dashFull 1.6s ease-in-out infinite}
+  @keyframes dashFull{
+    0%,100%{filter:drop-shadow(0 0 9px rgba(140,232,255,.62)) drop-shadow(0 0 20px rgba(103,216,255,.26))}
+    50%{filter:drop-shadow(0 0 17px rgba(206,248,255,.98)) drop-shadow(0 0 36px rgba(103,216,255,.5))}}
   .meter-zone{--dashHue:195}
   .meter-zone.spending #meter{background:linear-gradient(90deg,hsl(var(--dashHue) 92% 86%),#fff);filter:drop-shadow(0 0 12px hsl(var(--dashHue) 95% 78% / .85))}
 
@@ -631,12 +649,11 @@
   <div id="attractLine" aria-hidden="true"></div>
 
   <div id="hud">
-    <div><div class="row"><div><div id="dist">0</div><div id="distSub">0 M</div><div id="distTarget"></div><div id="vitalsSlot"></div></div><div id="best" hidden><span>BEST TODAY</span><b id="bestVal">—</b></div></div><div id="chain"></div></div>
+    <div><div class="row"><div><div id="dist">0</div><div id="distSub">0 M</div><div id="distTarget"></div><div id="vitalsSlot"></div><div id="combo" aria-hidden="true"></div></div><div id="best" hidden><span>BEST TODAY</span><b id="bestVal">—</b></div></div><div id="chain"></div></div>
     <div class="meter-zone"><div id="meterLabel"><span class="mLabel">DASH</span><i></i></div><div id="meterWrap"><div id="meter"></div></div></div>
   </div>
 
   <div id="judge" aria-hidden="true"></div>
-  <div id="combo" aria-hidden="true"></div>
   <div id="dashFlare" aria-hidden="true"></div>
 
   <button id="mute" aria-label="Toggle sound">♪</button>

@@ -559,6 +559,9 @@ export class UI {
     this._wasArmed = armed;
     // The whole zone carries the state so the label lights with the cells.
     this.meterZone?.classList.toggle('armed', armed);
+    // The lit bar is on `armed` and reaches everyone; only the breath is
+    // held back, the same way the label's pulse and the dash flare are.
+    this.meterZone?.classList.toggle('charged', armed && !ACCESS.reducedFlash);
     this.meterZone?.classList.toggle('spending', p.overdrive);
     // Phase I: while spending, the rim's hue steps with the dash chain. A
     // colour, never a label — the cap holds at four names.

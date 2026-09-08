@@ -218,7 +218,7 @@ export class Judgment {
     set('--judge-punch-ms', `${j.PUNCH_MS}ms`);
     set('--judge-punch-scale', String(j.PUNCH_SCALE));
     set('--combo-size', `clamp(${j.COMBO_MIN_PX}px, ${j.COMBO_SIZE_VW}vw, ${j.COMBO_MAX_PX}px)`);
-    set('--combo-top', `${j.COMBO_TOP_PX}px`);
+    set('--combo-gap', `${j.COMBO_GAP_PX}px`);
     set('--combo-punch-ms', `${j.COMBO_PUNCH_MS}ms`);
     set('--combo-punch-scale', String(j.COMBO_PUNCH_SCALE));
   }

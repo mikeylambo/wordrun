@@ -703,6 +703,39 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
     'and the track ribbon samples at its own rate, wrapping at the length the buffer actually is');
 }
 
+// ── N10: the HUD cluster is one column, and a full DASH looks full ───────
+{
+  const html = read('index.html');
+  const liveUi = read('src/ui/ui.js');
+  const judge = read('src/ui/judgment.js');
+  const tuning = read('src/TUNING.js');
+
+  // Score, metres, hearts and chain are one stack. The chain used to be
+  // absolutely positioned at left:16px with a hand-set top of 108px while
+  // the other three sat at the HUD's own 18px padding — two pixels proud of
+  // the column it belongs to, with an offset that had to guess a height of
+  // clamp(38px..66px) plus an optional target line plus a heart row.
+  check(/<div id="vitalsSlot"><\/div><div id="combo" aria-hidden="true"><\/div><\/div>/.test(html),
+    'the chain multiplier is IN the column with the score, the metres and the hearts');
+  check(!/#combo\{[^}]*position:absolute/.test(html) && !/#combo\{[^}]*left:/.test(html),
+    'and it has no left edge of its own to drift from theirs');
+  check(!/--combo-top/.test(html + judge + tuning) && /COMBO_GAP_PX/.test(tuning) &&
+    /set\('--combo-gap'/.test(judge),
+    'the dial is a GAP in a column now, not a top in a guess');
+  check((html.match(/id="combo"/g) || []).length === 1,
+    'and there is exactly one of it');
+
+  // MIN_ACTIVATE equals METER_MAX, so `armed` IS full — a charge spent whole.
+  check(/\.meter-zone\.armed #meterWrap\{[^}]*box-shadow:/.test(html) &&
+    /\.meter-zone\.armed #meter\{[^}]*drop-shadow/.test(html),
+    'a full DASH charge lights the bar, rather than only widening it by 3px');
+  check(/\.meter-zone\.charged #meter\{animation:dashFull/.test(html),
+    'and it breathes while it is held');
+  check(/classList\.toggle\('charged', armed && !ACCESS\.reducedFlash\)/.test(liveUi) &&
+    /classList\.toggle\('armed', armed\)/.test(liveUi),
+    'REDUCED FLASH loses the breath and keeps the glow — every bit of the information survives it');
+}
+
 // ── N9: the rest of the world's emissives, and the one that stays dark ───
 {
   const fantasy = read('src/render/speed-fantasy.js');

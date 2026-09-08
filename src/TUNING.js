@@ -352,7 +352,7 @@ export const TUNING = {
     COMBO_SIZE_VW: 7,
     COMBO_MIN_PX: 26,
     COMBO_MAX_PX: 40,
-    COMBO_TOP_PX: 108,
+    COMBO_GAP_PX: 10,          // gap above the chain multiplier, in its column
     COMBO_PUNCH_MS: 160,
     COMBO_PUNCH_SCALE: 1.42,
     // The glow burst behind a judgment. Count 0 switches it off outright.
