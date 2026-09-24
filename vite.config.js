@@ -14,7 +14,9 @@ export default defineConfig({
         // chunk means a returning player re-downloads the game and keeps the
         // engine, and the two arrive in parallel on a first visit instead of
         // one after the other inside a single file.
-        manualChunks: (id) => (id.includes('node_modules/three') ? 'three' : undefined),
+        // The addons (glTF loader, meshopt) stay out of it: only the runner
+        // model needs them, and it loads them after first paint.
+        manualChunks: (id) => (id.includes('node_modules/three/build') ? 'three' : undefined),
       },
     },
   },

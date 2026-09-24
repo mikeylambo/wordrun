@@ -1,15 +1,18 @@
 /**
  * Actors — DICTION DASH.
  *
- * The runner is a RUNNING FIGURE OF LIGHT: a low-poly humanoid built from
- * glowing primitives with a procedural run cycle — no skeleton, no skinning,
- * just pivot groups swung by distance-driven phase, so it stays in the same
- * error-absorbent line-art language as the Redline. It is a
- * visual swap on the existing controller: PlayerActor keeps the exact
- * update(p, slope, dt, gap) contract, the pivot for airborne rotation, and
- * the track-ribbon system (the ink stroke the runner draws down the page).
- * Lane logic, hit-boxes and movement are untouched sim state; this file
- * only draws them.
+ * The runner is a RUNNING FIGURE OF LIGHT: the Dasher — a skinned athlete
+ * (src/render/runner.glb, built by `npm run build:runner`) drawn by a light
+ * shader from its normals alone, so it stays in the same error-absorbent
+ * glow language as the Redline: a white rim that carries the silhouette, a
+ * dim tinted fill that carries the volume. Its authored run clip is NOT
+ * played on a clock — the clip's time is a pure function of the stride
+ * phase, which is a pure function of ground covered (RC9.9), so a frozen sim
+ * is a frozen figure and the feet keep the ground's pace at every speed.
+ * PlayerActor keeps the exact update(p, slope, dt, gap) contract, the pivot
+ * for airborne rotation, and the track-ribbon system (the ink stroke the
+ * runner draws down the page). Lane logic, hit-boxes and movement are
+ * untouched sim state; this file only draws them.
  */
 
 import * as THREE from 'three';
@@ -30,101 +33,185 @@ const glow = (color, opacity = 1) => new THREE.MeshBasicMaterial({
 });
 
 /**
- * One articulated limb: a pivot group at the joint, the bone mesh hanging
- * below it, and a nested second joint (knee/elbow) with its own bone.
- *
- * Phase N3 (silhouette): the bones are calligraphic now — tapered strokes
- * that thin toward their ends, with a small sphere at each joint so the
- * limb reads as ONE continuous stroke of light rather than boxes with
- * gaps. Same pivots, same lengths: every pose the rig has ever made
- * lands identically.
+ * The Dasher's light: rim-lit from the view, so the silhouette is always the
+ * brightest thing about it — the one shape the eye must find between word
+ * plates. `uFill` is the palette's tint (the cosmetic slot the old limbs
+ * carried); `uCore` is the white rim and never changes. The ghost draws the
+ * rim alone, additively — a hologram of the run it is replaying.
  */
-function limb(material, x, y, upperLen, lowerLen, thick) {
-  const joint = new THREE.Group();
-  joint.position.set(x, y, 0);
-  const cap = new THREE.Mesh(new THREE.SphereGeometry(thick * 0.62, 7, 5), material);
-  joint.add(cap);
-  const upper = new THREE.Mesh(
-    new THREE.CylinderGeometry(thick * 0.58, thick * 0.42, upperLen, 7), material);
-  upper.position.y = -upperLen / 2;
-  joint.add(upper);
-  const mid = new THREE.Group();
-  mid.position.y = -upperLen;
-  const knee = new THREE.Mesh(new THREE.SphereGeometry(thick * 0.46, 7, 5), material);
-  mid.add(knee);
-  // The lower bone tapers almost to a point — the stroke's exit.
-  const lower = new THREE.Mesh(
-    new THREE.CylinderGeometry(thick * 0.40, thick * 0.14, lowerLen, 7), material);
-  lower.position.y = -lowerLen / 2;
-  mid.add(lower);
-  joint.add(mid);
-  return { joint, mid, upper, lower };
+const BODY_VERT = /* glsl */`
+  #include <common>
+  #include <skinning_pars_vertex>
+  varying vec3 vN;
+  varying vec3 vV;
+  void main() {
+    #include <skinbase_vertex>
+    #include <begin_vertex>
+    #include <beginnormal_vertex>
+    #include <skinnormal_vertex>
+    #include <skinning_vertex>
+    #include <project_vertex>
+    vN = normalize(normalMatrix * objectNormal);
+    vV = -mvPosition.xyz;
+  }
+`;
+const BODY_FRAG = /* glsl */`
+  uniform vec3 uCore;
+  uniform vec3 uFill;
+  uniform float uGlow;
+  uniform float uFillAmt;
+  uniform float uOpacity;
+  varying vec3 vN;
+  varying vec3 vV;
+  void main() {
+    vec3 n = normalize(vN);
+    float facing = abs(dot(n, normalize(vV)));
+    // Two rims: a tight white edge that draws the silhouette, and a wide
+    // tinted bloom that makes the body read as lit from within.
+    float edge = pow(1.0 - facing, 3.2);
+    float bloom = pow(1.0 - facing, 1.3);
+    // A soft key from above gives the limbs their volume without any light
+    // in the scene having a say — the figure is its own light.
+    float key = 0.5 + 0.5 * n.y;
+    vec3 col = uFill * uFillAmt * (0.05 + 0.14 * key + 0.4 * bloom)
+      + uCore * edge * 2.2;
+    gl_FragColor = vec4(col * uGlow, uOpacity);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+  }
+`;
+
+function bodyMaterial(ghost) {
+  return new THREE.ShaderMaterial({
+    vertexShader: BODY_VERT,
+    fragmentShader: BODY_FRAG,
+    uniforms: {
+      uCore: { value: new THREE.Color(ghost ? 0x9fb9c8 : 0xeaffff) },
+      uFill: { value: new THREE.Color(ghost ? 0x8aa6b6 : 0x9fe8ff) },
+      uGlow: { value: 1 },
+      uFillAmt: { value: ghost ? 0 : 1 },
+      uOpacity: { value: ghost ? TUNING.GHOST.OPACITY : 1 },
+    },
+    // The live figure is solid, so its far limbs never shine through its
+    // near ones; the ghost is pure additive light.
+    transparent: ghost,
+    depthWrite: !ghost,
+    blending: ghost ? THREE.AdditiveBlending : THREE.NormalBlending,
+    toneMapped: true,
+    fog: false,
+  });
+}
+
+// Head-to-toe height of the drawn figure — the old construct's crown.
+const FIGURE_HEIGHT_M = 1.9;
+// The model is authored facing +Z; the runner runs toward -Z.
+const FIGURE_YAW = Math.PI;
+
+const RUNNER_URL = new URL('./runner.glb', import.meta.url).href;
+let runnerAsset = null;
+let cloneRig = null;
+
+/**
+ * Load the Dasher once; every figure clones the same template. The template
+ * also carries the run cycle's MEAN POSE — the clip averaged over one
+ * stride — which is the centre the posture knobs swing around: scaling a
+ * bone toward its mean tightens the swing without ever moving the figure off
+ * its line (scaling toward the T-pose bind would lift the arms instead).
+ */
+function loadRunner() {
+  // The loader, the meshopt decoder and the skeleton cloner arrive in their
+  // own chunk, after first paint — nothing on the critical path waits on them.
+  runnerAsset ??= import('./runner-loader.js')
+    .then(({ GLTFLoader, MeshoptDecoder, cloneSkinned }) => {
+      cloneRig = cloneSkinned;
+      return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(RUNNER_URL);
+    })
+    .then((gltf) => {
+      const scene = gltf.scene;
+      const clip = gltf.animations.find((a) => /run/i.test(a.name)) || gltf.animations[0];
+      scene.updateMatrixWorld(true);
+      const height = new THREE.Box3().setFromObject(scene).getSize(new THREE.Vector3()).y;
+
+      const mixer = new THREE.AnimationMixer(scene);
+      mixer.clipAction(clip).play();
+      const bones = [];
+      scene.traverse((o) => { if (o.isBone) bones.push(o); });
+      const sum = bones.map(() => new THREE.Vector4());
+      const hipsY = { sum: 0 };
+      const hips = bones.find((b) => b.name === 'Hips');
+      const SAMPLES = 24;
+      for (let i = 0; i < SAMPLES; i++) {
+        mixer.setTime((i / SAMPLES) * clip.duration);
+        bones.forEach((b, j) => {
+          const q = b.quaternion, s = sum[j];
+          const sign = s.x * q.x + s.y * q.y + s.z * q.z + s.w * q.w < 0 ? -1 : 1;
+          s.x += q.x * sign; s.y += q.y * sign; s.z += q.z * sign; s.w += q.w * sign;
+        });
+        hipsY.sum += hips.position.y;
+      }
+      const mean = new Map(bones.map((b, j) =>
+        [b.name, new THREE.Quaternion(sum[j].x, sum[j].y, sum[j].z, sum[j].w).normalize()]));
+      mixer.stopAllAction();
+      mixer.uncacheRoot(scene);
+      return { scene, clip, mean, meanHipsY: hipsY.sum / SAMPLES, scale: FIGURE_HEIGHT_M / height };
+    })
+    .catch((err) => {
+      console.warn('[actors] runner model failed to load', err);
+      return null;
+    });
+  return runnerAsset;
 }
 
 /**
- * The running man: hips, leaning torso, head, two arms (elbows held bent,
- * runner-style), two legs with knees, a halo shell and a light pool. Ghost
- * builds the same construct, paler.
+ * Dress one figure: clone the template, give it its own light material, bind
+ * a mixer to the clone. Ghost and player each own their clone, so their
+ * skeletons never share a pose.
  */
-function buildRunner(ghost = false) {
+function attachRig(r, asset, ghost) {
+  const model = cloneRig(asset.scene);
+  model.rotation.y = FIGURE_YAW;
+  model.scale.setScalar(asset.scale);
+  const mat = bodyMaterial(ghost);
+  model.traverse((o) => {
+    if (!o.isMesh) return;
+    o.material = mat;
+    o.frustumCulled = false; // the bind-pose bounds do not follow the stride
+  });
+  const bone = (name) => model.getObjectByName(name);
+  const bones = [];
+  model.traverse((o) => { if (o.isBone) bones.push(o); });
+  const mixer = new THREE.AnimationMixer(model);
+  mixer.clipAction(asset.clip).play();
+  r.figure.add(model);
+  r.bodyMat = mat;
+  r.rig = {
+    model, mixer, duration: asset.clip.duration, bones,
+    mean: bones.map((b) => asset.mean.get(b.name)),
+    meanHipsY: asset.meanHipsY,
+    // Hips translation is in the armature's units; posture offsets are metres.
+    unitsPerM: 1 / (asset.scale * (bone('Hips').parent.scale.y || 1)),
+    hips: bone('Hips'),
+    spine: bone('Spine02'),
+    armL: bone('LeftArm'),
+    armR: bone('RightArm'),
+  };
+}
+
+/**
+ * The running figure, built onto the actor `r`: the Dasher, a halo shell
+ * and a light pool. Ghost builds the same construct, paler. The model arrives asynchronously (it is
+ * ~70 KB and lands during the title); until it does the figure is its halo.
+ */
+function buildRunner(r, ghost = false) {
   const g = new THREE.Group();
 
-  const coreColor = ghost ? 0x9fb9c8 : 0xeaffff;
-  const limbColor = ghost ? 0x8aa6b6 : 0x9fe8ff;
   const haloColor = ghost ? 0x6f8b9c : 0x67d8ff;
   const baseOpacity = ghost ? TUNING.GHOST.OPACITY : 1;
 
-  const coreMat = glow(coreColor, 0.96 * baseOpacity);
-  const limbMat = glow(limbColor, 0.9 * baseOpacity);
-
-  // Everything above the legs leans as one piece — the sprinter's angle.
-  const hips = new THREE.Group();
-  hips.position.y = 0.98;
-  g.add(hips);
-
-  // Phase N3 (silhouette): the mannequin of boxes becomes one deliberate
-  // figure — a living letterform. The pelvis is a lens, the torso a nib
-  // (broad at the shoulders, drawn to a narrow waist), and the head a
-  // clean ball carrying the ONE identity mark: a crest of light swept
-  // back off the crown, an apostrophe running. Same pivots, same heights;
-  // every E3 posture reads exactly as before.
-  const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.165, 9, 6), limbMat);
-  pelvis.scale.set(1.0, 0.55, 0.65);
-  pelvis.position.y = 0.02;
-  hips.add(pelvis);
-
-  const chest = new THREE.Group();
-  chest.position.y = 0.1;
-  hips.add(chest);
-
-  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.095, 0.56, 8), coreMat);
-  torso.scale.z = 0.62;
-  torso.position.y = 0.34;
-  chest.add(torso);
-
-  const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.145, 1), coreMat);
-  head.position.y = 0.76;
-  chest.add(head);
-
-  // The crest: swept back and slightly down off the crown, tapering to a
-  // point — the silhouette you can draw from memory.
-  const crest = new THREE.Mesh(new THREE.CylinderGeometry(0.0, 0.085, 0.36, 6), coreMat);
-  crest.position.set(0, 0.86, 0.16);
-  crest.rotation.x = 1.15;
-  chest.add(crest);
-
-  // Arms hang from the chest so they inherit the lean. Elbows stay bent —
-  // the swing happens at the shoulder, like an actual runner.
-  const armL = limb(limbMat, -0.245, 0.56, 0.32, 0.3, 0.095);
-  const armR = limb(limbMat, 0.245, 0.56, 0.32, 0.3, 0.095);
-  armL.mid.rotation.x = -1.35;
-  armR.mid.rotation.x = -1.35;
-  chest.add(armL.joint, armR.joint);
-
-  // Legs hang from the hips; knees fold backward through the cycle.
-  const legL = limb(limbMat, -0.115, 0, 0.46, 0.44, 0.12);
-  const legR = limb(limbMat, 0.115, 0, 0.46, 0.44, 0.12);
-  hips.add(legL.joint, legR.joint);
+  // Everything the body does happens inside this group, so the pivot, lean
+  // and stagger shudder the actor applies to `group` carry the figure.
+  const figure = new THREE.Group();
+  g.add(figure);
 
   // The light-being shell: a soft halo around the torso keeps the figure
   // reading as a construct of glow rather than a mannequin.
@@ -145,14 +232,20 @@ function buildRunner(ghost = false) {
   tail.position.y = 1.05;
   g.add(tail);
 
-  const materials = [coreMat, limbMat, halo.material, pool.material, tail.material];
+  const materials = [halo.material, pool.material, tail.material];
   if (ghost) for (const m of materials) m.transparent = true;
 
-  return {
-    group: g, hips, chest, head, halo, pool, tail,
-    armL, armR, legL, legR,
-    coreMat, limbMat, materials, baseOpacity,
-  };
+  Object.assign(r, {
+    group: g, figure, halo, pool, tail,
+    bodyMat: null, rig: null, fill: null,
+    materials, baseOpacity,
+  });
+  loadRunner().then((asset) => {
+    if (!asset) return;
+    attachRig(r, asset, ghost);
+    // A palette chosen before the model landed is applied as it arrives.
+    if (r.fill != null) r.bodyMat.uniforms.uFill.value.setHex(r.fill);
+  });
 }
 
 /**
@@ -187,56 +280,71 @@ export function advanceStride(phase, dD, speedN) {
   return phase + dD * (Math.PI * 2) / strideLength(speedN);
 }
 
-/**
- * The shared run cycle — drives one rig from a phase angle. Used by the
- * player and the ghost so the two figures stride identically.
- *   phase    : radians, 2π per full stride pair
- *   speedN   : normalised speed (0..~1.85 with Overdrive)
- *   airborne : freeze the cycle into a leap pose
- */
-function poseRunner(r, phase, speedN, airborne, dt, style = {}) {
-  // E3 runner states: the style knob set is how the PLAYER's posture reads
-  // its situation (dash aggression, high-flow economy, dread crouch). The
-  // ghost passes nothing and strides exactly as it always has.
-  const swingMul = style.swingMul ?? 1;
-  const bobMul = style.bobMul ?? 1;
-  const hipDrop = style.hipDrop ?? 0;
-  const swing = (0.75 + speedN * 0.35) * swingMul;
-  const sL = Math.sin(phase);
-  const sR = Math.sin(phase + Math.PI);
+const _q = new THREE.Quaternion();
+const _pq = new THREE.Quaternion();
+const _mq = new THREE.Quaternion();
+const _ax = new THREE.Vector3();
+const AXIS_X = new THREE.Vector3(1, 0, 0);
+const AXIS_Z = new THREE.Vector3(0, 0, 1);
 
-  if (airborne) {
-    // A held leap: lead leg reaching, trail leg extended, arms split.
-    const k = 1 - Math.exp(-10 * dt);
-    r.legL.joint.rotation.x += (-0.9 - r.legL.joint.rotation.x) * k;
-    r.legR.joint.rotation.x += (0.7 - r.legR.joint.rotation.x) * k;
-    r.legL.mid.rotation.x += (0.5 - r.legL.mid.rotation.x) * k;
-    r.legR.mid.rotation.x += (0.9 - r.legR.mid.rotation.x) * k;
-    r.armL.joint.rotation.x += (0.8 - r.armL.joint.rotation.x) * k;
-    r.armR.joint.rotation.x += (-0.8 - r.armR.joint.rotation.x) * k;
-    r.hips.position.y = 0.98;
-    return;
+/**
+ * Turn a bone about an axis given in the MODEL's frame (x = the figure's
+ * left, y = up, z = forward), whatever its own authored axes are. Applied in
+ * the bone's parent space, so it layers on top of the clip's pose.
+ */
+function bend(rig, bone, axis, angle) {
+  if (!bone || !angle) return;
+  rig.model.getWorldQuaternion(_mq).invert();
+  bone.parent.getWorldQuaternion(_pq).premultiply(_mq).invert();
+  _ax.copy(axis).applyQuaternion(_pq);
+  bone.quaternion.premultiply(_q.setFromAxisAngle(_ax, angle));
+}
+
+/**
+ * The shared run cycle — poses one rig from a phase angle. Used by the
+ * player and the ghost so the two figures stride identically.
+ *   phase    : radians, 2π per full stride pair = one pass of the clip
+ *   speedN   : normalised speed (0..~1.85 with Overdrive)
+ *   style    : the PLAYER's posture knobs (E3); the ghost passes nothing
+ *     swingMul : scales every joint's excursion about the cycle's mean pose
+ *     bobMul   : scales the pelvis's rise and fall
+ *     hipDrop  : metres the pelvis sinks (the dash's drive, the dread crouch)
+ *     lean     : extra forward pitch of the spine, radians
+ *     flail    : 0..1 arms thrown wide (the stagger)
+ */
+function poseRunner(r, phase, speedN, style = {}) {
+  const rig = r.rig;
+  if (!rig) return;
+  const cycle = ((phase / (Math.PI * 2)) % 1 + 1) % 1;
+  rig.mixer.setTime(cycle * rig.duration);
+
+  // A jog swings less than a sprint; the clip is authored at full sprint.
+  const swing = Math.min(1.1, (0.8 + speedN * 0.15) * (style.swingMul ?? 1));
+  if (Math.abs(swing - 1) > 1e-3) {
+    for (let i = 0; i < rig.bones.length; i++) {
+      const mean = rig.mean[i];
+      if (!mean) continue;
+      const q = rig.bones[i].quaternion;
+      _q.copy(q);
+      q.slerpQuaternions(mean, _q, swing);
+    }
   }
 
-  // Ground cycle: legs alternate at the hip, knees fold hardest as the leg
-  // swings through behind; arms counter-swing from the shoulder.
-  r.legL.joint.rotation.x = sL * swing;
-  r.legR.joint.rotation.x = sR * swing;
-  r.legL.mid.rotation.x = Math.max(0.12, (1 - Math.cos(phase + 0.9)) * 0.55) * (0.9 + speedN * 0.4);
-  r.legR.mid.rotation.x = Math.max(0.12, (1 - Math.cos(phase + Math.PI + 0.9)) * 0.55) * (0.9 + speedN * 0.4);
-  r.armL.joint.rotation.x = sR * swing * 0.9;
-  r.armR.joint.rotation.x = sL * swing * 0.9;
+  const hp = rig.hips.position;
+  hp.y = rig.meanHipsY + (hp.y - rig.meanHipsY) * (style.bobMul ?? 1)
+    - (style.hipDrop ?? 0) * rig.unitsPerM;
 
-  // The body rides the stride: a small double-frequency bob. High flow
-  // spends less of it (economy of motion); the dash drops the whole pelvis.
-  r.hips.position.y = 0.98 - hipDrop +
-    Math.abs(Math.sin(phase)) * (0.035 + speedN * 0.03) * bobMul;
+  bend(rig, rig.spine, AXIS_X, style.lean ?? 0);
+  const flail = style.flail ?? 0;
+  if (flail > 0) {
+    bend(rig, rig.armL, AXIS_Z, flail * (1.1 + Math.sin(r.t * 31) * 0.3));
+    bend(rig, rig.armR, AXIS_Z, -flail * (1.1 + Math.sin(r.t * 29) * 0.3));
+  }
 }
 
 export class PlayerActor {
   constructor(scene) {
-    const b = buildRunner(false);
-    Object.assign(this, b);
+    buildRunner(this, false);
     this.pivot = new THREE.Group();
     this.pivot.add(this.group);
     this.root = new THREE.Group();
@@ -338,21 +446,26 @@ export class PlayerActor {
     //             the speed-skater's start held for the whole spend.
     //   dread   : the Redline close pulls the figure into a crouch.
     const econ = Math.max(0, Math.min(1, ((this.flow ?? 1) - 1.25) / 0.5));
+    // Stagger: the arms are thrown wide and settle back as it drains.
+    const flailTarget = p.staggerT > 0 ? 1 : 0;
+    this._flail = (this._flail ?? 0) +
+      (flailTarget - (this._flail ?? 0)) * Math.min(1, dt * (flailTarget ? 14 : 8));
     const style = {
       swingMul: (p.overdrive ? 0.85 : 1) * (1 - econ * 0.25),
       bobMul: (p.overdrive ? 0.8 : 1) * (1 - econ * 0.5),
       hipDrop: (p.overdrive ? 0.09 : 0) + nerve * 0.035,
+      // The clip is authored at a sprinter's lean; speed deepens it, Overdrive
+      // is nearly horizontal fury, and the Redline close adds its own tension
+      // to the spine (E3).
+      lean: speedN * 0.1 - 0.06 + (p.overdrive ? 0.14 : 0) + nerve * 0.08,
+      flail: this._flail,
     };
 
     // The run cycle is driven by distance, so stride matches the ground —
-    // and so a frozen sim is a frozen figure (RC9.9).
+    // and so a frozen sim is a frozen figure (RC9.9). Airborne, the stride
+    // holds where it left the ground.
     if (!p.airborne) this._phase = advanceStride(this._phase, strideD, speedN);
-    poseRunner(this, this._phase, speedN, p.airborne, dt, style);
-
-    // Sprinter's lean deepens with speed; Overdrive is nearly horizontal
-    // fury, and the Redline close adds its own tension to the spine (E3).
-    this.chest.rotation.x = -(0.16 + speedN * 0.22 +
-      (p.overdrive ? 0.14 : 0) + nerve * 0.08);
+    poseRunner(this, this._phase, speedN, style);
 
     // The figure still pulses like a cursor: calm far from the Redline,
     // frantic close to it — the nerve tell carried over from Phase 5.
@@ -362,7 +475,7 @@ export class PlayerActor {
     // Flow (Phase 9): the figure itself burns brighter with the chain —
     // main sets .flow each frame (glow × pulse); wrappers pass through.
     const flow = this.flow ?? 1;
-    this.coreMat.opacity = Math.min(1, 0.96 * this.baseOpacity * blink * (0.85 + flow * 0.15));
+    let bodyGlow = blink * (0.85 + flow * 0.15);
     this.halo.material.opacity =
       Math.min(0.6, 0.22 * this.baseOpacity * (0.8 + speedN * 0.35) * blink * flow);
     // The halo stretches into a teardrop with speed — the whole construct
@@ -381,30 +494,28 @@ export class PlayerActor {
     this.tail.position.z = (0.001 + tailN * 9) / 2 + 0.4;
 
     // Stagger: the construct destabilises — hard flicker, a shudder, arms
-    // thrown wide — where the old rig windmilled. E3 adds the STUMBLE: one
-    // brutal pitch forward that recovers as the stagger drains, without
-    // ever touching forward motion (the sim owns that; this file never
-    // writes a player field).
+    // thrown wide (the flail, posed above). E3 adds the STUMBLE: one brutal
+    // pitch forward that recovers as the stagger drains, without ever
+    // touching forward motion (the sim owns that; this file never writes a
+    // player field).
     if (p.staggerT > 0) {
       const jitter = Math.sin(this.t * 61) * 0.09;
       this.group.position.x = jitter;
       this.group.rotation.x += (p.staggerT / TUNING.PLAYER.STAGGER_TIME) * 0.3;
-      this.coreMat.opacity *= 0.55 + Math.abs(Math.sin(this.t * 47)) * 0.45;
-      this.armL.joint.rotation.z = 0.9 + Math.sin(this.t * 31) * 0.3;
-      this.armR.joint.rotation.z = -0.9 - Math.sin(this.t * 29) * 0.3;
+      bodyGlow *= 0.55 + Math.abs(Math.sin(this.t * 47)) * 0.45;
     } else {
       this.group.position.x *= 1 - Math.min(1, dt * 10);
-      this.armL.joint.rotation.z *= 1 - Math.min(1, dt * 8);
-      this.armR.joint.rotation.z *= 1 - Math.min(1, dt * 8);
     }
+    if (this.bodyMat) this.bodyMat.uniforms.uGlow.value = Math.min(1.15, bodyGlow);
 
     this._track(p);
   }
 
   /**
    * Cosmetic palette (Phase 14): tint the glow surfaces — halo, ground
-   * pool, comet tail, track trail, limbs — leaving the white core alone so
-   * the figure always reads. Cosmetic only; semantic cues live elsewhere.
+   * pool, comet tail, track trail, the body's fill — leaving the white rim
+   * alone so the figure always reads. Cosmetic only; semantic cues live
+   * elsewhere.
    */
   setPalette({ halo, limb } = {}) {
     if (halo != null) {
@@ -413,7 +524,10 @@ export class PlayerActor {
       this.tail.material.color.setHex(halo);
       this.tracks.material.color.setHex(halo);
     }
-    if (limb != null) this.limbMat.color.setHex(limb);
+    if (limb != null) {
+      this.fill = limb;
+      this.bodyMat?.uniforms.uFill.value.setHex(limb);
+    }
   }
 
   setVisible(v) { this.root.visible = v; }
@@ -421,8 +535,7 @@ export class PlayerActor {
 
 export class GhostActor {
   constructor(scene) {
-    const b = buildRunner(true);
-    Object.assign(this, b);
+    buildRunner(this, true);
     this.tail.visible = false; // the comet tail is the live runner's alone
     this.root = new THREE.Group();
     this.root.add(this.group);
@@ -437,6 +550,7 @@ export class GhostActor {
     this.root.visible = true;
     this.root.position.set(ghost.x, ghost.y, -ghost.d);
     for (const m of this.materials) if (m.transparent) m.opacity = ghost.opacity;
+    if (this.bodyMat) this.bodyMat.uniforms.uOpacity.value = ghost.opacity;
 
     // Stride from its own recorded motion, so the pale runner keeps pace —
     // the same distance-driven rule the live figure runs (RC9.9). The rate is
@@ -448,8 +562,8 @@ export class GhostActor {
     const R = TUNING.RUN;
     const speedN = Math.max(0, Math.min(1, (v - R.FLOOR) / (R.CEILING - R.FLOOR))) * 1.35;
     this._phase = advanceStride(this._phase, strideD, speedN);
-    poseRunner(this, this._phase, speedN, false, dt);
-    this.chest.rotation.x = -(0.16 + speedN * 0.22);
+    this.t = (this.t ?? 0) + dt;
+    poseRunner(this, this._phase, speedN, { lean: speedN * 0.1 - 0.06 });
 
     if (ghost.yanking) {
       this.group.rotation.x = -1.1;
