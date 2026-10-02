@@ -252,6 +252,9 @@ check(/ROAR_MAX: 0\.20,/.test(read('src/TUNING.js')) &&
   audioEngine.includes('this.bus.threat.gain, this.sfxMuted ? 0 : 0.55 + roar * 0.05') &&
   audioEngine.includes('run ? (kill ? 0.20 : 0.55) : 0') && !/ROAR_MAX\s*=/.test(audioEngine + liveMix),
   'the Redline sits under the mix, still rising as it closes, at one level nothing overwrites');
+check(audioEngine.includes('kill ? 0.02 : A.SCORE_BUS') && /SCORE_BUS: 0\.\d+,/.test(read('src/TUNING.js')) &&
+  /finishArrival\(\) \{[\s\S]*?this\._thump\([^)]*this\.bus\.score\)/.test(audioEngine),
+  'the FINISH and dash-climax thumps are actually audible — their bus has a level of its own');
 check(/this\._category = 'bells';/.test(audioEngine) && /vol \*= categoryGain\(this\._category\);/.test(audioEngine),
   'the bell rides its approved fader');
 check(/const duck = clamp\(Math\.max\(this\._bedDuck, roar \* 0\.12\), 0, 0\.22\);/.test(audioEngine) &&
@@ -743,12 +746,14 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   const uiCode = read('src/ui/ui.js');
   const htmlCode = read('index.html');
   const audioCode = read('src/audio/audio.js');
-  check(launchSrc.includes('begin({ quick = false, onBlack = null } = {})') &&
-    launchSrc.includes("const dur = q ? 1.0 : DUR") &&
+  check(launchSrc.includes('begin({ quick = false, instant = false, onBlack = null } = {})') &&
+    /quick: \{ dur: 1\.0,/.test(launchSrc) && /instant: \{ dur: 0\.6,/.test(launchSrc) &&
+    launchSrc.includes('const dur = q ? C.dur : DUR') &&
     launchSrc.includes('if (q && !s.main) continue;'),
-    'a retry gets the one-second cut — dip, one slash, reveal; the menu keeps the full arrival');
+    'a retry gets the one-second cut (R: the same cut in 0.6 s) — dip, one slash, reveal; the menu keeps the full arrival');
   check(mainCode.includes('const fromTitle = sim.phase === PHASE.TITLE;') &&
-    mainCode.includes('launch.begin({ quick: !fromTitle, onBlack: buildRunInTheDark })') &&
+    mainCode.includes('launch.begin({ quick: !fromTitle, instant: instant && !fromTitle, onBlack: buildRunInTheDark })') &&
+    mainCode.includes('startRun({ instant: deliberate });') &&
     mainCode.includes('audio.launch(!fromTitle)') &&
     audioCode.includes('launch(quick = false)'),
     'the retry cut is chosen from the phase the run started from, audio matched');
@@ -1182,7 +1187,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   const shopCode = read('src/ui/shop.js');
 
   const startBody = mainCode.slice(
-    mainCode.indexOf('function startRun() {'),
+    mainCode.indexOf('function startRun('),
     mainCode.indexOf('function buildRunInTheDark()'));
   check(startBody.includes('launch.begin(') &&
     !/sim\.start\(|ui\.showTitle\(false\)|ui\.showHud\(true\)|running = true/.test(startBody),

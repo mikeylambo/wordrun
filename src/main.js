@@ -507,7 +507,7 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
 // tap during the fade must not start a second run.
 let launchPending = false;
 
-function startRun() {
+function startRun({ instant = false } = {}) {
   // PD-2: the full arrival plays from the MENU; a retry (AGAIN, the pause
   // menu's restart, a finish-card rerun) gets the one-second cut. The phase
   // is read HERE, while it is still the phase the player tapped from — the
@@ -526,7 +526,7 @@ function startRun() {
   music.attach(audio);
   music.play();
   highLayer.attach(audio);
-  launch.begin({ quick: !fromTitle, onBlack: buildRunInTheDark });
+  launch.begin({ quick: !fromTitle, instant: instant && !fromTitle, onBlack: buildRunInTheDark });
   audio.launch(!fromTitle);
 }
 
@@ -1154,7 +1154,7 @@ function onAdvance({ deliberate = false } = {}) {
   // TEACH carries the fundamentals and the study stop waits for the first
   // answer of each verb. The six-rule sheet is a REFERENCE now, reachable
   // whenever it is wanted (HOW TO PLAY, and the pause menu) and never
-  startRun();
+  startRun({ instant: deliberate });
 }
 
 window.addEventListener('pointerup', (e) => {

@@ -357,8 +357,11 @@ export class Audio {
       }
     } else this._footT = 0;
 
-    // The score bus carries the arrival thumps (finishArrival, dashClimax).
-    this._set(this.bus.score.gain, this.sfxMuted ? 0 : (kill ? 0.02 : 0), 0.06);
+    // The score bus carries the arrival thumps — FINISH (finishArrival) and a
+    // dash ending on a climbed ladder (dashClimax). It used to be gated by the
+    // Hunt mix, which has been 0 since the Hunt left in Phase 7, so neither
+    // thump was ever heard. SCORE_BUS is a gentle level; tune it by ear.
+    this._set(this.bus.score.gain, this.sfxMuted ? 0 : (kill ? 0.02 : A.SCORE_BUS), 0.06);
 
     // The page bed: procedural grain, page turns and ink blooms — the run's
     // atmosphere, built from the noise buffers (audio/page-bed.js).

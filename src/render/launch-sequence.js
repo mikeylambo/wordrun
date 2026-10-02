@@ -24,6 +24,14 @@ import { ACCESS } from '../ui/access.js';
 const DUR = 2.45;
 const VEIL = 'rgba(4,8,16,';
 
+// The two retry cuts. QUICK is PD-2's one-second cut (AGAIN, the pause
+// menu's restart); INSTANT is the same shape compressed for the R key.
+// `fade` is the REDUCED FLASH veil's length for each.
+const CUT = Object.freeze({
+  quick: { dur: 1.0, fadeEnd: 0.22, holdEnd: 0.5, revealLen: 0.45, slashAt: 0.26, slashFade: 0.62, slashGone: 0.2, fade: 0.5 },
+  instant: { dur: 0.6, fadeEnd: 0.12, holdEnd: 0.28, revealLen: 0.3, slashAt: 0.13, slashFade: 0.36, slashGone: 0.14, fade: 0.3 },
+});
+
 export class LaunchSequence {
   constructor() {
     this.el = document.createElement('div');
@@ -77,7 +85,7 @@ export class LaunchSequence {
     this.t = -1;
   }
 
-  begin({ quick = false, onBlack = null } = {}) {
+  begin({ quick = false, instant = false, onBlack = null } = {}) {
     // PD-2: the full arrival belongs to the menu; a RETRY gets a condensed
     // ~1s cut — dip, ONE slash, reveal — because the twentieth AGAIN wants
     // the track back, not the ceremony.
@@ -89,7 +97,10 @@ export class LaunchSequence {
     // the menu was gone before the fade even started. The fade now happens
     // over whatever is on screen (the menu, or the results card on a retry),
     // and the run appears only in the dark.
-    this._quick = quick;
+    this._quick = quick || instant;
+    // R, the retry key, asks for the run back NOW: the same dip-slash-reveal
+    // grammar as the quick cut, in 0.6 s (the button keeps the 1 s cut).
+    this._cut = instant ? CUT.instant : CUT.quick;
     this._onBlack = onBlack;
     this._blackFired = false;
     this.t = 0;
@@ -143,7 +154,8 @@ export class LaunchSequence {
     this.t += dt;
     const t = this.t;
     const q = !!this._quick;
-    const dur = q ? 1.0 : DUR;
+    const C = this._cut || CUT.quick;
+    const dur = q ? C.dur : DUR;
     if (t >= dur) { this.cancel(); return; }
 
     if (ACCESS.reducedFlash) {
@@ -151,7 +163,7 @@ export class LaunchSequence {
       // world immediately and eases the veil off it: a staged dip to black
       // would be the very motion this mode exists to remove.
       this._black();
-      const rf = q ? 0.5 : 1.6;
+      const rf = q ? C.fade : 1.6;
       const a = Math.max(0, 0.9 * (1 - t / rf));
       this.el.style.background = `${VEIL}${a.toFixed(3)})`;
       if (t >= rf) this.cancel();
@@ -167,9 +179,9 @@ export class LaunchSequence {
     //            dissolve over the arriving world.
     // The QUICK cut (a retry): the same grammar in one second — dip to
     // black by 0.22, one slash, revealed from 0.5.
-    const fadeEnd = q ? 0.22 : 0.8;
-    const holdEnd = q ? 0.5 : 1.5;
-    const revealLen = q ? 0.45 : 0.85;
+    const fadeEnd = q ? C.fadeEnd : 0.8;
+    const holdEnd = q ? C.holdEnd : 1.5;
+    const revealLen = q ? C.revealLen : 0.85;
     if (t < fadeEnd) {
       const f = t / fadeEnd;
       this.el.style.background = `${VEIL}${(f * f * (3 - 2 * f)).toFixed(3)})`;
@@ -192,11 +204,11 @@ export class LaunchSequence {
     // MAIN slash alone.
     for (const s of this.strokes) {
       if (q && !s.main) continue;
-      const at = q ? 0.26 : s.at;
-      const fade = q ? 0.62 : s.fade;
+      const at = q ? C.slashAt : s.at;
+      const fade = q ? C.slashFade : s.fade;
       if (t < at) continue;
       const k = Math.min(1, (t - at) / s.dur);
-      const gone = Math.max(0, Math.min(1, (t - fade) / (q ? 0.2 : 0.3)));
+      const gone = Math.max(0, Math.min(1, (t - fade) / (q ? C.slashGone : 0.3)));
       s.el.style.transform = `scaleX(${k.toFixed(3)}) rotate(${s.angle}deg)`;
       s.el.style.opacity = (Math.min(1, k * 2) * (1 - gone)).toFixed(3);
     }

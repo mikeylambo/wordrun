@@ -3684,3 +3684,16 @@ the DAILY's hundredth gate and the kill after it (byte-identical).
 - `main.js` lost its dev tooling (`dev/dev-tools.js`) and share-card
   compositor (`ui/share-card.js`). The deeper title/run/results split waits
   for a real-browser smoke to verify it.
+
+## 1.0-RC12.1 — the decisions
+
+- **R gets the run back in 0.6 s.** The retry key now plays its own compressed
+  cut (`CUT.instant` in render/launch-sequence.js) — same dip, slash and
+  reveal. AGAIN keeps the one-second cut; the menu keeps the full arrival.
+  With the skippable kill cam, a keyboard player is back in under 1.5 s.
+- **The arrival thumps are audible.** FINISH and the dash climax hit the score
+  bus, which the retired Hunt mix had held at 0 since Phase 7. It has its own
+  gentle level now, `TUNING.AUDIO.SCORE_BUS` 0.45 — tune it by ear.
+- **The ink track stays the fine double stroke** (0.07 m offset), as shipped in
+  RC12.0.
+- **The deep main.js split waits** for a real-browser smoke to prove each step.

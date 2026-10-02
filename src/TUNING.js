@@ -1057,6 +1057,9 @@ export const TUNING = {
     // used to be overwritten to this value at import time by v1-final-mix.js,
     // which is why turning it down anywhere else never took.
     ROAR_MAX: 0.20,
+    // The arrival-thump bus (FINISH, dash climax). Silent until RC12.1 by
+    // accident; this is the deliberate, gentle level. Tune by ear.
+    SCORE_BUS: 0.45,
     FOOTFALL_MAX: 0.55,
     SCREAM_MAX: 0.50,
     FOOTFALL_HZ_NEAR: 2.6,
