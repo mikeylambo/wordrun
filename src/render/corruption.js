@@ -17,6 +17,7 @@
  */
 
 import * as THREE from 'three';
+import { makeContactShadow } from './contact-shadow.js';
 import TUNING from '../TUNING.js';
 import { corruptionIntensity, fieldScale } from './corruption-curve.js';
 import { ACCESS } from '../ui/access.js';
@@ -82,11 +83,14 @@ function plane(w, h, map, opacity = 1, blending = THREE.AdditiveBlending) {
 
 export class CorruptionActor {
   constructor(scene) {
-    // Same skeleton the BeastActor exposed: patch layers reach for root/body.
+    // Same skeleton the BeastActor exposed (root/body), so the camera and
+    // the view pose read it unchanged.
     this.root = new THREE.Group();
     this.body = new THREE.Group();
     this.root.add(this.body);
     scene.add(this.root);
+    this.contact = makeContactShadow(scene, 2.1, 0.16);
+    this.contact.scale.set(1.2, 0.72, 1);
 
     this.tearTex = staticTexture(72, 128);
     this.fieldTex = staticTexture(160, 48);
@@ -148,6 +152,14 @@ export class CorruptionActor {
 
   /** Same signature the BeastActor carried — a drop-in consumer of the gap. */
   update(dt, gap, x, groundY, playerD, killT, side = 1, lunge = 'idle', lungeT = 0) {
+    this._updateTear(dt, gap, x, groundY, playerD, killT, side, lunge, lungeT);
+    // The contact shadow darkens as the tear closes in.
+    this.contact.position.set(x, groundY + 0.04, -(playerD - gap));
+    this.contact.material.opacity = 0.11 + Math.max(0, 1 - gap / 45) * 0.07;
+    this.contact.visible = this.root.visible;
+  }
+
+  _updateTear(dt, gap, x, groundY, playerD, killT, side, lunge, lungeT) {
     this.t += dt;
     const beastD = playerD - gap;
     this.root.position.set(x, groundY, -beastD);

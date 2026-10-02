@@ -2,21 +2,22 @@ import fs from 'node:fs';
 import { viewPlayer, viewBeast } from '../src/render/view-pose.js';
 
 const read = (p) => fs.readFileSync(p, 'utf8');
-const contact = read('src/v1-contact.js');
 // RC10.1: the ship-polish layer is GONE. It reassigned two prototypes at
 // import time and hid three unrelated systems behind an audio-shaped filename;
 // each is a file of its own now, and these gates read those instead.
 const padSrc = read('src/input/gamepad.js');
 const navSrc = read('src/ui/controller-nav.js');
 const bellSrc = read('src/audio/audio.js');
-const mobile = read('src/v1-mobile-ui.js');
+const mobile = read('src/ui/touch-controls.js');
 const input = read('src/input/input.js');
 const onboarding = read('src/ui/onboarding.js');
 const index = read('index.html');
-const audioBridge = read('src/rc9-audio.js');
-const finalMix = read('src/v1-final-mix.js');
-const approvedMix = read('src/v1-approved-mix.js');
-const viewport = read('src/v1-viewport.js');
+// The audio layers (rc9-audio, v1-final-mix, v1-mixer, v1-approved-mix) are
+// folded: the engine owns its continuous mix and the levels live in ONE file.
+const audioEngine = read('src/audio/audio.js');
+const liveMix = read('src/audio/live-mix.js');
+// The viewport shell is ordinary CSS in index.html now (was v1-viewport.js).
+const viewport = index;
 const manifest = read('public/manifest.webmanifest');
 const sw = read('public/sw.js');
 
@@ -27,20 +28,19 @@ const check = (ok, label) => {
   else { fail++; console.error(`FAIL ${label}`); }
 };
 
-check(contact.includes('const TERRAIN_GRACE = 0.55') && contact.includes('beastsIgnoreTerrainGrace: true'),
-  'physical hits get short terrain-only recovery grace');
-check(contact.includes('this.__v1TerrainGrace = TERRAIN_GRACE') && contact.includes('TUNING.SIM.DT'),
-  'terrain grace is deterministic fixed-step state');
-check(contact.includes('baseReset') && contact.includes('__v1AllPhysicalLocks?.clear?.()'),
-  'contact locks and recovery grace reset cleanly between runs');
+// The physical-contact layers (v1-contact, v1-finalize's single-contact
+// latch) are gone with the only thing they guarded: nothing solid spawns, and
+// Player._collide is a no-op the step never calls. v1-gates holds the empty
+// track; this holds that no contact machinery was quietly re-added.
+check(!fs.existsSync('src/v1-contact.js') && !/__v1TerrainGrace|__v1AllPhysicalLocks/.test(read('src/sim/player.js')),
+  'no physical-contact machinery survives for a track with nothing to touch');
 
 // RC6.2: the streak widget is DELETED, and its four checks retire with it
 // rather than being kept alive against a rewritten target. What they were
 // protecting — that a run says how close the next heart is, and says nothing
 // when the row is full — is now protected where the answer is drawn: inside
 // the hearts themselves (see the RC6.2 block at the end of this file).
-check(!fs.existsSync('src/v1-ship-polish.js') &&
-  !/^import .*v1-ship-polish/m.test(read('src/rc9-audio.js')),
+check(!fs.existsSync('src/v1-ship-polish.js') && !fs.existsSync('src/rc9-audio.js'),
   'the ship-polish layer is deleted, not merely unimported — no prototype is reassigned at boot');
 // RC10.9: the bell's own interval table is gone. It was the second pentatonic
 // ladder in the game — [0, 4, 7, 11, 14] rooted a semitone under the chime's
@@ -159,8 +159,8 @@ check(mobile.includes("#powerHint:not(.teaching){display:none!important}"),
 check(mobile.includes("content:'REAL'") &&
   !mobile.includes("content:'SPIN'") && !mobile.includes("content:'FLIP'") && !mobile.includes("content:'CARVE'"),
   'touch ring teaches the confirm verb; retired carve/spin/flip labels are gone');
-check(mobile.includes('Audio.prototype.__v1MobileTouchUi'),
-  'mobile presentation updates through the existing audio/presentation chain');
+check(!mobile.includes('Audio.prototype') && mobile.includes('export function updateMobileTouchUi('),
+  'mobile presentation is updated by the frame loop that imports it, not by wrapping the audio engine');
 // Phase 24 rewrote this card from a controls list into teaching: sentences
 // with the control set as a highlighted key inside them. The contract that
 // matters is unchanged — the confirm verb and the DASH are both taught by
@@ -181,13 +181,14 @@ check(onboarding.includes("const dash = control('dash', m);") &&
 check(onboarding.includes('three hearts') && onboarding.includes('in a row</i> to win one back'),
   'and the heart economy is taught, since a wrong read now costs one');
 // RC10.4: index.html loads ONE entry, and it waits for a paint before
-// importing the game. The mobile controls still load — one frame later.
+// importing the game. The mobile controls are one of the game's own imports.
 {
   const boot = read('src/boot.js');
   check(index.includes('/src/boot.js') &&
-    !/<script[^>]+src="\/src\/(main|v1-mobile-ui)\.js"/.test(index) &&
-    boot.includes("import('./v1-mobile-ui.js')") && boot.includes("import('./main.js')"),
-    'mobile control presentation is loaded by the release page, through the deferred boot');
+    !/<script[^>]+src="\/src\/main\.js"/.test(index) &&
+    boot.includes("import('./main.js')") && (boot.match(/import\(/g) || []).length === 1 &&
+    read('src/main.js').includes("from './ui/touch-controls.js'"),
+    'mobile control presentation is loaded by the release page, through the deferred boot and the game');
   check(/requestAnimationFrame\(\(\) => requestAnimationFrame\(load\)\)/.test(boot) &&
     boot.includes("document.visibilityState !== 'hidden'") && boot.includes('setTimeout(load, 0)'),
     'two frames, because one only schedules against the frame being assembled — and a '
@@ -207,8 +208,8 @@ check(viewport.includes('height:100dvh!important') && viewport.includes('#rc2Pau
   'standalone portrait overlays fill the complete dynamic viewport');
 check(viewport.includes('safe-area-inset-bottom') && viewport.includes('position:fixed!important'),
   'iOS standalone bottom safe area stays inside the game shell');
-check(!viewport.includes('requestAnimationFrame'),
-  'viewport shell fix adds no runtime loop');
+check(!fs.existsSync('src/v1-viewport.js'),
+  'viewport shell fix is plain CSS — no script injects it at runtime');
 
 // Phase 30: the hearts sat at a fixed offset below a headline whose height is
 // clamp(38px..66px), so on a wide viewport the score grew straight through
@@ -229,36 +230,38 @@ check(/#vitalsSlot\{[^}]*margin-top/.test(html),
 // reference levels are gone. This asserts each removal is complete rather than
 // partial — the failure mode is a voice left audible with no fader, which is
 // precisely how the glide bed survived Phase 24 while its name did not.
-check(!finalMix.includes('WIND_MAX') && !finalMix.includes('SURFACE_GLIDE') &&
-  !finalMix.includes('windMax') && !finalMix.includes('surfaceGlide'),
+check(!liveMix.includes('WIND_MAX') && !liveMix.includes('SURFACE_GLIDE') &&
+  !liveMix.includes('windMax') && !liveMix.includes('surfaceGlide'),
   'no orphaned reference level for a voice that no longer exists');
-check(approvedMix.includes('surface: -5.5') && approvedMix.includes('bells: 4') &&
-  approvedMix.includes('heartbeat: 6') && approvedMix.includes('beast: 1') &&
-  !approvedMix.includes('wind:'),
+check(liveMix.includes('surface: -5.5') && liveMix.includes('bells: 4') &&
+  liveMix.includes('heartbeat: 6') && liveMix.includes('beast: 1') &&
+  !liveMix.includes('wind:'),
   'user-approved live mix is baked as the canonical V1 dB baseline, wind excepted');
-const rc9FeedbackSrc = read('src/rc9-feedback.js');
-const mixerSrc = read('src/v1-mixer.js');
+const rc9FeedbackSrc = audioEngine;
+const mixerSrc = liveMix;
 check(!/this\.wind|this\.air\b|WIND_MAX|AIR_WIND/.test(audioSrc) &&
   !/windTrim|WIND_TRIM/.test(rc9FeedbackSrc) && !/WIND_MAX/.test(mixerSrc),
   'the wind bed is gone everywhere — voice, trim bus, tuning and fader');
-check(approvedMix.includes('mixerZeroIsApprovedBaseline: true') && approvedMix.includes('__DASH_MIX?.reset?.()'),
+check(/export function categoryGain\(category\) \{[\s\S]*?return approved\(category\) \* trim\(category\);/.test(liveMix) &&
+  liveMix.includes("const marker = 'approved-2026-08-11-a';") && /if \(localStorage\.getItem\(markerKey\) !== marker\) \{\n    reset\(\);/.test(liveMix),
   'hidden mixer resets to zero around the approved release baseline');
-// Playtest x3 ("the Redline is still loud"): this layer owns the live level —
-// it re-writes the threat bus every frame, so the cut has to live HERE or it
-// is silently overwritten. Both layers must agree, and neither may creep back.
-check(finalMix.includes('TUNING.AUDIO.ROAR_MAX = 0.20') &&
-  finalMix.includes('this.bus.threat.gain, 0.55 + roar * 0.05') &&
-  audioSrc.includes('run ? (kill ? 0.20 : 0.55) : 0'),
-  'the Redline sits under the mix at both layers, still rising as it closes');
-check(finalMix.includes('bellV1FinalMix') && finalMix.includes('huntPulseV1FinalMix'),
-  'final mix lifts bells and Hunt heartbeat');
-check(finalMix.includes('priorityDuck') && finalMix.includes('requestBedDuck'),
-  'final mix uses brief priority ducking instead of indiscriminate master gain');
-check(!finalMix.includes('requestAnimationFrame') && !approvedMix.includes('requestAnimationFrame'),
-  'final and approved audio mix layers add no second RAF');
-check(audioBridge.includes("import './v1-viewport.js'") && audioBridge.includes("import './v1-final-mix.js'") &&
-  audioBridge.includes("import './v1-approved-mix.js'"),
-  'final viewport and approved mix layers are loaded by the release runtime');
+// Playtest x3 ("the Redline is still loud"): ONE level, owned by TUNING (it
+// used to be overwritten at import time by a mix layer), and one threat-bus
+// rule that tracks proximity in play and sits under the mix.
+check(/ROAR_MAX: 0\.20,/.test(read('src/TUNING.js')) &&
+  audioEngine.includes('this.bus.threat.gain, this.sfxMuted ? 0 : 0.55 + roar * 0.05') &&
+  audioEngine.includes('run ? (kill ? 0.20 : 0.55) : 0') && !/ROAR_MAX\s*=/.test(audioEngine + liveMix),
+  'the Redline sits under the mix, still rising as it closes, at one level nothing overwrites');
+check(/this\._category = 'bells';/.test(audioEngine) && /vol \*= categoryGain\(this\._category\);/.test(audioEngine),
+  'the bell rides its approved fader');
+check(/const duck = clamp\(Math\.max\(this\._bedDuck, roar \* 0\.12\), 0, 0\.22\);/.test(audioEngine) &&
+  audioEngine.includes('ambience * (1 - duck)'),
+  'brief priority ducking SCALES the beds — it never overrides SFX OFF or the last stand');
+check(!liveMix.includes('requestAnimationFrame'),
+  'the mix module adds no second RAF');
+check(['rc9-audio', 'v1-final-mix', 'v1-mixer', 'v1-approved-mix', 'v1-viewport']
+  .every((f) => !fs.existsSync(`src/${f}.js`)),
+  'the audio and viewport layers are folded into their owners, not loaded beside them');
 
 check(index.includes('rel="manifest"') && index.includes('./manifest.webmanifest?v=4'),
   'release page links the cache-busted PWA manifest');
@@ -281,8 +284,8 @@ check(!padSrc.includes('requestAnimationFrame') && !navSrc.includes('requestAnim
   'the pad and the menu navigation add no second RAF');
 check(!mobile.includes('requestAnimationFrame'), 'mobile control presentation adds no second RAF');
 check(!sw.includes('requestAnimationFrame'), 'PWA layer adds no animation loop');
-check(!/^import .*v1-ship-polish/m.test(audioBridge),
-  'the audio bridge no longer smuggles the gamepad and the menu navigation in behind an audio import');
+check(!/^import .*v1-ship-polish/m.test(audioEngine),
+  'nothing smuggles the gamepad and the menu navigation in behind an audio import');
 
 
 // ── Speed feel (Phase 22) ───────────────────────────────────────────────────
@@ -594,7 +597,7 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
   check(simCode.includes('this._capturePrev();\n      this.step(input)') &&
     simCode.includes('this.viewPrev = null'),
     'the sim captures the pre-step pose passively and clears it between runs');
-  check(mainCode.includes('alpha = sim.advance(dt, simInput)') &&
+  check(/alpha = (?:[^;\n]*\? 0 : )?sim\.advance\(dt, simInput\)/.test(mainCode) &&
     mainCode.includes('const pv = viewPlayer(p, sim.viewPrev, alpha)'),
     'the render frame consumes the alpha advance() always returned');
   check(mainCode.includes('playerActor.update(pv,') &&
@@ -838,7 +841,7 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
   const guidedSrc = read('src/ui/guided.js');
   const mainCode = read('src/main.js');
   const uiCode = read('src/ui/ui.js');
-  const mobileSrc = read('src/v1-mobile-ui.js');
+  const mobileSrc = read('src/ui/touch-controls.js');
   const launchSrc = read('src/render/launch-sequence.js');
 
   check(launchSrc.includes('z-index:70'),
@@ -986,7 +989,7 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
   // HOLD. HOLD F stays banned; F is an unadvertised alias the copy never names.
   const BANNED_COPY = ['HOLD F', 'THE BAR IS FULL', 'three times'];
   const facing = ['index.html', 'src/ui/ui.js', 'src/ui/onboarding.js', 'src/ui/teach-copy.js',
-    'src/ui/guided.js', 'src/ui/pause.js', 'src/ui/access.js', 'src/v1-mobile-ui.js'];
+    'src/ui/guided.js', 'src/ui/pause.js', 'src/ui/access.js', 'src/ui/touch-controls.js'];
   const banned = [];
   for (const f of facing) {
     // Strings and markup only: the comments above each change still quote the
@@ -1214,14 +1217,14 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
   const audioCode = read('src/audio/audio.js');
   const accessCode = read('src/ui/access.js');
   const mainCode = read('src/main.js');
-  const mobileCode = read('src/v1-mobile-ui.js');
+  const mobileCode = read('src/ui/touch-controls.js');
   const musicCode = read('src/music-track.js');
 
   check(html.includes('<div id="best" hidden>') && html.includes('#best[hidden]{display:none}'),
     'the run HUD carries ONE score — BEST lives in PROFILE and the card');
   // Three legacy layers each re-asserted this caption after ui.js cleared
   // it, which is why it survived the first removal. None of them may again.
-  const captionWriters = ['src/ui/ui.js', 'src/rc97-endgame.js', 'src/v1-finalize.js',
+  const captionWriters = ['src/ui/ui.js', 'src/sim/finish.js',
     'src/render/endgame-sky.js'].map(read).join('\n');
   check(!/titleHint[^\n]*'DAILY RUN'/.test(captionWriters) &&
     !/title\.textContent = [^\n]*'DAILY RUN'/.test(captionWriters) &&
@@ -1346,6 +1349,86 @@ check(!/^import .*v1-ship-polish/m.test(audioBridge),
   check(!fs.readdirSync('src').some((f) => /ship-polish/.test(f)) &&
     !read('src/ui/ui.js').includes('ensureBellChargeHud'),
     'nothing calls the retired widget');
+}
+
+// ── Right and wrong never depend on colour alone ────────────────────────────
+// The plate's verdict wash is colour (remapped per colour-vision mode); what
+// makes it redundant is that every outcome is also SAID, and a failure is
+// never said with a success word. Plus the true spelling replacing a tapped
+// fake on the plate, the sound and the drain — none of them a hue.
+{
+  const { TIERS, OUTCOME, labelFor } = await import('../src/ui/judgment.js');
+  const good = new Set([...TIERS.map((t) => labelFor(t.key)), labelFor(OUTCOME.passed.key)]);
+  const bad = new Set([labelFor(OUTCOME.wrong.key), labelFor(OUTCOME.missed.key)]);
+  check([...bad].every((w) => w && !good.has(w)),
+    `every read is named in words, and no failure shares a word with a success (${[...good].join('/')} vs ${[...bad].join('/')})`);
+  const plate = read('src/render/word-gates.js');
+  check(/e\.reason === 'picked_fake' && e\.answer\s*\n?\s*\? e\.answer : e\.word/.test(plate),
+    'a tapped fake is answered on the plate by the true spelling — a change of TEXT, not only of hue');
+}
+
+// ── Playtest notes come with a replay ───────────────────────────────────────
+{
+  const dev = read('src/dev/dev-tools.js');
+  const mainCode = read('src/main.js');
+  check(dev.includes("params.get('playtest') === '1' || params.get('dev') === '1'") &&
+    /replay: challengeLinkForLastRun\(\)/.test(mainCode) && /trail: gateTrail\.map/.test(mainCode) &&
+    /mountDevTools\(\{ terrain: \(\) => sim\.terrain, report: playtestReport \}\)/.test(mainCode),
+    'the REPORT button exists only behind ?playtest=1 / ?dev=1, and its report carries the exact replay link');
+}
+
+// ── Haptics reach every phone ───────────────────────────────────────────────
+{
+  const hap = read('src/ui/haptics.js');
+  const mainCode = read('src/main.js');
+  check(hap.includes("box.setAttribute('switch', '')") && hap.includes('if (!canVibrate())') &&
+    hap.includes("label.setAttribute('aria-hidden', 'true')") && hap.includes('pointer-events:none'),
+    'a phone without navigator.vibrate (iOS) gets the system switch tick instead of nothing — hidden, unfocusable');
+  check((mainCode.match(/haptic\('hit'\)/g) || []).length === 2 && mainCode.includes("haptic('kill')") &&
+    !/Audio\.prototype/.test(hap),
+    'haptics fire from the same sim events as the sounds, not from inside the audio engine');
+}
+
+// ── The device's own accessibility settings are the defaults ────────────────
+// Run, not read: access.js is imported against a stubbed matchMedia and an
+// in-memory store, the way a fresh profile on such a device would meet it.
+{
+  const mem = new Map();
+  const listeners = [];
+  let reduce = true;
+  let contrast = false;
+  globalThis.localStorage = {
+    getItem: (k) => (mem.has(k) ? mem.get(k) : null), setItem: (k, v) => mem.set(k, String(v)),
+    removeItem: (k) => mem.delete(k), key: (i) => [...mem.keys()][i] ?? null, get length() { return mem.size; },
+  };
+  const el = () => ({ classList: { toggle() {} }, appendChild() {}, textContent: '' });
+  globalThis.document = { getElementById: () => null, createElement: el, head: el() };
+  globalThis.matchMedia = (q) => ({
+    get matches() { return q.includes('reduced-motion') ? reduce : q.includes('contrast: more') ? contrast : false; },
+    addEventListener: (_, fn) => { if (q.includes('reduced-motion')) listeners.push(fn); },
+  });
+  const { ACCESS, initAccess } = await import('../src/ui/access.js');
+  const { Storage } = await import('../src/storage/storage.js');
+
+  initAccess();
+  check(ACCESS.reducedFlash === true && ACCESS.plateSpacing === 0,
+    'a fresh profile on a reduce-motion device starts in REDUCED FLASH');
+  reduce = false;
+  listeners.forEach((fn) => fn({ matches: false }));
+  check(ACCESS.reducedFlash === false, 'and follows the OS live until the player chooses');
+
+  Storage.setAccessPrefs({ reducedFlash: false });
+  reduce = true;
+  initAccess();
+  check(ACCESS.reducedFlash === false, 'an explicit in-game choice always beats the OS default');
+
+  mem.clear();
+  reduce = false;
+  contrast = true;
+  initAccess();
+  check(ACCESS.plateSpacing === 1 && ACCESS.readableType === true,
+    '"more contrast" starts a fresh profile one step up the legibility dial');
+  delete globalThis.matchMedia;
 }
 
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);

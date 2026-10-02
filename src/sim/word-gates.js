@@ -492,7 +492,7 @@ export class WordGates {
         // The TRUE spelling, so the per-word ledger keys on the word rather
         // than on whatever was printed — a correctly-passed fake is a read of
         // the word it was bent from.
-        answer: g.answer, fromLane: !!g.fromLane, tier: g.tier, chain: player.chain, chainMult: player.chainMult(),
+        answer: g.answer, fromLane: !!g.fromLane, tier: g.tier, family: g.family, chain: player.chain, chainMult: player.chainMult(),
         latencyMult: g.latencyMult, answerDistance: g.answerDistance,
         answerLatency: g.answerLatency, dashChain: g.dashChain, dashMult: g.dashMult,
         score: g.score, // E4: the read's own worth, for the brilliance ledgers
@@ -551,7 +551,7 @@ export class WordGates {
 
       events?.push({
         t: 'word_wrong', answered, index: g.index, word: g.shown, real: g.real,
-        answer: g.answer, tier: g.tier, hit: commission,
+        answer: g.answer, tier: g.tier, family: g.family, hit: commission,
         reason: g.real ? (g.rejected ? 'rejected_real' : 'missed_real') : 'picked_fake',
         x: player.x, y: player.y, d: player.d, gateD: g.d,
       });

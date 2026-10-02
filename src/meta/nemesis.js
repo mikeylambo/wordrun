@@ -143,6 +143,26 @@ export class NemesisLedger {
     return w.seen < cur.seen;
   }
 
+  /**
+   * The player's toughest live word — the rematch the title offers. Only a
+   * PATTERN counts (missed at least twice and not yet beaten); one slip is an
+   * accident, not a nemesis. Same ordering as the lane: most-missed, then the
+   * notorious tag, then the most recently seen (the freshest grudge).
+   */
+  toughest() {
+    const tougher = (id, w, bestId, b) => {
+      if (w.m !== b.m) return w.m > b.m;
+      if (isNotorious(id) !== isNotorious(bestId)) return isNotorious(id);
+      return w.seen > b.seen;
+    };
+    let best = null;
+    for (const [id, w] of Object.entries(this.words)) {
+      if (w.m < 2) continue;
+      if (best === null || tougher(id, w, best, this.words[best])) best = id;
+    }
+    return best ? { id: best, misses: this.words[best].m } : null;
+  }
+
   history(id) { return this.words[id] || null; }
   get size() { return Object.keys(this.words).length; }
   get retiredCount() { return this.retired; }

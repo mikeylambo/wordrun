@@ -641,7 +641,9 @@ head('LOOKAHEAD — more gates are shown, no more gates are answerable');
   // load nothing, and it must not become a second source of truth.
   const panelSrc = fs.readFileSync('src/dev-panel.js', 'utf8');
   check('the tuning panel is only fetched behind its flag',
-    /get\('dev'\) === '1'/.test(mainSrc) && /import\('\.\/dev-panel\.js'\)/.test(mainSrc),
+    /get\('dev'\) === '1'/.test(fs.readFileSync('src/dev/dev-tools.js', 'utf8')) &&
+    /import\('\.\.\/dev-panel\.js'\)/.test(fs.readFileSync('src/dev/dev-tools.js', 'utf8')) &&
+    /mountDevTools\(/.test(mainSrc),
     'dynamic import, so a normal load never downloads or parses it');
   check('the panel writes through TUNING rather than shadowing it',
     panelSrc.includes("import TUNING from './TUNING.js'") &&
@@ -913,7 +915,7 @@ head('ZONES — the reject is optional, and never worse than silence');
   check('the dash still has three ways in and no gesture',
     /case 'Space': case 'KeyF': case 'ShiftLeft': case 'ShiftRight':/.test(inputSrc) &&
     /this\._dashDown\(performance\.now\(\)\)/.test(inputSrc) &&
-    /input\.dashPress\?\.\(\)/.test(fs.readFileSync('src/v1-mobile-ui.js', 'utf8')) &&
+    /input\.dashPress\?\.\(\)/.test(fs.readFileSync('src/ui/touch-controls.js', 'utf8')) &&
     /get boostHeld\(\) \{ return this\.dashEdge \|\| this\._scriptBoost; \}/.test(inputSrc),
     'Space, the F key and the on-screen button — one machine, one meaning');
   check('the hold that used to arm the dash is gone',
@@ -1017,7 +1019,7 @@ head('THE DAILY ROUTE — the same hundred words for everyone');
 
   // Reaching the end is a finish, not a death, and it goes through the same
   // endgame path the canonical distance uses.
-  const endgameSrc = fs.readFileSync('src/rc97-endgame.js', 'utf8');
+  const endgameSrc = fs.readFileSync('src/sim/finish.js', 'utf8');
   check('the route end runs through the existing finish, not around it',
     /sim\.routeFinished === true/.test(endgameSrc) &&
     !/this\.escaped = true/.test(fs.readFileSync('src/sim/sim.js', 'utf8')),

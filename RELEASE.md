@@ -3608,3 +3608,79 @@ rules were rewritten rather than deleted, and the new rules are held: a run
 that answers nothing lights no bell on any seed, and a first-timer reading the
 guided opening lights a string inside four clean reads — measured worst case,
 two.
+
+## 1.0-RC12.0 — the patch layer, folded
+
+Eighteen files named for release candidates (`rc7-feel` … `v1-viewport`) were
+still changing the game at runtime: about 85 reassigned prototype methods and
+instance wrappers, loaded through side-effect imports in `render/scene.js` and
+`render/material-pass.js`, in an order only an import list and a
+`queueMicrotask` decided. The reachability gate could not see them, because
+every one WAS imported. Each behaviour now lives in the file that owns it, and
+`reachability-gate` fails the build on the patching itself (a reassigned
+prototype, a swapped instance method, a `base = obj.method.bind(obj)` capture,
+a polling `requestAnimationFrame(boot)`) and on any `src/` file named `rc*`/`v1-*`.
+
+Proven equivalent, not assumed: the audio engine was traced call-for-call
+against the old wrapper stack under a recording Web Audio (identical after
+normalising same-instant parameter writes), and the FINISH rule was stepped
+side by side through the canonical finish, KEEP GOING, the Redline's return,
+the DAILY's hundredth gate and the kill after it (byte-identical).
+
+### Where things live now
+
+- **FINISH** — `sim/finish.js`, opt-in via `sim.endgame` (main.js turns it on;
+  headless tools and every golden are untouched). It replaced a
+  `Beast.prototype.step` patch that read the sim through `globalThis.__SIM`.
+- **The continuous mix** — `audio/audio.js` (ducking, the threat bus, the
+  bell's presence layers, the recorded step accent, the page bed) and
+  `audio/live-mix.js` (the approved V1 levels and the `?mix=1` trim dock).
+  `ROAR_MAX` 0.20 lives in TUNING instead of being overwritten at import.
+- **Touch controls** `ui/touch-controls.js`, **haptics** `ui/haptics.js`,
+  **SAVE/SHARE** `ui/share.js` — imported by main and driven from the frame
+  loop and the sim-event drain. One boot entry now: `boot.js` → `main.js`.
+- **The late-run sky** — the V1 finale values are `EndgameSky.update`'s own.
+- **The FINISH card's freeze**, the **contact shadows**, the **render-budget
+  governor** and the **ink track** — main's advance, the two actors,
+  `Stage._governBudget`, and `PlayerActor._track`.
+- **Viewport shell CSS** — `index.html`.
+
+### What the fold found
+
+- The house-terrace patch bent the ROAD by up to 2.1 m at 170 m on many seeds
+  — browser only, so no headless gate could see it. Gone.
+- The endgame terrain hook planted 70 DESCENT pine trees between 25.5 and
+  27.5 km. Gone, with `FINAL_MOUNTAIN` and every dead collider/height stub.
+- The ink track's ring wrapped at 180 over a 48-segment buffer, so the stroke
+  behind the runner stopped updating ~73% of the time. It wraps at 48 now.
+- The priority duck overwrote the beds instead of scaling them, un-muting the
+  page bed under SFX OFF and lifting it through the last stand. It scales.
+- Three bell layers kept a private pre-RC10.9 interval table and sang a
+  different pentatonic from the bell. They read the ladder.
+- The title's BEST EVER line had two writers and vanished on a mode-chip tap.
+  `ui.setSeed` is its only writer.
+
+### New for players
+
+- **Rematch** — the title names the word you keep missing, spelled right,
+  beside WORDS LEARNED (`NemesisLedger.toughest()`; a pattern, never one slip).
+- **The DAILY RUN as text** — SHARE leads with ten squares for the hundred
+  words and the result line, and the clipboard carries it (`meta/share-grid.js`).
+  No word on the route is spoiled.
+- **Faster back in** — a tap cuts the kill cam once the share frame is taken;
+  R retries without the card's 350 ms settle guard.
+- **iPhone haptics** — where `navigator.vibrate` does not exist, the iOS 18+
+  switch tick stands in.
+- **Device settings respected** — reduce-motion starts a fresh profile in
+  REDUCED FLASH (live until the player chooses); more-contrast starts one step
+  up the legibility dial.
+
+### New for the developer
+
+- `npm run report:fakes -- exports.json` — how often each mutation family and
+  each printed fake fools players, from STATS exports (`meta/fake-tally.js`).
+- `?playtest=1` — a REPORT button on the card copies a replayable report: the
+  exact challenge link, distance, cause, last misses, gate trail and device.
+- `main.js` lost its dev tooling (`dev/dev-tools.js`) and share-card
+  compositor (`ui/share-card.js`). The deeper title/run/results split waits
+  for a real-browser smoke to verify it.

@@ -1,8 +1,16 @@
-import './v1-haptics.js';
-import './v1-share.js';
-import TUNING from './TUNING.js';
-import { Audio } from './audio/audio.js';
-import { ACCESS } from './ui/access.js';
+/**
+ * Touch controls — the FAKE · DASH · REAL row, the dash charge ring, and the
+ * thumb marker. Built on first use on a touch-capable device; main.js calls
+ * updateMobileTouchUi() once a frame.
+ *
+ * This was src/v1-mobile-ui.js, the game's second entry point, which drove
+ * itself by wrapping the audio engine's per-frame update — so whether the buttons ever
+ * appeared depended on that wrapper landing before rc9-assets bound the audio
+ * instance's update on its first animation frame. It is an import now.
+ */
+
+import TUNING from '../TUNING.js';
+import { ACCESS } from './access.js';
 
 const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
 
@@ -295,27 +303,3 @@ export function updateMobileTouchUi(player) {
   refs.frame.style.left = `${ox}px`;
   refs.frame.style.top = `${oy}px`;
 }
-
-// Run from the existing audio/presentation update chain. No second RAF, timer or
-// simulation loop is introduced for the mobile overlay.
-if (!Audio.prototype.__v1MobileTouchUi) {
-  Audio.prototype.__v1MobileTouchUi = true;
-  const baseUpdate = Audio.prototype.update;
-  Audio.prototype.update = function updateV1MobileUi(dt, player, ...rest) {
-    const out = baseUpdate.call(this, dt, player, ...rest);
-    updateMobileTouchUi(player);
-    return out;
-  };
-}
-
-globalThis.__DASH_MOBILE_UI = {
-  version: '1.3-dictiondash',
-  tapVerbTouchRing: true,        // replaces the retired carve/spin/flip guide
-  dedicatedJumpButton: true,     // the REAL button (confirm verb)
-  flickJumpShortcutPreserved: true,
-  dedicatedDashButton: true,
-  secondFingerShortcutPreserved: true,
-  dashTeachingHint: true,
-  landscapeVitalsSpacing: true,
-  noExtraRaf: true,
-};

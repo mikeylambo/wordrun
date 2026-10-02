@@ -618,6 +618,52 @@
     min-width:34px;height:30px;padding:0 9px;border:1px solid rgba(160,220,245,.30);
     border-radius:3px;font:700 14px/1 var(--face);color:rgba(214,240,252,.9)}
   #keyLegend span{font:700 8px/1 var(--face);letter-spacing:.2em;color:var(--dimmer)}
+
+/* The standalone/mobile shell: every fullscreen layer owns the complete
+   dynamic viewport, including the iOS home-indicator region. RC9.3 split it
+   by aspect — taller than wide fills the window; wider than tall is framed
+   as a vertical cabinet, which these rules must not force back to 100vw.
+   The shell colour is the --bezel token: framed, it IS the bezel. (This was
+   injected at runtime by src/v1-viewport.js; it is ordinary CSS now.) */
+    html,body{
+      width:100%!important;
+      height:100%!important;
+      min-height:100dvh!important;
+      background:var(--bezel,#080c10)!important;
+    }
+    body{
+      position:fixed!important;
+      inset:0!important;
+      overflow:hidden!important;
+    }
+    #app{
+      position:fixed!important;
+      background:var(--bezel,#080c10)!important;
+    }
+    @media (max-aspect-ratio: 1/1){
+      #app{
+        inset:0!important;
+        width:100vw!important;
+        height:100dvh!important;
+        min-height:100dvh!important;
+      }
+      .screen,#rc2Pause,#rc7Onboarding{
+        min-height:100dvh!important;
+      }
+    }
+    /* Framed: the screens fill the CABINET, which is what #app now is. */
+    @media (min-aspect-ratio: 1/1){
+      .screen,#rc2Pause,#rc7Onboarding{
+        min-height:100%!important;
+      }
+    }
+    #rc2Pause,#rc7Onboarding{
+      position:absolute!important;
+      inset:0!important;
+    }
+    #rc2Pause{
+      padding-bottom:max(24px,env(safe-area-inset-bottom,0px))!important;
+    }
 </style>
 </head>
 <body>

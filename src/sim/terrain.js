@@ -36,9 +36,10 @@
  * above TRANS_M and is enforced in _pushSeg, so the overlap is impossible by
  * construction rather than by every call site remembering.
  *
- * The class keeps the full API surface the frame consumes (heightAt /
- * normalAt / collidersNear / chunk / ...): still no colliders, no ice, no
- * spawned gates, no grade multiplier. Deterministic per seed.
+ * The class keeps the API surface the frame consumes (heightAt / normalAt /
+ * collidersNear / chunk / ...): still no colliders, no ice, no spawned
+ * gates, no grade multiplier. Deterministic per seed. (The heights/regions/
+ * grid-sampler stubs went with the patch layers that were their only callers.)
  */
 
 import TUNING from '../TUNING.js';
@@ -55,8 +56,8 @@ const smooth01 = (t) => {
 };
 const plateau = (t) => smooth01(t);
 
-// Feature type ids survive as vocabulary for the empty collider lists the
-// patch layers still filter over.
+// Feature type ids survive as vocabulary for render/props.js's dormant
+// tree/rock instancer (it draws nothing: no feature spawns on this track).
 export const FEATURE = {
   TREE: 'tree', ROCK: 'rock', GATE: 'gate', ICE: 'ice',
   MOGUL: 'mogul', CLIFF: 'cliff',
@@ -314,8 +315,6 @@ export class Terrain {
   normalAt(x, d) { return { dhdx: this.crossSlopeAt(d ?? 0), dhdd: this.gradeAt(d ?? 0) }; }
   gradeMul() { return 1; }   // the speed model NEVER reads the route — Phase L contract
   isIce() { return false; }
-  inLandingZone() { return false; }
-  fallTo(d) { return d; }
 
   /** The route as data, for instruments: [{d0, len, grade, roll, e0, type}]. */
   routeSegments(untilD) {
@@ -332,8 +331,6 @@ export class Terrain {
   // ── Nothing spawns ──────────────────────────────────────────────────────
   collidersNear() { return []; }
   gatesNear() { return []; }
-  heightsOf() { return []; }
-  regionsAt() { return []; }
 
   pitchAt() { return { name: 'run', mul: {} }; }
 
@@ -359,12 +356,6 @@ export class Terrain {
       colliders: [], regions: [], heights: [], gates: [],
       pitch: this.pitchAt(ci),
     };
-  }
-
-  /** Grid sampler the streaming mesh calls; kept for the contract. */
-  sampleGrid(ci, segsX, segsZ, out) {
-    if (out) out.fill(0);
-    return out;
   }
 
   prune(centerCi) {

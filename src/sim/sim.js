@@ -3,6 +3,7 @@
  */
 
 import TUNING from '../TUNING.js';
+import { resetFinish, stepFinish } from './finish.js';
 import { Terrain } from './terrain.js';
 import { Player } from './player.js';
 import { Beast } from './beast.js';
@@ -36,6 +37,10 @@ export class Sim {
     // for a first-timer's guided ENDLESS opening.
     this.teach = new TeachStops();
     this.beast = new Beast(this.seed);
+    // FINISH (sim/finish.js): off by default, so headless tools drive the
+    // sim every golden was minted against. main.js turns it on for play.
+    this.endgame = false;
+    resetFinish(this);
     this.wordGates = new WordGates(this.seed);
     this.recorder = new GhostRecorder();
     this.ghost = new GhostPlayer(null);
@@ -83,6 +88,7 @@ export class Sim {
     this.terrain.chunks.clear();
     this.player.reset();
     this.beast.reset();
+    resetFinish(this);
     const M = TUNING.MODES;
     this.mode = M.RULES[opts.mode] ? opts.mode : 'endless';
     this.routeFinished = false;
@@ -184,7 +190,7 @@ export class Sim {
 
     if (this.phase === PHASE.KILL) {
       this.killTimer += dt;
-      this.beast.step(dt, this.player);
+      this._stepPursuit(dt);
       this.ghost.step(dt);
       if (this.killTimer >= TUNING.BEAST.KILL_CAM_TIME) this.phase = PHASE.DEAD;
       return;
@@ -262,7 +268,7 @@ export class Sim {
     }
 
 
-    this.beast.step(dt, this.player);
+    this._stepPursuit(dt);
 
     this.recorder.step(dt, this.player);
     this.ghost.step(dt);
@@ -324,6 +330,24 @@ export class Sim {
    *  - A clean reading streak brings a heart back, the ladder shortening the
    *    closer to the end you are (both modes since Phase H2; TUNING.MODES.RULES).
    */
+  /**
+   * End the kill sequence now — the player has seen what happened and wants
+   * the card. The run is already over (nothing scores or moves in KILL); this
+   * only drops the rest of the camera's whip, so it is safe at any point.
+   */
+  skipKillCam() {
+    if (this.phase !== PHASE.KILL) return false;
+    this.killTimer = Math.max(this.killTimer, TUNING.BEAST.KILL_CAM_TIME);
+    this.phase = PHASE.DEAD;
+    return true;
+  }
+
+  /** The pursuer's step — through the finish rule when the endgame is on. */
+  _stepPursuit(dt) {
+    if (this.endgame && stepFinish(this, dt)) return;
+    this.beast.step(dt, this.player);
+  }
+
   _stepVitals(beforeHits) {
     if (this.phase === PHASE.KILL) { this.deathCause = 'redlined'; return; }
     if (this.phase !== PHASE.RUNNING) return;

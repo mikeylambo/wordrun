@@ -1,24 +1,52 @@
-import TUNING from './TUNING.js';
-import { Audio } from './audio/audio.js';
-import { ApprovedAudioAssets } from './audio/approved-assets.js';
+/**
+ * The mix levels — one owner for every number between a voice and the master.
+ *
+ * Two layers, multiplied:
+ *
+ *   APPROVED — the user-approved V1 mix, captured live on-device with ?mix=1
+ *     (2026-08-11). It is the canonical 0 dB reference: bells +4, heartbeat +6,
+ *     beast +1. `surface: -5.5` is recorded here as approved but has nothing to
+ *     scale since Phase 27 removed the surface beds.
+ *   TRIM — the hidden live calibration panel (?mix=1 only), relative dB around
+ *     APPROVED, persisted device-locally. Unity everywhere unless the panel is
+ *     open, so a release build hears APPROVED exactly.
+ *
+ * This used to be two files (v1-mixer.js, v1-approved-mix.js) that each
+ * re-wrapped Audio.prototype._tone/_burst/bell/_huntPulse/update and
+ * ApprovedAudioAssets.prototype.setLoop/oneShot at import time, in an order
+ * that only the import list in rc9-audio.js decided. audio/audio.js now asks
+ * this module for a category's gain and applies it itself.
+ */
+
+import TUNING from '../TUNING.js';
 
 const STORAGE_KEY = 'dictiondash:live-mix';
 const ENABLED = typeof location !== 'undefined' && new URLSearchParams(location.search).get('mix') === '1';
+
+export const APPROVED_DB = Object.freeze({
+  master: 0,
+  surface: -5.5,
+  bells: 4,
+  heartbeat: 6,
+  beast: 1,
+});
+
+// Only faders something actually reads. The old BED and SURFACE rows scaled a
+// recorded loop nothing plays and a bus nothing trims; a fader that moves
+// nothing is worse than no fader.
 const DEFAULT_DB = Object.freeze({
   master: 0,
-  bed: 0,
-  surface: 0,
   bells: 0,
   heartbeat: 0,
   beast: 0,
 });
-const BASE = Object.freeze({
-  master: TUNING.AUDIO.MASTER,
-  roarMax: TUNING.AUDIO.ROAR_MAX,
-});
 
 const dbToGain = (db) => Math.pow(10, Number(db || 0) / 20);
 const clampDb = (v) => Math.max(-24, Math.min(12, Number(v) || 0));
+
+const APPROVED = Object.freeze(Object.fromEntries(
+  Object.entries(APPROVED_DB).map(([key, value]) => [key, dbToGain(value)]),
+));
 
 let db = { ...DEFAULT_DB };
 if (ENABLED) {
@@ -30,7 +58,21 @@ if (ENABLED) {
   } catch { /* calibration storage is optional */ }
 }
 
-function gain(key) { return dbToGain(db[key] ?? 0); }
+/** The live trim for a fader, as a linear gain (1 unless ?mix=1 moved it). */
+export function trim(key) { return dbToGain(db[key] ?? 0); }
+
+/** The approved reference gain for a fader (1 for anything not approved). */
+export function approved(key) { return APPROVED[key] ?? 1; }
+
+/**
+ * The gain a procedural voice in `category` plays at: approved × trim. Only
+ * the bell and the heartbeat categories carry a fader; everything else is 1.
+ */
+export function categoryGain(category) {
+  if (category !== 'bells' && category !== 'heartbeat') return 1;
+  return approved(category) * trim(category);
+}
+
 function save() {
   if (!ENABLED) return;
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); } catch { /* optional */ }
@@ -47,109 +89,32 @@ function reset() {
 function snapshot() {
   return {
     db: { ...db },
-    base: {
-      master: BASE.master,
-      roarMax: TUNING.AUDIO.ROAR_MAX,
-    },
+    base: { master: TUNING.AUDIO.MASTER, roarMax: TUNING.AUDIO.ROAR_MAX },
   };
 }
 
-globalThis.__DASH_MIX = {
+// The previous calibration values were persisted by the live mixer. Clear them
+// once when the approved baseline first arrives so they are not applied twice.
+try {
+  const markerKey = 'dictiondash:live-mix-baseline';
+  const marker = 'approved-2026-08-11-a';
+  if (localStorage.getItem(markerKey) !== marker) {
+    reset();
+    localStorage.setItem(markerKey, marker);
+  }
+} catch { /* storage is optional */ }
+
+export const LIVE_MIX = {
   enabled: ENABLED,
   get db() { return { ...db }; },
-  gain,
+  approvedDb: APPROVED_DB,
   setDb,
   reset,
   snapshot,
 };
 
-// Category-wrap the already-final bell and Hunt-pulse implementations so every
-// nested procedural layer (base + ship polish + final mix) follows one fader.
-if (!Audio.prototype.__v1LiveMixCategories) {
-  Audio.prototype.__v1LiveMixCategories = true;
-
-  const baseTone = Audio.prototype._tone;
-  Audio.prototype._tone = function toneV1Mix(options = {}) {
-    const category = this.__v1MixCategory;
-    const mult = category === 'bells' ? gain('bells') : category === 'heartbeat' ? gain('heartbeat') : 1;
-    if (mult === 1) return baseTone.call(this, options);
-    return baseTone.call(this, { ...options, vol: (options.vol ?? 0.1) * mult });
-  };
-
-  const baseBurst = Audio.prototype._burst;
-  Audio.prototype._burst = function burstV1Mix(dur, vol, ...args) {
-    const category = this.__v1MixCategory;
-    const mult = category === 'bells' ? gain('bells') : category === 'heartbeat' ? gain('heartbeat') : 1;
-    return baseBurst.call(this, dur, vol * mult, ...args);
-  };
-
-  const baseBell = Audio.prototype.bell;
-  Audio.prototype.bell = function bellV1LiveMix(...args) {
-    const prev = this.__v1MixCategory;
-    this.__v1MixCategory = 'bells';
-    try { return baseBell.apply(this, args); }
-    finally { this.__v1MixCategory = prev; }
-  };
-
-  const basePulse = Audio.prototype._huntPulse;
-  Audio.prototype._huntPulse = function pulseV1LiveMix(...args) {
-    const prev = this.__v1MixCategory;
-    this.__v1MixCategory = 'heartbeat';
-    try { return basePulse.apply(this, args); }
-    finally { this.__v1MixCategory = prev; }
-  };
-
-  // Last word in the continuous mix. Defaults are unity; ?mix=1 supplies live
-  // calibration multipliers without changing deterministic simulation state.
-  const baseUpdate = Audio.prototype.update;
-  Audio.prototype.update = function updateV1LiveMix(dt, player, bands, running) {
-    const out = baseUpdate.call(this, dt, player, bands, running);
-    if (!this.ready || !this.ctx || !player) return out;
-
-    const sim = globalThis.__SIM;
-    const phase = sim?.phase;
-    const kill = phase === 'kill' || phase === 'dead';
-    const live = !!running && !kill;
-    const speedN = Math.max(0, Math.min(1, (player.speed - 10) / (TUNING.RUN.CEILING - 10)));
-    const edge = player.airborne ? 0 : Math.max(0, Math.min(1, Math.abs(player.heading) / TUNING.PLAYER.MAX_CARVE));
-    const onGround = live && !player.airborne && !player.onIce && !player.inPowder;
-
-
-
-    if (this.roar?.gain?.gain) {
-      this._set(this.roar.gain.gain, TUNING.AUDIO.ROAR_MAX * Math.max(0, Math.min(1, bands?.roar || 0)) * gain('beast'), 0.045);
-    }
-
-    if (this.master?.gain && !this.muted) {
-      this._set(this.master.gain, TUNING.AUDIO.MASTER * gain('master'), 0.05);
-    }
-
-    return out;
-  };
-}
-
-// Approved recordings use the same faders. This keeps the calibration panel
-// representative of the release mix instead of controlling only procedural FX.
-if (!ApprovedAudioAssets.prototype.__v1LiveMix) {
-  ApprovedAudioAssets.prototype.__v1LiveMix = true;
-  const baseLoop = ApprovedAudioAssets.prototype.setLoop;
-  ApprovedAudioAssets.prototype.setLoop = function setLoopV1Mix(id, target, options = {}) {
-    let scale = 1;
-    if (id === 'page_grain_bed') scale = 1.12 * gain('bed');
-    return baseLoop.call(this, id, target * scale, options);
-  };
-
-  const baseShot = ApprovedAudioAssets.prototype.oneShot;
-  ApprovedAudioAssets.prototype.oneShot = function oneShotV1Mix(id, options = {}) {
-    let scale = 1;
-    if (id === 'beast_main_distant' || id === 'beast_main_leap') {
-      scale = gain('beast');
-    }
-    return baseShot.call(this, id, { ...options, gain: (options.gain ?? 1) * scale });
-  };
-}
-
-function createMixerUi() {
+/** The ?mix=1 calibration dock. Mounted by main.js only when enabled. */
+export function mountMixPanel() {
   if (!ENABLED || typeof document === 'undefined' || document.getElementById('v1LiveMixer')) return;
 
   const style = document.createElement('style');
@@ -179,8 +144,6 @@ function createMixerUi() {
 
   const rows = [
     ['master', 'MASTER', -18, 6],
-    ['bed', 'BED', -18, 9],
-    ['surface', 'SURFACE', -24, 9],
     ['bells', 'BELLS', -18, 9],
     ['heartbeat', 'HEARTBEAT', -18, 9],
     ['beast', 'BEAST', -18, 9],
@@ -260,14 +223,3 @@ function createMixerUi() {
   sync();
 }
 
-createMixerUi();
-
-globalThis.__DASH_V1_MIXER = {
-  version: '1.0',
-  hiddenByDefault: true,
-  query: '?mix=1',
-  dbFaders: true,
-  copySnapshot: true,
-  persistentCalibration: ENABLED,
-  noExtraRaf: true,
-};

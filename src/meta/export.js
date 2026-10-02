@@ -32,7 +32,7 @@ const n = (v, dp = 0) => (Number.isFinite(+v) ? +(+v).toFixed(dp) : null);
  * @param {string} [o.seed]    the daily seed string (a date)
  * @param {string} [o.at]      ISO timestamp; injectable so tools are stable
  */
-export function buildStatsExport({ stats = {}, daily, run, tuning, access, seed, at } = {}) {
+export function buildStatsExport({ stats = {}, daily, run, tuning, access, seed, at, fakes } = {}) {
   const R = tuning?.RUN ?? {};
   const B = tuning?.BOOST ?? {};
   const pace = tuning?.MODES?.DIFFICULTY?.[run?.difficulty]?.REDLINE_PACE
@@ -102,6 +102,11 @@ export function buildStatsExport({ stats = {}, daily, run, tuning, access, seed,
       meterMax: n(B.METER_MAX), minActivate: n(B.MIN_ACTIVATE),
       drainRate: n(B.DRAIN_RATE), dashMult: n(B.SPEED_MULT, 2),
     },
+
+    // How often each kind of fake fools this player (meta/fake-tally.js) —
+    // the fair-fake question, aggregated across players by
+    // `npm run report:fakes`. Spellings the bank printed, never anything typed.
+    fakes: fakes ?? null,
 
     // Settings change perceived difficulty, so a verdict needs them.
     access: access ? {

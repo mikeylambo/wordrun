@@ -13,6 +13,7 @@
  */
 
 import * as THREE from 'three';
+import { makeContactShadow } from './contact-shadow.js';
 import TUNING from '../TUNING.js';
 
 // Playtest: "some lines are out of place, when the rest of them fit the road."
@@ -242,6 +243,8 @@ export class PlayerActor {
     this.root = new THREE.Group();
     this.root.add(this.pivot);
     scene.add(this.root);
+    this.contact = makeContactShadow(scene, 0.82, 0.12);
+    this.contact.scale.set(1.15, 0.62, 1);
 
     this.t = 0;
     this._lastD = 0;
@@ -255,6 +258,8 @@ export class PlayerActor {
     this._trackReady = false;
     this._trackLeft = new THREE.Vector3();
     this._trackRight = new THREE.Vector3();
+    this._trackCurL = new THREE.Vector3();
+    this._trackCurR = new THREE.Vector3();
     this.trackPos = new Float32Array(TRACK_SEGMENTS * 4 * 3);
     for (let i = 0; i < this.trackPos.length; i += 3) this.trackPos[i + 1] = -9999;
     const geo = new THREE.BufferGeometry();
@@ -277,11 +282,14 @@ export class PlayerActor {
 
   _track(p) {
     if (p.airborne || p.staggerT > 0.15) { this._trackReady = false; return; }
-    if (p.d - this._lastTrackD < 0.48) return;
+    // RC7.1: one sample per 0.72 m (it was 0.48) — still visually continuous
+    // at play speed, a third fewer buffer uploads — into two preallocated
+    // vectors, so laying the line allocates nothing per sample.
+    if (p.d - this._lastTrackD < 0.72) return;
     this._lastTrackD = p.d;
     const rightX = Math.cos(p.heading), rightZ = Math.sin(p.heading);
-    const curL = new THREE.Vector3(p.x - rightX * 0.07, p.y + 0.03, -p.d - rightZ * 0.07);
-    const curR = new THREE.Vector3(p.x + rightX * 0.07, p.y + 0.03, -p.d + rightZ * 0.07);
+    const curL = this._trackCurL.set(p.x - rightX * 0.07, p.y + 0.03, -p.d - rightZ * 0.07);
+    const curR = this._trackCurR.set(p.x + rightX * 0.07, p.y + 0.03, -p.d + rightZ * 0.07);
     if (this._trackReady) {
       const base = this._trackHead * 12, a = this.trackPos;
       a[base] = this._trackLeft.x; a[base + 1] = this._trackLeft.y; a[base + 2] = this._trackLeft.z;
@@ -295,6 +303,18 @@ export class PlayerActor {
   }
 
   update(p, slope, dt, beastGap = 80) {
+    this._updateFigure(p, slope, dt, beastGap);
+    // The contact shadow thins and spreads with height off the page.
+    const ground = p.terrain.heightAt(p.x, p.d);
+    const air = Math.max(0, p.y - ground);
+    this.contact.position.set(p.x, ground + 0.035, -p.d);
+    this.contact.material.opacity = 0.12 * Math.max(0.18, 1 - air / 8);
+    const s = 1 + Math.min(0.55, air * 0.045);
+    this.contact.scale.set(1.15 * s, 0.62 * s, 1);
+    this.contact.visible = !p.dead || air < 2;
+  }
+
+  _updateFigure(p, slope, dt, beastGap) {
     this.t += dt;
     if (p.d < this._lastD - 5) this._clearTracks();
     // RC9.9: the ground covered since the last frame IS the stride's clock.

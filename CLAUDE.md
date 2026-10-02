@@ -3,8 +3,9 @@
 DICTION DASH — a deterministic word-gate runner. `src/sim/` is the headless,
 deterministic game (no renderer/DOM imports); `src/render/`, `src/ui/`,
 `src/audio/` present it; `src/meta/` and `src/words/` are liftable, standalone
-subsystems. Two entry points, both loaded by `index.html`: `src/main.js`
-(the game) and `src/v1-mobile-ui.js` (touch UI).
+subsystems. One entry point: `index.html` loads `src/boot.js`, which imports
+`src/main.js` one paint later; main imports everything else (touch controls
+included — `src/ui/touch-controls.js`).
 
 ## Definition of done — gates are re-run, not assumed
 
@@ -33,6 +34,12 @@ easy-to-miss side-effect import, drifted out of sync with the code it claimed
 to describe, and made every session re-discover which file was real. The
 `reachability-gate` fails the build on any `src/` file no entry point can
 reach — dead code gets deleted, live code gets an explicit import.
+It also fails on the patching itself — a reassigned prototype method, a live
+instance method swapped for a wrapper, a `base = obj.method.bind(obj)`
+capture, a polling `requestAnimationFrame(boot)` — and on any `src/` file
+named for a release layer (`rc*`, `v1-*`). Phase 0 removed one such layer;
+eighteen more files of it survived until the patch-layer fold, because every
+one of them WAS imported.
 
 ## Standing constraints (build-enforced)
 

@@ -9,8 +9,13 @@
  * the share sheet with that link as its URL, so whichever way the message
  * travels it arrives with the route attached.
  *
- * The coordinates come from main.js (`__DASH_CHALLENGE_LINK`), which is the
- * only file that knows the seed, salt and bar the run was actually played at.
+ * The coordinates come from main.js (the `challengeLink` it hands to
+ * installShareUi), which is the only file that knows the seed, salt and bar
+ * the run was actually played at.
+ *
+ * This file owns BOTH buttons in the results tray. SAVE used to have a second
+ * listener in main.js that this one silenced with a capture-phase
+ * stopImmediatePropagation; there is one now.
  * The link is a URL and building it makes no request: `audit:network` still
  * measures zero at play time.
  *
@@ -26,18 +31,20 @@ function shotDataUrl() {
   return src.startsWith('data:image/') ? src : '';
 }
 
+let deps = { challengeLink: () => '', score: () => 0, shareText: () => '' };
+
 /** The run's score — the headline figure the card is already showing. */
 function score() {
   const dom = Number.parseInt(($('finalDist')?.textContent || '').replace(/[^0-9]/g, ''), 10);
   if (Number.isFinite(dom)) return dom;
-  return Math.max(0, Math.floor(globalThis.__SIM?.score || 0));
+  return Math.max(0, Math.floor(deps.score() || 0));
 }
 
 const fileName = () => `dictiondash-${score()}.png`;
 
 function challengeLink() {
   try {
-    const link = globalThis.__DASH_CHALLENGE_LINK?.();
+    const link = deps.challengeLink();
     if (typeof link === 'string' && link) return link;
   } catch { /* the game has not finished a run yet */ }
   return new URL('/', location.href).href;
@@ -75,10 +82,14 @@ function flash(button, word) {
 async function shareRun(button) {
   const url = challengeLink();
   const title = `DICTION DASH — ${score().toLocaleString('en-US')}`;
-  const text = `${title}. Same route, your turn.`;
+  // A DAILY RUN carries its result as text (meta/share-grid.js): it reads in
+  // any chat without opening the image or the link, and spoils no word.
+  const summary = deps.shareText() || '';
+  const text = summary ? `${summary}\nSame route, your turn.` : `${title}. Same route, your turn.`;
   // Started, not awaited: the share sheet below needs the same gesture and
-  // is the one that expires first.
-  const copying = navigator.clipboard?.writeText(url)
+  // is the one that expires first. With a summary the clipboard gets the whole
+  // message, because pasting the squares IS the share.
+  const copying = navigator.clipboard?.writeText(summary ? `${summary}\n${url}` : url)
     .then(() => true, () => false) ?? Promise.resolve(false);
   const file = await shotFile();
 
@@ -100,12 +111,19 @@ async function shareRun(button) {
 
   const copied = await copying;
   if (shared) return;
-  if (copied) { flash(button, 'LINK COPIED'); return; }
+  if (copied) { flash(button, summary ? 'COPIED' : 'LINK COPIED'); return; }
   // Last-resort fallback: selecting the URL is still more useful than failing.
   prompt('Copy your DICTION DASH challenge', `${text} ${url}`);
 }
 
-function installShareUi() {
+/**
+ * Wire SAVE and SHARE. `challengeLink()` returns the dare for the run just
+ * played; `score()` is the fallback when the card has no figure yet.
+ */
+export function installShareUi({ challengeLink, score: scoreFn, shareText } = {}) {
+  if (challengeLink) deps.challengeLink = challengeLink;
+  if (scoreFn) deps.score = scoreFn;
+  if (shareText) deps.shareText = shareText;
   const tray = $('shotBtns');
   const save = $('saveShot');
   if (!tray || !save) return;
@@ -143,12 +161,3 @@ function installShareUi() {
   `;
   document.head.appendChild(style);
 }
-
-installShareUi();
-
-globalThis.__DASH_SHARE = {
-  version: '1.0-rc',
-  nativeShare: typeof navigator !== 'undefined' && typeof navigator.share === 'function',
-  fileShare: typeof navigator !== 'undefined' && typeof navigator.canShare === 'function',
-  noExtraRaf: true,
-};

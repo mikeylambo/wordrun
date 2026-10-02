@@ -428,7 +428,7 @@ export class Input {
     // Pointer wins when present, otherwise the keyboard drives.
     this.carve = this.primaryId !== null ? dragX : this.keyX;
     this.flip = this.primaryId !== null ? dragY : this.keyY;
-    // RC10.8: the touch button PUSHES its edges now (v1-mobile-ui.js calls
+    // RC10.8: the touch button PUSHES its edges now (ui/touch-controls.js calls
     // dashPress/dashRelease), so all three modalities start the same clock at
     // the same instant. RC9.9 polled this flag once a frame and called the
     // latency "one frame against a 520 ms window"; measured on a real touch it

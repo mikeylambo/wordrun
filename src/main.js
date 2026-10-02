@@ -46,6 +46,7 @@ import { Input } from './input/input.js';
 import { Storage } from './storage/storage.js';
 import { StatsManager, localStorageAdapter } from './meta/stats.js';
 import { NemesisLedger } from './meta/nemesis.js';
+import { FakeTally } from './meta/fake-tally.js';
 import { MasteryLedger } from './meta/mastery.js';
 import { Boards } from './meta/boards.js';
 import { TIERS } from './words/wordlist.js';
@@ -59,6 +60,13 @@ import { MomentClip } from './ui/moment-clip.js';
 import { ObjectiveQueue } from './meta/objectives.js';
 import { buildReview } from './meta/review.js';
 import { UI } from './ui/ui.js';
+import { installShareUi } from './ui/share.js';
+import { composeShareCard } from './ui/share-card.js';
+import { shareGrid } from './meta/share-grid.js';
+import { pulse as haptic } from './ui/haptics.js';
+import { updateMobileTouchUi } from './ui/touch-controls.js';
+import { LIVE_MIX, mountMixPanel } from './audio/live-mix.js';
+import { mountDevTools } from './dev/dev-tools.js';
 // Phase 5: the shop, pause and onboarding panels are code-split behind dynamic
 // import() — none is needed for the first frame, so keeping them out of the
 // main chunk shortens time-to-interactive on the low-end devices Playables
@@ -95,6 +103,8 @@ const DAILY_SEED = dailySeed();
 const SEED = CHALLENGE ? hashString(CHALLENGE.seedString) : DAILY_SEED;
 const SEED_STRING = CHALLENGE ? CHALLENGE.seedString : dailySeedString();
 const sim = new Sim(SEED);
+// FINISH is a rule of the played game (sim/finish.js); headless tools leave it off.
+sim.endgame = true;
 const terrainMesh = new TerrainMesh(stage.scene, sim.terrain);
 const props = new Props(stage.scene, sim.terrain);
 const landmarks = new Landmarks(stage.scene, sim.terrain);
@@ -268,6 +278,8 @@ const metaAdapter = localStorageAdapter();
 const metaStats = new StatsManager(metaAdapter);
 // The per-word ledger rides the same adapter seam as the stats.
 const nemesis = new NemesisLedger(metaAdapter);
+// How often each kind of fake fools this player — exported with STATS.
+const fakeTally = new FakeTally(metaAdapter);
 // RC10.3 — the words this player has actually learned. A word counts once it
 // has been read right and is not currently owed a repeat, so the two systems
 // agree by construction: the ledger owns "still practising", this owns "done".
@@ -384,10 +396,10 @@ globalThis.__DASH_LEARNED = dashLearned;
 ui.setDashLearned(dashLearned);
 
 ui.setChallenge(CHALLENGE);
-ui.setSeed(SEED_STRING, Storage.bestFor(SEED), Storage.runsToday(SEED));
+ui.setSeed(SEED_STRING, Storage.bestFor(SEED), Storage.runsToday(SEED), Storage.bestAllTime());
 pushLessons();
 ui.setDaily(metaDaily.status(DAILY_SEED));
-ui.setMastery(mastery.count);
+ui.setMastery(mastery.count, nemesis.toughest());
 ui.showTitle(true);
 input.onFirstGesture = () => audio.start();
 
@@ -563,6 +575,7 @@ function buildRunInTheDark() {
   runContinued = false;
   retiredThisRun = [];
   tierTally = {};
+  gateTrail = [];
   sim.start(SEED, ghostData, {
     wordSalt: currentSalt,
     mode: runMode,
@@ -653,6 +666,10 @@ let lastRunScore = 0;
 let lastRunBar = 0;
 let retiredThisRun = [];
 let tierTally = {};
+// Every resolved gate of this run, by index: 1 right, 0 wrong. The DAILY
+// RUN's share text is drawn from it (meta/share-grid.js).
+let gateTrail = [];
+let lastRunGrid = '';
 let lastRunScoreLost = 0;
 // What the continues took off the live score this run, kept so the death card
 // can still say "−N · 2 CONTINUES" now that the cut happens during the run.
@@ -808,6 +825,10 @@ function finalizeRun() {
   // charge for every continue twice.
   const finalScore = Math.floor(earned * failKeep);
   lastRunScore = finalScore;
+  lastRunGrid = runMode === 'standard' ? shareGrid({
+    trail: gateTrail, gates: TUNING.MODES.RULES.standard.GATES, score: finalScore,
+    finished: !!sim.escaped || sim.routeFinished, seedString: SEED_STRING,
+  }) : '';
   lastRunBar = sim.player.compressionLevel | 0;
   lastRunScoreLost = (earned - finalScore) + continueScoreLost;
   // Unassisted runs own the boards: a continued run reports its distance
@@ -837,6 +858,7 @@ function finalizeRun() {
     });
   }
   const isPb = boardEligible ? Storage.setBestFor(SEED, finalScore) : false;
+  if (isPb) ui.setAllTimeBest(Storage.bestAllTime());
   if (boardEligible) {
     sim.recorder.finish(sim.player);
     Storage.saveGhostIfBest(SEED, sim.recorder.serialize({ seed: SEED, distance }));
@@ -1002,7 +1024,7 @@ function resumeGame() {
 function quitToTitle() {
   // RC10.3: the title's learned count is the one number a run can move, so it
   // is refreshed on the way back rather than only at boot.
-  ui.setMastery(mastery.count);
+  ui.setMastery(mastery.count, nemesis.toughest());
   paused = false;
   running = false;
   input.enabled = false;
@@ -1032,7 +1054,16 @@ function setGhostEnabled(on) {
   Storage.setGhostEnabled(ghostEnabled);
   pauseUI?.setGhost(ghostEnabled);
   onboarding?.setGhost(ghostEnabled);
-  if (!ghostEnabled) sim.ghost.load(null);
+  if (!ghostEnabled) { sim.ghost.load(null); return; }
+  // Turning BEST RUN back on mid-run should visibly work now, not at the
+  // next restart: load the replay — the challenger's, on a dare — and
+  // seek it to the run's clock.
+  const data = ghostForRun();
+  sim.ghost.load(data);
+  if (data) {
+    sim.ghost.t = Math.max(0, Math.min(sim.time, Math.max(0, sim.ghost.duration - 0.001)));
+    sim.ghost.step(0);
+  }
 }
 
 // ── Code-split panels (Phase 5) ───────────────────────────────────────────
@@ -1097,16 +1128,25 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
   loadShop(); loadPause(); loadOnboarding();
 }));
 
-function onAdvance() {
+function onAdvance({ deliberate = false } = {}) {
   if (running || paused || onboarding?.visible || offerActive || launchPending) return;
   // PD-2: ONE modal rule for every overlay — a tap on or around ANY open
   // sheet (settings, shop, profile) can never start a run underneath it.
   // The pause menu and the continue offer are covered by the flags above.
   if (document.querySelector('#accessPanel.on, #shopPanel.on, #curveScreen.on')) return;
-  if (sim.phase === PHASE.KILL) return;
+  // A tap during the kill cam cuts straight to the card — but only once the
+  // share frame has been taken, so skipping never costs the player the image
+  // of how it ended. (Before this, every death cost the full 1.5 s.)
+  if (sim.phase === PHASE.KILL) {
+    if (shotTaken) sim.skipKillCam();
+    return;
+  }
   // The same settle guard covers both ways a card can appear: a death (phase
-  // DEAD) and a finished route (phase still RUNNING, sim.escaped set).
-  if ((sim.phase === PHASE.DEAD || sim.escaped) && performance.now() - deathShownAt < 350) return;
+  // DEAD) and a finished route (phase still RUNNING, sim.escaped set). It
+  // exists to stop a tap aimed at the dying run from starting the next one;
+  // R is the retry key and cannot be an accident, so it is not held back.
+  if (!deliberate && (sim.phase === PHASE.DEAD || sim.escaped) &&
+      performance.now() - deathShownAt < 350) return;
   audio.uiTap();
   // RC6: BEGIN RUN starts the run — for everyone, on the first tap of the
   // first session included. A card between the player and the game is the
@@ -1131,7 +1171,7 @@ window.addEventListener('keydown', (e) => {
   // search box and JSON box are places you type a backtick on purpose.
   if (e.code === 'Backquote' && !e.repeat && !/^(INPUT|TEXTAREA)$/.test(e.target?.tagName || '')) {
     e.preventDefault();
-    toggleDevPanel();
+    devTools.toggleDevPanel();
     return;
   }
   // F is the arcade convention and the one key a desktop player tries. Not
@@ -1152,7 +1192,7 @@ window.addEventListener('keydown', (e) => {
     return;
   }
   if (e.code !== 'Space' && e.code !== 'Enter' && e.code !== 'KeyR') return;
-  onAdvance();
+  onAdvance({ deliberate: e.code === 'KeyR' && !e.repeat });
 });
 
 // Mode/difficulty chips: persist the choice, swap the storage variant,
@@ -1181,7 +1221,7 @@ document.getElementById('modeRows')?.addEventListener('click', (e) => {
   }
   syncVariant();
   syncModeChips();
-  ui.setSeed(SEED_STRING, Storage.bestFor(SEED), Storage.runsToday(SEED));
+  ui.setSeed(SEED_STRING, Storage.bestFor(SEED), Storage.runsToday(SEED), Storage.bestAllTime());
   pushLessons();
   ui.setDaily(metaDaily.status(DAILY_SEED));
   warmPlates();
@@ -1216,13 +1256,14 @@ deathMenu?.addEventListener('click', (e) => {
 //
 // It stopped being a button of its own. LINK sat beside SHARE doing half of
 // what a player means by sharing a run, and the half they would skip: the
-// image travels and the dare stays behind. One tap now does both — v1-share.js
+// image travels and the dare stays behind. One tap now does both — ui/share.js
 // owns the act, and this owns the coordinates, because main is the only file
 // that knows which seed, salt and bar the run was actually played at.
 //
 // The link is a URL and nothing else: no request is made to build it, and
 // `audit:network` still measures zero at play time.
-globalThis.__DASH_CHALLENGE_LINK = () => buildChallengeLink(
+function challengeLinkForLastRun() {
+  return buildChallengeLink(
   location.origin + location.pathname, {
     seedString: SEED_STRING,
     mode: runMode,
@@ -1235,6 +1276,7 @@ globalThis.__DASH_CHALLENGE_LINK = () => buildChallengeLink(
     // resamples them down to something a message can carry.
     ghost: lastRunGhost,
   });
+}
 
 // COPY STATS (Phase 21): the calibration verdicts on the roadmap all want
 // numbers from real runs, and the build is deliberately zero-network — there
@@ -1271,6 +1313,7 @@ copyStats?.addEventListener('click', async (e) => {
     tuning: TUNING,
     access: ACCESS,
     seed: SEED_STRING,
+    fakes: fakeTally.snapshot(),
   }));
   let ok = false;
   try { await navigator.clipboard.writeText(blob); ok = true; }
@@ -1313,22 +1356,15 @@ document.getElementById('missedClose')?.addEventListener('click', (e) => {
 });
 missedPanel?.addEventListener('click', (e) => e.stopPropagation());
 
-ui.saveShot.addEventListener('click', async (e) => {
-  e.stopPropagation();
-  if (!shotUrl) return;
-  const name = `dictiondash-${Math.floor(sim.distance)}m-${SEED_STRING}.png`;
-  try {
-    const blob = await (await fetch(shotUrl)).blob();
-    const file = new File([blob], name, { type: 'image/png' });
-    if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title: `DICTION DASH — ${Math.floor(sim.distance)}m` });
-      return;
-    }
-  } catch { /* fall through */ }
-  const a = document.createElement('a');
-  a.href = shotUrl;
-  a.download = name;
-  a.click();
+// The hidden ?mix=1 calibration dock (audio/live-mix.js) — never in release.
+if (LIVE_MIX.enabled) mountMixPanel();
+
+// SAVE and SHARE are one system (ui/share.js); main supplies the coordinates.
+installShareUi({
+  challengeLink: () => challengeLinkForLastRun(),
+  score: () => sim.score,
+  // The DAILY RUN travels as text too — ten squares, no words spoiled.
+  shareText: () => lastRunGrid,
 });
 
 document.addEventListener('visibilitychange', () => {
@@ -1357,6 +1393,7 @@ function drainSimEvents() {
         break;
       case 'hit':
         audio.hit();
+        haptic('hit');
         spray.emit(e.x, e.y, -e.d, 18, 7, 3.2, 0);
         ui.hitFlash();
         break;
@@ -1426,7 +1463,7 @@ function drainSimEvents() {
         audio.lastStandEnd(false);
         if (music.gain) music.gain.gain.value = 0.62;
         break;
-      case 'kill': audio.kill(); break;
+      case 'kill': audio.kill(); haptic('kill'); break;
       case 'word_confirm': audio.uiTap(); break;
       // N1: a pre-arm answer was buffered — the plate shows the side-bar,
       // this is only the sound of it. Acknowledgment, not payoff.
@@ -1440,6 +1477,8 @@ function drainSimEvents() {
         rig.settle();
         break;
       case 'word_correct': {
+        gateTrail[e.index] = 1;
+        if (!e.real) fakeTally.record({ family: e.family, fake: e.word, answer: e.answer, tapped: false });
         judgment.read({ correct: true, answered: e.answered !== false,
           answerDistance: e.answerDistance, armM: sim.wordGates.armDistance(),
           chain: e.chain, real: e.real }, ACCESS.reducedFlash);
@@ -1509,6 +1548,8 @@ function drainSimEvents() {
         break;
       }
       case 'word_wrong': {
+        gateTrail[e.index] = 0;
+        if (e.reason === 'picked_fake') fakeTally.record({ family: e.family, fake: e.word, answer: e.answer, tapped: true });
         judgment.read({ correct: false, answered: e.answered !== false,
           answerDistance: e.answerDistance, armM: sim.wordGates.armDistance(),
           chain: 0, real: e.real }, ACCESS.reducedFlash);
@@ -1535,6 +1576,7 @@ function drainSimEvents() {
           // The drain (Phase 9): a wrong tap pulls light and highs out of
           // the world for a beat — no bright crash-flash; loss is darkness.
           audio.hit();
+          haptic('hit');
           audio.duck();
           spray.emit(e.x, e.y, -e.d, 18, 7, 3.2, 0);
           ui.drain();
@@ -1581,7 +1623,9 @@ function tick(dt) {
     simInput.boostHeld = input.boostHeld;
     simInput.dragging = input.dragging;
 
-    alpha = sim.advance(dt, simInput);
+    // The FINISH card is a real choice: the run holds still behind it until
+    // END RUN or KEEP GOING (render/endgame-sky.js owns the card).
+    alpha = stage.endgameSky.choiceVisible ? 0 : sim.advance(dt, simInput);
     input.consumeJump();
     drainSimEvents();
     if (p.speed > topSpeed) topSpeed = p.speed;
@@ -1713,11 +1757,12 @@ function tick(dt) {
     bv.x, sim.beast.side);
   stage.followLight(pv.x, pv.y, -pv.d);
   audio.update(dt, p, bands, dreadLive);
+  updateMobileTouchUi(p);
   // RC10.1: every frame, including paused and dead — a pad has to be able to
   // reach RESUME and AGAIN. It used to be polled from inside a runtime patch
   // of the audio bridge, purely because that ran once a frame.
   controllerNav.update(sim.phase);
-  profileOverlay?.update(sim.player.d, dt);
+  devTools.profileOverlay?.update(sim.player.d, dt);
   // RC7: the three stops own the fundamentals. The sim reads which of them
   // this player has already been SHOWN (persisted beside the other learned
   // lessons, so each fires once for a life, whatever the player did with
@@ -1834,34 +1879,9 @@ function tick(dt) {
   if (!shotTaken && sim.phase === PHASE.KILL &&
       sim.killTimer >= TUNING.BEAST.KILL_WHIP_TIME + 0.24) {
     shotTaken = true;
-    try { shotUrl = composeShot(canvas); }
+    try { shotUrl = composeShareCard(canvas, endedFlowLevel); }
     catch { shotUrl = null; }
   }
-}
-
-function composeShot(srcCanvas) {
-  const w = 720;
-  const h = Math.round((srcCanvas.height / srcCanvas.width) * w);
-  const out = document.createElement('canvas');
-  out.width = w;
-  out.height = h;
-  const g = out.getContext('2d');
-  g.drawImage(srcCanvas, 0, 0, w, h);
-  const grad = g.createLinearGradient(0, h * 0.62, 0, h);
-  grad.addColorStop(0, 'rgba(10,14,19,0)');
-  grad.addColorStop(1, 'rgba(10,14,19,0.24)');
-  g.fillStyle = grad;
-  g.fillRect(0, h * 0.62, w, h * 0.38);
-  // Phase S: the share card renders the run's flow band — one centred rule
-  // whose length and brightness are the flow level the run ended on, in the
-  // flow's own ice cyan. Zero flow still draws the idle hairline: the card
-  // always says which game it is, never nothing.
-  const f = endedFlowLevel;
-  const bandH = Math.max(3, Math.round(h * 0.008));
-  const bandW = Math.round(w * (0.22 + 0.7 * f));
-  g.fillStyle = `rgba(103,216,255,${(0.34 + 0.58 * f).toFixed(3)})`;
-  g.fillRect(Math.round((w - bandW) / 2), h - bandH * 3, bandW, bandH);
-  return out.toDataURL('image/png');
 }
 
 function frame(now) {
@@ -1884,48 +1904,42 @@ window.__RENDER = {
   stage, terrainMesh, props, landmarks, rig, playerActor, beastActor, ghostActor, spray, materialPass,
   wordGateActors, dataworld, streakBurst, bells: bellRenderer, editorialWorld, judgment,
 };
-// The tuning panel, for playtesting where there is no console. A dynamic
-// import so it lands in its own chunk: a normal load never fetches it, and
-// a phone that never presses the key never pays for it. `?dev=1` opens it on
-// boot; backtick toggles it any time on a keyboard, because a playtester
-// changing a look does not want to retype a URL and lose the run.
-let devPanelEl = null;
-let devPanelLoading = false;
-function toggleDevPanel() {
-  if (devPanelEl) { devPanelEl.hidden = !devPanelEl.hidden; return; }
-  if (devPanelLoading) return;
-  devPanelLoading = true;
-  import('./dev-panel.js')
-    .then((m) => m.mountDevPanel())
-    .then(() => { devPanelEl = document.getElementById('devPanel'); })
-    .catch(() => {})
-    .finally(() => { devPanelLoading = false; });
-}
-window.__DEV_PANEL = toggleDevPanel;
-if (new URLSearchParams(location.search).get('dev') === '1') toggleDevPanel();
+// Dev-only tooling behind URL flags (?dev=1, ?soak=…, ?profile=1), each a
+// dynamic import a normal load never fetches — src/dev/dev-tools.js.
+const devTools = mountDevTools({ terrain: () => sim.terrain, report: playtestReport });
 
-// RC10.8 — `?profile=1`: the road's own numbers under the runner. A player
-// reported dips and there was no way to look; this names the segment, the
-// grade, the roll AND the cross-slope the mesh actually renders, marking
-// anything over the RC8.2 ceiling. Dev only, dynamic import, draws into its
-// own corner and takes no input.
-// RC11.9 — `?soak=1`: the capture audit, run BY the device instead of at it.
-// The measurement is plain browser work; the only thing the headless host
-// could never supply was a real GPU. See src/dev/soak.js.
-const SOAK = new URLSearchParams(location.search).get('soak');
-if (SOAK) {
-  // `?soak=1` paints the report for a person holding a phone. Any other value
-  // loads the same module and stops there, exposing window.__SOAK for the node
-  // audit to drive across the emulated matrix — one protocol, two callers.
-  import('./dev/soak.js').then((m) => { if (SOAK === '1') m.mountSoak(); }).catch(() => {});
+// The playtest report (?playtest=1): everything a note needs to be replayed.
+function playtestReport() {
+  if (sim.phase !== PHASE.DEAD && !sim.escaped) return null;
+  const wg = sim.wordGates;
+  const lastMisses = (wg.misses || []).slice(-3).map((m) => ({
+    gate: m.index, shown: m.shown, answer: m.answer, how: m.reason, at: Math.round(m.d),
+  }));
+  return {
+    v: 1,
+    at: new Date().toISOString(),
+    replay: challengeLinkForLastRun(),
+    seed: SEED_STRING,
+    mode: runMode,
+    difficulty: effectiveDifficulty(),
+    salt: currentSalt,
+    distance: Math.round(sim.distance),
+    score: lastRunScore,
+    ended: sim.escaped ? 'finish' : (sim.deathCause || 'unknown'),
+    heartsLeft: sim.hearts,
+    reads: wg.readCount,
+    lastMisses,
+    trail: gateTrail.map((v) => (v === 1 ? '1' : v === 0 ? '0' : '.')).join(''),
+    device: {
+      ua: navigator.userAgent,
+      viewport: `${innerWidth}x${innerHeight}@${devicePixelRatio || 1}`,
+      dpr: +stage.dpr.toFixed(2),
+      access: { reducedFlash: ACCESS.reducedFlash, plateSpacing: ACCESS.plateSpacing, plateSize: ACCESS.plateSize, palette: ACCESS.palette },
+    },
+  };
 }
-
-let profileOverlay = null;
-if (new URLSearchParams(location.search).get('profile') === '1') {
-  import('./dev/profile-overlay.js')
-    .then((m) => { profileOverlay = new m.ProfileOverlay(sim.terrain); })
-    .catch(() => {});
-}
+window.__DEV_PANEL = devTools.toggleDevPanel;
+window.__PLAYTEST_REPORT = () => playtestReport();
 
 // RC9.8: the capture and the clip, for the audits and the phone matrix run.
 window.__CAPTURE = moments;

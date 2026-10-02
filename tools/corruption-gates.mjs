@@ -158,9 +158,8 @@ head('CORRUPTION — identity');
     'src/ui/onboarding.js',
     'src/ui/pause.js',
     'src/ui/access.js',
-    'src/v1-mobile-ui.js',
-    'src/v1-share.js',
-    'src/v1-finalize.js',
+    'src/ui/touch-controls.js',
+    'src/ui/share.js',
     'src/render/endgame-sky.js',
   ];
   for (const f of sourceFacing) {
@@ -315,7 +314,7 @@ head('NAMING — five approved names, machine-enforced');
   // strings — the pattern a sixth name would most likely take.
   const nameShaped = [];
   for (const f of ['index.html', 'src/ui/ui.js', 'src/ui/onboarding.js',
-    'src/ui/pause.js', 'src/v1-mobile-ui.js', 'src/v1-finalize.js',
+    'src/ui/pause.js', 'src/ui/touch-controls.js', 'src/ui/share.js',
     'src/render/endgame-sky.js']) {
     const text = fs.readFileSync(f, 'utf8');
     const strings = [
@@ -531,7 +530,9 @@ head('RESIDUE — the frame this was cloned from must not show through');
   //    reference is what let the vocabulary survive unnoticed.
   const manifest = JSON.parse(fs.readFileSync('public/audio/approved/manifest.json', 'utf8'));
   const shipped = new Set(Object.keys(manifest.files || {}));
-  const rc9 = fs.readFileSync('src/rc9-assets.js', 'utf8');
+  // The approved recordings are asked for by the engine itself now (the
+  // Redline's recorded step in Audio._thump) — rc9-assets.js was folded in.
+  const rc9 = fs.readFileSync('src/audio/audio.js', 'utf8');
   const asked = new Set([
     ...[...rc9.matchAll(/setLoop\('([^']+)'/g)].map((m) => m[1]),
     ...[...rc9.matchAll(/oneShot\('([^']+)'/g)].map((m) => m[1]),
@@ -545,7 +546,7 @@ head('RESIDUE — the frame this was cloned from must not show through');
   const bed = fs.existsSync('src/audio/page-bed.js')
     ? fs.readFileSync('src/audio/page-bed.js', 'utf8') : '';
   check('the ambience bed is procedural page texture, not a recorded loop',
-    bed.includes('export function bedLevels') && rc9.includes('pageBed?.update(') &&
+    bed.includes('export function bedLevels') && rc9.includes('this.pageBed.update(') &&
     !fs.existsSync('public/audio/approved/wind_alpine_bed-v02.mp3'),
     bed ? 'page grain + turns + ink blooms, no file' : 'page-bed.js missing');
   // Phase 18 renamed the surface-glide voice to strip the last ski word;
@@ -557,9 +558,11 @@ head('RESIDUE — the frame this was cloned from must not show through');
   // was the same noise under another name. Measured after removal: no voice
   // in the graph varies with speed at all.
   const audioSrc = fs.readFileSync('src/audio/audio.js', 'utf8');
-  const mixSrcs = ['src/v1-final-mix.js', 'src/v1-mixer.js', 'src/v1-approved-mix.js']
-    .map((f) => fs.readFileSync(f, 'utf8')).join('\n');
-  const feedbackSrc = fs.readFileSync('src/rc9-feedback.js', 'utf8');
+  // The three mix layers are one file now (audio/live-mix.js), and the
+  // rc9-feedback layer is folded into the engine — so the "feedback" source
+  // these checks used to read is simply the engine and its mix.
+  const mixSrcs = fs.readFileSync('src/audio/live-mix.js', 'utf8');
+  const feedbackSrc = audioSrc + mixSrcs;
   const allAudio = audioSrc + mixSrcs + feedbackSrc;
   check('no sustained noise bed rides the runner\'s speed',
     !/this\.(glide|snow|wind|air|goRush)\s*=\s*this\._noiseVoice/.test(audioSrc),
@@ -580,7 +583,7 @@ head('RESIDUE — the frame this was cloned from must not show through');
     'the hit routes to the surface bus directly, as it always did');
 
   // Phase 31: the last shared asset and the last snowboarding voices.
-  const assetsSrc = fs.readFileSync('src/rc9-assets.js', 'utf8');
+  const assetsSrc = audioSrc;
   check('the dash no longer plays an inherited air-rush sample',
     !fs.existsSync('public/audio/approved/go_rush-v01.mp3') &&
     // Strip comments first: the note explaining the removal names the file.
@@ -602,7 +605,7 @@ head('RESIDUE — the frame this was cloned from must not show through');
     'the approved -5.5 dB surface trim stands');
 
   check('the bed keeps playing even if the approved manifest never loads',
-    rc9.includes('pageBed?.update(') && !/if \(!assets\) return;/.test(rc9),
+    /this\.pageBed\.update\(/.test(rc9) && !/if \(!assets\) return;/.test(rc9),
     'no approved-asset guard stands between the run and its atmosphere');
 
   // Reachability: nothing may ship an audio file the game cannot sound.
@@ -628,7 +631,7 @@ head('DASH — the second verb, finally legible');
   // sound and no camera event. These gates hold the correction in place.
   const files = {
     ui: fs.readFileSync('src/ui/ui.js', 'utf8'),
-    mobile: fs.readFileSync('src/v1-mobile-ui.js', 'utf8'),
+    mobile: fs.readFileSync('src/ui/touch-controls.js', 'utf8'),
     onboard: fs.readFileSync('src/ui/onboarding.js', 'utf8'),
     main: fs.readFileSync('src/main.js', 'utf8'),
     audio: fs.readFileSync('src/audio/audio.js', 'utf8'),
@@ -711,7 +714,7 @@ head('BROADCAST — few words, one type system, numbers first');
   const html = htmlAll;
   const uiSrc = fs.readFileSync('src/ui/ui.js', 'utf8');
   const injected = ['src/ui/pause.js', 'src/ui/onboarding.js', 'src/ui/access.js',
-    'src/ui/shop.js', 'src/v1-mobile-ui.js', 'src/rc81-ui.js']
+    'src/ui/shop.js', 'src/ui/touch-controls.js', 'src/ui/share.js']
     .map((f) => fs.readFileSync(f, 'utf8')).join('\n');
 
   // 1. One face, declared once. Every injected stylesheet inherits it
@@ -759,13 +762,13 @@ head('BROADCAST — few words, one type system, numbers first');
     // Phase 21 relabels.
     'SLIPPED BY', 'EVERY READ TRUE', "'REDACTED'",
   ];
-  // RC9.2 adds v1-share.js. It carried 'HOW FAR CAN YOU GO' for four phases
+  // RC9.2 adds the share module (now ui/share.js). It carried 'HOW FAR CAN YOU GO' for four phases
   // after the line was retired, because no scan reached the file that says
   // the game's name to everyone the player shares with — which is the last
   // place stale copy should be allowed to live.
   const tree = ['index.html', 'src/ui/ui.js', 'src/ui/onboarding.js', 'src/ui/pause.js',
-    'src/meta/daily.js', 'src/v1-share.js', 'src/v1-finalize.js',
-    'src/render/endgame-sky.js', 'src/rc97-endgame.js'];
+    'src/meta/daily.js', 'src/ui/share.js', 'src/ui/touch-controls.js',
+    'src/render/endgame-sky.js', 'src/sim/finish.js'];
   const wordy = [];
   for (const f of tree) {
     const text = fs.readFileSync(f, 'utf8');
@@ -930,9 +933,10 @@ head('SHARE — the card carries the run\'s flow band');
 
 {
   const main = fs.readFileSync('src/main.js', 'utf8');
-  const shot = main.slice(main.indexOf('function composeShot'), main.indexOf('function frame'));
+  const shot = fs.readFileSync('src/ui/share-card.js', 'utf8');
   check('the share card renders the ended flow band, in the flow\'s own cyan',
-    shot.includes('const f = endedFlowLevel') && shot.includes('rgba(103,216,255,'));
+    shot.includes('const f = flowLevel') && shot.includes('rgba(103,216,255,') &&
+    main.includes('composeShareCard(canvas, endedFlowLevel)'));
   check('its length and brightness are the flow level, with an idle floor — never nothing',
     shot.includes('0.22 + 0.7 * f') && shot.includes('0.34 + 0.58 * f'));
 }
@@ -1059,7 +1063,7 @@ head('BEATS — discrete arrivals, no labels, no new controls');
 head('REGRESSIONS — a hold that was timed late, a line that strobed, a look');
 {
   const inputSrc = fs.readFileSync('src/input/input.js', 'utf8');
-  const mobileSrc = fs.readFileSync('src/v1-mobile-ui.js', 'utf8');
+  const mobileSrc = fs.readFileSync('src/ui/touch-controls.js', 'utf8');
   const uiSrc2 = fs.readFileSync('src/ui/ui.js', 'utf8');
   const html2 = fs.readFileSync('index.html', 'utf8');
 
@@ -1137,7 +1141,7 @@ head('REGRESSIONS — a hold that was timed late, a line that strobed, a look');
   check('the canvas claims no stacking order, so the controls sit above every look',
     /canvas\{display:block;width:100%;height:100%;touch-action:none\}/.test(html2) &&
     !/#gl\s*\{[^}]*z-index/.test(html2) &&
-    /\.v1MobileAction\{[^}]*z-index:67/.test(fs.readFileSync('src/v1-mobile-ui.js', 'utf8')) &&
+    /\.v1MobileAction\{[^}]*z-index:67/.test(fs.readFileSync('src/ui/touch-controls.js', 'utf8')) &&
     /#barMarks\{[^}]*z-index:24/.test(html2),
     'the buttons are 67 and the marks 24 against a canvas with none');
   check('and the look toggle reaches only the renderer, never the page',
@@ -1613,7 +1617,8 @@ head('SOAK — one protocol, a phone and a matrix runner');
     !/requestAnimationFrame/.test(audit),
     'no sampler in tools/capture-audit.mjs');
   check('a phone reaches it with a URL — no cable, no adb, iOS included',
-    /soak.*===.*'1'/.test(main) && /import\('\.\/dev\/soak\.js'\)/.test(main) &&
+    /soak.*===.*'1'/.test(fs.readFileSync('src/dev/dev-tools.js', 'utf8')) &&
+    /import\('\.\/soak\.js'\)/.test(fs.readFileSync('src/dev/dev-tools.js', 'utf8')) &&
     /export async function mountSoak\(/.test(soak));
   check('the passes are mirrored, so a warm-up is not billed to one condition',
     /await offPass\(\), n1 = await onPass\(\)/.test(soak) &&

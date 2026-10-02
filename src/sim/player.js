@@ -8,9 +8,9 @@
  * accelerates or brakes on its own. Overdrive still multiplies pace while
  * the meter drains, which is what makes banked boost worth something.
  *
- * The class keeps the field and method surface the frame's patch layers
- * expect (reset/_collide/chainMult, the trick-era flags now permanently
- * false), fixed 60hz, deterministic, no renderer dependencies.
+ * The trick-era flags (airborne, onIce, inPowder) survive permanently false
+ * for the presentation that still reads them. Fixed 60hz, deterministic, no
+ * renderer dependencies.
  */
 
 import TUNING from '../TUNING.js';
@@ -98,9 +98,6 @@ export class Player {
   chainMult() {
     return 1 + Math.min(this.chain, B.CHAIN_CAP) * B.CHAIN_STEP;
   }
-
-  /** Kept for the contact patch layers; a flat empty track never collides. */
-  _collide() {}
 
   _overdrive(dt, input, events) {
     const want = !!input.boostHeld;

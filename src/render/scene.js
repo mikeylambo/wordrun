@@ -7,7 +7,6 @@
  */
 
 import * as THREE from 'three';
-import '../rc97-endgame.js';
 import TUNING from '../TUNING.js';
 import { PALETTE, LIGHT } from './palette.js';
 import { bandForDistance } from './art-direction.js';
@@ -136,7 +135,44 @@ export class Stage {
     this.renderer.toneMappingExposure = 1.03 - depth * 0.13;
   }
 
+  /**
+   * The render-budget governor (RC7.1): an EMA of real frame time lowers the
+   * pixel ratio by 0.15 after ~1.1 s of frames slower than 23.5 ms, and gives
+   * it back 0.1 at a time after ~5 s under 17.4 ms. Floor 0.85, ceiling the
+   * device's own ratio (max 2). It goes through resize() so the camera's
+   * aspect follows the canvas, never the window.
+   */
+  _governBudget() {
+    const b = this._budget || (this._budget = {
+      last: performance.now(), ema: 16.7, slowFor: 0, fastFor: 0,
+      ceiling: Math.min(window.devicePixelRatio || 1, 2),
+    });
+    const now = performance.now();
+    const dtMs = Math.min(80, Math.max(1, now - b.last));
+    b.last = now;
+    b.ema += (dtMs - b.ema) * 0.035;
+    const applyDpr = (next) => {
+      next = Math.max(0.85, Math.min(b.ceiling, Math.round(next * 20) / 20));
+      if (Math.abs(next - this.dpr) < 0.04) return;
+      this.dpr = next;
+      this.resize();
+    };
+    if (b.ema > 23.5) {
+      b.slowFor += dtMs / 1000;
+      b.fastFor = 0;
+      if (b.slowFor > 1.1) { applyDpr(this.dpr - 0.15); b.slowFor = 0; }
+    } else if (b.ema < 17.4) {
+      b.fastFor += dtMs / 1000;
+      b.slowFor = 0;
+      if (b.fastFor > 5.0) { applyDpr(this.dpr + 0.1); b.fastFor = 0; }
+    } else {
+      b.slowFor = Math.max(0, b.slowFor - dtMs / 1800);
+      b.fastFor = Math.max(0, b.fastFor - dtMs / 1600);
+    }
+  }
+
   render() {
+    this._governBudget();
     // The BROADCAST look (Phase N as decided): opt-in, constructed and torn
     // down here so the toggle applies live and the default path stays the
     // bare render. This branch is the system's one integration point — the

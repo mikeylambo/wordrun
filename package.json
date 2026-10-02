@@ -30,7 +30,8 @@
     "build:definitions": "node tools/build-definitions.mjs",
     "feel": "node tools/feel-measure.mjs",
     "calibrate": "node tools/calibration-gates.mjs --emit && node tools/refactor-snapshot.mjs --emit",
-    "smoke": "node tools/smoke-gates.mjs"
+    "smoke": "node tools/smoke-gates.mjs",
+    "report:fakes": "node tools/fake-report.mjs"
   },
   "dependencies": {
     "three": "^0.169.0"

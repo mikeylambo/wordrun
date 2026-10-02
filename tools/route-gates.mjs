@@ -372,8 +372,8 @@ head('CABINET — a framed screen is the portrait screen, measured');
   check('the camera is sized from the canvas, never from the window',
     /const el = this\.renderer\.domElement;/.test(fs.readFileSync('src/render/scene.js', 'utf8')) &&
     !/setSize\(window\.innerWidth/.test(fs.readFileSync('src/render/scene.js', 'utf8')) &&
-    !/setSize\(window\.innerWidth/.test(fs.readFileSync('src/rc7-feel.js', 'utf8')),
-    'and the RC7.1 render-budget governor resizes THROUGH stage.resize(), not around it');
+    /_governBudget\(\) \{[\s\S]*?this\.resize\(\);/.test(fs.readFileSync('src/render/scene.js', 'utf8')),
+    'and the RC7.1 render-budget governor (Stage._governBudget) resizes THROUGH stage.resize(), not around it');
 
   // Nothing in the bezel is interactive, because nothing is in the bezel.
   // RC11.8 retired the marquee: the wordmark it lit sat directly above the

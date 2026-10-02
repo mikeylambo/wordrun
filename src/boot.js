@@ -25,7 +25,6 @@
 
 const load = () => {
   import('./main.js');
-  import('./v1-mobile-ui.js');
 };
 
 // A tab opened in the background never gets a frame, so rAF would never fire

@@ -27,15 +27,19 @@ function hash32(seed, n) {
   return x >>> 0;
 }
 
+// The whiteout gets its last volatile beat BEFORE the empty stretch and the
+// final approach, so weather never obscures the finale. (V1 timing — it used
+// to be applied by v1-finalize.js re-running this whole update on top of the
+// RC9.7 values below it; the RC9.7 values were never seen.)
 function lateWeather(distance, seed = 1) {
-  if (distance < 28500 || distance > 44750) return 0;
-  const len = 1050;
-  const seg = Math.floor((distance - 28500) / len);
+  if (distance < 21000 || distance > 23000) return 0;
+  const len = 660;
+  const seg = Math.floor((distance - 21000) / len);
   if ((hash32(seed, seg) & 3) !== 0) return 0;
-  const local = ((distance - 28500) - seg * len) / len;
-  const enter = smooth(0.18, 0.36, local);
-  const leave = 1 - smooth(0.64, 0.84, local);
-  return clamp(enter * leave * 0.92);
+  const local = ((distance - 21000) - seg * len) / len;
+  const enter = smooth(0.16, 0.34, local);
+  const leave = 1 - smooth(0.64, 0.86, local);
+  return clamp(enter * leave * 0.88);
 }
 
 function makeStars() {
@@ -290,17 +294,6 @@ export class EndgameSky {
     this.ending.onFinish = () => this._finish();
   }
 
-  _bindRuntime() {
-    const sim = globalThis.__SIM;
-    if (!sim || this._wrappedAdvance) return;
-    this._wrappedAdvance = true;
-    const baseAdvance = sim.advance.bind(sim);
-    sim.advance = (dt, input) => {
-      if (this.choiceVisible) return 0;
-      return baseAdvance(dt, input);
-    };
-  }
-
   _continue() {
     const input = globalThis.__INPUT;
     const sim = globalThis.__SIM;
@@ -331,7 +324,6 @@ export class EndgameSky {
   }
 
   _syncEnding(distance) {
-    this._bindRuntime();
     const sim = globalThis.__SIM;
     if (!sim) return;
 
@@ -425,11 +417,13 @@ export class EndgameSky {
     this.scene.fog.near = lerp(fogNear, 14, whiteout);
     this.scene.fog.far = lerp(fogFar, 82, whiteout);
 
-    const nightIn = smooth(16500, 25500, distance);
-    const nightOut = 1 - smooth(45500, 51000, distance);
+    // Night falls through the deep stretch and breaks AT the finish: dawn
+    // arrives over the last 2 km and the morning is the reward for crossing.
+    const nightIn = smooth(16500, 24000, distance);
+    const nightOut = 1 - smooth(27800, 30600, distance);
     const night = clamp(nightIn * nightOut);
-    const dawn = smooth(45000, 51500, distance);
-    const morning = smooth(50000, 56000, distance);
+    const dawn = smooth(27800, 30400, distance);
+    const morning = smooth(30000, 32000, distance);
     const sunset = (1 - smooth(14800, 19000, distance)) * smooth(13200, 14200, distance);
 
     this.key.intensity = lerp(1.02, 0.56, night) + dawn * 0.58;
@@ -451,21 +445,22 @@ export class EndgameSky {
     if (dawn > sunAlpha) sunAlpha = dawn;
     this.sun.material.opacity = clamp(sunAlpha * (1 - whiteout * 0.5));
     if (dawn > 0.02) {
-      this.sun.position.set(68, lerp(-7, 34, smooth(45000, 56000, distance)), -148);
+      this.sun.position.set(68, lerp(-7, 34, smooth(27800, 32000, distance)), -148);
     } else {
       this.sun.position.set(-72, lerp(24, -7, smooth(13200, 19000, distance)), -150);
     }
 
-    const warm = clamp(sunset * 0.42 + dawn * 0.74);
+    // 50K = diamond-dust/glory; 75K = halo; 100K = crown/sundogs.
+    const prestige = overrunPrestige(distance);
+    const warm = clamp(sunset * 0.42 + dawn * 0.74 + prestige.glory * 0.08);
     this.horizon.style.opacity = warm.toFixed(3);
     this.weather.style.opacity = (whiteout * 0.44).toFixed(3);
 
-    const prestige = overrunPrestige(distance);
     this.halo.position.copy(this.sun.position);
     this.halo.material.opacity = prestige.halo * 0.48;
     this.halo.rotation.z = distance * 0.00003;
 
-    this.dust.material.opacity = clamp(prestige.halo * 0.38 + prestige.crown * 0.28);
+    this.dust.material.opacity = clamp(prestige.glory * 0.24 + prestige.halo * 0.32 + prestige.crown * 0.24);
     this.dust.rotation.y = distance * 0.00017;
     this.dust.rotation.z = Math.sin(distance * 0.0004) * 0.04;
 
@@ -476,14 +471,16 @@ export class EndgameSky {
     this.sundogR.position.set(this.sun.position.x + 17, this.sun.position.y, this.sun.position.z + 1);
 
     globalThis.__DASH_ENDGAME = {
-      version: '9.7',
+      version: '1.0-rc',
       escaped: !!globalThis.__SIM?.escaped,
       overrun: this.overrun,
       choiceVisible: this.choiceVisible,
       phase: distance >= ENDGAME.CROWN_DISTANCE ? 'crown'
         : distance >= ENDGAME.HALO_DISTANCE ? 'halo'
+        : distance >= ENDGAME.GLORY_DISTANCE ? 'glory'
         : distance >= ENDGAME.ESCAPE_DISTANCE ? 'dawn'
         : distance >= ENDGAME.FALSE_DAWN ? 'false-dawn'
+        : distance >= ENDGAME.HIGH_NIGHT ? 'high-night'
         : 'deep-mountain',
       whiteout: +whiteout.toFixed(3),
     };

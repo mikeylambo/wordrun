@@ -154,7 +154,9 @@ export class UI {
     this.titleHint.textContent = '';
   }
 
-  setSeed(seedString, best, runs) {
+  setSeed(seedString, best, runs, allTimeBest = this._allTimeBest || 0) {
+    this._seedArgs = [seedString, best, runs];
+    this._allTimeBest = allTimeBest;
     // A challenge link re-titles the line: the track is someone's dare,
     // not today's shared draft (functional label, not a sixth name).
     // Two tiny lines, not one long one: WHAT this run is, then the numbers.
@@ -169,14 +171,25 @@ export class UI {
     // road. One line does all of it.
     this.titleHint.textContent = '';
     const dare = this._challenge?.goal > 0;
+    // Otherwise the line is the all-time number — a SCORE, so no metres
+    // suffix — distinct from the HUD's BEST TODAY. This file is its only
+    // writer: v1-finalize used to re-write it after every PB from a runtime
+    // patch on Storage.setBestFor, and this method wiped it again on every
+    // mode-chip change, so it came and went depending on what you last tapped.
     this.seedLine.textContent = this._challenge
       ? (dare
         ? `BEAT ${this._challenge.goal.toLocaleString('en-US')} · THIS ROUTE`
         : seedString)
-      : '';
+      : (allTimeBest > 0 ? `BEST EVER ${Math.floor(allTimeBest).toLocaleString('en-US')}` : '');
     this.seedLine.classList.toggle('dare', !!dare);
     this.deathSeed.textContent = '';
     this.bestVal.textContent = best > 0 ? Math.floor(best).toLocaleString('en-US') : '—';
+  }
+
+  /** A new all-time best landed: re-say the title line with it. */
+  setAllTimeBest(score) {
+    if (this._seedArgs) this.setSeed(...this._seedArgs, score);
+    else this._allTimeBest = score;
   }
 
   /** The approved name for the day's course. It labels the MODE (the chip
@@ -211,10 +224,15 @@ export class UI {
    * is not owed a repeat, so it rises when you learn and falls back when you
    * start missing something again. Silent until there is something to say.
    */
-  setMastery(count = 0) {
+  setMastery(count = 0, rematch = null) {
     if (!this.titleMastery) return;
-    this.titleMastery.textContent = count > 0
-      ? `${count.toLocaleString('en-US')} WORDS LEARNED` : '';
+    // The other half of the same story: the one word still beating them,
+    // spelled right. ENDLESS's lane already brings it back on schedule; this
+    // says so before the run, so meeting it is a rematch, not an ambush.
+    const parts = [];
+    if (count > 0) parts.push(`${count.toLocaleString('en-US')} WORDS LEARNED`);
+    if (rematch?.id) parts.push(`REMATCH: ${rematch.id.toUpperCase()}`);
+    this.titleMastery.textContent = parts.join(' · ');
   }
 
   /**

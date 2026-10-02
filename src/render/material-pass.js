@@ -1,7 +1,4 @@
 import * as THREE from 'three';
-import '../rc9-audio.js';
-import '../rc7-feel.js';
-import '../rc81-ui.js';
 import { SURFACES, applySurface } from './surface-textures.js';
 import TUNING from '../TUNING.js';
 
@@ -152,53 +149,6 @@ function applyBeastMaterials(actor) {
   });
 }
 
-function makeContact(scene, radius, opacity) {
-  const mat = new THREE.MeshBasicMaterial({
-    color: 0x0b1014, transparent: true, opacity, depthWrite: false,
-    blending: THREE.NormalBlending,
-  });
-  const mesh = new THREE.Mesh(new THREE.CircleGeometry(radius, 20), mat);
-  mesh.rotation.x = -Math.PI * 0.5;
-  mesh.renderOrder = 2;
-  mesh.frustumCulled = false;
-  scene.add(mesh);
-  return mesh;
-}
-
-function attachPlayerContact(scene, playerActor) {
-  if (!playerActor || playerActor.__rc8ContactPatched) return null;
-  playerActor.__rc8ContactPatched = true;
-  const shadow = makeContact(scene, 0.82, 0.12);
-  shadow.scale.set(1.15, 0.62, 1);
-  const base = playerActor.update.bind(playerActor);
-  playerActor.update = function updateRC8Contact(p, slope, dt, beastGap) {
-    base(p, slope, dt, beastGap);
-    const ground = p.terrain.heightAt(p.x, p.d);
-    const air = Math.max(0, p.y - ground);
-    shadow.position.set(p.x, ground + 0.035, -p.d);
-    shadow.material.opacity = 0.12 * Math.max(0.18, 1 - air / 8);
-    const s = 1 + Math.min(0.55, air * 0.045);
-    shadow.scale.set(1.15 * s, 0.62 * s, 1);
-    shadow.visible = !p.dead || air < 2;
-  };
-  return shadow;
-}
-
-function attachBeastContact(scene, beastActor) {
-  if (!beastActor || beastActor.__rc8ContactPatched) return null;
-  beastActor.__rc8ContactPatched = true;
-  const shadow = makeContact(scene, 2.1, 0.16);
-  shadow.scale.set(1.2, 0.72, 1);
-  const base = beastActor.update.bind(beastActor);
-  beastActor.update = function updateRC8Contact(dt, gap, x, groundY, playerD, killT, ...rest) {
-    base(dt, gap, x, groundY, playerD, killT, ...rest);
-    shadow.position.set(x, groundY + 0.04, -(playerD - gap));
-    shadow.material.opacity = 0.11 + Math.max(0, 1 - gap / 45) * 0.07;
-    shadow.visible = beastActor.root.visible;
-  };
-  return shadow;
-}
-
 export function applyMaterialPass(scene, terrainMesh, actors = {}) {
   const terrain = terrainMaterial();
   terrainMesh.material?.dispose?.();
@@ -225,7 +175,6 @@ export function applyMaterialPass(scene, terrainMesh, actors = {}) {
   });
 
   applyPlayerMaterials(actors.playerActor);
-  const playerContact = attachPlayerContact(scene, actors.playerActor);
 
   const rim = new THREE.DirectionalLight(0xbfe9ff, 0.34);
   rim.position.set(-35, 28, 25);
@@ -234,13 +183,13 @@ export function applyMaterialPass(scene, terrainMesh, actors = {}) {
   fill.position.set(24, 14, -18);
   scene.add(fill);
 
-  const contact = { player: playerContact, beast: null };
+  // The contact shadows are the actors' own now (render/contact-shadow.js);
+  // this pass used to bolt them on by wrapping each actor's update().
   requestAnimationFrame(() => requestAnimationFrame(() => {
     applyBeastMaterials(actors.beastActor);
-    contact.beast = attachBeastContact(scene, actors.beastActor);
   }));
 
-  return { terrain, rim, fill, contact, surfaceLibrary: SURFACES };
+  return { terrain, rim, fill, surfaceLibrary: SURFACES };
 }
 
 export default applyMaterialPass;

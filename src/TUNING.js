@@ -1053,7 +1053,10 @@ export const TUNING = {
   AUDIO: {
     MASTER: 0.55,
     CARVE_MAX: 0.22,
-    ROAR_MAX: 0.30,
+    // Playtest x3 ("the Redline sound is still loud"): 0.20, owned here. It
+    // used to be overwritten to this value at import time by v1-final-mix.js,
+    // which is why turning it down anywhere else never took.
+    ROAR_MAX: 0.20,
     FOOTFALL_MAX: 0.55,
     SCREAM_MAX: 0.50,
     FOOTFALL_HZ_NEAR: 2.6,

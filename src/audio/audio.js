@@ -1,22 +1,31 @@
 /**
  * DICTION DASH audio identity (RC9 graph, Phase 4 timbres).
- * One shared Web Audio graph drives running, stream ambience, bells, GO,
- * Hunts and both threat presentations. The creature growls are gone: every
- * threat cue is now signal-noise — static beds, interference whine, glitch
- * ticks — driven by the SAME band curves and gap value the beast cues used.
+ * One Web Audio graph drives the reads, the bells, the dash, the page bed and
+ * the Redline. The creature growls are gone: every threat cue is signal-noise
+ * — interference whine, glitch ticks — driven by the SAME band curves and gap
+ * value the beast cues used.
+ *
+ * This file owns the whole continuous mix. Five runtime layers used to wrap
+ * update()/bell()/_tone()/_burst()/_thump() in an order set by an import list
+ * (rc9-feedback, v1-final-mix, v1-mixer, v1-approved-mix, v1-finalize) plus an
+ * instance patch on a polling boot (rc9-assets); their behaviour is inline
+ * here now, and the levels are audio/live-mix.js. The Hunt machinery (drone,
+ * pulse, start/end cues) went with them: the pursuer's mode has been 'run'
+ * since Phase 7, so none of it could sound.
  */
 
 import TUNING from '../TUNING.js';
 import { corruptionIntensity } from '../render/corruption-curve.js';
 import { chimeStep, ladderHz, STRING_RUNGS } from './ladder.js';
+import { categoryGain, approved, trim } from './live-mix.js';
+import { ApprovedAudioAssets } from './approved-assets.js';
+import { PageBed } from './page-bed.js';
 
 const A = TUNING.AUDIO;
 const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 
 const RC9 = {
-  HUNT_DRONE: 0.18,
-  HUNT_BPM: [104, 126],
   // Far-range corruption bed: audible the moment the gap starts closing,
   // long before the close-range bands wake — the ears' version of the veil.
   STATIC_FAR: 0.085,
@@ -43,10 +52,18 @@ export class Audio {
     this.musicMuted = false;   // RC-5: the score
     this.sfxMuted = false;     // RC-5: everything else
     this._footT = 0;
-    this._huntBeatT = 0;
-    this._huntBeat = 0;
-    this._huntMix = 0;
-    this._lastHunt = false;
+    // The mix category a procedural voice is being struck in ('bells' or
+    // 'heartbeat'), so _tone/_burst can apply that fader — see live-mix.js.
+    this._category = null;
+    // Priority ducking: a bell briefly pulls the beds down so it reads
+    // without the whole mix getting louder. Depth decays inside update().
+    this._bedDuck = 0;
+    this._bedDuckHold = 0;
+    // The approved recordings (the Redline's step) and the procedural page
+    // bed. Both are built lazily once the graph exists.
+    this.approvedAssets = null;
+    this.pageBed = null;
+    this._lastStepSampleAt = -Infinity;
     globalThis.__AUDIO = this;
   }
 
@@ -60,6 +77,15 @@ export class Audio {
   start() {
     this.prewarm();
     if (this.ready && this.ctx.state === 'suspended') this.ctx.resume();
+    this._ensureAssets();
+  }
+
+  /** Load the approved recordings once the graph exists. A missing manifest
+   *  leaves the procedural mix intact (ApprovedAudioAssets swallows it). */
+  _ensureAssets() {
+    if (this.approvedAssets || !this.ready || !this.ctx || !this.bus) return;
+    this.approvedAssets = new ApprovedAudioAssets(this.ctx, this.bus);
+    this.approvedAssets.load();
   }
 
   /** Build the whole graph, suspended. Safe to call at page load. */
@@ -158,19 +184,6 @@ export class Audio {
       o.connect(g); g.connect(filt); filt.connect(this.screamGain);
       o.start();
       this.screamOscs.push(o);
-    }
-
-    this.huntDrone = ctx.createGain();
-    this.huntDrone.gain.value = RC9.HUNT_DRONE;
-    this.huntDrone.connect(this.bus.score);
-    for (const [f, type, gain] of [[55, 'sine', 0.11], [82.4, 'triangle', 0.045], [110, 'sine', 0.025]]) {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = type;
-      o.frequency.value = f;
-      g.gain.value = gain;
-      o.connect(g); g.connect(this.huntDrone);
-      o.start();
     }
 
     // Phase J: the four-stem engine (Phase 12) is retired. The Phase 28 full
@@ -279,17 +292,44 @@ export class Audio {
     // Phase E: during the last stand the mix stands down to almost nothing.
     // Silence is the tell — no label announces the moment, so the sudden
     // absence of everything has to carry it.
+    const live = run && !kill;
+    const roar = clamp(bands?.roar || 0);
+
+    // Priority ducking: a bell asks for a short dip in the beds (bell()),
+    // held briefly, then released on an exponential. It lets the bell read
+    // without making the whole mix louder.
+    if (this._bedDuckHold > 0) {
+      this._bedDuckHold = Math.max(0, this._bedDuckHold - dt);
+    } else if (this._bedDuck > 0) {
+      this._bedDuck *= Math.exp(-dt * 8.5);
+      if (this._bedDuck < 0.002) this._bedDuck = 0;
+    }
+    const duck = clamp(Math.max(this._bedDuck, roar * 0.12), 0, 0.22);
+
     const stand = (this.standActive ? 0.06 : 1) * (this.sfxMuted ? 0 : 1);
-    this._set(this.bus.ambience.gain, (run ? (kill ? 0.20 : 0.92) : 0) * stand, 0.11);
-    this._set(this.bus.surface.gain, (run ? (kill ? 0.03 : 0.95) : 0) * stand, 0.08);
-    // RC-4: the Redline family (roar, scream, crackle, footfalls, the
-    // arrival strikes) sits well under the mix — see v1-final-mix.js,
-    // which owns the live level and must agree with this base.
-    this._set(this.bus.threat.gain, this.sfxMuted ? 0 : (run ? (kill ? 0.20 : 0.55) : 0), 0.08);
+    // The duck SCALES the bed; it never replaces it. (As a separate layer it
+    // wrote 0.92 over whatever the base had decided — which un-muted the
+    // page bed for SFX OFF, and lifted it through the last stand's silence.)
+    const ambience = (run ? (kill ? 0.20 : 0.92) : 0) * stand;
+    const surface = (run ? (kill ? 0.03 : 0.95) : 0) * stand;
+    if (live && duck > 0.001) {
+      this._set(this.bus.ambience.gain, ambience * (1 - duck), 0.035);
+      this._set(this.bus.surface.gain, surface * (1 - duck), 0.035);
+    } else {
+      this._set(this.bus.ambience.gain, ambience, 0.11);
+      this._set(this.bus.surface.gain, surface, 0.08);
+    }
+    // RC-4 / playtest x3 ("the Redline is still loud"): the Redline family
+    // (roar, scream, crackle, footfalls, the arrival strikes) sits well under
+    // the mix. In play the bus TRACKS proximity — quiet at distance, still
+    // rising as the pursuit closes so the approach keeps its meaning.
+    if (live) this._set(this.bus.threat.gain, this.sfxMuted ? 0 : 0.55 + roar * 0.05, 0.045);
+    else this._set(this.bus.threat.gain, this.sfxMuted ? 0 : (run ? (kill ? 0.20 : 0.55) : 0), 0.08);
 
     const beastPan = this._panFor(sim?.beast?.x ?? p.x);
     if (this.roar.pan) this._set(this.roar.pan.pan, beastPan, 0.05);
-    this._set(this.roar.gain.gain, A.ROAR_MAX * (bands?.roar || 0));
+    this._set(this.roar.gain.gain, A.ROAR_MAX * roar * approved('beast') * trim('beast'), 0.045);
+    if (!this.muted) this._set(this.master.gain, A.MASTER * trim('master'), 0.05);
     this._set(this.screamGain.gain, A.SCREAM_MAX * Math.pow(bands?.scream || 0, 2));
 
     // Far corruption, same intensity curve as the veil and the field — but
@@ -317,29 +357,20 @@ export class Audio {
       }
     } else this._footT = 0;
 
-    const hunting = !!(sim && sim.beast?.mode === 'hunt' && phase === 'running');
-    const target = hunting ? 1 : 0;
-    this._huntMix += (target - this._huntMix) * (1 - Math.exp(-dt * (hunting ? 4.8 : 2.8)));
-    this._set(this.bus.score.gain, this.sfxMuted ? 0 : (kill ? 0.02 : this._huntMix), 0.06);
+    // The score bus carries the arrival thumps (finishArrival, dashClimax).
+    this._set(this.bus.score.gain, this.sfxMuted ? 0 : (kill ? 0.02 : 0), 0.06);
 
-    if (hunting && run && !kill) {
-      const depth = clamp(p.d / 18000);
-      const urgency = clamp(bands?.footfall || 0);
-      const bpm = lerp(RC9.HUNT_BPM[0], RC9.HUNT_BPM[1], depth * 0.72 + urgency * 0.28);
-      this._huntBeatT -= dt;
-      if (this._huntBeatT <= 0) {
-        this._huntBeatT += 60 / bpm;
-        this._huntPulse((this._huntBeat++ % 4) === 0, beastPan);
-      }
-    } else if (!hunting && this._lastHunt) {
-      this._huntBeatT = 0;
-      this._huntBeat = 0;
-    }
-    this._lastHunt = hunting;
+    // The page bed: procedural grain, page turns and ink blooms — the run's
+    // atmosphere, built from the noise buffers (audio/page-bed.js).
+    this._ensureAssets();
+    if (!this.pageBed && this.noise) this.pageBed = new PageBed(this.ctx, this.bus.ambience, this.noise);
+    const speedN = clamp((p.speed - 10) / (TUNING.RUN.CEILING - 10));
+    this.pageBed.update(dt, { live: !!running && phase === 'running', speedN });
   }
 
   _tone({ type = 'sine', f0, f1 = f0, dur = 0.2, vol = 0.1, pan = 0, bus = this.bus.ui, delay = 0, filter = null }) {
     if (!this.ready || this.muted || this.sfxMuted) return;
+    vol *= categoryGain(this._category);
     const t = this.ctx.currentTime + delay;
     const o = this.ctx.createOscillator();
     o.type = type;
@@ -366,6 +397,7 @@ export class Audio {
 
   _burst(dur, vol, freq, type = 'bandpass', pan = 0, bus = this.bus.surface, q = 1.1) {
     if (!this.ready || this.muted || this.sfxMuted) return;
+    vol *= categoryGain(this._category);
     const t = this.ctx.currentTime;
     const s = this.ctx.createBufferSource();
     s.buffer = type === 'highpass' ? this.white : this.noise;
@@ -383,6 +415,19 @@ export class Audio {
   }
 
   _thump(vol, pan = 0, bus = this.bus.threat) {
+    const threat = bus === this.bus.threat;
+    // The recorded step is an ACCENT, not the cadence: at most one per 0.68 s
+    // so a 1.2 s sample never stacks on every pursuit beat. The procedural
+    // tick below stays the timing signal on every step.
+    const assets = this.approvedAssets;
+    if (threat && assets?.has('beast_main_step') && this.ctx.currentTime - this._lastStepSampleAt >= 0.68) {
+      this._lastStepSampleAt = this.ctx.currentTime;
+      assets.oneShot('beast_main_step', {
+        bus: 'threat',
+        gain: 0.28 * clamp(vol / Math.max(0.01, A.FOOTFALL_MAX)),
+        pan,
+      });
+    }
     // The approach rhythm survives; the paw on snow becomes a data tick —
     // a hard square blip with a white-noise transient.
     const t = this.ctx.currentTime;
@@ -400,13 +445,13 @@ export class Audio {
     else g.connect(bus);
     o.start(t); o.stop(t + 0.17);
     this._burst(0.07, vol * 0.35, 5200, 'highpass', pan, bus, 0.7);
+    // A short low-mid body under the Redline's step, so it survives small
+    // speakers without the step itself being turned up.
+    if (threat && this.ready && !this.muted) {
+      this._tone({ type: 'triangle', f0: 132, f1: 64, dur: 0.095, vol: Math.min(0.058, vol * 0.115), pan, bus });
+      this._burst(0.065, Math.min(0.032, vol * 0.058), 1180, 'bandpass', pan, bus, 0.85);
+    }
   }
-
-  _huntPulse(accent, pan = 0) {
-    this._tone({ type: 'sine', f0: accent ? 66 : 78, f1: 38, dur: 0.22, vol: accent ? 0.17 : 0.09, pan: pan * 0.18, bus: this.bus.score });
-    if (accent) this._burst(0.12, 0.055, 2400, 'highpass', 0, this.bus.score, 0.7);
-  }
-
 
   // Phase 31: takeoff, the three landings and the stunt shove are gone. They
   // are DESCENT's jump-and-land vocabulary, and no source in this game emits
@@ -516,6 +561,20 @@ export class Audio {
    * the bell's; only the pitches now belong to the melody the chime started.
    */
   bell(step = 0) {
+    const prev = this._category;
+    this._category = 'bells';
+    try { this._bellVoice(step); }
+    finally { this._category = prev; }
+    // The bell's top: a fifth above the struck note and a dry air tick. It
+    // sits OUTSIDE the bell fader — it was tuned by ear at release level.
+    if (this.ready && !this.muted) {
+      const f = ladderHz(step);
+      this._tone({ type: 'sine', f0: f * 1.5, f1: f * 1.505, dur: 0.15, vol: 0.028, bus: this.bus.ui });
+      this._burst(0.055, 0.020, 4200, 'highpass', 0, this.bus.ui, 0.7);
+    }
+  }
+
+  _bellVoice(step) {
     const f = ladderHz(step);
     this._tone({ type: 'sine', f0: f, f1: f * 1.004, dur: 0.34, vol: 0.075, bus: this.bus.ui });
     this._tone({ type: 'triangle', f0: f * 2.01, f1: f * 2.02, dur: 0.18, vol: 0.025, bus: this.bus.ui, delay: 0.006 });
@@ -527,6 +586,21 @@ export class Audio {
     // the one table above is the only one.
     this._tone({ type: 'sine', f0: f * 2.02, f1: f * 2.015, dur: 0.21, vol: 0.038, bus: this.bus.ui });
     this._tone({ type: 'triangle', f0: f * 3.01, f1: f * 2.98, dur: 0.105, vol: 0.014, bus: this.bus.ui, delay: 0.006 });
+    // Presence on phone speakers: the struck note reinforced with a short
+    // upper partial, then a quiet sustain under it. These four voices used to
+    // live in three runtime patches of this method, each keeping a private
+    // copy of the pre-RC10.9 interval table — so they sang a different
+    // pentatonic from the bell they were reinforcing. They read the ladder now.
+    if (this.ready && !this.muted) {
+      this._tone({ type: 'sine', f0: f, f1: f * 1.002, dur: 0.22, vol: 0.030, bus: this.bus.ui });
+      this._tone({ type: 'triangle', f0: f * 3.01, f1: f * 3.02, dur: 0.11, vol: 0.016, bus: this.bus.ui, delay: 0.004 });
+    }
+    this._bedDuck = Math.max(this._bedDuck, 0.10);
+    this._bedDuckHold = Math.max(this._bedDuckHold, 0.28);
+    if (this.ready && !this.muted) {
+      this._tone({ type: 'sine', f0: f, f1: f * 1.003, dur: 0.30, vol: 0.011, bus: this.bus.ui });
+      this._tone({ type: 'triangle', f0: f * 2.02, f1: f * 2.01, dur: 0.15, vol: 0.007, bus: this.bus.ui, delay: 0.004 });
+    }
   }
 
   heartLost() {
@@ -612,22 +686,6 @@ export class Audio {
       vol: 0.1 + 0.06 * e, bus: this.bus.cinematic });
     this._thump(0.2 + 0.18 * e, 0, this.bus.score);
   }
-
-  huntStart(side = 0, kind = 'rear') {
-    const pan = clamp(side * 0.75, -1, 1);
-    this._tone({ type: 'square', f0: side < 0 ? 340 : side > 0 ? 390 : 365, f1: 96, dur: 0.42, vol: 0.075, pan, bus: this.bus.threat, filter: { type: 'bandpass', freq: 1100, q: 3 } });
-    this._burst(0.34, 0.12, 4200, 'highpass', pan, this.bus.threat, 0.7);
-    this._thump(0.16, pan * 0.35, this.bus.threat);
-    if (kind === 'leap') this._tone({ type: 'triangle', f0: 620, f1: 1450, dur: 0.30, vol: 0.05, pan, bus: this.bus.threat, delay: 0.08 });
-    this._huntBeatT = 0;
-  }
-
-  huntEnd() {
-    this._tone({ type: 'triangle', f0: 330, f1: 495, dur: 0.28, vol: 0.035, bus: this.bus.score });
-    this._tone({ f0: 165, f1: 110, dur: 0.42, vol: 0.025, bus: this.bus.score, delay: 0.03 });
-  }
-
-
 
   /**
    * The DASH (Phase 16) — its own sound, not the shove it used to borrow.

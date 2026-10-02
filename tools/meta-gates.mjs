@@ -27,6 +27,14 @@ import { DEFINITIONS, defineWord } from '../src/words/definitions.js';
 import { TIERS } from '../src/words/wordlist.js';
 import { isBlocked } from '../src/words/family-blocklist.js';
 import TUNING from '../src/TUNING.js';
+
+// Every .js file under src/, repo-relative — for checks that hold a rule
+// across the whole game rather than against a list of files that can rot.
+function srcFilesAll(dir = 'src') {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? srcFilesAll(`${dir}/${e.name}`)
+      : e.name.endsWith('.js') ? [`${dir}/${e.name}`] : []);
+}
 import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
 import { makeGate } from '../src/sim/word-gates.js';
 
@@ -479,7 +487,7 @@ head('BOARDS — decided, gated, and reaching nothing');
       'src/audio/high-layer.js',       // the optional layer beside it
       'src/audio/approved-assets.js',  // the sound manifest and its files
       'src/main.js',                   // the share image, as a blob it made
-      'src/v1-share.js',               // likewise
+      'src/ui/share.js',               // likewise
     ];
     const fetchers = srcFiles.filter((f) => /\bfetch\(/.test(code(f)));
     check('and it is the only file that reaches anything but a shipped asset',
@@ -671,6 +679,27 @@ head('MASTERY — the ledger\'s work, finally visible and honestly counted');
 
   const mem = () => { const m = {}; return { get: (k) => m[k], set: (k, v) => { m[k] = v; } }; };
 
+  // The rematch the title offers: a pattern, never an accident, and gone the
+  // moment the word is beaten.
+  {
+    const nem = new NemesisLedger(mem());
+    nem.record('receive', false, 1);
+    check('one miss is an accident — no rematch is offered', nem.toughest() === null);
+    nem.record('receive', false, 9);
+    nem.record('separate', false, 2);
+    nem.record('separate', false, 5);
+    nem.record('separate', false, 7);
+    check('the rematch is the most-missed live word',
+      nem.toughest()?.id === 'separate' && nem.toughest()?.misses === 3, JSON.stringify(nem.toughest()));
+    for (let i = 0; i < 3; i++) nem.record('separate', true, 20 + i * 30);
+    check('and a beaten word stops being anybody\'s rematch',
+      nem.toughest()?.id === 'receive', JSON.stringify(nem.toughest()));
+    const uiSrc = fs.readFileSync('src/ui/ui.js', 'utf8');
+    check('the title says it beside the learned count, spelled right',
+      uiSrc.includes('`REMATCH: ${rematch.id.toUpperCase()}`') &&
+      fs.readFileSync('src/main.js', 'utf8').includes('ui.setMastery(mastery.count, nemesis.toughest());'));
+  }
+
   // The definition, driven end to end against the REAL nemesis ledger: a word
   // counts once it is read right and not owed a repeat; missing it takes it
   // back; beating it through the ledger's three clean reads returns it.
@@ -752,9 +781,10 @@ head('MASTERY — the ledger\'s work, finally visible and honestly counted');
       main.indexOf('const outcome = nemesis.record') < main.indexOf('mastery.mark(e.answer)'),
       'a word retiring on THIS read stops being owed on it, and is learned on it too');
     check('the title carries the number, and says nothing until there is something to say',
-      ui.includes('setMastery(count = 0)') && ui.includes('WORDS LEARNED') &&
+      ui.includes('setMastery(count = 0, rematch = null)') && ui.includes('WORDS LEARNED') &&
+      ui.includes("this.titleMastery.textContent = parts.join(' · ');") &&
       html.includes('id="titleMastery"') && html.includes('#titleMastery:empty{display:none}') &&
-      main.includes('ui.setMastery(mastery.count);'),
+      (main.match(/ui\.setMastery\(mastery\.count, nemesis\.toughest\(\)\);/g) || []).length === 2,
       'silent on a fresh profile, refreshed on the way back from a run');
     check('PROFILE carries what the number is made of, tier by tier',
       curve.includes('WORDS LEARNED') && curve.includes('mastery.tiers.map') &&
@@ -810,11 +840,88 @@ head('META — wiring and independence');
     fs.readFileSync('src/ui/curve-screen.js', 'utf8').includes('goalChip'));
 
   // The streak used to be appended to the seed line by the finalize layer.
-  // It has its own line now, so what matters is that the finalize layer no
-  // longer overwrites the line that carries it.
-  const finalize = fs.readFileSync('src/v1-finalize.js', 'utf8');
+  // It has its own line now, and the finalize layer is gone: nothing in src/
+  // but ui.js writes a title line.
+  const writers = srcFilesAll().filter((f) => f !== 'src/ui/ui.js' &&
+    /titleStreak|seedLine[^\n]*textContent\s*=/.test(fs.readFileSync(f, 'utf8')));
   check('the streak is surfaced on the title and nothing overwrites it',
-    ui.includes('DAY ${card.streak}') && !finalize.includes('titleStreak'));
+    ui.includes('DAY ${card.streak}') && writers.length === 0,
+    writers.join(', ') || 'ui.js alone writes the title lines');
+}
+
+// ── The DAILY RUN as text ────────────────────────────────────────────────
+head('SHARE GRID — the daily result reads in any chat, and spoils nothing');
+{
+  const { shareGrid, GRID } = await import('../src/meta/share-grid.js');
+  const clean = shareGrid({ trail: Array(100).fill(1), gates: 100, score: 5120, finished: true, seedString: '2026-10-02' });
+  check('a clean finished route is ten green squares under the day\'s name',
+    clean === `DICTION DASH · DAILY RUN 2026-10-02\n${GRID.CLEAN.repeat(10)}\nFINISH · 100/100 RIGHT · 5,120`, clean);
+
+  const trail = Array(37).fill(1);
+  trail[3] = 0; trail[21] = 0; trail[25] = 0;
+  const over = shareGrid({ trail, gates: 100, score: 1830, finished: false, seedString: '2026-10-02' }).split('\n');
+  check('a run that ended early marks where it went wrong and where it stopped',
+    over[1] === GRID.ONE + GRID.CLEAN + GRID.MORE + GRID.CLEAN + GRID.UNREACHED.repeat(6) &&
+    over[2] === 'RUN OVER AT 37/100 · 34/100 RIGHT · 1,830', over.join(' | '));
+  check('ENDLESS has no route to grid, so it shares as before', shareGrid({ trail, gates: 0 }) === '');
+
+  // Indices are the route's own: drive a real DAILY and record what main.js records.
+  const daily = new Sim(777);
+  daily.start(777, null, { mode: 'standard', wordSalt: 0 });
+  const seen = [];
+  let guard = 0;
+  while (daily.phase === PHASE.RUNNING && guard++ < 900000 && !daily.routeFinished) {
+    const wg = daily.wordGates, g = wg.current();
+    const armed = wg.armed(daily.player.d) && !g.confirmed && !g.rejected;
+    daily.step({ ...emptyInput(), confirm: armed && g.real, reject: armed && !g.real });
+    for (const e of daily.drainEvents() || []) {
+      if (e.t === 'word_correct') seen[e.index] = 1;
+      if (e.t === 'word_wrong') seen[e.index] = 0;
+    }
+  }
+  const g100 = TUNING.MODES.RULES.standard.GATES;
+  check('the trail main.js keeps is indexed 0…99 on the route — every gate once',
+    seen.length === g100 && seen.every((v) => v === 1),
+    `${seen.filter((v) => v !== undefined).length} gates recorded over a ${g100}-gate route`);
+
+  const shareSrc = fs.readFileSync('src/ui/share.js', 'utf8');
+  check('SHARE leads with the grid on a DAILY RUN, and the clipboard carries it too',
+    shareSrc.includes('const summary = deps.shareText()') && shareSrc.includes('`${summary}\\n${url}`') &&
+    fs.readFileSync('src/main.js', 'utf8').includes("lastRunGrid = runMode === 'standard' ? shareGrid({"));
+}
+
+// ── Fair fakes: the data, kept locally and exported by hand ─────────────
+head('FAKE TALLY — which fakes fool, which are wasted gates');
+{
+  const { FakeTally, FAKE_TALLY } = await import('../src/meta/fake-tally.js');
+  const { aggregateFakes, verdicts } = await import('./fake-report.mjs');
+  const store = (() => { const m = {}; return { get: (k) => m[k], set: (k, v) => { m[k] = v; } }; })();
+  const t = new FakeTally(store);
+  for (let i = 0; i < 5; i++) t.record({ family: 0, fake: 'recieve', answer: 'receive', tapped: i < 4 });
+  for (let i = 0; i < 6; i++) t.record({ family: 2, fake: 'begining', answer: 'beginning', tapped: false });
+  const snap = t.snapshot();
+  check('fakes are tallied by mutation family, named',
+    snap.families.transpose?.shown === 5 && snap.families.transpose?.tapped === 4 &&
+    snap.families.drop?.shown === 6 && snap.families.drop?.tapped === 0, JSON.stringify(snap.families));
+  check('the export carries both ends — what fools, and what never does — one line each',
+    snap.fooling[0] === 'recieve>receive:transpose:4/5' && snap.ignored[0] === 'begining>beginning:drop:0/6');
+  check('and the ledger survives a reload', new FakeTally(store).snapshot().families.transpose.tapped === 4);
+  for (let i = 0; i < FAKE_TALLY.CAP + 30; i++) t.record({ family: 1, fake: `zz${i}`, answer: 'z', tapped: false });
+  check('bounded: the per-fake table never outgrows its cap', Object.keys(t.words).length === FAKE_TALLY.CAP);
+
+  const exp = buildStatsExport({ stats: {}, tuning: TUNING, fakes: snap, at: 'x' });
+  const agg = aggregateFakes([exp, exp]);
+  const v = verdicts(agg);
+  check('report:fakes aggregates exports and names the unfair and the wasted',
+    agg.players === 2 && agg.families.transpose.shown === 10 &&
+    v.unfair[0]?.[0] === 'recieve' && v.wasted[0]?.[0] === 'begining',
+    `${v.unfair.length} unfair, ${v.wasted.length} wasted`);
+
+  const mainSrc = fs.readFileSync('src/main.js', 'utf8');
+  check('main tallies only fakes: passed or rejected is "not fooled", tapped is "fooled"',
+    mainSrc.includes("if (!e.real) fakeTally.record({ family: e.family, fake: e.word, answer: e.answer, tapped: false });") &&
+    mainSrc.includes("if (e.reason === 'picked_fake') fakeTally.record({ family: e.family, fake: e.word, answer: e.answer, tapped: true });") &&
+    mainSrc.includes('fakes: fakeTally.snapshot(),'));
 }
 
 // ── Phase 14: challenge links ────────────────────────────────────────────
@@ -857,11 +964,12 @@ head('CHALLENGE — the run as a URL, pure and validated');
     main.includes('metaDaily.recordRun(DAILY_SEED') &&
     !main.includes('metaDaily.recordRun(SEED'));
   // RC9.2: the link stopped being a button of its own and became half of
-  // SHARE, so main publishes the coordinates and v1-share.js performs the act.
+  // SHARE, so main supplies the coordinates and ui/share.js performs the act.
   check('the death card offers the link and the title shows the way home',
-    main.includes('globalThis.__DASH_CHALLENGE_LINK = () => buildChallengeLink(') &&
+    /function challengeLinkForLastRun\(\) \{\n  return buildChallengeLink\(/.test(main) &&
+    /installShareUi\(\{\s*challengeLink: \(\) => challengeLinkForLastRun\(\)/.test(main) &&
     main.includes('BACK TO DAILY RUN') &&
-    fs.readFileSync('src/v1-share.js', 'utf8').includes('__DASH_CHALLENGE_LINK?.()'));
+    fs.readFileSync('src/ui/share.js', 'utf8').includes('deps.challengeLink()'));
 
   // ── RC9.2: the loop, end to end ────────────────────────────────────────
   // The link carries the bar now, because two runs at different compression
@@ -956,14 +1064,14 @@ head('CHALLENGE — the run as a URL, pure and validated');
   // overwriting ui.setSeed's own line with copy that still said metres for a
   // figure that has been a score since Phase 25. That is the exact failure
   // mode CLAUDE.md's one-file rule exists to prevent, so it is gated.
-  const owners = ['src/v1-finalize.js', 'src/rc97-endgame.js', 'src/render/endgame-sky.js']
+  const owners = srcFilesAll().filter((f) => f !== 'src/ui/ui.js')
     .filter((f) => /titleHint[^\n]*textContent\s*=|textContent = globalThis\.__CHALLENGE/
       .test(fs.readFileSync(f, 'utf8')));
   check('the title caption is written in exactly one file',
     owners.length === 0 && /this\.titleHint\.textContent = '';/.test(uiSrc),
     owners.length ? `${owners.join(', ')} still write it` : 'ui/ui.js setSeed, and nothing else');
   check('and no file patches UI.prototype.setSeed at runtime to re-assert it',
-    !fs.readFileSync('src/rc97-endgame.js', 'utf8').includes('UI.prototype.setSeed ='),
+    srcFilesAll().every((f) => !fs.readFileSync(f, 'utf8').includes('UI.prototype.setSeed =')),
     'the patch existed only to overwrite the line it was fighting');
 
   // ── RC9.4: the DAILY explained, and a demo with something to say ───────

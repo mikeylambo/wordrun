@@ -70,33 +70,48 @@ for (const d of [10000, 30000, 50000, 75000, 100000]) {
 }
 
 // ── Source-level release assertions ───────────────────────────────────────
-const finalSource = fs.readFileSync(new URL('../src/v1-finalize.js', import.meta.url), 'utf8');
-const contactSource = fs.readFileSync(new URL('../src/v1-contact.js', import.meta.url), 'utf8');
-const chaseSource = fs.readFileSync(new URL('../src/v1-chase.js', import.meta.url), 'utf8');
-const escapeSource = fs.readFileSync(new URL('../src/rc97-endgame.js', import.meta.url), 'utf8');
-const mobileSource = fs.readFileSync(new URL('../src/v1-mobile-ui.js', import.meta.url), 'utf8');
-const beastSource = fs.readFileSync(new URL('../src/sim/beast.js', import.meta.url), 'utf8');
-const audioBridge = fs.readFileSync(new URL('../src/rc9-audio.js', import.meta.url), 'utf8');
-const onboarding = fs.readFileSync(new URL('../src/ui/onboarding.js', import.meta.url), 'utf8');
-const ui = fs.readFileSync(new URL('../src/ui/ui.js', import.meta.url), 'utf8');
+// The V1 release layers (v1-finalize, v1-contact, v1-chase, rc97-endgame,
+// v1-mobile-ui, rc9-audio …) were runtime patches; each one's behaviour now
+// lives in the file that owns it, and these checks read those files.
+const src = (p) => fs.readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
+const finishSource = src('src/sim/finish.js');
+const simSource = src('src/sim/sim.js');
+const mainSource = src('src/main.js');
+const skySource = src('src/render/endgame-sky.js');
+const mobileSource = src('src/ui/touch-controls.js');
+const beastSource = src('src/sim/beast.js');
+const onboarding = src('src/ui/onboarding.js');
+const ui = src('src/ui/ui.js');
 
-check(contactSource.includes('__v1AllPhysicalLocks') && contactSource.includes('collideV1AllPhysical'),
-  'contact-damage guard layer remains installed (inert on an empty track)');
-check(finalSource.includes('BEST EVER') && finalSource.includes('bestAllTime'),
-  'all-time record is surfaced unobtrusively');
-check(finalSource.includes("distanceLabel.textContent !== '30 KM'"), 'ending card reports 30 KM');
+{
+  // Nothing solid spawns on the flat track, anywhere — including the stretch
+  // where the retired endgame terrain hook used to plant a pine forest.
+  const t = new Terrain(12345);
+  let solids = 0;
+  for (let d = 0; d < 32000; d += TUNING.TERRAIN.CHUNK_LEN) {
+    solids += t.chunk(Math.floor(d / TUNING.TERRAIN.CHUNK_LEN)).colliders.length;
+  }
+  check(solids === 0 && t.collidersNear(26000).length === 0,
+    'the track spawns no solid anywhere through 32K — no contact system is needed, so none exists');
+}
+check(ui.includes('BEST EVER') && /Storage\.bestAllTime\(\)/.test(mainSource) &&
+  mainSource.includes('ui.setAllTimeBest(Storage.bestAllTime())'),
+  'all-time record is surfaced unobtrusively, by the title line\'s one writer');
+check(skySource.includes("querySelector('#rc97Dist')") && skySource.includes('run.distance ?? ENDGAME.ESCAPE_DISTANCE'),
+  'ending card reports the distance the run actually reached');
 
-check(chaseSource.includes('retired: true') && chaseSource.includes('pure-speed-differential'),
-  'the pursuit director is retired: the gap is a pure speed differential');
-check(!chaseSource.includes('pickStalkBand') && !beastSource.includes('mistakePressure +='),
-  'no cadence bands or pressure accumulation anywhere in the pursuit');
+check(!fs.existsSync(new URL('../src/v1-chase.js', import.meta.url)) &&
+  !beastSource.includes('pickStalkBand') && !beastSource.includes('mistakePressure +='),
+  'the pursuit director is retired: no cadence bands or pressure accumulation anywhere in the pursuit');
 
-check(escapeSource.includes('!sim.escapeConsumed') && escapeSource.includes('sim.postFinishActive = true') &&
-  escapeSource.includes("t: 'beast_return'"),
+check(finishSource.includes('!sim.escapeConsumed') && finishSource.includes('sim.postFinishActive = true') &&
+  finishSource.includes("t: 'beast_return'"),
   'finish is consumed once and the Redline can become lethal again afterward');
+check(/this\.endgame && stepFinish\(this, dt\)/.test(simSource) && /sim\.endgame = true;/.test(mainSource),
+  'the finish is a rule of the played game, switched on explicitly by main.js');
 // Phase 20 removed the Caret, so the finish only has to hold off one
 // pursuer — and nothing may reintroduce a second.
-check(!escapeSource.includes('SecondBeast') && !escapeSource.includes('secondBeast'),
+check(!finishSource.includes('SecondBeast') && !finishSource.includes('secondBeast'),
   'the finish sequence has one pursuer to withdraw, not two');
 
 // The finish had never been RUN by a gate, only read — and the second-pursuer
@@ -105,14 +120,9 @@ check(!escapeSource.includes('SecondBeast') && !escapeSource.includes('secondBea
 // drives a real Sim across the canonical finish; a dangling identifier throws
 // here instead of on a player's best run of the game.
 {
-  // Importing the patch is the point — it is what installs the escape branch
-  // onto Beast.prototype. Reading the file as text, which every other check
-  // here does, is exactly how the dangling reference survived.
-  await import('../src/rc97-endgame.js');
   const { Sim } = await import('../src/sim/sim.js');
-  const { ENDGAME } = await import('../src/design/endgame.js');
   const sim = new Sim(12345);
-  globalThis.__SIM = sim;
+  sim.endgame = true;
   sim.start();
   sim.player.d = ENDGAME.ESCAPE_DISTANCE - 5;
   const input = { carve: 0, flip: 0, jump: false, confirm: false, boostHeld: false, dragging: false };
@@ -120,27 +130,60 @@ check(!escapeSource.includes('SecondBeast') && !escapeSource.includes('secondBea
   try {
     for (let i = 0; i < 400 && !sim.escaped; i++) sim.step(input);
   } catch (e) { threw = e; }
-  globalThis.__SIM = undefined;
   check(!threw && sim.escaped === true &&
     sim.events.some((e) => e.t === 'escape') && sim.player.dead === false,
     'a real sim crosses the canonical finish and escapes without throwing'
     + (threw ? ` — ${threw.message}` : ` — escaped at ${Math.floor(sim.escapeD || 0)} m`));
+
+  // And KEEP GOING: the grace runs out and the Redline comes back, once.
+  sim.keepGoingChosen = true;
+  sim.postFinishGraceRemaining = 1;
+  for (let i = 0; i < 200 && !sim.postFinishActive; i++) sim.step(input);
+  check(sim.postFinishActive && !sim.escaped && sim.beastReturnSerial === 1 &&
+    sim.events.some((e) => e.t === 'beast_return'),
+    'KEEP GOING hands the run back to the pursuit after its grace');
+
+  // A headless sim (endgame off) never finishes — every golden depends on it.
+  const plain = new Sim(12345);
+  plain.start();
+  plain.player.d = ENDGAME.ESCAPE_DISTANCE + 5;
+  for (let i = 0; i < 60; i++) plain.step(input);
+  check(!plain.escaped, 'the headless sim is untouched: no finish unless the endgame is switched on');
 }
-check(!/textContent\s*=\s*['\"](?:OVER ?RUN|OVERRUN)/i.test(chaseSource + finalSource + escapeSource),
+// Death to control. The kill cam is skippable — after the share frame — and
+// skipping it changes nothing about the run that just ended.
+{
+  const { Sim, PHASE } = await import('../src/sim/sim.js');
+  const run = new Sim(4242);
+  run.start();
+  const input = { carve: 0, flip: 0, jump: false, confirm: false, boostHeld: false, dragging: false };
+  check(run.skipKillCam() === false && run.phase === PHASE.RUNNING,
+    'skipping the kill cam does nothing to a live run');
+  run.beast.gap = 0.1;
+  for (let i = 0; i < 600 && run.phase === PHASE.RUNNING; i++) run.step(input);
+  const scoreAtKill = run.score;
+  const killed = run.phase === PHASE.KILL;
+  check(killed && run.skipKillCam() === true && run.phase === PHASE.DEAD &&
+    run.score === scoreAtKill && run.deathCause === 'redlined',
+    'and in the kill cam it goes straight to the card with the run exactly as it ended');
+  check(/if \(sim\.phase === PHASE\.KILL\) \{\n    if \(shotTaken\) sim\.skipKillCam\(\);/.test(mainSource) &&
+    /onAdvance\(\{ deliberate: e\.code === 'KeyR' && !e\.repeat \}\)/.test(mainSource),
+    'a tap skips the cam only once the share frame is taken; R, the retry key, skips the settle guard');
+}
+check(!/textContent\s*=\s*['\"](?:OVER ?RUN|OVERRUN)/i.test(finishSource + skySource + ui),
   'no post-finish mode name is exposed through player-facing text');
 
 check(mobileSource.includes("go.id = 'v1MobileDash'") && mobileSource.includes("guide.id = 'v1TouchGuide'"),
   'mobile has a visible DASH affordance and a contextual gesture overlay');
+check(/import \{ updateMobileTouchUi \} from '\.\/ui\/touch-controls\.js';/.test(mainSource) &&
+  /audio\.update\(dt, p, bands, dreadLive\);\n  updateMobileTouchUi\(p\);/.test(mainSource),
+  'the touch controls are an import, updated from the frame loop — not from inside the audio engine');
 
-check(!finalSource.includes('requestAnimationFrame') && !contactSource.includes('requestAnimationFrame') &&
-  !chaseSource.includes('requestAnimationFrame') && !escapeSource.includes('requestAnimationFrame') &&
-  !mobileSource.includes('requestAnimationFrame'),
-  'V1 finalization/contact/chase/mobile layers add no RAF');
-check(audioBridge.includes("import './v1-finalize.js'") && audioBridge.includes("import './v1-contact.js'") &&
-  audioBridge.includes("import './v1-chase.js'"),
-  'V1 finalization, contact guard and retired-director stub load after RC9 feedback');
+check(!finishSource.includes('requestAnimationFrame') && !mobileSource.includes('requestAnimationFrame') &&
+  !src('src/ui/haptics.js').includes('requestAnimationFrame') && !src('src/ui/share.js').includes('requestAnimationFrame'),
+  'finish, touch controls, haptics and share add no RAF');
 check(!onboarding.includes('READ THE MOUNTAIN. COMMIT TO THE LINE.') && !onboarding.includes('class="lead"'),
-  'onboarding tagline is removed at source, not only hidden at runtime');
+  'onboarding tagline is removed at source — nothing hides it at runtime any more');
 // Phase 19 retired the tagline: a title screen that asks the player a
 // rhetorical question does not trust its own wordmark. RC-5 went further —
 // the day's name went with it, to the chip that selects the mode, because a

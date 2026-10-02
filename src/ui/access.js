@@ -129,15 +129,31 @@ export function setFullscreen(on) {
 /** The switch, without caring which way it is currently thrown. */
 export function toggleFullscreen() { setFullscreen(!document.fullscreenElement); }
 
+/** What the device already says about the player, before they say anything. */
+function osPrefers(query) {
+  try { return typeof matchMedia === 'function' && matchMedia(query).matches; }
+  catch { return false; }
+}
+
 export function initAccess() {
   const saved = Storage.accessPrefs();
-  ACCESS.reducedFlash = !!saved.reducedFlash;
+  // A player who set the OS to reduce motion has already answered REDUCED
+  // FLASH; a fresh profile honours that instead of strobing at them first and
+  // waiting to be found in a settings panel. An explicit choice in the game,
+  // either way, always wins — this is only the default.
+  const motionUnset = typeof saved.reducedFlash !== 'boolean';
+  ACCESS.reducedFlash = motionUnset ? osPrefers('(prefers-reduced-motion: reduce)') : saved.reducedFlash;
   // A profile saved before RC10.2 carries `readableType` and no dials. It
   // meant exactly today's step 1 tracking and no size change, so that is what
   // it becomes — nobody's setting silently moves under them.
   const step = (v, fallback) => (Number.isInteger(v) && v >= 0 && v <= 2 ? v : fallback);
   const legacy = saved.readableType ? 1 : 0;
   ACCESS.plateSpacing = step(saved.plateSpacing, legacy);
+  // Likewise "more contrast" asks for legibility: a profile with NO saved
+  // settings starts one step up the spacing dial (the RC10.2 step that also
+  // relaxes the smallest labels and sets the prose in the hyperlegible face).
+  // Any saved profile keeps exactly what it had — nobody's setting moves.
+  if (Object.keys(saved).length === 0 && osPrefers('(prefers-contrast: more)')) ACCESS.plateSpacing = 1;
   ACCESS.plateSize = step(saved.plateSize, 0);
   ACCESS.broadcastLook = !!saved.broadcastLook;
   ACCESS.guidedTips = saved.guidedTips !== false; // unset = ON
@@ -145,6 +161,17 @@ export function initAccess() {
   ACCESS.sfxOff = saved.sfxOff === true;          // unset = sfx ON
   ACCESS.palette = PALETTES[saved.palette] ? saved.palette : 'off';
   apply();
+  // Until the player chooses, the OS setting stays live: flipping it mid-
+  // session takes effect without a reload.
+  if (motionUnset && typeof matchMedia === 'function') {
+    try {
+      matchMedia('(prefers-reduced-motion: reduce)').addEventListener?.('change', (e) => {
+        if (typeof Storage.accessPrefs().reducedFlash === 'boolean') return;
+        ACCESS.reducedFlash = e.matches;
+        apply();
+      });
+    } catch { /* an old engine without MediaQueryList events: the boot value stands */ }
+  }
 }
 
 /** The settings panel: an overlay of chip rows, opened from the title. */
