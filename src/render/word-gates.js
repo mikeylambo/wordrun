@@ -64,13 +64,18 @@ export const plateFontReady = (typeof document !== 'undefined' && document.fonts
     ]).then(() => { fontEpoch++; }, () => {})
   : Promise.resolve();
 
-// Neon identity: a dark glass plate on the bright snow is the highest
-// contrast ground available, and the glow never touches the glyph cores —
-// legibility (priority 1) outranks flourish (priority 4).
+// RC13.1 — THE LIGHTBOX (the key art's signage). A backlit sign face with
+// dark ink: the highest-contrast pairing there is, and it reads the same on
+// every band of the world behind it because it carries its own light. The
+// glow lives in the FRAME, never on the glyphs — legibility (priority 1)
+// outranks flourish (priority 4), and a halo behind dark ink only muddies it.
 const COL = {
-  plate: 'rgba(10,16,23,0.86)',
-  edge: 'rgba(103,216,255,0.55)',
-  ink: '#eefaff',
+  plate: 'rgba(238,246,251,0.97)',
+  plateTop: '#f7fbfd',
+  plateBottom: '#d6e6f0',
+  inset: 'rgba(10,21,32,0.16)',
+  edge: 'rgba(103,216,255,0.75)',
+  ink: '#0a1520',
   confirm: '#67d8ff',
   // right/wrong are SEMANTIC and colour-vision modes replace the axis that
   // fails (ACCESS overrides at paint time); these are the shipped defaults.
@@ -88,7 +93,12 @@ class Plate {
     this.mat = new THREE.MeshBasicMaterial({
       map: this.tex, transparent: true, depthWrite: false,
       side: THREE.DoubleSide,
+      // A lightbox carries its own light: the scene's fog and tone mapping
+      // would grey the face and lift the ink, which is exactly the contrast
+      // the sign exists to keep. The plate is painted in final colours.
+      fog: false, toneMapped: false,
     });
+    this.tex.colorSpace = THREE.SRGBColorSpace;
     this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.mat);
     this.mesh.renderOrder = 20;
     this.mesh.visible = false;
@@ -129,10 +139,13 @@ class Plate {
       : state === 'confirmed' ? COL.confirm
       : COL.edge;
 
-    // Neon plate: dark glass, glowing rim.
+    // The lightbox: a lit face, brightest at the top, in a glowing frame.
     g.save();
     if (quiet) g.globalAlpha = 0.55;
-    g.fillStyle = COL.plate;
+    const face = g.createLinearGradient(0, 10, 0, ch - 10);
+    face.addColorStop(0, COL.plateTop);
+    face.addColorStop(1, COL.plateBottom);
+    g.fillStyle = face;
     g.strokeStyle = accent;
     g.lineWidth = state === 'idle' || held || quiet ? (held ? 7 : quiet ? 4 : 5) : 15;
     g.shadowColor = accent;
@@ -156,6 +169,16 @@ class Plate {
       g.fill();
       g.restore();
     }
+    // The sign's inset rule: a hairline inside the frame, so the face reads
+    // as a printed panel rather than a glowing slab.
+    g.save();
+    if (quiet) g.globalAlpha = 0.55;
+    g.strokeStyle = COL.inset;
+    g.lineWidth = 3;
+    g.beginPath();
+    g.roundRect(30, 30, cw - 60, ch - 60, 22);
+    g.stroke();
+    g.restore();
 
     // The plate is the surface the entire game is read from, and it used to
     // render in whatever `ui-monospace` resolved to — SF Mono on iOS, Consolas
@@ -204,13 +227,12 @@ class Plate {
       g.restore();
     }
     g.save();
-    // Soft neon halo behind the core glyphs — halo only, cores stay solid.
+    // Solid ink, no halo — held or resolved, the word itself is drawn exactly
+    // as idle. Every state keeps the dark ink — a wrong read
+    // shows the TRUE spelling, and that is the one word that must read best;
+    // the verdict is carried by the wash, the frame and the echoes.
     if (quiet) g.globalAlpha = 0.6;
-    g.shadowColor = state === 'idle' || held || quiet ? 'rgba(103,216,255,0.75)' : accent;
-    g.shadowBlur = quiet ? 10 : 22;
-    g.fillStyle = state === 'wrong' ? ACCESS.wrong : COL.ink;
-    g.fillText(text, cx, cy);
-    g.shadowBlur = 0;
+    g.fillStyle = COL.ink;
     g.fillText(text, cx, cy);
     g.restore();
 

@@ -367,9 +367,12 @@ head('VIBRANCY — red belongs to the Redline alone');
     redline.includes('0xff2a1f'));
 
   const plate = fs.readFileSync('src/render/word-gates.js', 'utf8');
-  check('the word plate keeps its solid-glyph-core-over-glow treatment',
-    plate.includes('halo only, cores stay solid') &&
-    plate.includes('g.shadowBlur = 0;'));
+  // RC13.1: the lightbox goes further than "solid cores over a glow" — the
+  // ink has no glow behind it at all; the light lives in the sign's frame.
+  check('the word plate\'s glyphs are solid ink — no glow is ever drawn behind them',
+    /g\.fillStyle = COL\.ink;\n\s*g\.fillText\(text, cx, cy\);/.test(plate) &&
+    !/shadowColor = state === 'idle'/.test(plate) &&
+    plate.includes('fog: false, toneMapped: false'));
 
   const main = fs.readFileSync('src/main.js', 'utf8');
   check('the burst fires from the payoff event, keyed to the chain',

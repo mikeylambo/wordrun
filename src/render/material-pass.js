@@ -54,8 +54,10 @@ function polish(material, role = classify(material)) {
 function terrainMaterial() {
   const terrain = new THREE.MeshStandardMaterial({
     vertexColors: true,
-    roughness: 0.92,
-    metalness: 0,
+    // RC13.1 — the key art's road: dark stone, faintly wet, so the rails and
+    // the lit signs leave a sheen on it.
+    roughness: 0.62,
+    metalness: 0.12,
     flatShading: true,
     map: SURFACES.snow.map,
     roughnessMap: SURFACES.snow.roughnessMap,
@@ -95,7 +97,13 @@ function terrainMaterial() {
         float p4Across = vP4Lane * uP4HalfW;
         vec2 p4Cell = vec2(p4Across, vP4World.z) / uP4Cell;
         vec2 p4F = abs(fract(p4Cell) - 0.5);
-        float p4Line = smoothstep(0.44, 0.5, max(p4F.x, p4F.y));
+        // RC13.1: the grid became the SEAMS between stone slabs — a thin, low
+        // light that still sweeps under the runner at GRID_CELL_M (it is a
+        // speed cue), instead of a TRON lattice louder than the word.
+        float p4Line = smoothstep(0.475, 0.5, max(p4F.x, p4F.y));
+        // Every slab its own stone: a per-cell shade, so the road reads as
+        // laid paving rather than one painted surface.
+        float p4Slab = fract(sin(dot(floor(p4Cell), vec2(12.9898, 78.233))) * 43758.5453);
         float p4Rail = smoothstep(0.8, 0.97, abs(vP4Lane));
         // The rail is the EDGE of the etched surface, so the grid ends where
         // the rail begins to burn. Letting it run on into the strip outboard
@@ -111,8 +119,12 @@ function terrainMaterial() {
         vec3 p4GridCol = mix(vec3(0.05, 0.34, 0.46), vec3(0.30, 0.16, 0.52), p4Hue);
         p4GridCol = mix(p4GridCol, vec3(0.05, 0.44, 0.30), p4Hue2 * 0.55);
         vec3 p4RailCol = mix(vec3(0.10, 0.62, 0.80), vec3(0.52, 0.26, 0.86), p4Hue2);
-        totalEmissiveRadiance += p4GridCol * p4Line * 0.62 * uP9Flow;
-        totalEmissiveRadiance += p4RailCol * p4Rail * 1.15 * uP9Flow;`)
+        // The rail burns toward white-cyan at its core, like the key art's
+        // edge light; the seams stay a whisper of the same hue.
+        p4RailCol = mix(p4RailCol, vec3(0.62, 0.92, 1.0), 0.45);
+        totalEmissiveRadiance += vec3(0.010, 0.018, 0.028) * p4Slab * (1.0 - p4Rail);
+        totalEmissiveRadiance += p4GridCol * p4Line * 0.2 * uP9Flow;
+        totalEmissiveRadiance += p4RailCol * p4Rail * 1.45 * uP9Flow;`)
       .replace('#include <common>\nvarying float vP4Lane;',
         '#include <common>\nuniform float uP9Flow;\nuniform float uP4HalfW;\nuniform float uP4Cell;\nvarying float vP4Lane;');
     shader.uniforms.uP4HalfW = terrain.userData.uP4HalfW;
@@ -124,7 +136,7 @@ function terrainMaterial() {
   // under the runner — so it is a speed cue and lives with the others in
   // TUNING.CUES rather than as a 6.0 buried in a shader string.
   terrain.userData.uP4Cell = { value: TUNING.CUES.GRID_CELL_M };
-  terrain.customProgramCacheKey = () => 'dictiondash-p30-track-space-grid-v2';
+  terrain.customProgramCacheKey = () => 'dictiondash-rc13-stone-road';
   return terrain;
 }
 

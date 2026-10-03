@@ -3716,3 +3716,17 @@ one meshopt-compressed GLB (`public/models/runner.glb`, ~450 KB).
 - **Nothing waits on it.** The procedural figure of light runs until the body
   has loaded, and forever if it never does; the faceted halo steps aside once
   it has. Same origin, zero network at play time (`audit:network` green).
+
+## 1.0-RC13.1 — the key art's road and signage
+
+- **The word plate is a lightbox.** A backlit pale face with dark ink in a
+  glowing cyan frame (`render/word-gates.js`) — the highest-contrast pairing
+  there is, and it carries its own light, so the plate is exempt from fog and
+  tone mapping and reads identically on every band. The glow lives in the
+  frame, never on the glyphs; every verdict keeps the dark ink (a wrong read
+  shows the TRUE spelling, the one word that must read best) and is carried by
+  the wash, the frame and the echoes.
+- **The road is stone.** Dark, faintly wet paving (`render/material-pass.js`):
+  the etched lattice became thin seams between slabs — still sweeping at GRID_CELL_M, it
+  is a speed cue — each slab its own shade, and the rails burn toward
+  white-cyan at the core like the key art's edge light.
