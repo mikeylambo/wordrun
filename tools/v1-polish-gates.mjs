@@ -1382,6 +1382,23 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     'the REPORT button exists only behind ?playtest=1 / ?dev=1, and its report carries the exact replay link');
 }
 
+// ── The authored runner (RUNNER MODEL v1.0) ────────────────────────────────
+{
+  const rm = read('src/render/runner-model.js');
+  const actorsSrc = read('src/render/actors.js');
+  const glb = 'public/models/runner.glb';
+  const bytes = fs.existsSync(glb) ? fs.statSync(glb).size : 0;
+  check(bytes > 0 && bytes <= 600 * 1024,
+    `the runner ships as one compressed GLB under 600 KB (${(bytes / 1024).toFixed(0)} KB)`);
+  check(rm.includes("export const RUNNER_MODEL_URL = '/models/runner.glb';") && !/https?:\/\//.test(rm.replace(/\/\*[\s\S]*?\*\//g, '')),
+    'it loads from the build itself — no request leaves the origin at play time');
+  check(actorsSrc.includes('loadRunnerModel().then((asset) => { if (asset) this._attachBody(asset); });') &&
+    rm.includes('.catch(() => null)') && actorsSrc.includes('this.hips.visible = false;'),
+    'the procedural figure runs until the body arrives, and forever if it never does');
+  check(actorsSrc.includes('this.body.pose(this._phase);') && rm.includes('this.mixer.setTime(u * this.duration);'),
+    'the body\'s run cycle is posed from the stride clock — ground covered, not time');
+}
+
 // ── Haptics reach every phone ───────────────────────────────────────────────
 {
   const hap = read('src/ui/haptics.js');

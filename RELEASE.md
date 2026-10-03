@@ -3697,3 +3697,22 @@ the DAILY's hundredth gate and the kill after it (byte-identical).
 - **The ink track stays the fine double stroke** (0.07 m offset), as shipped in
   RC12.0.
 - **The deep main.js split waits** for a real-browser smoke to prove each step.
+
+## 1.0-RC13.0 — the runner from the sheet
+
+The RUNNER MODEL v1.0 sheet, built: a 15k-triangle body generated from the
+sheet's front, back and side views, rigged with a run cycle, and shipped as
+one meshopt-compressed GLB (`public/models/runner.glb`, ~450 KB).
+
+- **The look is a material, not a texture.** A deep navy body with a
+  rim-light whose band burns pale cyan (`render/runner-model.js`); the
+  model's own texture supplies the seam lines and the chest chevron as glow.
+- **The sheet's flow row is one dial.** BASE → BUILDING → HIGH FLOW → DASH is
+  the rim's strength and width from the chain's glow, white-hot in the dash;
+  the cursor pulse and the stagger flicker ride through it.
+- **The stride clock poses it.** The run cycle's time is the same
+  distance-driven phase the procedural rig uses, so a frozen sim is a frozen
+  body and the feet never skate as speed changes.
+- **Nothing waits on it.** The procedural figure of light runs until the body
+  has loaded, and forever if it never does; the faceted halo steps aside once
+  it has. Same origin, zero network at play time (`audit:network` green).

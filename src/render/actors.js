@@ -14,6 +14,7 @@
 
 import * as THREE from 'three';
 import { makeContactShadow } from './contact-shadow.js';
+import { loadRunnerModel, RunnerBody } from './runner-model.js';
 import TUNING from '../TUNING.js';
 
 // Playtest: "some lines are out of place, when the rest of them fit the road."
@@ -246,6 +247,12 @@ export class PlayerActor {
     this.contact = makeContactShadow(scene, 0.82, 0.12);
     this.contact.scale.set(1.15, 0.62, 1);
 
+    // The authored body (render/runner-model.js) replaces the procedural
+    // figure the moment it has loaded; until then — or if it never does —
+    // the figure of light runs exactly as it always has.
+    this.body = null;
+    loadRunnerModel().then((asset) => { if (asset) this._attachBody(asset); });
+
     this.t = 0;
     this._lastD = 0;
     this._blink = 0;
@@ -270,6 +277,17 @@ export class PlayerActor {
     }));
     this.tracks.frustumCulled = false;
     scene.add(this.tracks);
+  }
+
+  _attachBody(asset) {
+    this.body = new RunnerBody(asset);
+    this.group.add(this.body.root);
+    // The procedural limbs step aside, and so does the halo: a faceted shell
+    // read as a glow around a stick figure, but over a real body it is a
+    // low-poly blob. The light pool and the comet tail stay — they are the
+    // figure's light on the page, not its body.
+    this.hips.visible = false;
+    this.halo.visible = false;
   }
 
   _clearTracks() {
@@ -416,6 +434,17 @@ export class PlayerActor {
       this.group.position.x *= 1 - Math.min(1, dt * 10);
       this.armL.joint.rotation.z *= 1 - Math.min(1, dt * 8);
       this.armR.joint.rotation.z *= 1 - Math.min(1, dt * 8);
+    }
+
+    // The body: the same stride clock poses its run cycle, and the sheet's
+    // flow row (BASE → BUILDING → HIGH FLOW → DASH) is the rim's one dial —
+    // the chain's glow, white-hot for the dash, with the cursor pulse and
+    // the stagger's flicker carried through.
+    if (this.body) {
+      this.body.pose(this._phase);
+      const level = p.overdrive ? 3 : Math.max(0, Math.min(2, (flow - 1) * 2.5));
+      const flicker = p.staggerT > 0 ? 0.45 + Math.abs(Math.sin(this.t * 47)) * 0.55 : 1;
+      this.body.setGlow(level, blink * flicker);
     }
 
     this._track(p);
