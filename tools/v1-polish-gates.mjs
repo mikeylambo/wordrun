@@ -1382,6 +1382,31 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     'the REPORT button exists only behind ?playtest=1 / ?dev=1, and its report carries the exact replay link');
 }
 
+// ── The key art's city (render/skyline.js) ─────────────────────────────────
+{
+  const sky = read('src/render/skyline.js');
+  const { towerAt, signAt, SKYLINE } = await import('../src/render/skyline.js');
+  const { MARGIN } = await import('../src/render/editorial-layout.js');
+  const HWk = (await import('../src/TUNING.js')).default.RUN.TRACK_HALF_W;
+  let same = true, outside = true;
+  for (let k = 0; k < 400; k++) {
+    for (const side of [-1, 1]) {
+      const a = towerAt(777, k, side), b = towerAt(777, k, side);
+      if (JSON.stringify(a) !== JSON.stringify(b)) same = false;
+      if (a.lateral - a.w / 2 < HWk + MARGIN + 20) outside = false;
+    }
+    if (signAt(777, k).lateral < HWk + MARGIN + 6) outside = false;
+  }
+  check(same, 'the skyline is a pure function of the seed — the DAILY RUN\'s city is the same for everyone');
+  check(outside && SKYLINE.SIGN_X > HWk + MARGIN,
+    'every tower and sign stands outside the page margins, never between the camera and the plate');
+  check(!/fillText|font\s*=|\bglyph\(/.test(sky.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')) &&
+    /shaderMat\(1, \d+, \d+, 0\.\d+\)/.test(sky),
+    'the signs carry greeked bars, never glyphs, and burn below the plate\'s own white — the plate stays the only text in the world');
+  check(!/0x[eEfF][0-9a-fA-F][0-4][0-9a-fA-F]{3}\b/.test(sky) && !/ff2a1f/i.test(sky),
+    'no red in the city — red stays the Redline\'s alone');
+}
+
 // ── The authored runner (RUNNER MODEL v1.0) ────────────────────────────────
 {
   const rm = read('src/render/runner-model.js');

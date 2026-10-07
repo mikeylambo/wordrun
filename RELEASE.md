@@ -3730,3 +3730,15 @@ one meshopt-compressed GLB (`public/models/runner.glb`, ~450 KB).
   the etched lattice became thin seams between slabs — still sweeping at GRID_CELL_M, it
   is a speed cue — each slab its own shade, and the rails burn toward
   white-cyan at the core like the key art's edge light.
+
+## 1.0-RC13.2 — the city of the key art
+
+`render/skyline.js`: pale monoliths 90–320 m off the track on both sides,
+their windows a lattice of quietly lit panes, and backlit roadside signs on
+posts angled to meet the runner — two instanced meshes, streamed with the run,
+placed purely from the seed (the DAILY RUN's city is the same for everyone).
+The towers fade into the sky on their own curve because the world fog closes
+at 255 m; the camera's far plane moved 420 → 1000 m so the horizon can hold
+them. The signs carry greeked bars, never glyphs — the plate stays the only
+readable text in the world — and burn below the plate's white. Every piece
+stands outside the page margins and carries no red.

@@ -35,8 +35,10 @@ export class Stage {
     this.scene.background = new THREE.Color(PALETTE.SKY);
 
     // Deep morning opens the sightline well beyond the original fog range.
+    // RC13.2: the far plane reaches the skyline (render/skyline.js). The
+    // world fog still closes at 255 m; only the fog-free towers live out here.
     this.camera = new THREE.PerspectiveCamera(
-      TUNING.CAMERA.FOV, 1, 0.5, 420
+      TUNING.CAMERA.FOV, 1, 0.5, 1000
     );
 
     const key = new THREE.DirectionalLight(LIGHT.KEY_COLOR, LIGHT.KEY_INTENSITY);

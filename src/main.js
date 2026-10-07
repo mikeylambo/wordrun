@@ -22,6 +22,7 @@ import { DataworldPass } from './render/dataworld.js';
 import { StreakBurst } from './render/streak-burst.js';
 import { WindStreaks, TrackPylons } from './render/speed-fantasy.js';
 import { EditorialWorld } from './render/editorial-world.js';
+import { Skyline } from './render/skyline.js';
 import { LaunchSequence } from './render/launch-sequence.js';
 import { AttractMode } from './render/attract.js';
 import { GuidedTeach } from './ui/guided.js';
@@ -125,6 +126,8 @@ const trackPylons = new TrackPylons(stage.scene, sim.terrain);
 // Phase M: the Editorial World — the page geometry beside the track, set
 // denser as the run's band rises and struck through as the Redline closes.
 const editorialWorld = new EditorialWorld(stage.scene, sim.terrain);
+// The key art's city: distant monoliths and roadside lightbox signs.
+const skyline = new Skyline(stage.scene, sim.terrain);
 const launch = new LaunchSequence();
 // RC6: a cabinet is never idle. Ten quiet seconds on the title and the best
 // run replays itself down the road behind the wordmark; any touch takes the
@@ -617,6 +620,7 @@ function buildRunInTheDark() {
   flowChain = 0;
   endedFlowLevel = 0;
   editorialWorld.reset(); // the manuscript starts sparse each run
+  skyline.reset();
   // N4: the authored launch is ALREADY playing — startRun began it, and this
   // function is its black frame. Presentation only; input never blocks.
   worldBand = 0;
@@ -1733,6 +1737,8 @@ function tick(dt) {
       : flowFactor(flowChain, performance.now() / 1000))
     : sim.phase === PHASE.DEAD ? flowGlow(endedFlowLevel) : 1;
   materialPass.terrain.userData.uP9Flow.value = flowF;
+  skyline.terrain = sim.terrain;
+  skyline.update(pv.d, { sky: stage.scene.background, flow: flowF });
   dataworld.setFlow(flowF);
   trackPylons.setFlow(flowF);
   editorialWorld.setFlow(flowF);
@@ -1902,7 +1908,7 @@ window.__TUNING = TUNING;
 window.__UI = ui;
 window.__RENDER = {
   stage, terrainMesh, props, landmarks, rig, playerActor, beastActor, ghostActor, spray, materialPass,
-  wordGateActors, dataworld, streakBurst, bells: bellRenderer, editorialWorld, judgment,
+  wordGateActors, dataworld, streakBurst, bells: bellRenderer, editorialWorld, judgment, skyline,
 };
 // Dev-only tooling behind URL flags (?dev=1, ?soak=…, ?profile=1), each a
 // dynamic import a normal load never fetches — src/dev/dev-tools.js.
