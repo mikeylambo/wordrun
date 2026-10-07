@@ -28,14 +28,6 @@ const FIELD_W = 56;
 const FIELD_H = 13;
 const TEAR_W = 5.4;
 const TEAR_H = 9.0;
-// The broken slabs (key art): red-lit blocks of struck-out copy crumbling in
-// from the margins beside the tear. They stay outside the track edge, behind
-// the runner — never on a camera-to-plate sight line — and their faces are
-// struck bars, not glyphs: the word plate stays the only text in the world.
-const SLAB_N = 14;
-const SLAB_IN = TUNING.RUN.TRACK_HALF_W + 1.2;  // innermost edge a slab reaches
-const fract = (v) => v - Math.floor(v);
-const hash = (i, k) => fract(Math.sin(i * 127.1 + k * 311.7) * 43758.5453);
 
 function staticTexture(w = 96, h = 96) {
   const canvas = document.createElement('canvas');
@@ -77,31 +69,6 @@ function drawStatic(canvas, tex, density, heat, pale = false) {
     g.fillRect(0, y, w, 1 + Math.random() * 3);
   }
   tex.needsUpdate = true;
-}
-
-/** A slab face: dark stone carrying lines of copy, each one struck through.
- *  Greyscale; the material wears the live danger accent. */
-function slabTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 128;
-  canvas.height = 64;
-  const g = canvas.getContext('2d');
-  g.fillStyle = 'rgb(34,34,34)';
-  g.fillRect(0, 0, 128, 64);
-  g.fillStyle = 'rgb(90,90,90)';
-  g.fillRect(0, 0, 128, 3);
-  g.fillRect(0, 61, 128, 3);
-  for (let i = 0; i < 3; i++) {
-    const y = 12 + i * 17;
-    const w = 70 + ((i * 37) % 40);
-    g.fillStyle = 'rgb(200,200,200)';
-    g.fillRect(12, y, w, 9);                         // the line of copy
-    g.fillStyle = 'rgb(255,255,255)';
-    g.fillRect(6, y + 3, w + 12, 3);                 // and its strikethrough
-  }
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
 }
 
 function plane(w, h, map, opacity = 1, blending = THREE.AdditiveBlending) {
@@ -166,66 +133,10 @@ export class CorruptionActor {
     this.field.material.blending = THREE.NormalBlending;
     scene.add(this.field);
 
-    // The slabs: one instanced draw, laid each frame from a per-slab phase.
-    this.slabMat = new THREE.MeshBasicMaterial({
-      color: 0xff2a1f, map: slabTexture(), transparent: true, opacity: 0.9,
-      depthWrite: false, fog: false, toneMapped: false,
-    });
-    this.slabs = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), this.slabMat, SLAB_N);
-    this.slabs.frustumCulled = false;
-    this.slabs.count = 0;
-    this.slabs.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    this.root.add(this.slabs);
-    this._sm = new THREE.Matrix4();
-    this._sq = new THREE.Quaternion();
-    this._se = new THREE.Euler();
-    this._sp = new THREE.Vector3();
-    this._ss = new THREE.Vector3();
-
     this.t = 0;
     this._redrawT = 0;
     this._heat = 0;
     this.reset();
-  }
-
-  /** Lay the slabs: each rises out of the margin, leans in toward the track
-   *  edge, tumbles, and crumbles away — then comes again. How many are live
-   *  is the corruption intensity; REDUCED FLASH keeps them but slows them. */
-  _laySlabs(intensity, gap) {
-    const n = Math.round(Math.min(1, intensity * 1.3) * SLAB_N);
-    const pace = ACCESS.reducedFlash ? 0.5 : 1;
-    let c = 0;
-    for (let i = 0; i < n; i++) {
-      const side = i % 2 ? 1 : -1;
-      const period = 2.6 + hash(i, 1) * 1.8;
-      const p = fract((this.t * pace) / period + hash(i, 2));
-      const rise = Math.min(1, p / 0.22);
-      const fall = Math.max(0, (p - 0.78) / 0.22);
-      const ease = 1 - (1 - rise) * (1 - rise);
-      // Outer margin to the track edge as the slab lives; never inside it.
-      const out = SLAB_IN + 1 + hash(i, 3) * 6;
-      const lean = (out - SLAB_IN) * (0.45 * p) * (1 + intensity);
-      const x = side * Math.max(SLAB_IN, out - lean);
-      const w = 2.6 + hash(i, 4) * 2.8;
-      const h = 1.3 + hash(i, 5) * 1.3;
-      const y = -h + ease * (h + 0.6 + hash(i, 6) * 4.5) - fall * fall * 7;
-      // Alongside the runner (the root sits `gap` behind them), from just
-      // behind to a few strides ahead — beside the road, never over it.
-      const z = -gap - (-4 + hash(i, 7) * 16);
-      const s = 1 - fall * 0.6;
-      this._se.set(
-        (hash(i, 8) - 0.5) * 0.8 + p * (hash(i, 9) - 0.5) * 2.2,
-        side * (0.5 + hash(i, 10) * 0.6),
-        side * (0.15 + p * 0.9 * (hash(i, 11) - 0.3)),
-      );
-      this._sq.setFromEuler(this._se);
-      this._sp.set(x, y, z);
-      this._ss.set(w * s, h * s, 0.6 * s);
-      this._sm.compose(this._sp, this._sq, this._ss);
-      this.slabs.setMatrixAt(c++, this._sm);
-    }
-    this.slabs.count = c;
-    this.slabs.instanceMatrix.needsUpdate = true;
   }
 
   reset() {
@@ -268,9 +179,6 @@ export class CorruptionActor {
     // Colour-vision modes retint the scan bar's danger accent at runtime;
     // the shipped constant (0xff2a1f) remains the default.
     this.bar.material.color.setHex(ACCESS.danger);
-    this.slabMat.color.setHex(ACCESS.danger);
-    this.slabMat.opacity = 0.55 + intensity * 0.4;
-    this._laySlabs(intensity, gap);
 
     this._redrawT -= dt;
     if (this._redrawT <= 0) {
