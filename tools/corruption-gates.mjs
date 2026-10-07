@@ -785,7 +785,10 @@ head('BROADCAST — few words, one type system, numbers first');
   const screenWords = (id) => {
     // The wordmark is a mark, not copy — its three chromatic strikes of the
     // title are one logo however many <text> runs draw it.
-    const html = htmlAll.replace(/<svg id="titleWordmark"[\s\S]*?<\/svg>/, '<svg></svg>');
+    // The key-art lockup under it (tagline and the Redline's struck slabs)
+    // is the logo's poster line, budgeted on its own below — not UI copy.
+    const html = htmlAll.replace(/<svg id="titleWordmark"[\s\S]*?<\/svg>/, '<svg></svg>')
+      .replace(/<div id="titleArt">[\s\S]*?(?=<div id="titleHint">)/, '');
     const block = html.slice(html.indexOf(`id="${id}"`));
     const end = block.indexOf('\n  </div>');
     return [...block.slice(0, end).matchAll(/>([^<>{}\n]+)</g)]
@@ -795,6 +798,9 @@ head('BROADCAST — few words, one type system, numbers first');
   const title = screenWords('titleScreen');
   const death = screenWords('deathScreen');
   check('the title screen stays under a dozen printed words', title <= 12, `${title} words`);
+  const art = (htmlAll.match(/<div id="titleArt">([\s\S]*?)(?=<div id="titleHint">)/)?.[1] || '')
+    .replace(/<[^>]+>/g, ' ').split(/\s+/).filter((w) => /[A-Za-z]/.test(w)).length;
+  check('the key-art lockup is a poster line, not a paragraph (≤ 10 words)', art > 0 && art <= 10, `${art} words`);
   check('the results card stays under a dozen printed words', death <= 12, `${death} words`);
 
   // Phase 21 relabels: the teaching section earns a heading with weight, and
