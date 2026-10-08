@@ -133,6 +133,20 @@
     color:var(--sem-right,#57e389);text-shadow:0 2px 14px rgba(4,9,13,.8),0 0 20px currentColor;
     transition:opacity .2s ease;font-variant-numeric:tabular-nums}
   #combo.on{opacity:.96}
+  /* RC13.5 — score pops: a read's points fly off the judgment into the
+     headline, which kicks when they land. Semantic colour, no new hue. */
+  .scorePop{position:absolute;left:0;top:0;z-index:25;pointer-events:none;opacity:0;
+    font:800 clamp(18px,5vw,28px)/1 var(--face);letter-spacing:-.01em;color:var(--sem-right,#57e389);
+    text-shadow:0 2px 12px rgba(4,9,13,.85),0 0 16px currentColor;transform:translate(var(--sx),var(--sy)) translate(-50%,-50%)}
+  .scorePop.fly{animation:scorePop var(--pop-s,.62s) cubic-bezier(.5,0,.75,.4) forwards}
+  @keyframes scorePop{
+    0%{opacity:0;transform:translate(var(--sx),var(--sy)) translate(-50%,-50%) scale(.6)}
+    16%{opacity:1;transform:translate(var(--sx),calc(var(--sy) - 18px)) translate(-50%,-50%) scale(1.15)}
+    34%{opacity:1;transform:translate(var(--sx),calc(var(--sy) - 22px)) translate(-50%,-50%) scale(1)}
+    100%{opacity:.2;transform:translate(var(--tx),var(--ty)) translate(-50%,-50%) scale(.45)}}
+  #dist{transform-origin:0 60%}
+  #dist.kick{animation:distKick .2s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes distKick{0%{transform:scale(1.09)}100%{transform:scale(1)}}
   #combo.lost{opacity:.9;color:var(--sem-wrong,#ff2a1f);animation:comboBreak .5s ease-out}
   #combo.punch{animation:comboPunch var(--combo-punch-ms,160ms) cubic-bezier(.2,1.6,.4,1)}
   @keyframes comboPunch{0%{transform:scale(var(--combo-punch-scale,1.42))}100%{transform:scale(1)}}

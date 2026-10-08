@@ -1582,7 +1582,9 @@ head('SCORE — how well you ran, not how long');
     // RC11.6: the score is still written from `sim.score`, but through a local
     // now — the readout is measured and shrunk on a digit rollover, so the
     // string has to exist before it is set.
-    /const sc = sim\.score;/.test(uiSrc3) &&
+    // RC13.5: it ROLLS toward `sim.score` and lands exactly on it.
+    /const target = Math\.floor\(sim\.score\);/.test(uiSrc3) &&
+    /const sc = target - this\._shownScore < 1 \? target :/.test(uiSrc3) &&
     /const txt = sc\.toLocaleString\('en-US'\);\s*\n\s*this\.dist\.textContent = txt;/.test(uiSrc3) &&
     uiSrc3.includes('`${Math.min(sim.wordGates.next, routeGates)} / ${routeGates}`') &&
     uiSrc3.includes('`${Math.floor(sim.distance)} M`') &&

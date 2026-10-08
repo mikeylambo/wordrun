@@ -484,7 +484,13 @@ export class UI {
     // worth the chain multiplier you were holding. Distance stays on screen
     // as the sub-line — it is still the spine of the run and still what the
     // goals and objectives ask for, it just stops being the brag.
-    const sc = sim.score;
+    // RC13.5: the headline ROLLS to the score like a cabinet counter rather
+    // than snapping. Exponential, so a big read races and a small one ticks;
+    // it never overshoots and lands exactly on the sim's integer.
+    const target = Math.floor(sim.score);
+    if (!(this._shownScore <= target) || target === 0) this._shownScore = target;
+    else this._shownScore += (target - this._shownScore) * Math.min(1, dt * TUNING.JUDGE.ROLL_RATE);
+    const sc = target - this._shownScore < 1 ? target : Math.floor(this._shownScore);
     if (sc !== this._lastScore) {
       this._lastScore = sc;
       const txt = sc.toLocaleString('en-US');

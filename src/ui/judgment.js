@@ -233,7 +233,41 @@ export class Judgment {
     if (this.chain <= 1) this.combo?.classList.remove('on', 'punch');
   }
 
+  /**
+   * RC13.5 — the points a read was worth leave the judgment and fly into the
+   * score. Pooled DOM (a read is at most a couple per second), transform-only
+   * animation, and REDUCED FLASH keeps the number but drops the flight.
+   */
+  pop(points, kind = 'right', reducedFlash = false) {
+    const n = Math.floor(points);
+    if (!this.el || this.muted || !(n >= J().POP_MIN)) return;
+    const host = this.el.parentElement || document.body;
+    const target = document.getElementById('dist');
+    let p = (this._pops ||= []).find((x) => !x.isConnected || x.dataset.free === '1');
+    if (!p) { p = document.createElement('div'); p.className = 'scorePop'; p.setAttribute('aria-hidden', 'true'); this._pops.push(p); }
+    p.dataset.free = '0';
+    p.dataset.kind = kind;
+    p.textContent = `+${n.toLocaleString('en-US')}`;
+    if (!p.isConnected) host.appendChild(p);
+    const hr = host.getBoundingClientRect();
+    const sx = hr.width / 2, sy = hr.height * (J().TOP_PCT / 100) - hr.height * 0.065;
+    let tx = sx, ty = sy - 60;
+    if (target && !reducedFlash) {
+      const r = target.getBoundingClientRect();
+      tx = r.left - hr.left + r.width / 2; ty = r.top - hr.top + r.height / 2;
+    }
+    p.style.setProperty('--sx', `${sx}px`); p.style.setProperty('--sy', `${sy}px`);
+    p.style.setProperty('--tx', `${tx}px`); p.style.setProperty('--ty', `${ty}px`);
+    p.style.setProperty('--pop-s', `${J().POP_S}s`);
+    p.classList.remove('fly'); void p.offsetWidth; p.classList.add('fly');
+    clearTimeout(p._t);
+    p._t = setTimeout(() => { p.classList.remove('fly'); p.dataset.free = '1';
+      document.getElementById('dist')?.classList.remove('kick');
+      if (target && !reducedFlash) { void target.offsetWidth; target.classList.add('kick'); } }, J().POP_S * 1000);
+  }
+
   reset() {
+    for (const p of this._pops || []) { clearTimeout(p._t); p.classList.remove('fly'); p.dataset.free = '1'; }
     this.t = 0;
     this.chain = 0;
     this._hide();

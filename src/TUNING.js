@@ -366,6 +366,14 @@ export const TUNING = {
       GRAVITY_PX: 120,       // downward pull, so the burst falls rather than floats
       ON_WRONG: 0.45,        // the wrong read's burst, as a fraction of the count
     },
+    // RC13.5 — arcade weight. A PERFECT read freezes the frame for a beat
+    // (presentation only: the sim's fixed step simply waits, nothing is
+    // skipped), the score rolls up instead of snapping, and every read's
+    // points fly off the judgment into the score.
+    HITSTOP_S: 0.045,        // ~3 frames at 60 Hz; 0 switches it off
+    ROLL_RATE: 11,           // score roll-up, per second (exponential)
+    POP_S: 0.62,             // a score pop's flight, judgment → score
+    POP_MIN: 1,              // reads worth fewer points than this pop nothing
   },
 
   CAPTURE: {

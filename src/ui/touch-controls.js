@@ -35,6 +35,10 @@ function ensureMobileUi() {
        while the dash is still unlearned; once the player has dashed once
        the class never returns and the screen is clean again. */
     #powerHint:not(.teaching){display:none!important}
+    /* RC13.5: on touch the lesson is a tag ON the button, not a banner over
+       the road — it sits just above DASH and points at what to press. */
+    #powerHint.teaching{top:auto;bottom:max(102px,calc(env(safe-area-inset-bottom,0px) + 98px));
+      font-size:9px;letter-spacing:.24em;padding:5px 10px;border-radius:999px}
 
     /* DICTION DASH: the one gesture is the tap — the confirm verb. The old
        carve/spin/flip drag guide taught steering that no longer exists, so

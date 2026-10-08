@@ -1483,9 +1483,14 @@ function drainSimEvents() {
       case 'word_correct': {
         gateTrail[e.index] = 1;
         if (!e.real) fakeTally.record({ family: e.family, fake: e.word, answer: e.answer, tapped: false });
-        judgment.read({ correct: true, answered: e.answered !== false,
-          answerDistance: e.answerDistance, armM: sim.wordGates.armDistance(),
-          chain: e.chain, real: e.real }, ACCESS.reducedFlash);
+        {
+          const tier = judgment.read({ correct: true, answered: e.answered !== false,
+            answerDistance: e.answerDistance, armM: sim.wordGates.armDistance(),
+            chain: e.chain, real: e.real }, ACCESS.reducedFlash);
+          judgment.pop(e.score || 0, 'right', ACCESS.reducedFlash);
+          // RC13.5 — the PERFECT read lands with weight: the frame holds.
+          if (tier.key === 'sharp' && !ACCESS.reducedFlash) hitStop = TUNING.JUDGE.HITSTOP_S;
+        }
         {
           const t = tierTally[e.tier] || (tierTally[e.tier] = { a: 0, c: 0 });
           t.a++; t.c++;
@@ -1890,10 +1895,14 @@ function tick(dt) {
   }
 }
 
+// RC13.5 — hit-stop. Presentation time stands still for a few frames; the
+// fixed-step sim just waits for it, so determinism is untouched.
+let hitStop = 0;
 function frame(now) {
   requestAnimationFrame(frame);
   const rawDt = (now - last) / 1000;
   last = now;
+  if (hitStop > 0) { hitStop -= rawDt; tick(0); return; }
   tick(Math.min(rawDt, 0.1));
 }
 requestAnimationFrame(frame);
