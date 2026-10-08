@@ -82,6 +82,9 @@ function apply() {
   // same hyperlegible face. The plate reads the dials; CSS reads the class.
   ACCESS.readableType = ACCESS.plateSpacing > 0 || ACCESS.plateSize > 0;
   document.getElementById('app')?.classList.toggle('readable', ACCESS.readableType);
+  // REDUCED FLASH reaches CSS too: anything that breathes or pulses in the
+  // interface (the start button) holds still under #app.calm.
+  document.getElementById('app')?.classList.toggle('calm', !!ACCESS.reducedFlash);
 
   // DOM consumer of the danger accent: the close-range red wash. (The
   // hearts left the danger palette in the Phase L HUD pass — they are

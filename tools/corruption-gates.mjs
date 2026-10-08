@@ -785,7 +785,10 @@ head('BROADCAST — few words, one type system, numbers first');
   const screenWords = (id) => {
     // The wordmark is a mark, not copy — its three chromatic strikes of the
     // title are one logo however many <text> runs draw it.
-    const html = htmlAll.replace(/<svg id="titleWordmark"[\s\S]*?<\/svg>/, '<svg></svg>');
+    const html = htmlAll.replace(/<svg id="titleWordmark"[\s\S]*?<\/svg>/, '<svg></svg>')
+      // RC13.3: the key art's two poster lines are the LOCKUP's, budgeted on
+      // their own below — the interface keeps its dozen words without them.
+      .replace(/<div id="titleKicker">[^<]*<\/div>/, '').replace(/<div id="titleStrap">[^<]*<\/div>/, '');
     const block = html.slice(html.indexOf(`id="${id}"`));
     const end = block.indexOf('\n  </div>');
     return [...block.slice(0, end).matchAll(/>([^<>{}\n]+)</g)]
@@ -795,6 +798,11 @@ head('BROADCAST — few words, one type system, numbers first');
   const title = screenWords('titleScreen');
   const death = screenWords('deathScreen');
   check('the title screen stays under a dozen printed words', title <= 12, `${title} words`);
+  {
+    const line = (id) => (htmlAll.match(new RegExp(`<div id="${id}">([^<]*)<\\/div>`)) || [])[1] || '';
+    const lockup = `${line('titleKicker')} ${line('titleStrap')}`.split(/\s+/).filter((w) => /[A-Za-z]/.test(w)).length;
+    check('the key-art lockup carries two poster lines and no more than ten words', lockup > 0 && lockup <= 10, `${lockup} words`);
+  }
   check('the results card stays under a dozen printed words', death <= 12, `${death} words`);
 
   // Phase 21 relabels: the teaching section earns a heading with weight, and

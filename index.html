@@ -249,12 +249,24 @@
   .screen{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(var(--safe-t) + 24px) 24px calc(var(--safe-b) + 26px);text-align:center;opacity:0;visibility:hidden;transition:opacity .32s ease,visibility .32s;pointer-events:none}
   .screen.on{opacity:1;visibility:visible}
   #titleScreen{justify-content:space-between;background:linear-gradient(180deg,rgba(2,5,9,.5) 0%,transparent 30%,transparent 46%,rgba(2,5,9,.72) 68%,rgba(2,5,9,.92) 100%)}
-  .title-lockup{margin-top:max(9vh,58px)}
-  #titleWordmark{display:block;width:min(72%,880px);height:auto;max-height:clamp(74px,17vw,190px);margin:0 auto;overflow:visible;filter:drop-shadow(0 0 22px rgba(103,216,255,.35))}
+  .title-lockup{margin-top:max(7vh,44px)}
+  /* RC13.3 — THE TITLE AS KEY ART. The poster's two lines bracket the screen
+     and the wordmark sits between them on two lines, the A drawn as the
+     chevron of light. They are the lockup's, not the interface's: the copy
+     gate budgets them on their own, beside the UI's dozen-word cap. */
+  #titleKicker{font-size:clamp(9px,2.6vw,13px);font-weight:600;letter-spacing:.42em;margin:0 -.42em 18px 0;color:#bfe9f7;text-align:center;text-shadow:0 0 14px rgba(103,216,255,.45)}
+  #titleStrap{font-size:clamp(9px,2.4vw,12px);font-weight:600;letter-spacing:.42em;margin-right:-.42em;color:rgba(214,236,246,.62);text-align:center;padding:0 0 max(14px,calc(var(--safe-b) + 10px));position:relative}
+  #titleStrap::before{content:'';display:block;width:min(46%,220px);height:1px;margin:0 auto 12px;background:linear-gradient(90deg,transparent,rgba(140,226,255,.6),transparent)}
+  .wmChevron{filter:drop-shadow(0 0 10px rgba(103,216,255,.95)) drop-shadow(0 0 28px rgba(103,216,255,.6))}
+  #titleWordmark{display:block;width:min(84%,700px);height:auto;max-height:clamp(120px,36vw,300px);margin:0 auto;overflow:visible;filter:drop-shadow(0 0 18px rgba(103,216,255,.32))}
   #titleHint{margin-top:14px;font-size:8px;font-weight:600;letter-spacing:var(--tag);color:var(--dim)}
   .drop-lockup{margin-bottom:2vh;display:flex;flex-direction:column;align-items:center;gap:18px}
   /* The one thing to do on this screen, sized like it. */
-  .drop{font-size:15px;font-weight:700;letter-spacing:.3em;margin-right:-.3em;color:#f6fcff;padding-bottom:11px;border-bottom:1px solid rgba(255,255,255,.22);animation:pulse 2.2s ease-in-out infinite}
+  /* The start button, at arcade weight: a lit capsule that breathes. */
+  .drop{font-size:clamp(15px,4.4vw,19px);font-weight:800;letter-spacing:.32em;color:#04121b;padding:15px 30px 15px calc(30px + .32em);border-radius:999px;background:linear-gradient(180deg,#e9f9ff,#8fe1ff);box-shadow:0 0 0 1px rgba(255,255,255,.6) inset,0 0 26px rgba(103,216,255,.65),0 0 70px rgba(103,216,255,.28);animation:startGlow 1.8s ease-in-out infinite}
+  @keyframes startGlow{0%,100%{box-shadow:0 0 0 1px rgba(255,255,255,.6) inset,0 0 22px rgba(103,216,255,.55),0 0 60px rgba(103,216,255,.22)}50%{box-shadow:0 0 0 1px rgba(255,255,255,.7) inset,0 0 34px rgba(103,216,255,.9),0 0 90px rgba(103,216,255,.4)}}
+  @media (prefers-reduced-motion:reduce){.drop{animation:none}}
+  #app.calm .drop{animation:none}
   .seed{font-size:8px;font-weight:600;letter-spacing:.22em;color:var(--dimmer)}
   /* RC9.2 — the dare. A challenge visit's title has exactly one thing to say
      and this is it, so it stops being styled like the seed string it replaced:
@@ -287,8 +299,8 @@
      BEGIN RUN handler ignores them. */
   #modeRows{display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:auto}
   .modeRow{display:flex;gap:7px;justify-content:center}
-  .modeChip{pointer-events:auto;cursor:pointer;border:1px solid rgba(255,255,255,.13);border-radius:2px;background:transparent;color:var(--dim);font-family:inherit;font-size:8px;font-weight:600;letter-spacing:.22em;padding:9px 14px;-webkit-tap-highlight-color:transparent;transition:color .16s ease,border-color .16s ease}
-  .modeChip.on{color:#bdf0ff;border-color:rgba(140,226,255,.65);background:rgba(18,42,54,.4)}
+  .modeChip{pointer-events:auto;cursor:pointer;border:1px solid rgba(160,210,232,.22);border-radius:6px;background:rgba(6,14,22,.55);color:rgba(214,236,246,.6);font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.2em;padding:11px 16px;-webkit-tap-highlight-color:transparent;transition:color .16s ease,border-color .16s ease,box-shadow .16s ease;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+  .modeChip.on{color:#eafaff;border-color:rgba(140,226,255,.9);background:rgba(16,52,70,.62);box-shadow:0 0 16px rgba(103,216,255,.4),0 0 0 1px rgba(140,226,255,.35) inset}
   /* Phase J: the DAILY RUN has one difficulty; the row is shown locked, never captioned. */
   .modeChip.locked{pointer-events:none;opacity:.32}
   .modeChip.locked.on{opacity:.9}
@@ -558,7 +570,9 @@
     #dist{font-size:clamp(30px,11cqw,66px)}
     #bandName{font-size:clamp(16px,5cqw,28px)}
     .big{font-size:clamp(56px,23cqw,140px)}
-    #titleWordmark{max-height:clamp(60px,17cqw,190px)}
+    #titleWordmark{max-height:clamp(120px,36cqw,300px)}
+    #titleKicker{font-size:clamp(9px,2.6cqw,13px)}
+    #titleStrap{font-size:clamp(9px,2.4cqw,12px)}
     #keyLegend{gap:clamp(14px,6cqw,44px)}
     /* The DASH meter keeps the row above the legend, the way it keeps the row
        above the DASH button on a phone. */
@@ -578,8 +592,27 @@
       width:var(--app-w);
       height:100dvh;
       top:0;left:50%;transform:translateX(-50%);
-      box-shadow:0 0 0 1px rgba(140,190,215,.10),0 0 90px rgba(0,0,0,.75);
+      /* RC13.3 — the cabinet's screen surround: a lit T-molding edge, a dark
+         bezel ring, then the cabinet's own shadow. */
+      box-shadow:0 0 0 2px rgba(103,216,255,.42),0 0 18px 2px rgba(103,216,255,.28),
+        0 0 0 12px #04080c,0 0 0 13px rgba(140,190,215,.16),0 0 120px 20px rgba(0,0,0,.85);
     }
+    /* RC13.3 — THE CABINET'S SIDE ART. The bezel is painted, not populated:
+       the key art's two halves — the Redline's corruption on the left, the
+       lit signage on the right — as the cabinet's side panels, darkened
+       toward the screen so they frame it and never compete with it. Pure
+       background on <body>: no element, nothing interactive, the play area
+       untouched. */
+    /* `html body` + !important: the standalone shell below paints both
+       html and body with the bare --bezel colour, and it must not win here. */
+    html body{background:
+      linear-gradient(90deg,rgba(3,6,10,.42) 0%,rgba(3,6,10,.7) calc(var(--bezel-w) * .62),rgba(3,6,10,.98) calc(var(--bezel-w) - 8px),
+        transparent var(--bezel-w),transparent calc(100% - var(--bezel-w)),
+        rgba(3,6,10,.98) calc(100% - var(--bezel-w) + 8px),rgba(3,6,10,.7) calc(100% - var(--bezel-w) * .62),rgba(3,6,10,.42) 100%),
+      radial-gradient(120% 80% at 50% 50%,transparent 55%,rgba(2,4,7,.65) 100%),
+      url('art/cab-left.webp') left center / var(--bezel-w) auto no-repeat,
+      url('art/cab-right.webp') right center / var(--bezel-w) auto no-repeat,
+      var(--bezel)!important}
   }
   /* The bezel and the frame's proportion, as tokens.
      390x844 (0.4621) is the viewport every reading measurement in this build
@@ -695,14 +728,20 @@
            uses the same bundled Archivo as the rest of the UI, and costs one
            request less. The chromatic echo — cyan behind, Redline red behind
            that — is the identity. -->
-      <svg id="titleWordmark" viewBox="0 0 1545 300" role="img" aria-label="DICTION DASH" preserveAspectRatio="xMidYMid meet">
-        <g font-family="var(--face)" font-size="190" font-weight="800" letter-spacing="-4" text-anchor="middle">
-          <text x="762" y="200" fill="#67d8ff" opacity="0.5">DICTION DASH</text>
-          <text x="768" y="203" fill="#ff2a1f" opacity="0.28">DICTION DASH</text>
-          <text x="774" y="206" fill="#f4fbff">DICTION DASH</text>
+      <div id="titleKicker">BEAT THE REDLINE · KEEP THE WORDS</div>
+      <svg id="titleWordmark" viewBox="0 0 1000 400" role="img" aria-label="DICTION DASH" preserveAspectRatio="xMidYMid meet">
+        <g font-family="var(--face)" font-weight="600" fill="#f4fbff" text-anchor="middle">
+          <text x="500" y="170" font-size="176" letter-spacing="10">DICTION</text>
+          <text x="276" y="372" font-size="188">D</text>
+          <text x="606" y="372" font-size="188">S</text>
+          <text x="772" y="372" font-size="188">H</text>
         </g>
+        <!-- The A is the mark: a chevron of light — the runner's crest, the
+             caret, the Λ on the runner's chest. -->
+        <path class="wmChevron" d="M 362 372 L 442 226 L 522 372" fill="none" stroke="#67d8ff" stroke-width="24" stroke-linejoin="miter" stroke-linecap="butt"/>
       </svg><div id="titleHint"></div></div>
     <div class="drop-lockup"><div class="drop">BEGIN RUN</div><div id="modeRows"><div class="modeRow" id="modeRow"><button class="modeChip" type="button" data-mode="endless">ENDLESS</button><button class="modeChip" type="button" data-mode="standard">DAILY RUN</button></div><div class="modeRow" id="difficultyRow"><button class="modeChip" type="button" data-difficulty="easy">EASY</button><button class="modeChip" type="button" data-difficulty="normal">NORMAL</button><button class="modeChip" type="button" data-difficulty="hard">HARD</button></div></div><div id="titleGoals"><div id="dailyNote"></div><div class="goalRow" id="titleGoalRow"></div><div id="titleStreak"></div><div id="titleMastery"></div></div><div class="seed" id="seedLine"></div></div>
+    <div id="titleStrap">SPEED SHARPENS MINDS</div>
   </div>
 
   <div class="screen" id="deathScreen">

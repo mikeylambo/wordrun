@@ -193,6 +193,9 @@ check(!onboarding.includes('READ THE MOUNTAIN. COMMIT TO THE LINE.') && !onboard
 // RC9.2 took the last caption too. A CHALLENGE named itself on one line and
 // dared on another; one line does both now, and it is the seed line's — so
 // the hint under the wordmark is empty on every screen there is.
+// RC13.3: the key art's poster lines (BEAT THE REDLINE · KEEP THE WORDS, and
+// SPEED SHARPENS MINDS) bracket the screen as part of the LOCKUP, by the
+// designer's call — the caption under the wordmark stays empty regardless.
 check(/titleHint\.textContent = '';/.test(ui) && !/HOW FAR CAN YOU GO/.test(ui) &&
   /BEAT \$\{this\._challenge\.goal\.toLocaleString\('en-US'\)\} · THIS ROUTE/.test(ui),
   'the wordmark stands alone — no tagline, and no caption for any day');

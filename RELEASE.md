@@ -3742,3 +3742,19 @@ at 255 m; the camera's far plane moved 420 → 1000 m so the horizon can hold
 them. The signs carry greeked bars, never glyphs — the plate stays the only
 readable text in the world — and burn below the plate's white. Every piece
 stands outside the page margins and carries no red.
+
+## 1.0-RC13.3 — the title as key art, and a cabinet to put it in
+
+- **The title is the poster.** BEAT THE REDLINE · KEEP THE WORDS over a
+  two-line DICTION / DΛSH whose A is the chevron of light, SPEED SHARPENS
+  MINDS at the foot, the live city behind it. The two poster lines belong to
+  the lockup and the copy gate budgets them on their own (≤ 10 words) beside
+  the interface's unchanged dozen-word cap; the caption under the wordmark
+  stays empty.
+- **Arcade weight.** BEGIN RUN is a lit capsule that breathes (still under
+  REDUCED FLASH and reduce-motion); the mode chips are chunkier, glassed and
+  glow when on. REDUCED FLASH now reaches CSS as `#app.calm`.
+- **The cabinet.** Framed on a wide screen, the play area wears a lit
+  T-molding surround, and the bezel is painted with the key art's two halves —
+  the Redline's corruption left, the lit signage right — darkened toward the
+  screen. Pure background on <body>: the bezel still holds no element.
