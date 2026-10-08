@@ -49,7 +49,10 @@ import { StatsManager, localStorageAdapter } from './meta/stats.js';
 import { NemesisLedger } from './meta/nemesis.js';
 import { FakeTally } from './meta/fake-tally.js';
 import { MasteryLedger } from './meta/mastery.js';
-import { Boards } from './meta/boards.js';
+import { Boards, boardKeyFor } from './meta/boards.js';
+import { placeFor, insert as insertHiscore } from './meta/hiscore.js';
+import { InitialsEntry } from './ui/initials.js';
+import { AttractPanels } from './ui/attract-panels.js';
 import { TIERS } from './words/wordlist.js';
 import { CurveLog } from './meta/curve.js';
 import { buildCurveScreen } from './ui/curve-screen.js';
@@ -141,6 +144,19 @@ const attract = new AttractMode({
   // road with no word on it are the readouts of a run nobody is having.
   onEnter: () => { ui.showHud(false); },
   onExit: () => { ui.showHud(false); },
+});
+// RC13.7 — what the cabinet shows over the demo, in turn: the device's two
+// top-ten tables (today's DAILY RUN, ENDLESS at the chosen difficulty) and
+// the three verbs. Same board keys the results card writes.
+const attractPanels = new AttractPanels({
+  loadTables: () => {
+    const daily = boardKeyFor({ mode: 'standard', difficulty: BOARD.DAILY_DIFFICULTY, day: dailySeedString() });
+    const endless = boardKeyFor({ mode: 'endless', difficulty: runDifficulty });
+    return [
+      { title: 'DAILY RUN · TODAY', rows: Storage.hiscores(daily) },
+      { title: `ENDLESS · ${String(runDifficulty).toUpperCase()}`, rows: Storage.hiscores(endless) },
+    ];
+  },
 });
 const guided = new GuidedTeach();
 const keyLegend = new KeyLegend();
@@ -385,6 +401,17 @@ audio.setMusicMuted(ACCESS.musicOff);
 audio.setSfxMuted(ACCESS.sfxOff);
 
 document.addEventListener('dictiondash:dash-ready', () => audio.dashReady());
+// RC13.7 — the coin-op set, fired by the surfaces that own each moment.
+document.addEventListener('dictiondash:count-in', (e) => audio.countIn(!!e.detail?.go));
+let lastTallyTick = 0;
+document.addEventListener('dictiondash:tally-tick', () => {
+  const now = performance.now();
+  if (now - lastTallyTick > 45) { lastTallyTick = now; audio.tallyTick(); }
+});
+document.addEventListener('dictiondash:rank', (e) => {
+  if (e.detail?.rank) audio.rankStamp(e.detail.rank);
+  if (e.detail?.pb) audio.highScore();
+});
 // RC6: HOW TO PLAY is asked for by event now (the ⚙ sheet, the pause menu).
 // Force the chunk in, so an early ask cannot land before the listener does.
 document.addEventListener('dictiondash:show-how', () => {
@@ -511,6 +538,8 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
 let launchPending = false;
 
 function startRun({ instant = false } = {}) {
+  if (initials.isOpen) initials.commit();   // RC13.7: R / Enter / AGAIN all keep the score
+  initials.close();
   // PD-2: the full arrival plays from the MENU; a retry (AGAIN, the pause
   // menu's restart, a finish-card rerun) gets the one-second cut. The phase
   // is read HERE, while it is still the phase the player tapped from — the
@@ -578,6 +607,7 @@ function buildRunInTheDark() {
   runContinued = false;
   retiredThisRun = [];
   tierTally = {};
+  perfectsThisRun = 0;
   gateTrail = [];
   sim.start(SEED, ghostData, {
     wordSalt: currentSalt,
@@ -670,6 +700,7 @@ let lastRunScore = 0;
 let lastRunBar = 0;
 let retiredThisRun = [];
 let tierTally = {};
+let perfectsThisRun = 0;   // RC13.7: PERFECT judgments, for the results tally
 // Every resolved gate of this run, by index: 1 right, 0 wrong. The DAILY
 // RUN's share text is drawn from it (meta/share-grid.js).
 let gateTrail = [];
@@ -725,12 +756,24 @@ function showContinueOffer(cost) {
   continueBalance.textContent = `BALANCE ◆ ${Math.floor(metaStats.get('currency', 0))}`;
   continueOfferEl.classList.add('on');
   const bar = continueOfferEl.querySelector('#continueTimer i');
+  const digit = document.getElementById('continueCount');
   const t0 = performance.now();
   bar.style.transform = 'scaleX(1)';
+  let shown = -1;
   offerTimer = setInterval(() => {
     const left = 1 - (performance.now() - t0) / (CONT.OFFER_SECONDS * 1000);
-    if (left <= 0) declineContinue();
-    else bar.style.transform = `scaleX(${left.toFixed(3)})`;
+    if (left <= 0) { declineContinue(); return; }
+    bar.style.transform = `scaleX(${left.toFixed(3)})`;
+    // RC13.7: the coin-op count, one digit and one tick per whole second.
+    const secs = Math.ceil(left * CONT.OFFER_SECONDS);
+    if (digit && secs !== shown) {
+      shown = secs;
+      digit.textContent = String(secs);
+      digit.classList.toggle('urgent', secs <= 3);
+      digit.classList.remove('beat');
+      if (!ACCESS.reducedFlash) { void digit.offsetWidth; digit.classList.add('beat'); }
+      audio.continueTick(secs);
+    }
   }, 50);
 }
 
@@ -749,6 +792,7 @@ function buyContinue() {
   const cost = continueCost();
   if (metaStats.get('currency', 0) < cost) { declineContinue(); return; }
   hideContinueOffer();
+  audio.credit();
   metaStats.increment('currency', -cost);
   continuesUsed++;
   runContinued = true;
@@ -862,6 +906,14 @@ function finalizeRun() {
     });
   }
   const isPb = boardEligible ? Storage.setBestFor(SEED, finalScore) : false;
+  // RC13.7 — the cabinet's table. Same board key a server would use, so the
+  // same runs count; a run that makes the top ten asks for initials.
+  hiscoreBoard = boardEligible ? boardKeyFor({ mode: runMode, difficulty: effectiveDifficulty(),
+    continued: runContinued, day: dailySeedString() }) : null;
+  const hiPlace = hiscoreBoard ? placeFor(Storage.hiscores(hiscoreBoard), finalScore) : 0;
+  hiscoreScore = finalScore;
+  if (hiPlace) initials.open({ place: hiPlace, initials: Storage.lastInitials() });
+  else initials.close();
   if (isPb) ui.setAllTimeBest(Storage.bestAllTime());
   if (boardEligible) {
     sim.recorder.finish(sim.player);
@@ -942,6 +994,7 @@ function finalizeRun() {
     correct: wg.correctCount,
     wrong: wg.wrongCount,
     bestChain: sim.player.bestChain,
+    perfects: perfectsThisRun,
     // RC-2: ONE reward figure on the card — bells plus cleared objectives,
     // already banked above; the card only reports the total.
     reward: banked + (objectives.reward || 0),
@@ -1026,6 +1079,8 @@ function resumeGame() {
 }
 
 function quitToTitle() {
+  if (initials.isOpen) initials.commit();
+  initials.close();
   // RC10.3: the title's learned count is the one number a run can move, so it
   // is refreshed on the way back rather than only at boot.
   ui.setMastery(mastery.count, nemesis.toughest());
@@ -1188,6 +1243,8 @@ window.addEventListener('keydown', (e) => {
   if (onboarding?.visible) return;
   // Any key ends the attract loop, exactly as any touch does.
   if (attract.active) { attract.exit(); return; }
+  // RC13.7: while initials are being entered, the letters are theirs.
+  if (initials.isOpen && initials.key(e)) { e.preventDefault(); return; }
   if (e.code === 'Escape' || e.code === 'KeyP') {
     if (sim.phase === PHASE.RUNNING) {
       e.preventDefault();
@@ -1241,15 +1298,31 @@ ui.mute.addEventListener('click', (e) => {
   ui.mute.textContent = m ? '×' : '♪';
 });
 
+// RC13.7 — initials for a top-ten run, written to the device's table.
+let hiscoreBoard = null;
+let hiscoreScore = 0;
+const initials = new InitialsEntry({
+  host: document.getElementById('initialsRow'),
+  onCommit: (i) => {
+    if (!hiscoreBoard) return;
+    const { rows } = insertHiscore(Storage.hiscores(hiscoreBoard),
+      { initials: i, score: hiscoreScore, time: Date.now() });
+    Storage.setHiscores(hiscoreBoard, rows);
+    Storage.setLastInitials(i);
+    audio.credit();
+  },
+});
 const deathAgain = document.getElementById('deathAgain');
 const deathMenu = document.getElementById('deathMenu');
 deathAgain?.addEventListener('click', (e) => {
   e.stopPropagation();
+  initials.commit();   // leaving the card never loses a qualifying score
   audio.uiTap();
   startRun();
 });
 deathMenu?.addEventListener('click', (e) => {
   e.stopPropagation();
+  initials.commit();
   audio.uiTap();
   quitToTitle();
 });
@@ -1489,6 +1562,7 @@ function drainSimEvents() {
             chain: e.chain, real: e.real }, ACCESS.reducedFlash);
           judgment.pop(e.score || 0, 'right', ACCESS.reducedFlash);
           // RC13.5 — the PERFECT read lands with weight: the frame holds.
+          if (tier.key === 'sharp') perfectsThisRun++;
           if (tier.key === 'sharp' && !ACCESS.reducedFlash) hitStop = TUNING.JUDGE.HITSTOP_S;
         }
         {
@@ -1682,6 +1756,7 @@ function tick(dt) {
   ui.setAttractLine(attract.active
     ? { on: true, best: dailyBest(), streak: metaDaily.status(DAILY_SEED).streak }
     : { on: false });
+  attractPanels.update(dt, attract.active, ui.modality);
   attract.update(paused ? 0 : dt,
     sim.phase === PHASE.TITLE && !running && !paused && !launchPending &&
     launch.t < 0 && !onboarding?.visible && !offerActive &&
@@ -1768,7 +1843,7 @@ function tick(dt) {
     bv.x, sim.beast.side);
   stage.followLight(pv.x, pv.y, -pv.d);
   audio.update(dt, p, bands, dreadLive);
-  updateMobileTouchUi(p);
+  updateMobileTouchUi(p, running);
   // RC10.1: every frame, including paused and dead — a pad has to be able to
   // reach RESUME and AGAIN. It used to be polled from inside a runtime patch
   // of the audio bridge, purely because that ran once a frame.

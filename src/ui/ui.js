@@ -9,7 +9,7 @@ import { corruptionIntensity, veilOpacity } from '../render/corruption-curve.js'
 import { ACCESS } from './access.js';
 import { bandForDistance } from '../render/art-direction.js';
 import { reviewRow } from './review-row.js';
-import { COUNT_BEATS, FALLBACK_BPS, countValue } from './results-motion.js';
+import { COUNT_BEATS, FALLBACK_BPS, countValue, tallyValue, rankFor, TALLY_KEYS } from './results-motion.js';
 import {
   MODALITY, confirmLesson, rejectLesson, barLesson, dashReadyLine, PASS_LESSON,
 } from './teach-copy.js';
@@ -772,8 +772,25 @@ export class UI {
       c.lastBeat = null;
       c.beats += dt * FALLBACK_BPS;
     }
+    TALLY_KEYS.forEach((k, i) => {
+      const el = this._tallyEls?.[k];
+      if (!el) return;
+      const v = String(tallyValue(c.tally[k], c.beats, i));
+      if (el.textContent !== v) {
+        el.textContent = v;
+        document.dispatchEvent(new CustomEvent('dictiondash:tally-tick'));
+      }
+    });
     if (c.beats >= COUNT_BEATS) {
       c.done = true;
+      if (this.rankStamp && c.rank) {
+        this.rankStamp.textContent = c.rank;
+        this.rankStamp.dataset.r = c.rank;
+        this.rankStamp.setAttribute('aria-label', `Rank ${c.rank}`);
+        this.rankStamp.classList.add('on');
+        this.rankStamp.classList.toggle('still', ACCESS.reducedFlash);
+      }
+      document.dispatchEvent(new CustomEvent('dictiondash:rank', { detail: { rank: c.rank, pb: c.pb } }));
       this.finalDist.textContent = c.score.toLocaleString('en-US');
       this.fitHeadline();
       this.deathScreen.classList.add('settled');
@@ -831,7 +848,7 @@ export class UI {
 
   renderDeath({ distance, score, scoreLost = 0, continuesUsed = 0, failedRoute = false, avgReadMs = 0,
     seconds = 0, gates = 0, routeGates = 0, retired = [], best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult, endFlow = 0, standout = null, finished = false,
-    correct = 0, wrong = 0, bestChain = 0, reward = 0 }) {
+    correct = 0, wrong = 0, bestChain = 0, reward = 0, perfects = 0 }) {
     this._runCorrect = correct;
     this._runWrong = wrong;
     this._bestChain = bestChain;
@@ -839,7 +856,12 @@ export class UI {
     this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null, standout };
     // Phase Q: the headline counts up from zero on the beat clock — update()
     // steps it each frame via _updateCount and lands it exactly on the score.
-    this._count = { score: Math.floor(score ?? 0), beats: 0, lastBeat: null, lastTick: -1, done: false };
+    this._count = { score: Math.floor(score ?? 0), beats: 0, lastBeat: null, lastTick: -1, done: false,
+      tally: { reads: correct + wrong, perfects, chain: bestChain }, rank: rankFor({ correct, wrong, perfects }), pb: !!isPb };
+    this._tallyEls ||= Object.fromEntries([...document.querySelectorAll('#tally b')].map((b) => [b.dataset.k, b]));
+    for (const k of TALLY_KEYS) if (this._tallyEls[k]) this._tallyEls[k].textContent = '0';
+    this.rankStamp ||= document.getElementById('rankStamp');
+    if (this.rankStamp) { this.rankStamp.className = ''; this.rankStamp.textContent = ''; }
     this.finalDist.textContent = '0';
     this._bigLen = 1;
     this.fitHeadline();

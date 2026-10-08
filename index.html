@@ -290,6 +290,32 @@
 
   .screen{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(var(--safe-t) + 24px) 24px calc(var(--safe-b) + 26px);text-align:center;opacity:0;visibility:hidden;transition:opacity .32s ease,visibility .32s;pointer-events:none}
   .screen.on{opacity:1;visibility:visible}
+  /* RC13.7 — the attract cycle: HIGH SCORES and HOW TO PLAY take the title's
+     place in turn over the demo run; PRESS START blinks under all of it.
+     Pointer-events none throughout — the first touch still ends attract. */
+  #titleScreen{transition:opacity .45s ease}
+  #titleScreen.attractAway{opacity:0}
+  #attractLine.away{opacity:0!important}
+  #attractPanels{position:absolute;inset:0;z-index:31;pointer-events:none;opacity:0;transition:opacity .4s ease}
+  #attractPanels.on{opacity:1}
+  #attractPanels .apCard{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:min(84%,380px);
+    padding:22px 22px 18px;background:rgba(4,9,14,.78);border:1px solid rgba(103,216,255,.32);
+    box-shadow:0 0 40px rgba(103,216,255,.16);opacity:0;transition:opacity .4s ease;text-align:center}
+  #attractPanels .apCard.on{opacity:1}
+  #attractPanels .apHead{font-size:15px;font-weight:900;letter-spacing:.32em;color:#eaf8ff;text-shadow:0 0 16px rgba(103,216,255,.55)}
+  #attractPanels .apSub{margin-top:6px;font-size:8px;font-weight:800;letter-spacing:.26em;color:var(--dim)}
+  #attractPanels ol{list-style:none;margin-top:14px;display:flex;flex-direction:column;gap:5px}
+  #attractPanels li{display:grid;grid-template-columns:2em 3.4em 1fr;align-items:baseline;font-size:15px;font-weight:800;color:#dff4ff;font-variant-numeric:tabular-nums}
+  #attractPanels li:first-child{color:#fff6c8;text-shadow:0 0 12px rgba(255,226,140,.5)}
+  #attractPanels .apN{text-align:right;color:var(--dim);font-size:11px;padding-right:.6em}
+  #attractPanels .apI{text-align:left;letter-spacing:.12em}
+  #attractPanels .apS{text-align:right}
+  #attractPanels p{margin-top:14px;font-size:10px;font-weight:800;letter-spacing:.18em;line-height:1.6;color:#dff4ff}
+  #attractPanels .apStart{position:absolute;left:50%;bottom:calc(var(--safe-b) + 13%);transform:translateX(-50%);
+    font-size:13px;font-weight:900;letter-spacing:.4em;margin-right:-.4em;color:#eaf8ff;
+    text-shadow:0 0 18px rgba(103,216,255,.7);animation:apBlink 1.1s steps(1,end) infinite}
+  #attractPanels .apStart.still{animation:none;opacity:.85}
+  @keyframes apBlink{0%{opacity:1}55%{opacity:0}}
   #titleScreen{justify-content:space-between;background:linear-gradient(180deg,rgba(2,5,9,.5) 0%,transparent 30%,transparent 46%,rgba(2,5,9,.72) 68%,rgba(2,5,9,.92) 100%)}
   .title-lockup{margin-top:max(7vh,44px)}
   /* RC13.3 — THE TITLE AS KEY ART. The poster's two lines bracket the screen
@@ -328,6 +354,31 @@
      each beat of the count-up nudges it. REDUCED FLASH never adds .tick. */
   #deathScreen .big{text-shadow:0 4px 28px rgba(0,0,0,.35),0 0 calc(10px + 30px*var(--endFlow,0)) rgba(103,216,255,calc(.10 + .38*var(--endFlow,0)))}
   #deathScreen .big.tick{animation:countTick .22s ease-out}
+  /* RC13.7 — the arcade tally: three figures counting in turn under the
+     score, then the rank letter stamps in at the end of the row. */
+  #tally{display:flex;align-items:center;justify-content:center;gap:clamp(14px,5vw,28px);margin-top:14px}
+  #tally>span:not(#rankStamp){display:flex;flex-direction:column;align-items:center;gap:4px;font-size:8px;font-weight:800;letter-spacing:.22em;color:var(--dim)}
+  #tally b{font-size:clamp(20px,6vw,28px);font-weight:800;letter-spacing:-.02em;color:#eaf8ff;font-variant-numeric:tabular-nums}
+  #rankStamp{min-width:1.15em;font-size:clamp(40px,12vw,58px);font-weight:900;line-height:1;text-align:center;color:#eaf8ff;opacity:0;
+    text-shadow:0 0 22px rgba(103,216,255,.7)}
+  #rankStamp.on{opacity:1;animation:rankStamp .34s cubic-bezier(.2,1.6,.4,1)}
+  #rankStamp.still{animation:none}
+  #rankStamp[data-r="S"]{color:#fff6c8;text-shadow:0 0 26px rgba(255,226,140,.85)}
+  @keyframes rankStamp{0%{transform:scale(2.4) rotate(-12deg);opacity:0}60%{opacity:1}100%{transform:scale(1) rotate(-6deg)}}
+  #rankStamp.on:not(.still){transform:rotate(-6deg)}
+  /* RC13.7 — ENTER YOUR INITIALS: three lit slots inline on the card. */
+  #initialsRow{display:none;flex-direction:column;align-items:center;gap:8px;margin:14px 0 4px}
+  #initialsRow.on{display:flex}
+  #initialsRow .iHead{font-size:10px;font-weight:900;letter-spacing:.3em;color:#fff6c8;text-shadow:0 0 14px rgba(255,226,140,.55)}
+  #initialsRow .iHead.done{color:var(--dim);text-shadow:none}
+  #initialsRow .iRow{display:flex;align-items:center;gap:10px}
+  #initialsRow .iSlot{display:flex;flex-direction:column;align-items:center;gap:2px}
+  #initialsRow .iSlot b{width:44px;height:52px;display:grid;place-items:center;font-size:34px;font-weight:900;color:#eaf8ff;
+    border:1px solid rgba(103,216,255,.3);background:rgba(8,20,28,.6)}
+  #initialsRow .iSlot.cur b{border-color:rgba(160,236,255,.95);box-shadow:0 0 18px rgba(103,216,255,.45)}
+  #initialsRow .iUp,#initialsRow .iDn{width:44px;height:26px;border:0;background:transparent;color:rgba(160,236,255,.85);font-size:12px;cursor:pointer}
+  #initialsRow .iOk{margin-left:6px;min-width:0;padding:12px 14px}
+  #initialsRow .iOk:disabled{opacity:.35}
   @keyframes countTick{0%{transform:scale(1.018)}100%{transform:scale(1)}}
   .big small{font-size:.2em;font-weight:500;opacity:.36;margin-left:.28em;letter-spacing:.1em}
   .pb{margin-top:10px;color:#8be4ff;font-size:9px;letter-spacing:.4em;margin-right:-.4em;font-weight:700}
@@ -509,6 +560,13 @@
   #continueLabel{font-size:10px;font-weight:900;letter-spacing:.32em;color:rgba(244,250,253,.85)}
   #continueTimer{width:min(48%,220px);height:3px;background:rgba(255,255,255,.12);overflow:hidden}
   #continueTimer i{display:block;height:100%;width:100%;background:#8be4ff;transform-origin:left}
+  /* RC13.7 — the coin-op count: one big digit per second, punched in. */
+  #continueCount{font:900 clamp(84px,30vw,150px)/.9 var(--face);letter-spacing:-.04em;color:#f4fbff;
+    text-shadow:0 0 32px rgba(103,216,255,.6),0 4px 20px rgba(2,6,10,.8);font-variant-numeric:tabular-nums}
+  #continueCount.beat{animation:contBeat .3s cubic-bezier(.2,1.5,.4,1)}
+  #continueCount.urgent{color:#fff6c8;text-shadow:0 0 34px rgba(255,226,140,.7),0 4px 20px rgba(2,6,10,.8)}
+  @keyframes contBeat{0%{transform:scale(1.45);opacity:.4}100%{transform:scale(1);opacity:1}}
+  #continueLabel{font-size:13px!important;letter-spacing:.4em!important}
   #continueBalance{font-size:8px;font-weight:800;letter-spacing:.2em;color:rgba(235,247,252,.55)}
 
   /* RC6: the corner sound button retires — MUSIC and SFX are two rows in the
@@ -612,6 +670,12 @@
     #dist{font-size:clamp(30px,11cqw,66px)}
     #bandName{font-size:clamp(16px,5cqw,28px)}
     .big{font-size:clamp(56px,23cqw,140px)}
+    /* RC13.6/13.7: the arcade readouts, sized against the cabinet. */
+    #rankStamp{font-size:clamp(40px,12cqw,58px)}
+    #tally b{font-size:clamp(20px,6cqw,28px)}
+    #continueCount{font-size:clamp(84px,30cqw,150px)}
+    #launchCount{font-size:clamp(64px,22cqw,140px)}
+    .scorePop{font-size:clamp(18px,5cqw,28px)}
     #titleWordmark{max-height:clamp(120px,36cqw,300px)}
     #titleKicker{font-size:clamp(9px,2.6cqw,13px)}
     #titleStrap{font-size:clamp(9px,2.4cqw,12px)}
@@ -792,8 +856,10 @@
     <div id="deathTag">RUN OVER</div>
     <div class="big"><span id="finalDist">0</span></div>
     <div class="pb" id="pbTag" style="visibility:hidden">NEW BEST</div>
+    <div id="tally" aria-label="Run tally"><span><b data-k="reads">0</b>READS</span><span><b data-k="perfects">0</b>PERFECT</span><span><b data-k="chain">0</b>CHAIN</span><span id="rankStamp" aria-live="polite"></span></div>
     <div id="deathRecap"></div>
     <div class="stats" id="deathStats"></div>
+    <div id="initialsRow"></div>
     <div id="deathActions"><button class="btn primary" id="deathAgain" data-rc2-ui>AGAIN</button><button class="btn" id="deathMenu" data-rc2-ui>MENU</button></div>
     <div id="momentSlot"></div>
     <div id="shotBtns"><button class="btn" id="saveShot" data-rc2-ui>SAVE</button><button class="btn" id="copyStats" data-rc2-ui>STATS</button></div>
@@ -812,7 +878,8 @@
   </div>
 
   <div id="continueOffer">
-    <div id="continueLabel">KEEP GOING?</div>
+    <div id="continueLabel">CONTINUE?</div>
+    <div id="continueCount" aria-live="off">9</div>
     <button class="btn primary" id="continueBuy" data-rc2-ui>CONTINUE ◆30</button>
     <button class="btn" id="continuePass" data-rc2-ui>LET IT END</button>
     <div id="continueTimer"><i></i></div>

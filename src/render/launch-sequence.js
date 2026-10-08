@@ -119,6 +119,7 @@ export class LaunchSequence {
       void this.count.offsetWidth;
       this.count.classList.add('beat');
       this.count.classList.toggle('still', ACCESS.reducedFlash);
+      document.dispatchEvent(new CustomEvent('dictiondash:count-in', { detail: { go: last } }));
     }
   }
 

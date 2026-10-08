@@ -284,7 +284,7 @@ function ensureMobileUi() {
   return ui;
 }
 
-export function updateMobileTouchUi(player) {
+export function updateMobileTouchUi(player, live = true) {
   const refs = ensureMobileUi();
   if (!refs) return;
 
@@ -292,7 +292,10 @@ export function updateMobileTouchUi(player) {
   const input = globalThis.__INPUT;
   const vitals = globalThis.__UI?.vitals;
   vitals?.classList?.add('v1MobileVitals');
-  const running = sim?.phase === 'running';
+  // RC13.7: main's own `live` flag as well — a finished route's END RUN
+  // leaves the sim in its running phase under the FINISH card, and the
+  // controls drew over the card's buttons.
+  const running = live && sim?.phase === 'running';
   const meter = player?.boostMeter || 0;
   const fill = clamp(meter / TUNING.BOOST.METER_MAX);
   const armed = meter >= TUNING.BOOST.MIN_ACTIVATE;

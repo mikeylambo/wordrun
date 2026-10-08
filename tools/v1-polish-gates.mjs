@@ -1504,5 +1504,45 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     'hit-stop is presentation only (tick(0) — the fixed-step sim waits, nothing is skipped) and respects REDUCED FLASH');
 }
 
+// ── RC13.7 — the cabinet: tally, rank, initials, attract cycle ────────────
+{
+  const { tallyValue, rankFor, COUNT_BEATS, countValue } = await import('../src/ui/results-motion.js');
+  const H = await import('../src/meta/hiscore.js');
+  // Every tally figure lands EXACTLY on its value, and never runs backwards.
+  let exact = true, mono = true;
+  for (const v of [0, 1, 7, 23, 999]) for (let slot = 0; slot < 3; slot++) {
+    let prev = -1;
+    for (let b = 0; b <= COUNT_BEATS; b += 0.25) {
+      const x = tallyValue(v, b, slot);
+      if (x < prev) mono = false; prev = x;
+    }
+    if (tallyValue(v, COUNT_BEATS, slot) !== v) exact = false;
+  }
+  check(exact && mono && countValue(23456, COUNT_BEATS) === 23456,
+    'the results tally counts up monotonically and lands exactly on every figure');
+  check(rankFor({ correct: 3, wrong: 0 }) === '' && rankFor({ correct: 40, wrong: 0, perfects: 25 }) === 'S' &&
+    rankFor({ correct: 40, wrong: 0, perfects: 5 }) === 'A' && rankFor({ correct: 8, wrong: 2 }) === 'B' &&
+    rankFor({ correct: 5, wrong: 5 }) === 'C',
+    'the rank letter is the run\'s own reading: no letter under five reads, S needs accuracy AND perfects');
+  // Initials: three letters, family-safe, and a tie never bumps the earlier run.
+  check(H.cleanInitials('mjp') === 'MJP' && H.cleanInitials('ASS') === null && H.cleanInitials('AB') === null &&
+    H.cleanInitials('A1B') === null && H.stepLetter('Z', 1) === 'A' && H.stepLetter('A', -1) === 'Z',
+    'initials are three letters a general audience can see; ▲/▼ wrap the alphabet');
+  let t = [];
+  for (let k = 0; k < 12; k++) t = H.insert(t, { initials: 'AAA', score: 100 * (k + 1), time: k }).rows;
+  const tie = H.insert(t, { initials: 'BBB', score: 1200, time: 99 });
+  check(t.length === H.TABLE_SIZE && t[0].s === 1200 && H.placeFor(t, 250) === 0 && tie.place === 2 &&
+    tie.rows[0].i === 'AAA',
+    'the table keeps ten rows, highest first; a score that makes no row is not offered one; ties go below');
+  const mainSrc = read('src/main.js');
+  check(/hiscoreBoard = boardEligible \? boardKeyFor\(/.test(mainSrc) && /initials\.commit\(\);   \/\/ leaving the card/.test(mainSrc),
+    'the local table uses the online board\'s key and eligibility (no continued runs), and leaving the card keeps the score');
+  const ap = read('src/ui/attract-panels.js');
+  check(/#attractPanels\{[^}]*pointer-events:none/.test(read('index.html')) && /confirmLesson\(modality\)/.test(ap),
+    'the attract cycle never takes a touch, and teaches in the coach\'s own words');
+  check(/OFFER_SECONDS: 9,/.test(read('src/TUNING.js')) && /audio\.continueTick\(secs\)/.test(mainSrc),
+    'CONTINUE? counts down 9 · 8 · 7 … one digit and one tick per second');
+}
+
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

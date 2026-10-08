@@ -741,6 +741,47 @@ export class Audio {
 
   uiTap() { this._tone({ f0: 660, f1: 990, dur: 0.08, vol: 0.07, bus: this.bus.ui }); }
 
+  // ── RC13.7 — the coin-op set ─────────────────────────────────────────────
+  // Square-wave and pulse voices on the ui bus: the cabinet's own chip,
+  // never the score's instruments. Every one is short and sits under the
+  // music; all are synthesized, so nothing is fetched to play them.
+  _chip(f, dur, vol, delay = 0, f1 = f) {
+    this._tone({ type: 'square', f0: f, f1, dur, vol, bus: this.bus.ui, delay,
+      filter: { type: 'lowpass', freq: 3800, q: 0.7 } });
+  }
+
+  /** 3 · 2 · 1 — and GO an octave up, held. */
+  countIn(go = false) {
+    if (go) { this._chip(880, 0.34, 0.05); this._chip(1318.5, 0.3, 0.025, 0.02); }
+    else this._chip(440, 0.11, 0.045);
+  }
+
+  /** The coin drop: the two-note credit every cabinet knows. */
+  credit() { this._chip(987.8, 0.07, 0.05); this._chip(1318.5, 0.32, 0.05, 0.07); }
+
+  /** One second of the CONTINUE? countdown; it tightens as it runs out. */
+  continueTick(left = 9) {
+    const urgent = left <= 3;
+    this._chip(urgent ? 660 : 523.3, urgent ? 0.09 : 0.07, urgent ? 0.05 : 0.035);
+  }
+
+  /** A tally figure stepping up — a tiny tick, rate-limited by the caller. */
+  tallyTick() { this._chip(1567.98, 0.025, 0.018); }
+
+  /** The rank letter landing: a stamp, and a rising chord that grows with it. */
+  rankStamp(rank = 'C') {
+    this._thump(0.16, 0, this.bus.ui);
+    const notes = { S: [523.3, 659.3, 784, 1046.5], A: [523.3, 659.3, 784], B: [523.3, 659.3], C: [523.3] }[rank] || [523.3];
+    notes.forEach((f, i) => this._chip(f, 0.16 + (i === notes.length - 1 ? 0.24 : 0), 0.04, 0.05 + i * 0.07));
+  }
+
+  /** NEW BEST — the high-score fanfare: a quick climb and a held top. */
+  highScore() {
+    const run = [523.3, 659.3, 784, 1046.5, 784, 1046.5];
+    run.forEach((f, i) => this._chip(f, i === run.length - 1 ? 0.6 : 0.09, 0.045, 0.45 + i * 0.09));
+    this._tone({ type: 'triangle', f0: 1046.5, f1: 1052, dur: 0.8, vol: 0.03, bus: this.bus.ui, delay: 0.9 });
+  }
+
 
 
   courageBank(mult) {

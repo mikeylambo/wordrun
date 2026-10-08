@@ -176,7 +176,7 @@ check(!/textContent\s*=\s*['\"](?:OVER ?RUN|OVERRUN)/i.test(finishSource + skySo
 check(mobileSource.includes("go.id = 'v1MobileDash'") && mobileSource.includes("guide.id = 'v1TouchGuide'"),
   'mobile has a visible DASH affordance and a contextual gesture overlay');
 check(/import \{ updateMobileTouchUi \} from '\.\/ui\/touch-controls\.js';/.test(mainSource) &&
-  /audio\.update\(dt, p, bands, dreadLive\);\n  updateMobileTouchUi\(p\);/.test(mainSource),
+  /audio\.update\(dt, p, bands, dreadLive\);\n  updateMobileTouchUi\(p, running\);/.test(mainSource),
   'the touch controls are an import, updated from the frame loop — not from inside the audio engine');
 
 check(!finishSource.includes('requestAnimationFrame') && !mobileSource.includes('requestAnimationFrame') &&

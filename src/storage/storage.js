@@ -110,6 +110,15 @@ export const Storage = {
     return true;
   },
 
+  // RC13.7 — the cabinet's local high-score tables, one per board key
+  // (meta/hiscore.js owns the rules; this only keeps the rows).
+  hiscores(board) {
+    try { return JSON.parse(safeGet(`hiscore.${board}`) || '[]'); } catch { return []; }
+  },
+  setHiscores(board, rows) { return safeSet(`hiscore.${board}`, JSON.stringify(rows || [])); },
+  lastInitials() { return safeGet('hiscore.initials') || 'AAA'; },
+  setLastInitials(i) { return safeSet('hiscore.initials', String(i || '')); },
+
   bestAllTime() {
     const v = Number(safeGet('score.all'));
     return Number.isFinite(v) && v > 0 ? v : 0;

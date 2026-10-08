@@ -820,7 +820,9 @@ export const TUNING = {
     CONTINUE: {
       BASE_COST: 30,           // ◆ for the first continue of a run
       COST_GROWTH: 2,          // ×2 per additional continue, same run
-      OFFER_SECONDS: 5,        // decision window before the card proceeds
+      // RC13.7: the coin-op count — CONTINUE? 9 · 8 · 7 … The decline is
+      // one tap away the whole time, so the longer window costs no one.
+      OFFER_SECONDS: 9,        // decision window before the card proceeds
       REVIVE_SPEED_PAD: 6,     // revive at Redline pace + this, clamped to RUN range
     },
 
