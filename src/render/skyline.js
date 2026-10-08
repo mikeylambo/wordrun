@@ -34,6 +34,9 @@ export const SKYLINE = Object.freeze({
   SIGN_BACK_M: 40,
   SIGN_AHEAD_M: 300,
   SIGN_X: HW + 15,
+  // Roadside signs are parked (owner call, RC13.4): the city reads cleaner
+  // without them. Flip to true to bring them back — code and gates stay live.
+  SIGNS_ON: false,
 });
 
 const TOWER_CAP = Math.ceil((SKYLINE.TOWER_BACK_M + SKYLINE.TOWER_AHEAD_M) / SKYLINE.TOWER_SPACING_M) * 2 + 4;
@@ -236,7 +239,7 @@ export class Skyline {
     let q = 0;
     const j0 = Math.floor((playerD - SKYLINE.SIGN_BACK_M) / SKYLINE.SIGN_SPACING_M);
     const j1 = Math.ceil((playerD + SKYLINE.SIGN_AHEAD_M) / SKYLINE.SIGN_SPACING_M);
-    for (let k = Math.max(1, j0); k <= j1 && s < SIGN_CAP; k++) {
+    for (let k = Math.max(1, j0); SKYLINE.SIGNS_ON && k <= j1 && s < SIGN_CAP; k++) {
       const sg = signAt(seed, k);
       const cx = t.corridorX(sg.d);
       const x = cx + sg.side * sg.lateral;
