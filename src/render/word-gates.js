@@ -287,6 +287,61 @@ class Plate {
   }
 }
 
+/**
+ * RC13.6 — a wrong read SHATTERS. The resolved plate holds whole (and fully
+ * legible: on a picked fake it is showing the true spelling) for SHATTER_AT,
+ * then breaks into a grid of shards that each carry their own slice of the
+ * same texture and fly apart. Shards are built once; the material is shared.
+ */
+const SHATTER_AT = 0.5;       // seconds of the linger the plate holds whole
+const SH_COLS = 6, SH_ROWS = 3;
+const STAMP_S = 0.16;         // a right read's stamp: punch in, settle
+class Shards {
+  constructor(scene, tex) {
+    this.group = new THREE.Group();
+    this.group.visible = false;
+    this.group.renderOrder = 20;
+    this.mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false,
+      side: THREE.DoubleSide, fog: false, toneMapped: false });
+    this.parts = [];
+    for (let r = 0; r < SH_ROWS; r++) for (let c = 0; c < SH_COLS; c++) {
+      const geo = new THREE.PlaneGeometry(1, 1);
+      const uv = geo.attributes.uv;
+      for (let i = 0; i < uv.count; i++) {
+        uv.setXY(i, (c + uv.getX(i)) / SH_COLS, (r + uv.getY(i)) / SH_ROWS);
+      }
+      const m = new THREE.Mesh(geo, this.mat);
+      m.renderOrder = 20;
+      // Deterministic per-shard scatter: outward from the centre, a little up.
+      const u = (c + 0.5) / SH_COLS - 0.5, v = (r + 0.5) / SH_ROWS - 0.5;
+      const j = Math.sin((r * SH_COLS + c) * 12.9898) * 43758.5453;
+      const jit = j - Math.floor(j);
+      this.parts.push({ m, u, v, vx: u * 9 + (jit - 0.5) * 3, vy: v * 5 + 2.5 + jit * 2,
+        vz: 2 + jit * 3, spin: (jit - 0.5) * 9 });
+      this.group.add(m);
+    }
+    scene.add(this.group);
+  }
+
+  show(src, k) {
+    // `k` is 0 at the break and 1 at the end of the linger.
+    const g = this.group;
+    g.position.copy(src.mesh.position);
+    g.quaternion.copy(src.mesh.quaternion);
+    const w = src.mesh.scale.x, h = src.mesh.scale.y;
+    const t = k * (LINGER - SHATTER_AT);
+    for (const p of this.parts) {
+      p.m.scale.set(w / SH_COLS, h / SH_ROWS, 1);
+      p.m.position.set(p.u * w + p.vx * t, p.v * h + p.vy * t - 9 * t * t, p.vz * t);
+      p.m.rotation.z = p.spin * t;
+    }
+    this.mat.opacity = (1 - k) * (1 - k);
+    g.visible = true;
+  }
+
+  hide() { this.group.visible = false; }
+}
+
 // Phase A: how many unarmed plates to draw. `?lookahead=N` overrides the
 // tuning so the count can be A/B'd on a phone inside one session.
 function lookaheadCount() {
@@ -305,6 +360,7 @@ export class WordGateActors {
     this.scene = scene;
     this.current = new Plate(scene);
     this.fx = new Plate(scene);   // resolved-gate feedback, its own plate
+    this.shards = new Shards(scene, this.fx.tex);
     // One plate per lookahead slot, built once. The armed plate is a separate
     // object and no code path below can touch it.
     this.ahead = Array.from({ length: lookaheadCount() }, () => new Plate(scene));
@@ -353,6 +409,7 @@ export class WordGateActors {
     this.current.hide();
     for (const p of this.ahead) p.hide();
     this.fx.hide();
+    this.shards.hide();
   }
 
   /** Called from the sim-event drain so feedback is frame-accurate. */
@@ -419,11 +476,31 @@ export class WordGateActors {
       this.lingerT -= dt;
       const e = this.lingerGate;
       this.fx.paint(e.text, this.lingerState);
+      const age = LINGER - this.lingerT;
+      const fx = !ACCESS.reducedFlash;
+      const wrong = fx && this.lingerState === 'wrong';
+      // RC13.6: a wrong plate holds whole and fully legible until it breaks.
+      const op = wrong ? 1 : Math.max(0, this.lingerT / LINGER);
       this.fx.place(e.text, e.d, terrain.heightAt(terrain.corridorX(e.d), e.d), camera,
-        Math.max(0, this.lingerT / LINGER), terrain.corridorX(e.d));
-      if (this.lingerT <= 0) this.fx.hide();
+        op, terrain.corridorX(e.d));
+      if (fx && this.lingerState === 'right' && age < STAMP_S) {
+        // The stamp: punched in large, settling onto the sign in one beat.
+        const s = 1 + 0.24 * (1 - age / STAMP_S) ** 2;
+        this.fx.mesh.scale.multiplyScalar(s);
+      }
+      if (wrong && age < SHATTER_AT) {
+        // A short shudder as it cracks, then still — still readable.
+        const a = Math.max(0, 1 - age / 0.22) * 0.18;
+        this.fx.mesh.position.x += Math.sin(age * 90) * a;
+      }
+      if (wrong && age >= SHATTER_AT) {
+        this.shards.show(this.fx, Math.min(1, (age - SHATTER_AT) / (LINGER - SHATTER_AT)));
+        this.fx.mesh.visible = false;
+      } else this.shards.hide();
+      if (this.lingerT <= 0) { this.fx.hide(); this.shards.hide(); }
     } else {
       this.fx.hide();
+      this.shards.hide();
     }
   }
 }

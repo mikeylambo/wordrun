@@ -83,6 +83,13 @@
   .heartPip.empty .hFill{fill:rgba(236,152,215,.13)}
   .heartPip.empty .hLine{stroke:rgba(255,217,241,.34);opacity:1}
   .heartPip.empty{transform:scale(.9)}
+  /* RC13.6 — hearts as lit cabinet lamps: a glow in their own rose, a
+     specular crown, and the lamp that goes out bursts once as it does. */
+  .heartPip .hFill{filter:drop-shadow(0 0 6px rgba(236,152,215,.55)) drop-shadow(0 2px 4px rgba(70,20,60,.35))}
+  .heartPip .hGloss{fill:#fff;opacity:.55}
+  .heartPip.empty .hGloss{opacity:.08}
+  .heartPip.lost{animation:heartOut .42s ease-out}
+  @keyframes heartOut{0%{transform:scale(1.35);filter:drop-shadow(0 0 14px rgba(255,217,241,.95))}100%{transform:scale(.9);filter:none}}
   #vitals.pulse .heartPip:not(.empty){animation:heartPulse .38s ease}
   @keyframes heartPulse{0%{transform:scale(1)}35%{transform:scale(1.26)}100%{transform:scale(1)}}
   /* RC-5: the run HUD does not carry a second score. BEST lives in
@@ -133,6 +140,27 @@
     color:var(--sem-right,#57e389);text-shadow:0 2px 14px rgba(4,9,13,.8),0 0 20px currentColor;
     transition:opacity .2s ease;font-variant-numeric:tabular-nums}
   #combo.on{opacity:.96}
+  /* RC13.6 — the DAILY RUN's route as a lit track along the top edge: how far
+     through the hundred words, at a glance, without a number to read. The
+     fill is a transform (no layout), cabinet cyan, with a hot head. */
+  #routeStrip{position:absolute;left:0;right:0;top:var(--safe-t);height:3px;z-index:21;pointer-events:none;
+    background:rgba(232,244,251,.10);opacity:0;transition:opacity .25s ease}
+  #routeStrip.on{opacity:1}
+  #routeStrip i{position:absolute;inset:0;transform-origin:0 50%;transform:scaleX(var(--route,0));
+    background:linear-gradient(90deg,rgba(103,216,255,.35),rgba(103,216,255,.95));
+    box-shadow:0 0 10px rgba(103,216,255,.6);transition:transform .35s cubic-bezier(.2,.8,.3,1)}
+  /* RC13.6 — the count-in. Above the plate corridor (which starts at 28 %),
+     over the launch veil (it is part of the ceremony). GO wears the
+     semantic right-read colour; the numbers are the HUD's own white. */
+  #launchCount{position:fixed;left:50%;top:20%;z-index:71;pointer-events:none;opacity:0;
+    transform:translate(-50%,-50%);font:800 clamp(64px,22vw,140px)/1 var(--face);letter-spacing:-.03em;
+    color:#f4fbff;text-shadow:0 0 30px rgba(103,216,255,.55),0 3px 18px rgba(2,6,10,.8)}
+  #launchCount[data-go="1"]{color:var(--sem-right,#57e389);letter-spacing:.04em;text-shadow:0 0 34px currentColor,0 3px 18px rgba(2,6,10,.8)}
+  #launchCount.beat{animation:countBeat var(--beat,.42s) cubic-bezier(.2,1.4,.4,1) forwards}
+  #launchCount.beat.still{animation:countStill var(--beat,.42s) linear forwards}
+  @keyframes countBeat{0%{opacity:0;transform:translate(-50%,-50%) scale(1.7)}22%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+    78%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(.92)}}
+  @keyframes countStill{0%,80%{opacity:1}100%{opacity:0}}
   /* RC13.5 — score pops: a read's points fly off the judgment into the
      headline, which kicks when they land. Semantic colour, no new hue. */
   .scorePop{position:absolute;left:0;top:0;z-index:25;pointer-events:none;opacity:0;
@@ -723,6 +751,7 @@
   <div id="keyLegend" aria-hidden="true"></div>
   <div id="attractLine" aria-hidden="true"></div>
 
+  <div id="routeStrip" aria-hidden="true"><i></i></div>
   <div id="hud">
     <div><div class="row"><div><div id="dist">0</div><div id="distSub">0 M</div><div id="distTarget"></div><div id="vitalsSlot"></div></div><div id="best" hidden><span>BEST TODAY</span><b id="bestVal">—</b></div></div><div id="chain"></div></div>
     <div class="meter-zone"><div id="meterLabel"><span class="mLabel">DASH</span><i></i></div><div id="meterWrap"><div id="meter"></div></div></div>

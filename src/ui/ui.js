@@ -127,7 +127,9 @@ export class UI {
         `<defs><clipPath id="${uid}"><path d="${HEART_PATH}"/></clipPath></defs>` +
         `<path class="hFill" d="${HEART_PATH}"/>` +
         `<rect class="hStreak" x="0" y="22" width="24" height="22" clip-path="url(#${uid})"/>` +
-        `<path class="hLine" d="${HEART_PATH}"/>`;
+        `<path class="hLine" d="${HEART_PATH}"/>` +
+        // RC13.6: the cabinet's light — a lit cap's specular crown.
+        `<ellipse class="hGloss" cx="7.4" cy="6.6" rx="3.4" ry="2.1" transform="rotate(-28 7.4 6.6)"/>`;
       this.vitals.appendChild(h);
       this.heartPips.push(h);
     }
@@ -438,7 +440,13 @@ export class UI {
    * toward the one that wins it back. Nothing fills when the row is full.
    */
   setHearts(n, restored = false, streakFrac = 0) {
+    // RC13.6: the heart that goes out bursts as it goes, once.
+    const prev = this._heartsShown ?? n;
+    this._heartsShown = n;
     this.heartPips.forEach((h, i) => {
+      if (i >= n && i < prev && !ACCESS.reducedFlash) {
+        h.classList.remove('lost'); void h.getBoundingClientRect(); h.classList.add('lost');
+      }
       h.classList.toggle('empty', i >= n);
       // The next empty heart is the one being earned; the rest stay empty.
       const filling = i === n ? Math.max(0, Math.min(1, streakFrac)) : 0;
@@ -513,6 +521,14 @@ export class UI {
     const sub = routeGates > 0
       ? `${Math.min(sim.wordGates.next, routeGates)} / ${routeGates}`
       : `${Math.floor(sim.distance)} M`;
+    // RC13.6: the same route position, drawn as the lit strip on the top edge.
+    this.routeStrip ||= document.getElementById('routeStrip');
+    if (this.routeStrip) {
+      const on = routeGates > 0 && this.hud.classList.contains('on');
+      if (on !== this._routeOn) { this._routeOn = on; this.routeStrip.classList.toggle('on', on); }
+      const f = routeGates > 0 ? Math.min(1, sim.wordGates.next / routeGates) : 0;
+      if (f !== this._routeF) { this._routeF = f; this.routeStrip.style.setProperty('--route', f.toFixed(4)); }
+    }
     if (sub !== this._lastSub) {
       this._lastSub = sub;
       if (this.distSub) this.distSub.textContent = sub;

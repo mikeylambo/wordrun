@@ -1478,5 +1478,31 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   delete globalThis.matchMedia;
 }
 
+// ── RC13.5/13.6 — arcade feel, held to the game's own rules ────────────────
+{
+  const launchSrc = read('src/render/launch-sequence.js');
+  const wg = read('src/render/word-gates.js');
+  const html = read('index.html');
+  const mainSrc = read('src/main.js');
+  // The count-in rides the ceremony: 3·2·1 on the black, GO on the reveal.
+  // It must be over by the end of the 0.85 s reveal — the first word arms
+  // ~1.3 s after the road appears, so it can never cost reading time.
+  const full = [...launchSrc.matchAll(/\['(?:3|2|1|GO)', ([\d.]+)\]/g)].slice(0, 4).map((m) => +m[1]);
+  const startsAt = 1.5 - 0.72;
+  check(full.length === 4 && launchSrc.includes('1.5 - 0.72') &&
+    startsAt + full.reduce((x, y) => x + y, 0) <= 1.5 + 0.85,
+    'the 3·2·1·GO count-in lands on the ceremony and is gone before the reveal ends — zero reading time');
+  check(/const still = ACCESS\.reducedFlash;/.test(launchSrc) && /still \? 0\.2/.test(launchSrc) && html.includes('#launchCount.beat.still'),
+    'REDUCED FLASH gets GO alone, faded, with no punch');
+  // A wrong plate is the teaching moment — on a picked fake it shows the
+  // TRUE spelling — so it holds whole and fully opaque before it breaks.
+  const at = +(wg.match(/const SHATTER_AT = ([\d.]+)/) || [])[1];
+  check(at >= 0.45 && /const op = wrong \? 1 :/.test(wg) && /const fx = !ACCESS\.reducedFlash;/.test(wg),
+    `a wrong plate holds whole and legible for ${at}s before it shatters; REDUCED FLASH keeps the plain fade`);
+  check(/hitStop = TUNING\.JUDGE\.HITSTOP_S/.test(mainSrc) && /!ACCESS\.reducedFlash\) hitStop/.test(mainSrc) &&
+    /if \(hitStop > 0\) \{ hitStop -= rawDt; tick\(0\); return; \}/.test(mainSrc),
+    'hit-stop is presentation only (tick(0) — the fixed-step sim waits, nothing is skipped) and respects REDUCED FLASH');
+}
+
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

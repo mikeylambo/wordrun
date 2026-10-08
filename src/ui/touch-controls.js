@@ -112,6 +112,24 @@ function ensureMobileUi() {
       #v1MobileJump span{font-size:10px}
       #v1TouchFrame{width:76px;height:76px}
     }
+
+    /* RC13.6 — real arcade buttons. The outer disc is the lit bezel (on DASH
+       it is still the charge ring); ::before is the dome — a lit cap with a
+       specular crown that sinks into the bezel when pressed. No new hue: the
+       cabinet cyan the HUD already wears, and white. */
+    .v1MobileAction::before{inset:6px;border:0;
+      background:radial-gradient(60% 46% at 50% 26%,rgba(255,255,255,.34),rgba(255,255,255,0) 70%),
+        radial-gradient(circle at 50% 60%,rgba(34,50,62,.92),rgba(10,16,22,.96) 72%);
+      box-shadow:inset 0 -5px 10px rgba(0,0,0,.55),inset 0 2px 3px rgba(255,255,255,.22),0 3px 0 rgba(2,6,10,.7),0 5px 10px rgba(2,6,10,.45);
+      transition:transform .07s ease,box-shadow .07s ease}
+    .v1MobileAction span{text-shadow:0 0 10px rgba(160,236,255,.55),0 1px 2px rgba(2,6,10,.8);transition:transform .07s ease}
+    #v1MobileJump,#v1MobileFake{background:radial-gradient(circle,rgba(103,216,255,0) 62%,rgba(103,216,255,.28) 66%,rgba(103,216,255,.08) 72%,rgba(238,248,252,.10) 100%);
+      box-shadow:0 0 16px rgba(103,216,255,.16),0 4px 18px rgba(4,9,13,.2)}
+    .v1MobileAction.held::before{transform:translateY(2px) scale(.97);
+      box-shadow:inset 0 -2px 6px rgba(0,0,0,.6),inset 0 3px 8px rgba(0,0,0,.35),0 1px 0 rgba(2,6,10,.7),0 2px 4px rgba(2,6,10,.4)}
+    .v1MobileAction.held span{transform:translateY(2px)}
+    #v1MobileJump.held,#v1MobileFake.held{transform:none;box-shadow:0 0 30px rgba(103,216,255,.5),0 4px 18px rgba(4,9,13,.2)}
+    #v1MobileDash.held{transform:none}
   `;
   document.head.appendChild(style);
 

@@ -23,6 +23,11 @@ import { ACCESS } from '../ui/access.js';
 // opening flat's seconds of empty road.
 const DUR = 2.45;
 const VEIL = 'rgba(4,8,16,';
+// The count-in rides the ceremony, never the road: 3 · 2 · 1 land on the
+// black storm and GO lands on the reveal, so it costs zero reading time
+// (the first word arms ~1.3 s after the road appears). [text, seconds].
+const COUNT_FULL = [['3', 0.24], ['2', 0.24], ['1', 0.24], ['GO', 0.5]];
+const COUNT_GO = [['GO', 0.45]];
 
 // The two retry cuts. QUICK is PD-2's one-second cut (AGAIN, the pause
 // menu's restart); INSTANT is the same shape compressed for the R key.
@@ -83,6 +88,45 @@ export class LaunchSequence {
     this.el.insertBefore(this.bloom, this.strokes[0].el);
     (document.getElementById('app') || document.body).appendChild(this.el);
     this.t = -1;
+    // RC13.6 — the coin-op count-in: 3 · 2 · 1 · GO over the opening flat,
+    // starting as the world reveals. It outlives the veil (its own clock) and
+    // never blocks input; a retry gets GO alone. Styled in index.html.
+    this.count = document.createElement('div');
+    this.count.id = 'launchCount';
+    this.count.setAttribute('aria-hidden', 'true');
+    (document.getElementById('app') || document.body).appendChild(this.count);
+    this._cd = null;
+    this._cdSteps = null;
+    this._cdShown = -1;
+  }
+
+  _countUpdate(dt) {
+    if (this._cd === null || !this._cdSteps) return;
+    this._cd += dt;
+    let i = -1;
+    for (let acc = 0, k = 0; k < this._cdSteps.length; k++) {
+      if (this._cd < acc) break;
+      i = k; acc += this._cdSteps[k][1];
+      if (k === this._cdSteps.length - 1 && this._cd >= acc) { this._countStop(); return; }
+    }
+    if (i >= 0 && this._cd >= 0 && i !== this._cdShown) {
+      this._cdShown = i;
+      const last = i === this._cdSteps.length - 1;
+      this.count.textContent = this._cdSteps[i][0];
+      this.count.style.setProperty('--beat', `${this._cdSteps[i][1]}s`);
+      this.count.dataset.go = last ? '1' : '0';
+      this.count.classList.remove('beat');
+      void this.count.offsetWidth;
+      this.count.classList.add('beat');
+      this.count.classList.toggle('still', ACCESS.reducedFlash);
+    }
+  }
+
+  _countStop() {
+    this._cd = null;
+    this._cdShown = -1;
+    this.count.classList.remove('beat');
+    this.count.textContent = '';
   }
 
   begin({ quick = false, instant = false, onBlack = null } = {}) {
@@ -104,6 +148,11 @@ export class LaunchSequence {
     this._onBlack = onBlack;
     this._blackFired = false;
     this.t = 0;
+    // The count-in begins as the road reveals (the reduced-flash fade, at once).
+    const still = ACCESS.reducedFlash;
+    this._cdSteps = this._quick || still ? COUNT_GO : COUNT_FULL;
+    this._cd = -(still ? 0.2 : (this._quick ? this._cut.holdEnd : 1.5 - 0.72));
+    this._cdShown = -1;
     this.el.style.display = 'block';
     // Every stroke wears the LIVE danger accent, so every colour-vision
     // mode keeps the Redline's arrival as ITS one hue.
@@ -127,7 +176,8 @@ export class LaunchSequence {
     this.bloom.style.opacity = '0';
   }
 
-  cancel() {
+  cancel(keepCount = false) {
+    if (!keepCount) this._countStop();
     this.t = -1;
     this.el.style.display = 'none';
     // A cancelled arrival never starts the run it was covering (quitToTitle
@@ -150,13 +200,14 @@ export class LaunchSequence {
   }
 
   update(dt) {
+    this._countUpdate(dt);
     if (this.t < 0) return;
     this.t += dt;
     const t = this.t;
     const q = !!this._quick;
     const C = this._cut || CUT.quick;
     const dur = q ? C.dur : DUR;
-    if (t >= dur) { this.cancel(); return; }
+    if (t >= dur) { this.cancel(true); return; }
 
     if (ACCESS.reducedFlash) {
       // One smooth fade — no staged reveal, no slash. REDUCED FLASH takes the
@@ -166,7 +217,7 @@ export class LaunchSequence {
       const rf = q ? C.fade : 1.6;
       const a = Math.max(0, 0.9 * (1 - t / rf));
       this.el.style.background = `${VEIL}${a.toFixed(3)})`;
-      if (t >= rf) this.cancel();
+      if (t >= rf) this.cancel(true);
       return;
     }
 
