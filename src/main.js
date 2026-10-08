@@ -52,6 +52,8 @@ import { MasteryLedger } from './meta/mastery.js';
 import { Boards, boardKeyFor } from './meta/boards.js';
 import { placeFor, insert as insertHiscore } from './meta/hiscore.js';
 import { InitialsEntry } from './ui/initials.js';
+import { newlyEarned, medalById } from './meta/medals.js';
+import { rankFor } from './ui/results-motion.js';
 import { AttractPanels } from './ui/attract-panels.js';
 import { TIERS } from './words/wordlist.js';
 import { CurveLog } from './meta/curve.js';
@@ -319,6 +321,7 @@ buildCurveScreen(() => ({
   // RC10.3: the learning, tier by tier. The bank's own lists go in so the
   // ledger needs to know nothing about how words are grouped.
   mastery: { total: mastery.count, tiers: mastery.byTier(TIERS) },
+  medals: Storage.medals(),
 }));
 const metaDaily = new DailyManager(metaAdapter);
 
@@ -958,6 +961,20 @@ function finalizeRun() {
   // here rather than at the start of one, because a run abandoned on the
   // title has not taught anybody what the mode is.
   if (runMode === 'standard') learn('Daily');
+  // RC13.8 — medals: this run's feats plus the lifetime figures, judged once.
+  const medalIds = newlyEarned({
+    bestChain: sim.player.bestChain, perfects: perfectsThisRun,
+    rank: rankFor({ correct: wg.correctCount, wrong: wg.wrongCount, perfects: perfectsThisRun }),
+    score: finalScore, continued: runContinued, madeTable: hiPlace > 0,
+    finished: !!sim.escaped || !!sim.routeFinished, wrong: wg.wrongCount,
+  }, { streak: dailyCard?.streak || 0, learned: mastery.count, beaten: nemesis.retiredCount },
+  Storage.medals());
+  if (medalIds.length) Storage.addMedals(medalIds);
+  const medalsWon = medalIds.map((id) => {
+    const m = medalById(id);
+    const lit = m.unlocks && TUNING.META.COSMETICS.find((c) => c.id === m.unlocks);
+    return lit ? `${m.label} · ${lit.label} LIT` : m.label;
+  });
   // The rotating queue (Phase 21). Only the three LIVE objectives are judged
   // against this run — anything still in the queue gets no credit for a run
   // that would have satisfied it, so one exceptional run cannot front-load
@@ -995,6 +1012,7 @@ function finalizeRun() {
     wrong: wg.wrongCount,
     bestChain: sim.player.bestChain,
     perfects: perfectsThisRun,
+    medals: medalsWon,
     // RC-2: ONE reward figure on the card — bells plus cleared objectives,
     // already banked above; the card only reports the total.
     reward: banked + (objectives.reward || 0),

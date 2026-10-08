@@ -402,6 +402,23 @@
   #openCurve.hasNews::after{content:'';position:absolute;top:5px;right:6px;width:5px;height:5px;border-radius:50%;background:var(--ice);box-shadow:0 0 6px rgba(103,216,255,.8)}
   #titleGoals{display:flex;flex-direction:column;gap:9px;align-items:center}
   #titleStreak{font-size:8px;font-weight:600;letter-spacing:.28em;color:var(--dim)}
+  /* RC13.8 — the streak flame: cabinet cyan (warm hues are reserved), sized
+     by tier, a white core from two weeks, embers when today is unplayed. */
+  #titleStreak[data-tier]{display:flex;align-items:center;gap:6px;color:#bff0ff}
+  #titleStreak .flame{height:calc(14px + var(--ft,0) * 4px);width:auto;overflow:visible;transform-origin:50% 100%;
+    filter:drop-shadow(0 0 calc(3px + var(--ft,0) * 3px) rgba(103,216,255,.8));animation:flameLick 1.6s ease-in-out infinite}
+  #titleStreak .fOut{fill:#3fb4e8}
+  #titleStreak .fIn{fill:#bff0ff}
+  #titleStreak[data-tier="2"]{--ft:1}#titleStreak[data-tier="3"]{--ft:2}
+  #titleStreak[data-tier="4"]{--ft:3}#titleStreak[data-tier="5"]{--ft:4}
+  #titleStreak[data-tier="4"] .fIn,#titleStreak[data-tier="5"] .fIn{fill:#fff}
+  #titleStreak[data-tier="5"] .fOut{fill:#67d8ff}
+  #titleStreak.ember{color:var(--dim)}
+  #titleStreak.ember .flame{filter:none;opacity:.55;animation:none;transform:scaleY(.7)}
+  #titleStreak.ember .fIn{fill:#3fb4e8}
+  @keyframes flameLick{0%,100%{transform:scale(1,1) skewX(0)}30%{transform:scale(.96,1.06) skewX(-3deg)}65%{transform:scale(1.03,.95) skewX(2deg)}}
+  @media (prefers-reduced-motion:reduce){#titleStreak .flame{animation:none}}
+  #app.calm #titleStreak .flame{animation:none}
   /* RC10.3 — what the ledger has been quietly doing. One line, and only once
      there is something to say: the spaced repetition under this game is its
      best idea and it accumulated where nobody could see it. */

@@ -281,6 +281,7 @@ export class PlayerActor {
 
   _attachBody(asset) {
     this.body = new RunnerBody(asset);
+    if (this._palette) this.body.setPalette(this._palette);
     this.group.add(this.body.root);
     // The procedural limbs step aside, and so does the halo: a faceted shell
     // read as a glow around a stick figure, but over a real body it is a
@@ -456,6 +457,9 @@ export class PlayerActor {
    * the figure always reads. Cosmetic only; semantic cues live elsewhere.
    */
   setPalette({ halo, limb } = {}) {
+    // RC13.8: kept, because the body loads after the first palette is set.
+    this._palette = { halo, limb };
+    this.body?.setPalette({ limb });
     if (halo != null) {
       this.halo.material.color.setHex(halo);
       this.pool.material.color.setHex(halo);

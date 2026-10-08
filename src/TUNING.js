@@ -852,6 +852,12 @@ export const TUNING = {
       { id: 'magenta', label: 'MAGENTA', cost: 120, halo: 0xff5ed6, limb: 0xffc4f1 },
       { id: 'aurora', label: 'AURORA', cost: 250, halo: 0x7dffc4, limb: 0xd2ffe9 },
       { id: 'cobalt', label: 'COBALT', cost: 400, halo: 0x3d7cff, limb: 0xc0d4ff },
+      // RC13.8 — EARNED, not bought: a medal lights each (meta/medals.js).
+      // Both are achromatic on purpose — greyscale carries no hue, so neither
+      // can ever sit on a reserved one. That is also why the gold and violet
+      // a player might expect are not here: those are the streak-burst tiers.
+      { id: 'whitehot', label: 'WHITE-HOT', cost: 0, earn: 'rankS', halo: 0xffffff, limb: 0xffffff },
+      { id: 'chrome', label: 'CHROME', cost: 0, earn: 'streak7', halo: 0x8a8a8a, limb: 0xa8a8a8 },
     ],
 
     // Hues (degrees) a cosmetic may not sit near, with the minimum

@@ -32,6 +32,10 @@ const BODY = 0x0a1726;
 // how hard its bright seams glow.
 const BODY_TINT = 0x33506e;
 const SEAM_GLOW = 0.6;
+// Luminance-driven seams lose the texture's own colour, so they take a gain
+// to land where the cyan seams sat with the default light.
+const SEAM_LUMA_GAIN = 1.6;
+const SEAM_DEFAULT = 0x9fe8ff;
 const RIM = new THREE.Color(0x9fe8ff);
 const RIM_HOT = new THREE.Color(0xf2fdff);
 
@@ -50,6 +54,13 @@ export function rimMaterial({ opacity = 1 } = {}) {
   m.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     shader.fragmentShader = shader.fragmentShader
+      // RC13.8: the seams glow by the texture's BRIGHTNESS, in the emissive
+      // colour — so the runner light (the palette) decides their hue, not
+      // the cyan baked into the model's texture.
+      .replace('#include <emissivemap_fragment>', `#ifdef USE_EMISSIVEMAP
+  vec4 emissiveColor = texture2D( emissiveMap, vEmissiveMapUv );
+  totalEmissiveRadiance *= vec3( dot( emissiveColor.rgb, vec3( 0.299, 0.587, 0.114 ) ) ) * ${SEAM_LUMA_GAIN.toFixed(2)};
+#endif`)
       .replace('#include <common>', `#include <common>
 uniform vec3 uRimColor;
 uniform float uRimStrength;
@@ -104,7 +115,7 @@ export class RunnerBody {
           this.material.map = tex;
           this.material.color.setHex(BODY_TINT);
           this.material.emissiveMap = tex;
-          this.material.emissive.setHex(0xffffff);
+          this.material.emissive.setHex(SEAM_DEFAULT);
           this.material.emissiveIntensity = SEAM_GLOW;
           this.material.needsUpdate = true;
         }
@@ -129,6 +140,14 @@ export class RunnerBody {
     this.duration = asset.run?.duration || 1;
   }
 
+  /** RC13.8 — the runner light reaches the body: rim and seams take `limb`. */
+  setPalette({ limb } = {}) {
+    if (limb == null) return;
+    // The per-frame heat lerp starts from this colour, not the cyan constant.
+    (this._rimBase ||= RIM.clone()).setHex(limb);
+    if (this.material.emissiveMap) this.material.emissive.setHex(limb);
+  }
+
   /**
    * Pose the cycle from the stride phase (radians, 2π per stride pair — the
    * same clock the procedural rig runs on, so a frozen sim is a frozen body).
@@ -145,7 +164,7 @@ export class RunnerBody {
     const k = Math.max(0, Math.min(3, level)) / 3;
     r.uRimStrength.value = (2.2 + k * 2.6) * pulse;
     r.uRimPower.value = 2.1 - k * 0.9;           // a wider band as it burns
-    r.uRimColor.value.copy(RIM).lerp(RIM_HOT, Math.max(0, k * 1.4 - 0.4));
+    r.uRimColor.value.copy(this._rimBase || RIM).lerp(RIM_HOT, Math.max(0, k * 1.4 - 0.4));
     this.material.emissiveIntensity = SEAM_GLOW * (1 + k * 1.2) * pulse;
   }
 

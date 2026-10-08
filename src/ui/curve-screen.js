@@ -9,7 +9,17 @@
  * one thing here no other player's run can copy.
  */
 
+import { MEDALS, GROUPS } from '../meta/medals.js';
+
 const CSS = `
+/* RC13.8 — the medal wall: every medal, earned ones lit, the rest waiting. */
+#curveScreen .medalWall{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:6px;margin:4px 0 6px}
+#curveScreen .medal{display:flex;align-items:center;gap:7px;min-height:30px;padding:5px 7px;border:1px solid rgba(255,255,255,.08);
+  font-size:8px;font-weight:800;letter-spacing:.14em;color:var(--dimmer)}
+#curveScreen .medal i{flex:0 0 14px;width:14px;height:14px;border-radius:50%;border:1px solid rgba(255,255,255,.18)}
+#curveScreen .medal.on{border-color:rgba(103,216,255,.4);color:#dff4ff;background:rgba(14,34,44,.5)}
+#curveScreen .medal.on i{border:0;background:radial-gradient(circle at 35% 30%,#fff,#8be4ff 55%,#2c7fa0);box-shadow:0 0 10px rgba(103,216,255,.6)}
+#curveScreen .medal.key.on i{background:radial-gradient(circle at 35% 30%,#fff,#e8e8e8 60%,#9a9a9a);box-shadow:0 0 10px rgba(255,255,255,.55)}
 #curveScreen .cTop .cV{font-size:19px;font-weight:800;letter-spacing:-.02em;color:#eaf6fc}
 #curveScreen .cBank{display:inline-block;margin-left:10px;font-style:normal;font-size:11px;font-weight:700;letter-spacing:.12em;color:#8be4ff}
 #curveScreen .goalList{display:flex;flex-direction:column;gap:8px;margin:2px 0 4px}
@@ -140,7 +150,7 @@ export function buildCurveScreen(getData) {
   };
 
   const render = () => {
-    const { series, beaten, daily, objectives, currency, best, mastery } = getData() || {};
+    const { series, beaten, daily, objectives, currency, best, mastery, medals = [] } = getData() || {};
     // Two columns, filled by hand. `left` is who you are — the bank, the words
     // learned, today's three goals. `right` is what is moving — the rotating
     // objectives, the fortnight of curves, and the words you have beaten.
@@ -156,6 +166,15 @@ export function buildCurveScreen(getData) {
         `<span class="cV">${Math.floor(best || 0).toLocaleString('en-US')}` +
         (currency > 0 ? `<i class="cBank">◆ ${Math.floor(currency)}</i>` : '') +
         '</span></div>');
+    }
+    // RC13.8 — the medal wall. Always shown, so the unearned ones are a list
+    // of things to go and do; a medal that lights a runner says which.
+    {
+      const held = new Set(medals);
+      rows.push(`<div class="cHead">MEDALS · ${held.size} OF ${MEDALS.length}</div>`);
+      const cells = GROUPS.flatMap((g) => MEDALS.filter((m) => m.group === g)).map((m) =>
+        `<div class="medal${held.has(m.id) ? ' on' : ''}${m.unlocks ? ' key' : ''}"><i></i><span>${m.label}</span></div>`);
+      rows.push(`<div class="medalWall">${cells.join('')}</div>`);
     }
     // RC10.3 — the learning, where someone comes to look at their progress.
     // The title carries the one number; this is what it is made of. Tier by

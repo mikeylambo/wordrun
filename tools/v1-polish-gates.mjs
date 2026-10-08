@@ -1544,5 +1544,36 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     'CONTINUE? counts down 9 · 8 · 7 … one digit and one tick per second');
 }
 
+// ── RC13.8 — medals, earned lights, the streak flame ───────────────────────
+{
+  const M = await import('../src/meta/medals.js');
+  const T = (await import('../src/TUNING.js')).default;
+  const ids = M.MEDALS.map((m) => m.id);
+  check(new Set(ids).size === ids.length && M.MEDALS.every((m) => M.GROUPS.includes(m.group)),
+    'every medal is unique and sits in a group on the wall');
+  // Labels describe the feat — figures and plain words, never a coined title.
+  check(M.MEDALS.every((m) => /^[A-Z0-9 ,×·-]+$/.test(m.label) &&
+    /\d|RANK|ROUTE|TOP TEN|STREAK|LEARNED|BEATEN|PERFECT/.test(m.label)),
+    'medal labels are functional descriptions, not names — the four-name cap holds');
+  const once = M.newlyEarned({ bestChain: 60, rank: 'S', score: 120000 }, { streak: 7 }, []);
+  const again = M.newlyEarned({ bestChain: 60, rank: 'S', score: 120000 }, { streak: 7 }, once);
+  check(once.includes('chain50') && once.includes('rankS') && once.includes('rankA') && once.includes('streak7') &&
+    !once.includes('chain100') && again.length === 0 &&
+    M.newlyEarned({ score: 300000, continued: true }, {}, []).every((i) => !i.startsWith('score')),
+    'medals are earned once, by the run that does it; a continued run earns no score medal');
+  const earned = T.META.COSMETICS.filter((c) => c.earn);
+  check(earned.length === 2 && earned.every((c) => M.medalById(c.earn)?.unlocks === c.id) &&
+    earned.every((c) => { const r = c.halo >> 16 & 255, g = c.halo >> 8 & 255, b = c.halo & 255; return r === g && g === b; }),
+    'the earned runner lights are keyed to their medals and achromatic — no reserved hue is reachable');
+  // The light has to REACH the body: rim and seams follow the palette.
+  const rm = read('src/render/runner-model.js');
+  check(/setPalette\(\{ limb \} = \{\}\)/.test(rm) && /copy\(this\._rimBase \|\| RIM\)/.test(rm) &&
+    /dot\( emissiveColor\.rgb/.test(rm) && /this\.body\?\.setPalette/.test(read('src/render/actors.js')),
+    'the equipped runner light tints the 3D body (rim and seams), not only the ground pool');
+  const html = read('index.html');
+  check(/#titleStreak \.fOut\{fill:#3fb4e8\}/.test(html) && /#app\.calm #titleStreak \.flame\{animation:none\}/.test(html),
+    'the streak flame burns cabinet cyan (warm hues are reserved) and holds still under REDUCED FLASH');
+}
+
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

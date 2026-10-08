@@ -110,6 +110,17 @@ export const Storage = {
     return true;
   },
 
+  // RC13.8 — medals held (meta/medals.js owns the rules).
+  medals() {
+    try { const v = JSON.parse(safeGet('medals') || '[]'); return Array.isArray(v) ? v : []; } catch { return []; }
+  },
+  addMedals(ids) {
+    const have = this.medals();
+    const next = [...have, ...ids.filter((i) => !have.includes(i))];
+    safeSet('medals', JSON.stringify(next));
+    return next;
+  },
+
   // RC13.7 — the cabinet's local high-score tables, one per board key
   // (meta/hiscore.js owns the rules; this only keeps the rows).
   hiscores(board) {

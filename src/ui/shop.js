@@ -11,6 +11,7 @@
 
 import TUNING from '../TUNING.js';
 import { Storage } from '../storage/storage.js';
+import { medalById, unlockedCosmetics } from '../meta/medals.js';
 
 const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
 
@@ -50,7 +51,8 @@ export function buildShopPanel({ stats, onEquip, onOpen, onClose }) {
   panel.appendChild(chips);
 
   const balance = () => Math.max(0, Math.floor(stats.get('currency', 0)));
-  const owned = (id) => id === 'default' || Storage.cosmeticsOwned().includes(id);
+  const owned = (id) => id === 'default' || Storage.cosmeticsOwned().includes(id)
+    || unlockedCosmetics(Storage.medals()).includes(id);
   const equipped = () => Storage.equippedCosmetic();
 
   const entries = [];
@@ -69,7 +71,7 @@ export function buildShopPanel({ stats, onEquip, onOpen, onClose }) {
       if (owned(c.id)) {
         Storage.setEquippedCosmetic(c.id);
         onEquip?.(c);
-      } else if (balance() >= c.cost) {
+      } else if (!c.earn && balance() >= c.cost) {
         stats.increment('currency', -c.cost);
         Storage.addCosmetic(c.id);
         Storage.setEquippedCosmetic(c.id);
@@ -100,9 +102,11 @@ export function buildShopPanel({ stats, onEquip, onOpen, onClose }) {
     panel.querySelector('#shopBalance').textContent = `BALANCE ◆ ${balance()}`;
     for (const { c, b } of entries) {
       const has = owned(c.id);
-      b.textContent = has ? c.label : `${c.label} · ◆${c.cost}`;
+      // RC13.8: an earned light names the medal that lights it.
+      b.textContent = has ? c.label
+        : c.earn ? `${c.label} · ${medalById(c.earn)?.label || 'MEDAL'}` : `${c.label} · ◆${c.cost}`;
       b.classList.toggle('on', equipped() === c.id);
-      b.disabled = !has && balance() < c.cost;
+      b.disabled = !has && (!!c.earn || balance() < c.cost);
       b.style.opacity = b.disabled ? '.45' : '';
     }
   }

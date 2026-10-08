@@ -836,7 +836,7 @@ head('META — wiring and independence');
   // RC6: the goals themselves are a checklist in PROFILE; the title keeps
   // only the streak line, which is the one thing a player loses by not playing.
   check('the streak is on the title and the goals are in PROFILE',
-    ui.includes('setDaily(') && ui.includes('DAY ${card.streak}') &&
+    ui.includes('setDaily(') && (ui.includes('DAY ${card.streak}') || ui.includes('DAY ${n}')) &&
     fs.readFileSync('src/ui/curve-screen.js', 'utf8').includes('goalChip'));
 
   // The streak used to be appended to the seed line by the finalize layer.
@@ -845,7 +845,7 @@ head('META — wiring and independence');
   const writers = srcFilesAll().filter((f) => f !== 'src/ui/ui.js' &&
     /titleStreak|seedLine[^\n]*textContent\s*=/.test(fs.readFileSync(f, 'utf8')));
   check('the streak is surfaced on the title and nothing overwrites it',
-    ui.includes('DAY ${card.streak}') && writers.length === 0,
+    (ui.includes('DAY ${card.streak}') || ui.includes('DAY ${n}')) && writers.length === 0,
     writers.join(', ') || 'ui.js alone writes the title lines');
 }
 
@@ -1116,9 +1116,9 @@ head('ECONOMY — the balance finally spends');
     C && C.BASE_COST > 0 && C.COST_GROWTH > 1 && C.OFFER_SECONDS > 0,
     `◆${C?.BASE_COST} ×${C?.COST_GROWTH}`);
   const cos = T.META.COSMETICS;
-  check('cosmetics: several palettes, the default free, the rest priced',
+  check('cosmetics: several palettes, the default free, the rest priced or earned by a medal',
     Array.isArray(cos) && cos.length >= 4 && cos[0].id === 'default' &&
-    cos[0].cost === 0 && cos.slice(1).every((c) => c.cost > 0),
+    cos[0].cost === 0 && cos.slice(1).every((c) => c.cost > 0 || (c.earn && c.cost === 0)),
     cos.map((c) => `${c.label}:${c.cost}`).join(' '));
   // Phase 15: a cosmetic may never wear a hue the game uses to MEAN
   // something. The first cut of this list put GOLD and VIOLET exactly on

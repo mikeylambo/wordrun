@@ -210,9 +210,24 @@ export class UI {
    *  The goalChip rendering lives on in the recap. */
   setDaily(card) {
     if (!this.titleGoalRow || !card) return;
-    this.titleStreak.textContent = card.streak > 0
-      ? `DAY ${card.streak}${card.playedToday ? '' : ' · KEEP IT'}`
-      : '';
+    // RC13.8 — the streak flame. A gas flame in the cabinet's own cyan (the
+    // warm hues are all reserved: danger accents and the streak-burst tiers),
+    // drawn, not typeset. It grows by tier and burns white at the core from
+    // two weeks; a streak not yet kept today burns down to embers.
+    const n = card.streak | 0;
+    if (n > 0) {
+      const tier = n >= 30 ? 5 : n >= 14 ? 4 : n >= 7 ? 3 : n >= 3 ? 2 : 1;
+      this.titleStreak.dataset.tier = String(tier);
+      this.titleStreak.classList.toggle('ember', !card.playedToday);
+      this.titleStreak.innerHTML =
+        '<svg class="flame" viewBox="0 0 20 28" aria-hidden="true">'
+        + '<path class="fOut" d="M10 1C11 7 17 10 17 18a7 7 0 0 1-14 0c0-4 2-6 3-8 0 3 1 5 3 5-1-5 0-10 1-14z"/>'
+        + '<path class="fIn" d="M10 12c1 3 4 5 4 9a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 1 2 1 2 0-3 0-5 1-7z"/></svg>'
+        + `<span>DAY ${n}${card.playedToday ? '' : ' · KEEP IT'}</span>`;
+    } else {
+      this.titleStreak.textContent = '';
+      delete this.titleStreak.dataset.tier;
+    }
     this.titleGoalRow.innerHTML = '';
   }
 
@@ -848,12 +863,12 @@ export class UI {
 
   renderDeath({ distance, score, scoreLost = 0, continuesUsed = 0, failedRoute = false, avgReadMs = 0,
     seconds = 0, gates = 0, routeGates = 0, retired = [], best, isPb, shotUrl, recap, daily, objectives, review, lifetime, continued, challengeResult, endFlow = 0, standout = null, finished = false,
-    correct = 0, wrong = 0, bestChain = 0, reward = 0, perfects = 0 }) {
+    correct = 0, wrong = 0, bestChain = 0, reward = 0, perfects = 0, medals = [] }) {
     this._runCorrect = correct;
     this._runWrong = wrong;
     this._bestChain = bestChain;
     this._reward = Math.floor(reward);
-    this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null, standout };
+    this._deathExtras = { continued: !!continued, challengeResult: challengeResult || null, standout, medals };
     // Phase Q: the headline counts up from zero on the beat clock — update()
     // steps it each frame via _updateCount and lands it exactly on the score.
     this._count = { score: Math.floor(score ?? 0), beats: 0, lastBeat: null, lastTick: -1, done: false,
@@ -959,6 +974,13 @@ export class UI {
     // E4: at most ONE standout, chosen by rarity in meta/standout.js — an
     // ordinary run shows nothing here, and that is the point.
     if (extras.standout) core.push(row(extras.standout.k, extras.standout.v));
+    // RC13.8: medals earned THIS run — the one celebration row, folded to two
+    // at most so it never grows a ledger over the score.
+    if (extras.medals?.length) {
+      const m = extras.medals;
+      core.push(row(m.length > 1 ? 'NEW MEDALS' : 'NEW MEDAL',
+        m.length > 2 ? `${m[0]} · +${m.length - 1}` : m.join(' · ')));
+    }
     // RC10.3: the run's actual learning, and only when it happened. A word
     // counts here the first time it goes from being owed a repeat to being
     // read right — so this line is never the same word twice, and an ordinary
