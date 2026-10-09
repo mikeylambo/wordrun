@@ -15,7 +15,7 @@
  *   2. Two separable blur passes spread that light.
  *   3. It is added over the finished frame.
  *
- * Cost: one quarter-resolution draw of a handful of meshes and four small
+ * Cost: one sixth-resolution draw of a handful of meshes and two small
  * blur passes. The render-budget governor (scene.js) turns it off before it
  * ever lets the frame rate fall, and REDUCED FLASH halves it.
  */
@@ -82,8 +82,8 @@ export class GlowPass {
 
   _fit(renderer) {
     renderer.getDrawingBufferSize(this._size);
-    const w = Math.max(4, Math.round(this._size.x / 4));
-    const h = Math.max(4, Math.round(this._size.y / 4));
+    const w = Math.max(4, Math.round(this._size.x / 6));
+    const h = Math.max(4, Math.round(this._size.y / 6));
     if (this.rtA.width !== w || this.rtA.height !== h) { this.rtA.setSize(w, h); this.rtB.setSize(w, h); }
     return { w, h };
   }
@@ -118,8 +118,8 @@ export class GlowPass {
     scene.background = prevBg;
 
     // 2. Spread it — two separable passes, the second twice as wide.
-    for (const r of [1, 2]) {
-      this.blur.uniforms.uThresh.value = r === 1 ? G.THRESHOLD : 0;
+    for (const r of [1.5]) {   // one wide pass at 1/6 size (playtest: lighter glow)
+      this.blur.uniforms.uThresh.value = G.THRESHOLD;
       this.blur.uniforms.uStep.value.set(r / w, 0);
       this._pass(renderer, this.blur, this.rtA, this.rtB);
       this.blur.uniforms.uThresh.value = 0;

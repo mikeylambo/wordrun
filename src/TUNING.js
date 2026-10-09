@@ -331,7 +331,7 @@ export const TUNING = {
   // RC14.1 — the selective glow (render/glow-pass.js). What blooms is chosen
   // by layer; the word plate is an occluder in it and never blooms.
   GLOW: {
-    STRENGTH: 0.85,
+    STRENGTH: 0.7,
     THRESHOLD: 0.32,   // linear light below this never blooms (the road, the dark faces)
   },
 
