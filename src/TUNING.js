@@ -328,12 +328,8 @@ export const TUNING = {
   // is reachable from the dev panel and exportable as JSON. The tier ORDER is
   // fixed by ui/judgment.js against the compression thresholds — these are the
   // strings those tiers are said with, not a second opinion about the cuts.
-  // RC14.1 — the selective glow (render/glow-pass.js). What blooms is chosen
-  // by layer; the word plate is an occluder in it and never blooms.
-  GLOW: {
-    STRENGTH: 0.7,
-    THRESHOLD: 0.32,   // linear light below this never blooms (the road, the dark faces)
-  },
+  // Playtest 10/9 — the wet road (render/terrain-mesh.js setWet).
+  WET: { ENV: 2.2, ROUGHNESS: 0.16, METALNESS: 0.72 },
 
   JUDGE: {
     LABELS: {
@@ -377,11 +373,11 @@ export const TUNING = {
     // (presentation only: the sim's fixed step simply waits, nothing is
     // skipped), the score rolls up instead of snapping, and every read's
     // points fly off the judgment into the score.
-    HITSTOP_S: 0.045,
+    HITSTOP_S: 0.045,        // ~3 frames at 60 Hz; 0 switches it off
     // RC14.1 — the runner sheet's four glow states, as explicit tiers on the
     // chain: BASE · BUILDING (from 10) · HIGH FLOW (from 50) · DASH (while
     // dashing). Each tier is a distinct step, not a point on a curve.
-    GLOW_TIERS: [10, 50],        // ~3 frames at 60 Hz; 0 switches it off
+    GLOW_TIERS: [10, 50],
     ROLL_RATE: 11,           // score roll-up, per second (exponential)
     POP_S: 0.62,             // a score pop's flight, judgment → score
     POP_MIN: 1,              // reads worth fewer points than this pop nothing

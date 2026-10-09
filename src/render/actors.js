@@ -15,7 +15,6 @@
 import * as THREE from 'three';
 import { makeContactShadow } from './contact-shadow.js';
 import { loadRunnerModel, RunnerBody } from './runner-model.js';
-import { GLOW_LAYER } from './glow-pass.js';
 import TUNING from '../TUNING.js';
 
 // RC14.1: one soft radial falloff for the glow tiers' aura, drawn once.
@@ -319,9 +318,6 @@ export class PlayerActor {
     this.aura.renderOrder = 4;
     this.aura.visible = false;
     this.group.add(this.aura);
-    // RC14.1: the body's rim and the aura are light — they bloom.
-    this.body.root.traverse((o) => o.layers.enable(GLOW_LAYER));
-    this.aura.layers.enable(GLOW_LAYER);
   }
 
   _clearTracks() {

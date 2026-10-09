@@ -1594,15 +1594,9 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
 {
   const T = (await import('../src/TUNING.js')).default;
   const plate = read('src/render/word-gates.js');
-  const glow = read('src/render/glow-pass.js');
-  const scene = read('src/render/scene.js');
-  // Legibility outranks every visual change: the plate is BLACK in the glow
-  // pass (it occludes light behind it) and is never itself a source.
-  check(/this\.occluder = new THREE\.Mesh\(this\.mesh\.geometry, new THREE\.MeshBasicMaterial\(\{ color: 0x000000/.test(plate) &&
-    /this\.occluder\.layers\.set\(GLOW_LAYER\)/.test(plate) && !/this\.mesh\.layers\.enable\(GLOW_LAYER\)/.test(plate),
-    'the word plate never blooms — in the glow pass it is a black occluder, so no light bleeds through it');
-  check(/b\.glowOff = true/.test(scene) && /THRESHOLD: 0\.\d+/.test(read('src/TUNING.js')) && /uThresh/.test(glow),
-    'only bright light blooms, and the budget governor drops the glow before it ever softens the frame');
+  // Playtest 10/9: the bloom pass looked wrong on iPhone and was removed.
+  check(!fs.existsSync('src/render/glow-pass.js') && !/GLOW_LAYER/.test(plate + read('src/render/scene.js')),
+    'no full-frame bloom: the plate is drawn exactly as authored');
   const [t1, t2] = T.JUDGE.GLOW_TIERS;
   const act = read('src/render/actors.js');
   check(t1 === 10 && t2 === 50 && /const tier = p\.overdrive \? 3 : chain >= t2 \? 2 : chain >= t1 \? 1 : 0;/.test(act) &&

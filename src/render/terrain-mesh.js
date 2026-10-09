@@ -16,7 +16,6 @@
  */
 
 import * as THREE from 'three';
-import { GLOW_LAYER } from './glow-pass.js';
 import TUNING from '../TUNING.js';
 import { MOUNTAIN_BANDS, bandBlend } from './art-direction.js';
 
@@ -57,6 +56,18 @@ export class TerrainMesh {
       vertexColors: true, roughness: 0.85, metalness: 0, flatShading: false,
     });
     this.slots = [];
+    // Playtest 10/9 — WET ROADS. The surface reflects a painted panorama of
+    // the night city (render/scene.js cityEnv): a horizon glow and rows of lit
+    // panes. One prefiltered texture, no extra render — the street reads
+    // rain-slick and catches the city's light for the cost of a texture read.
+    this.setWet = (env) => {
+      const W = TUNING.WET;
+      this.material.envMap = env;
+      this.material.envMapIntensity = W.ENV;
+      this.material.roughness = W.ROUGHNESS;
+      this.material.metalness = W.METALNESS;
+      this.material.needsUpdate = true;
+    };
     const total = T.CHUNKS_AHEAD + T.CHUNKS_BEHIND + 1;
     for (let i = 0; i < total; i++) this.slots.push(this._makeSlot());
     this.dirty = [];
@@ -83,7 +94,6 @@ export class TerrainMesh {
     g.setIndex(index);
 
     const mesh = new THREE.Mesh(g, this.material);
-    mesh.layers.enable(GLOW_LAYER);   // RC14.1: the rails and grid bloom above the threshold
     mesh.frustumCulled = false;
     mesh.visible = false;
     this.scene.add(mesh);

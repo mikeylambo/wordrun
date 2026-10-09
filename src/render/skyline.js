@@ -20,7 +20,6 @@
  */
 
 import * as THREE from 'three';
-import { GLOW_LAYER } from './glow-pass.js';
 import TUNING from '../TUNING.js';
 
 const HW = TUNING.RUN.TRACK_HALF_W;
@@ -216,7 +215,6 @@ export class Skyline {
     this.towerMat = shaderMat(0, 220, 980, 1.0);
     this.towers = new THREE.InstancedMesh(box, this.towerMat, TOWER_CAP);
     this.towers.frustumCulled = false;
-    this.towers.layers.enable(GLOW_LAYER);   // lit windows bloom (render/glow-pass.js)
     this.group.add(this.towers);
 
     // Signs are dimmer than the plate by construction (uLit < the plate's
