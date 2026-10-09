@@ -1703,5 +1703,14 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     'the horizon light answers a run\'s moments: chain milestones, a DASH, each kilometre');
 }
 
+// ── Pause menu tap guard (playtest 10/9: SETTINGS → DONE landed on the title)
+{
+  const pz = read('src/ui/pause.js');
+  check(pz.includes("this.panel.addEventListener('pointerdown'") && pz.includes('e.isTrusted && act !== down') &&
+    pz.includes("getElementById('accessPanel')?.classList.contains('on')") &&
+    read('src/ui/access.js').includes("new CustomEvent('dictiondash:access-closed')"),
+    'a pause action needs a tap that starts and ends on it, never under the settings sheet or just after it');
+}
+
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

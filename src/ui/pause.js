@@ -57,10 +57,25 @@ export class PauseUI {
       this.setPaused(true);
       this.onPause?.();
     });
+    // Playtest 10/9: SETTINGS → DONE from this menu could land on the title
+    // on iPhone — a tap that began on the settings sheet finished on MENU
+    // underneath it. An action now fires only for a tap that STARTED and
+    // ENDED on the same button, never while the settings sheet is open, and
+    // not in the beat after it closes.
+    this._downAct = null;
+    this.panel.addEventListener('pointerdown', (e) => {
+      this._downAct = e.target.closest('[data-act]')?.dataset.act ?? null;
+    });
+    document.addEventListener('dictiondash:access-closed', () => { this._shieldUntil = performance.now() + 450; });
     this.panel.addEventListener('pointerup', (e) => {
       e.stopPropagation();
       const act = e.target.closest('[data-act]')?.dataset.act;
-      if (!act) return;
+      const down = this._downAct;
+      this._downAct = null;
+      // A controller press is a synthetic pointerup with no down (ui/controller-nav.js).
+      if (!act || (e.isTrusted && act !== down)) return;
+      if (document.getElementById('accessPanel')?.classList.contains('on')) return;
+      if (performance.now() < (this._shieldUntil || 0)) return;
       if (act === 'resume') { this.setPaused(false); this.onResume?.(); }
       if (act === 'restart') { this.setPaused(false); this.onRestart?.(); }
       if (act === 'quit') { this.setPaused(false); this.onQuit?.(); }

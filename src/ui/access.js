@@ -381,6 +381,8 @@ export function buildAccessPanel(hooks = {}) {
     e.stopPropagation();
     panel.classList.remove('on');
     hooks.onClose?.();
+    // The pause menu shields its buttons for a beat after this (ui/pause.js).
+    document.dispatchEvent(new CustomEvent('dictiondash:access-closed'));
   });
   panel.appendChild(done);
   showTab(tabs[0]?.pane);

@@ -70,6 +70,9 @@ gates are re-run, not assumed (`git config core.hooksPath .githooks`, then
   pressed side read as the line being cut in half). Title REMATCH line
   removed. BROADCAST look and the LOOK/STANDARD row deleted. PROFILE tidied:
   BEST / BANK stat tiles, 4-across medal coins, compact goals.
+  Pause menu tap guard: SETTINGS → DONE could land on the title on iPhone;
+  pause actions now need a same-button tap and are shielded under/after
+  the settings sheet (not reproducible headless — confirm on device).
 
 ## Open / next
 0. **Judge the prototypes on device** — SPEED BLUR / HORIZON LIGHT: keep,
