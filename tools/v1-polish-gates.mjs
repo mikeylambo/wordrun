@@ -1,3 +1,4 @@
+import { appSource } from './lib/app-source.mjs';
 import fs from 'node:fs';
 import { viewPlayer, viewBeast } from '../src/render/view-pose.js';
 
@@ -66,13 +67,13 @@ check(bellSrc.includes('f * 2.02, f1: f * 2.015') && bellSrc.includes('vol: 0.03
 }
 
 check(padSrc.includes('navigator.getGamepads') && padSrc.includes('export class PadReader') &&
-  read('src/main.js').includes('pad.update(input)'),
+  appSource().includes('pad.update(input)'),
   'the gamepad is a file main.js owns and calls, not a patch installed onto Input.prototype');
 check(padSrc.includes('button(pad, 0)') && padSrc.includes('button(pad, 7)') &&
   navSrc.includes('button(gp, 9)'),
   'controller maps A/Cross jump, RT/R2 DASH and Start pause');
 check(navSrc.includes('_visible()') && navSrc.includes('_focus(root') && navSrc.includes('PointerEvent') &&
-  read('src/main.js').includes('controllerNav.update(sim.phase)'),
+  appSource().includes('controllerNav.update(sim.phase)'),
   'controller can navigate and activate core game overlays, ticked from the frame loop');
 // RC9.9's one dash rule survives the move: the pad reaches the SAME machine.
 check(padSrc.includes('input.dashPress()') && padSrc.includes('input.dashRelease()') &&
@@ -80,7 +81,7 @@ check(padSrc.includes('input.dashPress()') && padSrc.includes('input.dashRelease
   'RT is a press and a release through Input\'s own door — no second dash decision anywhere');
 
 // ── Phase 8: run-start warm-up (the profiled stutter stays fixed) ────────
-const mainSrc = read('src/main.js');
+const mainSrc = appSource();
 const audioSrc = read('src/audio/audio.js');
 check(mainSrc.includes('function warmStart()') && mainSrc.includes('initTexture') &&
   mainSrc.includes('compileAsync'),
@@ -187,7 +188,7 @@ check(onboarding.includes('three hearts') && onboarding.includes('in a row</i> t
   check(index.includes('/src/boot.js') &&
     !/<script[^>]+src="\/src\/main\.js"/.test(index) &&
     boot.includes("import('./main.js')") && (boot.match(/import\(/g) || []).length === 1 &&
-    read('src/main.js').includes("from './ui/touch-controls.js'"),
+    appSource().includes("from './ui/touch-controls.js'"),
     'mobile control presentation is loaded by the release page, through the deferred boot and the game');
   check(/requestAnimationFrame\(\(\) => requestAnimationFrame\(load\)\)/.test(boot) &&
     boot.includes("document.visibilityState !== 'hidden'") && boot.includes('setTimeout(load, 0)'),
@@ -341,7 +342,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   // Every check in this block reads CODE, not prose. The recurring failure in
   // this repo is a guard that trips on the comment explaining it, so strip the
   // comments first and search what actually runs.
-  const codeOf = (path) => read(path)
+  const codeOf = (path, text = read(path)) => text
     .replace(/\/\*[\s\S]*?\*\//g, ' ')
     .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
 
@@ -395,7 +396,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   //    screen." The multiplier was applied once, at the recap, so the HUD kept
   //    counting from the full total and the price was invisible until it was
   //    too late to feel like one.
-  const mainCode = codeOf('src/main.js');
+  const mainCode = codeOf('src/main.js', appSource());
   const buy = mainCode.slice(mainCode.indexOf('function buyContinue'),
     mainCode.indexOf('function reviveRun'));
   check(/sim\.player\.score = Math\.floor\(sim\.player\.score \* TUNING\.SCORE\.CONTINUE_KEEP\)/.test(buy),
@@ -416,7 +417,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   const { Terrain } = await import('../src/sim/terrain.js');
   const B = TUNING.BOOST, R = TUNING.RUN;
 
-  const codeOf = (path) => read(path)
+  const codeOf = (path, text = read(path)) => text
     .replace(/\/\*[\s\S]*?\*\//g, ' ')
     .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
 
@@ -502,7 +503,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
       'and are no longer gated on it being the first run of the day');
     check(/L\.dash/.test(coach) && /text = dashReadyLine\(m\);/.test(coach),
       'the game names the dash control the moment the charge is full — it never did before');
-    const mainCode = codeOf('src/main.js');
+    const mainCode = codeOf('src/main.js', appSource());
     check(/learn\('Confirm'\)/.test(mainCode) && /learn\('Reject'\)/.test(mainCode) &&
       /learn\('Dash'\)/.test(mainCode),
       'and each lesson is retired where its action is actually performed');
@@ -545,7 +546,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
 
   // The shop freezes a live run exactly like the settings panel does, and
   // no panel survives the trip back to the title.
-  const mainSrc = read('src/main.js');
+  const mainSrc = appSource();
   check(shopSrc.includes('onOpen?.()') && shopSrc.includes('onClose?.()') &&
     mainSrc.includes('onOpen: freezeForPanel, onClose: unfreezeForPanel,\n    });') &&
     /const accessUI = buildAccessPanel\(\{\n  onOpen: freezeForPanel, onClose: unfreezeForPanel,/.test(mainSrc),
@@ -596,7 +597,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     'the Redline gap and lane interpolate with the runner, never against');
 
   const simCode = read('src/sim/sim.js');
-  const mainCode = read('src/main.js');
+  const mainCode = appSource();
   check(simCode.includes('this._capturePrev();\n      this.step(input)') &&
     simCode.includes('this.viewPrev = null'),
     'the sim captures the pre-step pose passively and clears it between runs');
@@ -613,7 +614,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
 {
   const plateSrc = read('src/render/word-gates.js');
   const simGates = read('src/sim/word-gates.js');
-  const mainCode = read('src/main.js');
+  const mainCode = appSource();
   const audioCode = read('src/audio/audio.js');
   check(simGates.includes("events?.push({ t: 'word_held'") &&
     simGates.includes('this.heldIndex = g.index'),
@@ -651,7 +652,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
 // ── N4: the bookends — the authored launch and the FINISH arrival ─────────
 {
   const launch = read('src/render/launch-sequence.js');
-  const mainCode = read('src/main.js');
+  const mainCode = appSource();
   const audioCode = read('src/audio/audio.js');
   check(!/\bsim\.|__SIM/.test(launch),
     'the launch is presentation only — it cannot read or write the sim');
@@ -681,7 +682,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
 {
   const bells = read('src/render/bells.js');
   const uiCode = read('src/ui/ui.js');
-  const mainCode = read('src/main.js');
+  const mainCode = appSource();
   const plate = read('src/render/word-gates.js');
   check(bells.includes('AdditiveBlending') && bells.includes('this.halo = new THREE.InstancedMesh'),
     'every bell wears an additive halo — visible in the darkest band');
@@ -712,7 +713,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
 {
   const guidedSrc = read('src/ui/guided.js');
   const uiCode = read('src/ui/ui.js');
-  const mainCode = read('src/main.js');
+  const mainCode = appSource();
   const accessCode = read('src/ui/access.js');
   const onboardingCode = read('src/ui/onboarding.js');
   check(!/\bsim\.|__SIM/.test(guidedSrc) && guidedSrc.includes('pointer-events:none'),
@@ -742,7 +743,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
 // ── PD-2: the continuous journey ─────────────────────────────────────────
 {
   const launchSrc = read('src/render/launch-sequence.js');
-  const mainCode = read('src/main.js');
+  const mainCode = appSource();
   const uiCode = read('src/ui/ui.js');
   const htmlCode = read('index.html');
   const audioCode = read('src/audio/audio.js');
@@ -776,7 +777,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
 // ── PD-3: the settings sheet reads like one ──────────────────────────────
 {
   const accessCode = read('src/ui/access.js');
-  const mainCode = read('src/main.js');
+  const mainCode = appSource();
   check(accessCode.includes("<h3>SETTINGS</h3>") &&
     accessCode.includes("section('GAME')") &&
     accessCode.includes("section('VISUAL')") &&
@@ -802,7 +803,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
 // row are intact behind one MORE STATS tap.
 {
   const uiCode = read('src/ui/ui.js');
-  const mainCode = read('src/main.js');
+  const mainCode = appSource();
   const htmlCode = read('index.html');
   check(uiCode.includes('<div id="deepStats" hidden>'),
     'every card opens folded — the deep stats render hidden');
@@ -844,7 +845,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   const simCode = read('src/sim/sim.js');
   const stopsSrc = read('src/sim/teach-stops.js');
   const guidedSrc = read('src/ui/guided.js');
-  const mainCode = read('src/main.js');
+  const mainCode = appSource();
   const uiCode = read('src/ui/ui.js');
   const mobileSrc = read('src/ui/touch-controls.js');
   const launchSrc = read('src/render/launch-sequence.js');
@@ -1181,7 +1182,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
 // fading in ON TOP, so a player watched ~0.8s of gameplay before the black and
 // the menu was already gone. The run is now BUILT IN THE DARK.
 {
-  const mainCode = read('src/main.js');
+  const mainCode = appSource();
   const launchSrc = read('src/render/launch-sequence.js');
   const accessCode = read('src/ui/access.js');
   const shopCode = read('src/ui/shop.js');
@@ -1202,7 +1203,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     mainCode.includes('launchPending = false;\n  launch.cancel();'),
     'quitting drops the pending run with the veil — a cancelled arrival starts nothing');
   check(mainCode.includes('if (launchPending) return;') &&
-    mainCode.includes('offerActive || launchPending) return;'),
+    mainCode.includes('continueOffer.active || launchPending) return;'),
     'no second run can start during the fade');
   check(/ACCESS\.reducedFlash\) \{[\s\S]{0,400}this\._black\(\);/.test(launchSrc),
     'REDUCED FLASH takes the world at once — it never stages a dip to black');
@@ -1221,7 +1222,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   const uiCode = read('src/ui/ui.js');
   const audioCode = read('src/audio/audio.js');
   const accessCode = read('src/ui/access.js');
-  const mainCode = read('src/main.js');
+  const mainCode = appSource();
   const mobileCode = read('src/ui/touch-controls.js');
   const musicCode = read('src/music-track.js');
 
@@ -1281,7 +1282,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
 
 // ── RC6: the cabinet loop ────────────────────────────────────────────────
 {
-  const mainCode = read('src/main.js');
+  const mainCode = appSource();
   const attractSrc = read('src/render/attract.js');
   const accessCode = read('src/ui/access.js');
   const shopCode = read('src/ui/shop.js');
@@ -1375,9 +1376,9 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
 // ── Playtest notes come with a replay ───────────────────────────────────────
 {
   const dev = read('src/dev/dev-tools.js');
-  const mainCode = read('src/main.js');
+  const mainCode = appSource();
   check(dev.includes("params.get('playtest') === '1' || params.get('dev') === '1'") &&
-    /replay: challengeLinkForLastRun\(\)/.test(mainCode) && /trail: gateTrail\.map/.test(mainCode) &&
+    /replay: app\.challengeLinkForLastRun\(\)/.test(mainCode) && /trail: app\.gateTrail\.map/.test(mainCode) &&
     /mountDevTools\(\{ terrain: \(\) => sim\.terrain, report: playtestReport \}\)/.test(mainCode),
     'the REPORT button exists only behind ?playtest=1 / ?dev=1, and its report carries the exact replay link');
 }
@@ -1427,7 +1428,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
 // ── Haptics reach every phone ───────────────────────────────────────────────
 {
   const hap = read('src/ui/haptics.js');
-  const mainCode = read('src/main.js');
+  const mainCode = appSource();
   check(hap.includes("box.setAttribute('switch', '')") && hap.includes('if (!canVibrate())') &&
     hap.includes("label.setAttribute('aria-hidden', 'true')") && hap.includes('pointer-events:none'),
     'a phone without navigator.vibrate (iOS) gets the system switch tick instead of nothing — hidden, unfocusable');
@@ -1483,7 +1484,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   const launchSrc = read('src/render/launch-sequence.js');
   const wg = read('src/render/word-gates.js');
   const html = read('index.html');
-  const mainSrc = read('src/main.js');
+  const mainSrc = appSource();
   // The count-in rides the ceremony: 3·2·1 on the black, GO on the reveal.
   // It must be over by the end of the 0.85 s reveal — the first word arms
   // ~1.3 s after the road appears, so it can never cost reading time.
@@ -1534,7 +1535,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   check(t.length === H.TABLE_SIZE && t[0].s === 1200 && H.placeFor(t, 250) === 0 && tie.place === 2 &&
     tie.rows[0].i === 'AAA',
     'the table keeps ten rows, highest first; a score that makes no row is not offered one; ties go below');
-  const mainSrc = read('src/main.js');
+  const mainSrc = appSource();
   check(/hiscoreBoard = boardEligible \? boardKeyFor\(/.test(mainSrc) && /initials\.commit\(\);   \/\/ leaving the card/.test(mainSrc),
     'the local table uses the online board\'s key and eligibility (no continued runs), and leaving the card keeps the score');
   const ap = read('src/ui/attract-panels.js');

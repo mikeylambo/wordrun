@@ -1,3 +1,4 @@
+import { appSource } from './lib/app-source.mjs';
 /**
  * Route gates (Phase L) — the reading constraint, measured on the routed
  * track with the REAL rig.
@@ -416,7 +417,7 @@ head('CABINET — a framed screen is the portrait screen, measured');
     check('and with no ghost on record the runner is still on the track',
       visible === true, `player figure visible: ${visible}`);
     check('the loop raises no HUD — a score, hearts and a meter belong to a run',
-      /onEnter: \(\) => \{ ui\.showHud\(false\); \}/.test(fs.readFileSync('src/main.js', 'utf8')) &&
+      /onEnter: \(\) => \{ ui\.showHud\(false\); \}/.test(appSource()) &&
       !/bestScore/.test(fs.readFileSync('src/render/attract.js', 'utf8')));
   }
 
@@ -437,7 +438,7 @@ head('CABINET — a framed screen is the portrait screen, measured');
   check('it is off on touch and off in portrait, and dims on the lessons the coach uses',
     /const on = framed && !touch && running;/.test(cab) &&
     /classList\.toggle\('used', !!L\[k\.id\]\)/.test(cab) &&
-    /learned: learnedNow/.test(fs.readFileSync('src/main.js', 'utf8')),
+    /learned: learnedNow/.test(appSource()),
     'usedConfirm / usedReject / usedDash / usedBar — no new state, and no second opinion');
   check('and it reads nothing from the sim',
     !/__SIM|sim\.|player\./.test(cab), 'layout only, as the pass promised');

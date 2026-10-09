@@ -1,3 +1,4 @@
+import { appSource } from './lib/app-source.mjs';
 /**
  * Corruption presentation gates — Phase 4.
  *
@@ -374,7 +375,7 @@ head('VIBRANCY — red belongs to the Redline alone');
     !/shadowColor = state === 'idle'/.test(plate) &&
     plate.includes('fog: false, toneMapped: false'));
 
-  const main = fs.readFileSync('src/main.js', 'utf8');
+  const main = appSource();
   check('the burst fires from the payoff event, keyed to the chain',
     main.includes('streakBurst.fire(e)') && burst.includes('chain >= 7') &&
     burst.includes('chain >= 3'));
@@ -399,7 +400,7 @@ head('FLOW — brilliance is earned; loss is darkness');
   check('the marquee pulse only wakes near peak flow',
     flowPulse(0.4, 0.1) === 1 && flowPulse(1, 0.11) !== 1);
 
-  const main = fs.readFileSync('src/main.js', 'utf8');
+  const main = appSource();
   check('the world consumes the one flow value (grid, line art, pylons, figure)',
     main.includes('uP9Flow.value = flowF') && main.includes('dataworld.setFlow(flowF)') &&
     main.includes('trackPylons.setFlow(flowF)') && main.includes('playerActor.flow = flowF'));
@@ -429,7 +430,7 @@ head('ACCESS — reduced flash, readable type, colour-vision axes');
 
 {
   const access = fs.readFileSync('src/ui/access.js', 'utf8');
-  const main = fs.readFileSync('src/main.js', 'utf8');
+  const main = appSource();
   const plates = fs.readFileSync('src/render/word-gates.js', 'utf8');
   const world = fs.readFileSync('src/render/corruption.js', 'utf8');
 
@@ -464,7 +465,7 @@ head('ACCESS — reduced flash, readable type, colour-vision axes');
   check('plates repaint once the bundled face resolves',
     plates.includes('plateFontReady') && plates.includes('fontEpoch') &&
     plates.includes('${ACCESS.epoch}|${fontEpoch}') &&
-    fs.readFileSync('src/main.js', 'utf8').includes('Promise.race([plateFontReady'));
+    appSource().includes('Promise.race([plateFontReady'));
   check('choices persist through storage prefs',
     access.includes('Storage.setAccessPrefs') &&
     fs.readFileSync('src/storage/storage.js', 'utf8').includes('accessPrefs()'));
@@ -636,7 +637,7 @@ head('DASH — the second verb, finally legible');
     ui: fs.readFileSync('src/ui/ui.js', 'utf8'),
     mobile: fs.readFileSync('src/ui/touch-controls.js', 'utf8'),
     onboard: fs.readFileSync('src/ui/onboarding.js', 'utf8'),
-    main: fs.readFileSync('src/main.js', 'utf8'),
+    main: appSource(),
     audio: fs.readFileSync('src/audio/audio.js', 'utf8'),
     rig: fs.readFileSync('src/render/camera-rig.js', 'utf8'),
     speed: fs.readFileSync('src/render/speed-fantasy.js', 'utf8'),
@@ -898,7 +899,7 @@ head('RESULTS — the score lands on the beat, exactly');
     countProgress(2) > 2 / COUNT_BEATS && Math.abs(countProgress(COUNT_BEATS) - 1) < 1e-12);
 
   const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
-  const main = fs.readFileSync('src/main.js', 'utf8');
+  const main = appSource();
   const html = fs.readFileSync('index.html', 'utf8');
   check('the beat clock drives the count, with a frame-time fallback for silence',
     ui.includes("if (clock?.playing)") && ui.includes('clock.beat') &&
@@ -943,7 +944,7 @@ head('RESULTS — the score lands on the beat, exactly');
 head('SHARE — the card carries the run\'s flow band');
 
 {
-  const main = fs.readFileSync('src/main.js', 'utf8');
+  const main = appSource();
   const shot = fs.readFileSync('src/ui/share-card.js', 'utf8');
   check('the share card renders the ended flow band, in the flow\'s own cyan',
     shot.includes('const f = flowLevel') && shot.includes('rgba(103,216,255,') &&
@@ -958,7 +959,7 @@ head('HUD — one alarm colour, one instruction, pause-only chrome');
 {
   const html = fs.readFileSync('index.html', 'utf8');
   const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
-  const main = fs.readFileSync('src/main.js', 'utf8');
+  const main = appSource();
   const access = fs.readFileSync('src/ui/access.js', 'utf8');
 
   // Hearts left saturated red — that hue is the Redline's alarm. Compute
@@ -1027,7 +1028,7 @@ head('HUD — one alarm colour, one instruction, pause-only chrome');
 head('BEATS — discrete arrivals, no labels, no new controls');
 
 {
-  const main = fs.readFileSync('src/main.js', 'utf8');
+  const main = appSource();
   const audio = fs.readFileSync('src/audio/audio.js', 'utf8');
   const rig = fs.readFileSync('src/render/camera-rig.js', 'utf8');
   const player = fs.readFileSync('src/sim/player.js', 'utf8');
@@ -1142,7 +1143,7 @@ head('REGRESSIONS — a hold that was timed late, a line that strobed, a look');
   check('and it shows at most once a run, retiring on the first raise',
     /if \(this\._lessons\.bar\) \{ this\._barLineDone = true;/.test(uiSrc2) &&
     /resetCoach\(\) \{ this\._barLineAt = 0; this\._barLineDone = !!this\._lessons\?\.bar; \}/.test(uiSrc2) &&
-    fs.readFileSync('src/main.js', 'utf8').includes('ui.resetCoach();'),
+    appSource().includes('ui.resetCoach();'),
     'a lesson that reappears is a lesson nobody believes');
 
   // (3) THE LOOK. BROADCAST is a post pass on the WebGL canvas and cannot
@@ -1265,7 +1266,7 @@ head('CUES — excellent play crests in ONE band, and a wrong read drops it');
       `parking on the ladder's top five past chain ${LD.STRING_TOP_START - 1}`);
     // And nothing may keep a private copy of the notes.
     const audioSrc = fs.readFileSync('src/audio/audio.js', 'utf8');
-    const mainSrc = fs.readFileSync('src/main.js', 'utf8');
+    const mainSrc = appSource();
     check('there is exactly ONE ladder table in the game, and both voices read it',
       !/\[0, ?4, ?7, ?11, ?14\]/.test(audioSrc) && !/622\.25/.test(audioSrc) &&
       !/\[0, ?2, ?4, ?7, ?9\]/.test(audioSrc) &&
@@ -1311,7 +1312,7 @@ head('STANDOUT — one line, chosen by rarity, or nothing at all');
   check('the dash standout speaks in the ladder\'s own multiplier',
     pickStandout({ dashRung: 4 }).v === `×${TUNING.SCORE.DASH_CHAIN_MULT[4]}`);
 
-  const main = fs.readFileSync('src/main.js', 'utf8');
+  const main = appSource();
   const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
   const wgSrc = fs.readFileSync('src/sim/word-gates.js', 'utf8');
   check('the ledgers ride the same event the score does, and a wrong read breaks them',
@@ -1430,7 +1431,7 @@ head('MOMENT — the run\'s best stretch, bounded, frozen, and offered once');
     standoutRank({ bestChain: FLOORS.CLEAN }) >
       standoutRank({ avgReadMs: FLOORS.AVG_READ_MS, reads: FLOORS.AVG_READ_MIN_N }));
 
-  const main = fs.readFileSync('src/main.js', 'utf8');
+  const main = appSource();
   const cap = fs.readFileSync('src/render/moment-capture.js', 'utf8');
   const clip = fs.readFileSync('src/ui/moment-clip.js', 'utf8');
   const gif = fs.readFileSync('src/ui/gif.js', 'utf8');
@@ -1619,7 +1620,7 @@ head('SOAK — one protocol, a phone and a matrix runner');
 {
   const soak = fs.readFileSync('src/dev/soak.js', 'utf8');
   const audit = fs.readFileSync('tools/capture-audit.mjs', 'utf8');
-  const main = fs.readFileSync('src/main.js', 'utf8');
+  const main = appSource();
   check('the sampler, the mirrored passes and the verdicts live in one file',
     /export function sample\(/.test(soak) && /export async function price\(/.test(soak) &&
     /export function verdicts\(/.test(soak));

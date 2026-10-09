@@ -1,3 +1,4 @@
+import { appSource } from './lib/app-source.mjs';
 /**
  * Meta-layer gates — the SLU-shell-ported managers (stats, daily goals,
  * play streak) and the learning recap.
@@ -305,7 +306,7 @@ head('MODES — rules, difficulty, and separated boards');
     + `${HEARTS.STREAK_REPAIR_BY_HEARTS[2]} otherwise`);
 
   const storage = fs.readFileSync('src/storage/storage.js', 'utf8');
-  const main = fs.readFileSync('src/main.js', 'utf8');
+  const main = appSource();
   check('bests, ghosts and run counts are stored per mode/difficulty variant',
     storage.includes("vkey('score', seed)") && storage.includes("vkey('ghost', seed)") &&
     storage.includes("vkey('runs', seed)") && main.includes('syncVariant()'));
@@ -331,11 +332,11 @@ head('MUSIC — one score: the full track and its beat clock, no stem engine');
   const audioSrc = fs.readFileSync('src/audio/audio.js', 'utf8');
   check('the audio engine no longer builds or drives stems',
     !/StemMix|this\.stems|stemLevels|musicTrackLive/.test(audioSrc) &&
-    !/musicTrackLive/.test(fs.readFileSync('src/main.js', 'utf8')));
+    !/musicTrackLive/.test(appSource()));
   check('the full track ships and the beat clock is what the run reacts to',
     fs.existsSync('public/audio/music/into-the-night.mp3') &&
     fs.existsSync('src/music-track.js') && fs.existsSync('src/render/music-response.js') &&
-    fs.readFileSync('src/main.js', 'utf8').includes('musicResponse(clock'));
+    appSource().includes('musicResponse(clock'));
   check('no dial for a stem bus survives in tuning', !/MUSIC_MAX|STEM/.test(fs.readFileSync('src/TUNING.js', 'utf8')));
 }
 
@@ -346,7 +347,7 @@ head('BOARD POLICY — DAILY on NORMAL only, ENDLESS per difficulty, no continue
   check('the policy is a tuning constant with the four decided rules',
     P && P.DAILY_DIFFICULTY === 'normal' && P.ENDLESS_PER_DIFFICULTY === true &&
     P.CONTINUE_ELIGIBLE === false && P.GOALS_ANY_DIFFICULTY === true);
-  const main = fs.readFileSync('src/main.js', 'utf8');
+  const main = appSource();
   check('the DAILY chip forces the board difficulty and locks the row, with no copy',
     main.includes("runMode === 'standard' ? BOARD.DAILY_DIFFICULTY : runDifficulty") &&
     main.includes("b.classList.toggle('locked', locked)") &&
@@ -424,7 +425,7 @@ head('BOARDS — decided, gated, and reaching nothing');
       await dark.submit({ mode: 'endless', difficulty: 'hard', name: 'Mike', score: 10 }) === null &&
       await dark.top('endless:hard') === null,
       'nothing in the shipped build sets an endpoint or a key');
-    const main = fs.readFileSync('src/main.js', 'utf8');
+    const main = appSource();
     check('and the game constructs it dark, with the offer behind the same eligibility rule',
       main.includes('const boards = new Boards({});') &&
       main.includes('if (boardEligible && boards.enabled) {'),
@@ -652,7 +653,7 @@ head('RIVAL — a challenge that is an opponent rather than a number');
 
   // Wiring, and the one rule about which ghost a player gets.
   {
-    const main = fs.readFileSync('src/main.js', 'utf8');
+    const main = appSource();
     const gl = fs.readFileSync('src/meta/ghost-link.js', 'utf8');
     check('a challenge rival beats the local best, and BEST RUN off beats both',
       main.includes('function ghostForRun()') &&
@@ -697,7 +698,7 @@ head('MASTERY — the ledger\'s work, finally visible and honestly counted');
     const uiSrc = fs.readFileSync('src/ui/ui.js', 'utf8');
     check('the title says it beside the learned count, spelled right',
       uiSrc.includes('`REMATCH: ${rematch.id.toUpperCase()}`') &&
-      fs.readFileSync('src/main.js', 'utf8').includes('ui.setMastery(mastery.count, nemesis.toughest());'));
+      appSource().includes('ui.setMastery(mastery.count, nemesis.toughest());'));
   }
 
   // The definition, driven end to end against the REAL nemesis ledger: a word
@@ -770,7 +771,7 @@ head('MASTERY — the ledger\'s work, finally visible and honestly counted');
 
   // Wiring: one hook each way, and the surfaces that show it.
   {
-    const main = fs.readFileSync('src/main.js', 'utf8');
+    const main = appSource();
     const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
     const curve = fs.readFileSync('src/ui/curve-screen.js', 'utf8');
     const html = fs.readFileSync('index.html', 'utf8');
@@ -806,7 +807,7 @@ head('META — wiring and independence');
   check('meta modules are standalone (no sim, render or three imports)',
     !/from '\.\.\/(sim|render)\//.test(stats + daily) && !/from 'three'/.test(stats + daily));
 
-  const main = fs.readFileSync('src/main.js', 'utf8');
+  const main = appSource();
   check('the run end feeds the ledger, the goals and the recap',
     main.includes('metaStats.increment') && main.includes('metaDaily.recordRun') &&
     main.includes('recap: wg.misses'));
@@ -887,7 +888,7 @@ head('SHARE GRID — the daily result reads in any chat, and spoils nothing');
   const shareSrc = fs.readFileSync('src/ui/share.js', 'utf8');
   check('SHARE leads with the grid on a DAILY RUN, and the clipboard carries it too',
     shareSrc.includes('const summary = deps.shareText()') && shareSrc.includes('`${summary}\\n${url}`') &&
-    fs.readFileSync('src/main.js', 'utf8').includes("lastRunGrid = runMode === 'standard' ? shareGrid({"));
+    appSource().includes("lastRunGrid = runMode === 'standard' ? shareGrid({"));
 }
 
 // ── Fair fakes: the data, kept locally and exported by hand ─────────────
@@ -917,7 +918,7 @@ head('FAKE TALLY — which fakes fool, which are wasted gates');
     v.unfair[0]?.[0] === 'recieve' && v.wasted[0]?.[0] === 'begining',
     `${v.unfair.length} unfair, ${v.wasted.length} wasted`);
 
-  const mainSrc = fs.readFileSync('src/main.js', 'utf8');
+  const mainSrc = appSource();
   check('main tallies only fakes: passed or rejected is "not fooled", tapped is "fooled"',
     mainSrc.includes("if (!e.real) fakeTally.record({ family: e.family, fake: e.word, answer: e.answer, tapped: false });") &&
     mainSrc.includes("if (e.reason === 'picked_fake') fakeTally.record({ family: e.family, fake: e.word, answer: e.answer, tapped: true });") &&
@@ -955,7 +956,7 @@ head('CHALLENGE — the run as a URL, pure and validated');
     buildChallengeLink('b', { seedString: 's', mode: 'endless', difficulty: 'normal', salt: 1, goal: 0 })
       === 'b?draft=s');
 
-  const main = fs.readFileSync('src/main.js', 'utf8');
+  const main = appSource();
   check('main pins seed, rules AND the word salt from the link',
     main.includes('parseChallenge(location.search)') &&
     main.includes('hashString(CHALLENGE.seedString)') &&
@@ -1174,7 +1175,7 @@ head('ECONOMY — the balance finally spends');
     unreservedDanger.map((h) => `${h.toFixed(0)}deg unreserved`).join(', ') ||
       `${dangerHues.length} danger accents accounted for`);
 
-  const main = fs.readFileSync('src/main.js', 'utf8');
+  const main = appSource();
   check('the continue spends the same ledger the bells feed',
     main.includes("metaStats.increment('currency', -cost)"));
   check('a continued run never sets the best and never saves a ghost',
@@ -1253,7 +1254,7 @@ head('EXPORT — the calibration data path, hand-carried');
   // And the wiring: the button exists, and it reaches for the clipboard
   // before the share sheet, with no network either way.
   const html = fs.readFileSync('index.html', 'utf8');
-  const main = fs.readFileSync('src/main.js', 'utf8');
+  const main = appSource();
   check('the results card offers the export as a footnote action',
     html.includes('id="copyStats"') && html.includes('>STATS<'));
   // Scoped to the handler: main.js does fetch once, for the screenshot's own
@@ -1346,7 +1347,7 @@ head('OBJECTIVES — three live, drawn from a pool, no retroactive credit');
     rewardFor(0) > 0 && rewardFor(30) > rewardFor(0) &&
     !/speed|heart|ceiling|multiplier/i.test(
       fs.readFileSync('src/meta/objectives.js', 'utf8').split('export function rewardFor')[1].slice(0, 200)));
-  const mainSrc = fs.readFileSync('src/main.js', 'utf8');
+  const mainSrc = appSource();
   check('the run pays the reward into the same balance the bells feed',
     mainSrc.includes("metaStats.increment('currency', objectives.reward)"));
   check('the objectives are judged on the run that just ended, once',
@@ -1424,7 +1425,7 @@ head('REVIEW — the run as a shape, from data already recorded');
   const wgSrc = fs.readFileSync('src/sim/word-gates.js', 'utf8');
   check('the miss record carries where it happened',
     wgSrc.includes('d: g.d, index: g.index'));
-  const mainSrc2 = fs.readFileSync('src/main.js', 'utf8');
+  const mainSrc2 = appSource();
   check('the review reads the recorder the ghost already fills',
     mainSrc2.includes('buildReview({ samples: sim.recorder.samples, misses: wg.misses })'));
   const reviewSrc = fs.readFileSync('src/meta/review.js', 'utf8');
@@ -1670,7 +1671,7 @@ head('RETIREMENT — the flourish introduces no colour the grammar does not own'
   const audioSrc = fs.readFileSync('src/audio/audio.js', 'utf8');
   check('the retirement cue is its own one-shot in the audio engine',
     /wordRetired\s*\(\)\s*\{/.test(audioSrc) &&
-    fs.readFileSync('src/main.js', 'utf8').includes('audio.wordRetired()'));
+    appSource().includes('audio.wordRetired()'));
 }
 
 console.log(out.join('\n'));

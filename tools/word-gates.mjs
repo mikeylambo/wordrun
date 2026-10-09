@@ -1,3 +1,4 @@
+import { appSource } from './lib/app-source.mjs';
 /**
  * DICTION DASH verb gates — the word-list module's own tests plus the sim-level
  * acceptance gates from the build brief:
@@ -631,7 +632,7 @@ head('LOOKAHEAD — more gates are shown, no more gates are answerable');
 
   // Phase 8.1 warms every plate before the run so the first frame is a cache
   // hit. Adding plates without warming them puts that start hitch back.
-  const mainSrc = fs.readFileSync('src/main.js', 'utf8');
+  const mainSrc = appSource();
   check('every lookahead plate is pre-warmed with the armed one',
     mainSrc.includes('...wordGateActors.ahead, wordGateActors.fx') &&
     mainSrc.includes('wordGateActors.ahead.forEach'),
@@ -745,7 +746,7 @@ head('LATENCY — the early read is worth more, and costs the window nothing');
   // No word may be printed for a fast read. Checked where the feedback is
   // actually issued rather than by banning vocabulary the game already uses
   // elsewhere for its own reasons ("PERFECT RUN" is the flawless-run recap).
-  const mainTxt = fs.readFileSync('src/main.js', 'utf8');
+  const mainTxt = appSource();
   const block = mainTxt.slice(mainTxt.indexOf("case 'word_correct'"));
   const body = block.slice(0, block.indexOf("case 'word_wrong'"));
   check('nothing announces the early read in words',
@@ -1012,7 +1013,7 @@ head('THE DAILY ROUTE — the same hundred words for everyone');
     a.join('|') === b.join('|') && a.length === 100 && new Set(a).size > 80,
     `100 gates, ${new Set(a).size} distinct words, byte-identical between players`);
 
-  const mainSrc = fs.readFileSync('src/main.js', 'utf8');
+  const mainSrc = appSource();
   check('the daily pins its word salt and endless re-rolls it',
     /runMode === 'standard' \? 0/.test(mainSrc) && /: runs \+ 1/.test(mainSrc),
     're-rolling the daily would make two players play different games');
@@ -1232,7 +1233,7 @@ head('LAST STAND — one more word before the run ends');
     'a restart gets a fresh one; a continue inside a run does not');
 
   // A recovered run is a skill save, so it keeps every board right it had.
-  const mainSrc = fs.readFileSync('src/main.js', 'utf8');
+  const mainSrc = appSource();
   // Phase J moved the eligibility test onto one line: the continue flag and
   // the board policy, and nothing else — a stand is never in the expression.
   check('a recovered run is still board-eligible',
@@ -1753,7 +1754,7 @@ head('STRIDE — the figure runs on GROUND, so a frozen sim is a frozen figure')
   }
   {
     const html = fs.readFileSync('index.html', 'utf8');
-    const mainSrc = fs.readFileSync('src/main.js', 'utf8');
+    const mainSrc = appSource();
     const uiSrc2 = fs.readFileSync('src/ui/ui.js', 'utf8');
     const FIVE = ['#app.breathing #guidedTeach .gtMain', '#app.breathing #barMarks i.lit',
       '#app.breathing #vitals .heartPip:not(.empty) .hFill', '#app.breathing #dist',
@@ -2130,7 +2131,7 @@ head('DANGER — how hard a word is to read, from the word itself');
     check('the rating reaches the review panel and nowhere else',
       /dangerBand\(dangerFor\(/.test(row) &&
       /renderMissedPanel\(\(w\) => nemesis\.history\(w\)\)/
-        .test(fs.readFileSync('src/main.js', 'utf8')) &&
+        .test(appSource()) &&
       !/dangerFor\(/.test(fs.readFileSync('src/ui/ui.js', 'utf8')),
       'drawn per missed word, with that word\'s own ledger row as evidence');
 

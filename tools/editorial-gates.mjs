@@ -1,3 +1,4 @@
+import { appSource } from './lib/app-source.mjs';
 /**
  * Editorial World gates (Phase M).
  *
@@ -331,7 +332,7 @@ head('L4 — the drop empties, the tunnel closes, the canyon walls, the narrows 
 head('WIRING — explicit integration, frame-accurate loss');
 
 {
-  const main = fs.readFileSync('src/main.js', 'utf8');
+  const main = appSource();
   const worldSrc = fs.readFileSync('src/render/editorial-world.js', 'utf8');
   check('main.js constructs the world and drives it from the frame loop',
     main.includes('new EditorialWorld(stage.scene, sim.terrain)') &&

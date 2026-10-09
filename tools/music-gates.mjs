@@ -1,3 +1,4 @@
+import { appSource } from './lib/app-source.mjs';
 /**
  * Gates for the score map format and its runtime (music/FORMAT.md).
  *
@@ -294,7 +295,7 @@ console.log('\nHIGH LAYER — one hook re-opened from the retired stem engine');
     // engine's own bus and dial, which is the record of what is NOT here.
     const liveAudio = audioSrc.replace(/\/\*[\s\S]*?\*\//g, '')
       .split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
-    const mainSrc = fs.readFileSync('src/main.js', 'utf8');
+    const mainSrc = appSource();
     ok(/this\.gainNode\.connect\(audio\.bus\.music\)/.test(audioSrc) &&
       !/createGain\(\)[\s\S]{0,200}connect\(ctx\.destination\)/.test(audioSrc) &&
       !/MUSIC_MAX/.test(liveAudio),
@@ -321,7 +322,7 @@ console.log('\nHIGH LAYER — one hook re-opened from the retired stem engine');
 {
   const { SETLIST, pickTrack, urlsFor, ID_RE } = await import('../src/music/setlist.js');
   const trackSrc = fs.readFileSync('src/music-track.js', 'utf8');
-  const mainSrc2 = fs.readFileSync('src/main.js', 'utf8');
+  const mainSrc2 = appSource();
   const storeSrc = fs.readFileSync('src/storage/storage.js', 'utf8');
 
   ok(SETLIST.length >= 1 && SETLIST.every((t) => ID_RE.test(t.id)) &&

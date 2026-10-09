@@ -1,3 +1,4 @@
+import { appSource } from './lib/app-source.mjs';
 /**
  * V1 release gates — rescoped for DICTION DASH Phase 7.
  *
@@ -76,7 +77,7 @@ for (const d of [10000, 30000, 50000, 75000, 100000]) {
 const src = (p) => fs.readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const finishSource = src('src/sim/finish.js');
 const simSource = src('src/sim/sim.js');
-const mainSource = src('src/main.js');
+const mainSource = appSource();
 const skySource = src('src/render/endgame-sky.js');
 const mobileSource = src('src/ui/touch-controls.js');
 const beastSource = src('src/sim/beast.js');
