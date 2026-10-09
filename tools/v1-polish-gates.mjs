@@ -1583,7 +1583,13 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
 {
   const faces = ['index.html', ...fs.readdirSync('src/ui').map((f) => `src/ui/${f}`),
     ...fs.readdirSync('src/app').map((f) => `src/app/${f}`)].filter((f) => /\.(html|js)$/.test(f));
-  const text = faces.map((f) => read(f)).join('\n');
+  // The rule is Archivo's: the numeral, plate and FINISH tiers carry their
+  // own weights by design, so their rules and the @font-face ranges are set
+  // aside before counting.
+  const text = faces.map((f) => read(f)).join('\n')
+    .replace(/@font-face\{[^}]*\}/g, '')
+    .replace(/\{[^{}]*var\(--(num|plate|title)\)[^{}]*\}/g, '{}')
+    .replace(/#judge \.judgeTrue b\{[^}]*\}/g, '');
   const weights = new Set([...text.matchAll(/font-weight:(\d{3})|font:(\d{3})\s/g)].map((m) => m[1] || m[2]));
   const tracks = new Set([...text.matchAll(/letter-spacing:(\.\d+)em/g)].map((m) => m[1]));
   const offScale = [...tracks].filter((t) => !['.08', '.16', '.24', '.34', '.5'].includes(t));

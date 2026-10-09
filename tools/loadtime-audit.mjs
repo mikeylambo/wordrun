@@ -87,7 +87,13 @@ await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'commit' });
 // paint: the first frame the browser actually put something on.
 await page.waitForFunction(() => performance.getEntriesByType('paint')
   .some((e) => e.name === 'first-contentful-paint'), null, { timeout: 60000 });
-const paint = Date.now() - started;
+// Read the browser's own timestamp: the poll above cannot run while the main
+// thread is busy, so the moment it returns is when the thread came free, not
+// when the frame was painted (it once reported 2.9 s for a 0.35 s paint).
+const navLag = await page.evaluate(() => Date.now() - performance.timeOrigin);
+const fcpAt = await page.evaluate(() => performance.getEntriesByType('paint')
+  .find((e) => e.name === 'first-contentful-paint').startTime);
+const paint = Math.round(Date.now() - started - navLag + fcpAt);
 
 // interactive: BEGIN RUN is on screen and hittable.
 await page.waitForFunction(() => {
