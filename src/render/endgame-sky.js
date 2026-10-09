@@ -144,12 +144,12 @@ class EscapeOverlay {
       #rc97Ending.on{display:flex}
       #rc97Ending .card{width:min(92vw,440px);text-align:center}
       #rc97Ending .mark{position:relative;line-height:.86;margin-bottom:6px}
-      #rc97Ending .mark span{display:block;font:800 clamp(34px,10.5vw,62px)/.86 var(--face);letter-spacing:-.035em}
+      #rc97Ending .mark span{display:block;font:italic 500 clamp(40px,12vw,72px)/.86 var(--title);letter-spacing:-.01em}
       #rc97Ending .mark .e1{position:absolute;inset:0;color:#67d8ff;opacity:.46;transform:translate(-3px,-1.5px)}
       #rc97Ending .mark .e2{position:absolute;inset:0;color:#ff2a1f;opacity:.24;transform:translate(-1.5px,-.5px)}
       #rc97Ending .mark .e3{position:relative;color:#f6fdff}
       #rc97Ending .rule{height:1px;width:0;margin:16px auto 15px;background:linear-gradient(90deg,transparent,rgba(159,232,255,.85),transparent)}
-      #rc97Ending .big{font:800 clamp(44px,14.5vw,88px)/.86 var(--face);letter-spacing:-.05em;color:#fbfeff}
+      #rc97Ending .big{font:900 clamp(54px,17vw,104px)/.86 var(--num);letter-spacing:-.01em;color:#fbfeff}
       #rc97Ending .big i{font-style:normal;font-size:.24em;font-weight:600;opacity:.34;letter-spacing:.14em;margin-left:.3em}
       #rc97Ending .facts{margin:15px 0 26px;font:700 9px/1 var(--face);letter-spacing:.26em;color:rgba(226,242,251,.44)}
       #rc97Ending .actions{display:flex;gap:9px;justify-content:center}

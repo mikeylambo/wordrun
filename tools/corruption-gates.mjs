@@ -728,8 +728,8 @@ head('BROADCAST — few words, one type system, numbers first');
     html.includes("--face:'Archivo'") && html.includes('font-family:var(--face)') &&
     !/font(-family)?:[^;}]*ui-monospace/.test(injected),
     'no surface pins its own face');
-  check('the wordmark is inline so it can use that same face',
-    html.includes('<svg id="titleWordmark"') && html.includes('font-family="var(--face)"') &&
+  check('the wordmark is inline so it can use the bundled title face',
+    html.includes('<svg id="titleWordmark"') && html.includes('font-family="var(--title)"') &&
     !fs.existsSync('public/ui/dictiondash-wordmark.svg'),
     'an <img>-loaded SVG cannot see the page @font-face');
 
@@ -755,7 +755,21 @@ head('BROADCAST — few words, one type system, numbers first');
     /--plate:'Atkinson Hyperlegible Next'[^;]*sans-serif/.test(html));
   check('the redistributed faces carry their licences',
     fs.existsSync('public/fonts/OFL-Archivo.txt') &&
-    fs.existsSync('public/fonts/OFL-AtkinsonHyperlegibleNext.txt'));
+    fs.existsSync('public/fonts/OFL-AtkinsonHyperlegibleNext.txt') &&
+    fs.existsSync('public/fonts/OFL-Fraunces.txt') &&
+    fs.existsSync('public/fonts/OFL-BigShouldersDisplay.txt'));
+  // The identity tier (Fraunces) and the numeral tier (Big Shoulders) are
+  // bundled the same way, and neither may reach the word plates.
+  for (const f of ['fraunces-latin-var.woff2', 'fraunces-italic-latin-var.woff2', 'big-shoulders-display-latin-var.woff2']) {
+    const bytes = fs.existsSync(`public/fonts/${f}`) ? fs.statSync(`public/fonts/${f}`).size : 0;
+    check(`${f} ships, is preloaded and offline-cached`,
+      bytes > 8_000 && bytes < 400_000 &&
+      new RegExp(`rel="preload"[^>]*${f.replace(/\./g, '\\.')}`).test(html) &&
+      fs.readFileSync('public/sw.js', 'utf8').includes(`fonts/${f}`), `${(bytes / 1024).toFixed(0)} KB`);
+  }
+  check('the plates never take the title or numeral face',
+    !/\.plate[^{]*\{[^}]*var\(--(title|num)\)/.test(html + injected) &&
+    /--title:'Fraunces'[^;]*serif/.test(html) && /--num:'Big Shoulders Display'[^;]*sans-serif/.test(html));
 
   // 3. The retired copy stays retired. Each of these was a sentence doing
   //    a label's job on a screen the player reads in two seconds.
@@ -833,7 +847,7 @@ head('BROADCAST — few words, one type system, numbers first');
   // 5. The results card leads with the number, and the recap is labelled
   //    rows rather than one sentence per wrong read.
   check('the score is the largest thing on the results card',
-    /\.big\{[^}]*font-size:clamp\(72px/.test(html));
+    Number((/\.big\{[^}]*font-size:clamp\((\d+)px/.exec(html) || [])[1] || 0) >= 72);
   // RC6: the objective queue moved to PROFILE with the rest of progression —
   // the card is the high-score moment. The rule is unchanged: whatever each
   // surface shows, it shows as figures and labelled rows, not sentences.
