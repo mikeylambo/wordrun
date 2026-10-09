@@ -330,7 +330,13 @@ export const TUNING = {
   // strings those tiers are said with, not a second opinion about the cuts.
   // Playtest 10/9 — WET ROADS: neon reflections painted into the road shader
   // (render/material-pass.js). Cool tints only; never on the rails.
-  WET: { STREAKS: 0.28, SHEEN: 0.07 },
+  // REFLECT is the screen-space mirror of the skyline on the road
+  // (render/road-reflection.js; 0.55 lands on the approved mockup once the
+  // dark sky is knee'd out), REFLECT_SPREAD
+  // its blur along the mirror axis, REFLECT_STRETCH how far above the
+  // horizon a road pixel looks (1 = a true mirror; lower = the long
+  // vertical smear of wet asphalt, which keeps the skyline ON the road).
+  WET: { STREAKS: 0.28, SHEEN: 0.07, REFLECT: 0.55, REFLECT_SPREAD: 0.06, REFLECT_STRETCH: 0.4 },
 
   JUDGE: {
     LABELS: {

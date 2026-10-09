@@ -1614,5 +1614,27 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     `the city's new light (${lights.length} colours: dome glow, beams, pane tints) clears every reserved hue`);
 }
 
+// ── Wet mirror (playtest 10/9): the screen-space road reflection ──────────
+{
+  const refl = read('src/render/road-reflection.js');
+  const stageSrc = read('src/render/scene.js');
+  const roadSrc = read('src/render/material-pass.js');
+  check(refl.includes('uGuard[') && refl.includes('guarded(p) < 0.5') && refl.includes('(1.0 - guarded(sp))') &&
+    appSource().includes('stage.render(wordGateActors.plateMeshes())'),
+    'the wet mirror zeroes every word plate\'s screen box, and never samples the word as a source');
+  const bIdx = stageSrc.indexOf('if (ACCESS.broadcastLook)');
+  const rIdx = stageSrc.indexOf('this.reflection.render(');
+  check(bIdx > 0 && rIdx > bIdx && stageSrc.slice(bIdx, rIdx).includes('return;'),
+    'the wet mirror is skipped under the BROADCAST look');
+  check(/b\.reflectOff = true/.test(stageSrc) && stageSrc.includes('!this._budget.reflectOff'),
+    'the frame-budget governor gives the wet mirror up before any resolution');
+  check((refl.match(/renderer\.render\(scene/g) || []).length === 1 && refl.includes('copyFramebufferToTexture') &&
+    !/setRenderTarget\(this\./.test(refl),
+    'the wet mirror draws the scene exactly once (a frame copy, no second scene render)');
+  check(roadSrc.includes('gl_FragColor.a = 1.0 - wm * uWetMask') && refl.includes('WET_MASK.value = 0'),
+    'the road writes its wet mask only while the mirror runs; otherwise every pixel stays opaque');
+  check(refl.includes('reducedFlash ? 0 : 1'), 'REDUCED FLASH stills the mirror\'s ripple');
+}
+
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

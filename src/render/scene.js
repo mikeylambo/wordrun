@@ -12,6 +12,7 @@ import { PALETTE, LIGHT } from './palette.js';
 import { bandForDistance } from './art-direction.js';
 import { EndgameSky } from './endgame-sky.js';
 import { BroadcastPass } from './broadcast-pass.js';
+import { RoadReflection } from './road-reflection.js';
 import { ACCESS } from '../ui/access.js';
 
 export class Stage {
@@ -19,6 +20,9 @@ export class Stage {
     this.renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
+      // The wet mirror reads its road mask from the frame's alpha
+      // (render/road-reflection.js). Every path still ends at alpha 1.
+      alpha: true,
       powerPreference: 'high-performance',
       stencil: false,
     });
@@ -162,7 +166,10 @@ export class Stage {
     if (b.ema > 23.5) {
       b.slowFor += dtMs / 1000;
       b.fastFor = 0;
-      if (b.slowFor > 1.1) { applyDpr(this.dpr - 0.15); b.slowFor = 0; }
+      // The wet mirror is the first thing a slow device gives up, before
+      // any resolution; it stays off for the session so it cannot flicker.
+      if (b.slowFor > 1.1 && !b.reflectOff) { b.reflectOff = true; b.slowFor = 0; }
+      else if (b.slowFor > 1.1) { applyDpr(this.dpr - 0.15); b.slowFor = 0; }
     } else if (b.ema < 17.4) {
       b.fastFor += dtMs / 1000;
       b.slowFor = 0;
@@ -173,7 +180,8 @@ export class Stage {
     }
   }
 
-  render() {
+  /** `plates`: the word plates' meshes, which the wet mirror must never touch. */
+  render(plates = []) {
     this._governBudget();
     // The BROADCAST look (Phase N as decided): opt-in, constructed and torn
     // down here so the toggle applies live and the default path stays the
@@ -187,6 +195,22 @@ export class Stage {
     if (this.broadcast) {
       this.broadcast.dispose(this.renderer);
       this.broadcast = null;
+    }
+    // The wet mirror (render/road-reflection.js): the scene is drawn once,
+    // into its target, then mirrored onto the road in one screen pass. The
+    // plate meshes are handed in by main's frame loop.
+    if (TUNING.WET.REFLECT > 0 && !this._budget.reflectOff) {
+      if (!this.reflection) this.reflection = new RoadReflection(this.renderer);
+      this.reflection.render(this.renderer, this.scene, this.camera, {
+        plates,
+        reducedFlash: ACCESS.reducedFlash,
+        time: performance.now() / 1000,
+      });
+      return;
+    }
+    if (this.reflection) {
+      this.reflection.dispose(this.renderer);
+      this.reflection = null;
     }
     this.renderer.render(this.scene, this.camera);
   }

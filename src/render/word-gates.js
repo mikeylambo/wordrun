@@ -403,6 +403,11 @@ export class WordGateActors {
     return g;
   }
 
+  /** Every plate's mesh, for the wet mirror's no-reflect boxes. */
+  plateMeshes() {
+    return [this.current, this.fx, ...this.ahead].map((p) => p.mesh);
+  }
+
   reset() {
     this.lingerT = 0;
     this.lingerGate = null;

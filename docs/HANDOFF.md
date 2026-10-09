@@ -33,8 +33,19 @@ gates are re-run, not assumed (`git config core.hooksPath .githooks`, then
   main.js fold into `src/app/` (dev-hooks, continue-offer, run-ledger,
   sim-events, run-rewards, input-routing). Gates read `tools/lib/app-source.mjs`.
 
+- **Wet mirror (RC14.5):** the mockup's look in-engine — render/road-reflection.js.
+  Scene drawn once to screen, frame copied, one pass mirrors the skyline onto
+  the road (stretched, blurred, highlight knee, screen blend). Road writes its
+  mask into alpha (material-pass.js, `WET_MASK`); plate boxes are zeroed and
+  never sampled; off under BROADCAST; governor drops it first; REDUCED FLASH
+  stills the ripple. Gated in v1-polish-gates. Dial: TUNING.WET.REFLECT 0.55,
+  REFLECT_STRETCH 0.4, REFLECT_SPREAD 0.06. `window.__STAGE` added (dev hook).
+
 ## Open / next
-1. **Wet road on a real iPhone** — tune `TUNING.WET.STREAKS/SHEEN`.
+1. **Wet road on a real iPhone** — tune `TUNING.WET.REFLECT/STRETCH` with
+   `STREAKS/SHEEN`. Headless only shows the opening bend, where the towers sit
+   left of the road, so the mirror reads subtly there; judge it on device,
+   on a straight with towers ahead. Also confirm fps (governor may drop it).
 2. **Speed blur at screen edges** and **horizon light at moments in a run**
    — owner wants to see them live (prototype; never touch the word plate).
 3. Distant second skyline — rejected ("looks cheap").

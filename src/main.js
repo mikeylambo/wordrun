@@ -1584,7 +1584,8 @@ function tick(dt) {
   // title — the card is a score and two buttons, and a settings cog
   // floating over it invites everything except the next run.
   appEl.classList.toggle('carded', ui.deathScreen.classList.contains('on'));
-  stage.render();
+  // The wet mirror never covers or reflects a word plate.
+  stage.render(wordGateActors.plateMeshes());
 
   if (!shotTaken && sim.phase === PHASE.KILL &&
       sim.killTimer >= TUNING.BEAST.KILL_WHIP_TIME + 0.24) {

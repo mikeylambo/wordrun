@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { SURFACES, applySurface } from './surface-textures.js';
 import TUNING from '../TUNING.js';
+import { WET_MASK } from './road-reflection.js';
 
 function toStandard(old) {
   const next = new THREE.MeshStandardMaterial({
@@ -148,10 +149,21 @@ function terrainMaterial() {
           float graze = pow(1.0 - clamp(abs(wetV.y), 0.0, 1.0), 4.0);
           totalEmissiveRadiance += vec3(0.30, 0.55, 0.75) * graze * uWetSheen * (1.0 - p4Rail);
         }`)
+      // The wet MIRROR's mask (render/road-reflection.js): the road writes
+      // 1 − wet weight into alpha — off the rails, quiet under the runner,
+      // gone toward the horizon. Every other surface writes 1.
+      .replace('#include <dithering_fragment>', `#include <dithering_fragment>
+        {
+          float wmD = length(vP4World - cameraPosition);
+          float wm = smoothstep(4.0, 14.0, wmD) * (1.0 - smoothstep(90.0, 200.0, wmD));
+          wm *= 1.0 - smoothstep(0.74, 0.86, abs(vP4Lane));
+          gl_FragColor.a = 1.0 - wm * uWetMask;
+        }`)
       .replace('#include <common>\nvarying float vP4Lane;',
-        '#include <common>\nuniform float uP9Flow;\nuniform float uP4HalfW;\nuniform float uP4Cell;\nuniform float uWetStreaks;\nuniform float uWetSheen;\nvarying float vP4Lane;');
+        '#include <common>\nuniform float uP9Flow;\nuniform float uP4HalfW;\nuniform float uP4Cell;\nuniform float uWetStreaks;\nuniform float uWetSheen;\nuniform float uWetMask;\nvarying float vP4Lane;');
     shader.uniforms.uWetStreaks = { value: TUNING.WET.STREAKS };
     shader.uniforms.uWetSheen = { value: TUNING.WET.SHEEN };
+    shader.uniforms.uWetMask = WET_MASK;
     shader.uniforms.uP4HalfW = terrain.userData.uP4HalfW;
     shader.uniforms.uP4Cell = terrain.userData.uP4Cell;
   };
@@ -161,7 +173,7 @@ function terrainMaterial() {
   // under the runner — so it is a speed cue and lives with the others in
   // TUNING.CUES rather than as a 6.0 buried in a shader string.
   terrain.userData.uP4Cell = { value: TUNING.CUES.GRID_CELL_M };
-  terrain.customProgramCacheKey = () => 'dictiondash-rc14-wet-stone-road';
+  terrain.customProgramCacheKey = () => 'dictiondash-rc14-wet-mirror-road';
   return terrain;
 }
 
