@@ -2370,6 +2370,24 @@ head('REVIEW — the row a stranger reads in one glance');
     'the pair is published to CSS by the palette that already remaps the plate');
 }
 
+// ── Modern real words are never fakes (playtest 10/9: 'arp' shown as a fake of 'rap')
+head('GUARD — four dictionaries, so modern real words are never fakes');
+{
+  const { EXTENDED_GUARD } = await import('../src/words/guard.js');
+  const g = new Set(EXTENDED_GUARD);
+  const builder = fs.readFileSync('tools/build-guard.mjs', 'utf8');
+  check('the guard is built from ENABLE ∪ Hunspell en_US ∪ word-list ∪ WordNet',
+    ['dictionary-en/index.dic', 'word-list/words.txt', 'wordnet-db/dict/index.'].every((k) => builder.includes(k)));
+  check('arp, vape and pwn are guarded', ['arp', 'vape', 'pwn'].every((w) => g.has(w)));
+  let s = 11;
+  const r = () => ((s = Math.imul(s, 1664525) + 1013904223 >>> 0) / 4294967296);
+  const arp = Array.from({ length: 3000 }, () => makeFake('rap', r)).filter((f) => f === 'arp').length;
+  check("'rap' never yields 'arp' as its fake", arp === 0, `${arp} hits in 3000`);
+  const wl = fs.readFileSync('src/words/wordlist.js', 'utf8');
+  check('the hand-kept MODERN_GUARD rides alongside, for words no dictionary reaches from a bank word',
+    /const MODERN_GUARD = \[[\s\S]*'emoji'/.test(wl) && wl.includes('...MODERN_GUARD'));
+}
+
 console.log(out.join('\n'));
 console.log(`\n${PASS} passed, ${FAIL} failed`);
 if (FAIL) process.exit(1);

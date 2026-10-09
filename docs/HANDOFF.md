@@ -74,6 +74,14 @@ gates are re-run, not assumed (`git config core.hooksPath .githooks`, then
   pause actions now need a same-button tap and are shielded under/after
   the settings sheet (not reproducible headless — confirm on device).
 
+- **Fake-word audit (RC15.0):** the guard is now built from ENABLE ∪
+  Hunspell en_US ∪ word-list ∪ WordNet (dev deps only; `node
+  tools/build-guard.mjs` after any bank change). +858 collisions blocked
+  (9,178 → 10,036): modern words (arp, vape, pwn…) and lowercase acronyms
+  (atm, abc…) that read as words. Every bank word still gets a normal fake.
+  Gated in word-gates. Owner device: iPhone 16e (A18) — tune for it, let
+  the governor carry older phones.
+
 ## Open / next
 0. **Judge the prototypes on device** — SPEED BLUR / HORIZON LIGHT: keep,
    tune (SCREEN_FX in screen-fx.js) or cut. Owner idea: a city → void
