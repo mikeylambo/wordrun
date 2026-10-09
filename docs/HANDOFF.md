@@ -82,6 +82,15 @@ gates are re-run, not assumed (`git config core.hooksPath .githooks`, then
   Gated in word-gates. Owner device: iPhone 16e (A18) — tune for it, let
   the governor carry older phones.
 
+- **RC15.1 — city pass:** five procedural facade styles (glass curtain,
+  concrete grid, ribbon floors, dark office w/ fins + one lit floor,
+  residential) + roof crowns on ~1/3 of blocks; parapet caps. No images.
+  Gap fix: behind canyon/tunnel/narrows walls the blocks step back 16 m and
+  down 20% (no more holes); around drops the city eases out/in over 48 m.
+  Late-run white weather (21–23 km) cut — the dawn/morning finish remains.
+  Fonts: Archivo (all UI) + Atkinson Hyperlegible Next (plate word, and the
+  readable recap) — owner is exploring a more distinctive face.
+
 ## Open / next
 0. **Judge the prototypes on device** — SPEED BLUR / HORIZON LIGHT: keep,
    tune (SCREEN_FX in screen-fx.js) or cut. Owner idea: a city → void
