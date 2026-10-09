@@ -77,6 +77,14 @@ export class EditorialWorld {
     this._flow = 1;
   }
 
+  /** CITY STREETS on/off: the flat page marks give way to the street
+   *  (render/street.js). Re-lays the page on the next update. */
+  setStreet(on) {
+    if (!!on === !!this._street) return;
+    this._street = !!on;
+    this._builtBand = -1;
+  }
+
   /** New run: the manuscript starts sparse again. */
   reset() {
     this.band = 0;
@@ -157,7 +165,7 @@ export class EditorialWorld {
     if (this.band !== this._builtBand || moved) {
       this._builtBand = this.band;
       this._anchor = playerD;
-      const page = layoutPage(this.terrain, playerD, this.band, HALF_W);
+      const page = layoutPage(this.terrain, playerD, this.band, HALF_W, { street: this._street });
       this._fill(this.meshes.rules, page.rules);
       this._fill(this.meshes.type, page.type);
       this._fill(this.meshes.stops, page.stops);

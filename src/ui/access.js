@@ -45,6 +45,9 @@ export const ACCESS = {
   // treatment, strictly opt-in — the shipped look is the default and this
   // stays false until a player flips the chip. Stage.render() reads it live.
   broadcastLook: false,
+  // CITY STREETS (render/street.js): buildings, wet pavement and lamps along
+  // the road. Default ON; OFF restores the open void beside the track.
+  cityStreets: true,
   // PD-1: the guided teaching surface. Default ON — a new player gets the
   // centered lessons; they retire on demonstrated action anyway, and this
   // chip serves the two edge cases (an expert on a fresh profile who wants
@@ -63,6 +66,7 @@ function persist() {
     plateSpacing: ACCESS.plateSpacing,
     plateSize: ACCESS.plateSize,
     broadcastLook: ACCESS.broadcastLook,
+    cityStreets: ACCESS.cityStreets,
     guidedTips: ACCESS.guidedTips,
     musicOff: ACCESS.musicOff,
     sfxOff: ACCESS.sfxOff,
@@ -159,6 +163,7 @@ export function initAccess() {
   if (Object.keys(saved).length === 0 && osPrefers('(prefers-contrast: more)')) ACCESS.plateSpacing = 1;
   ACCESS.plateSize = step(saved.plateSize, 0);
   ACCESS.broadcastLook = !!saved.broadcastLook;
+  ACCESS.cityStreets = saved.cityStreets !== false; // unset = ON
   ACCESS.guidedTips = saved.guidedTips !== false; // unset = ON
   ACCESS.musicOff = saved.musicOff === true;      // unset = music ON
   ACCESS.sfxOff = saved.sfxOff === true;          // unset = sfx ON
@@ -320,6 +325,8 @@ export function buildAccessPanel(hooks = {}) {
   syncs.push(
     chipRow('LOOK', [[false, 'STANDARD'], [true, 'BROADCAST']],
       () => ACCESS.broadcastLook, (v) => { ACCESS.broadcastLook = v === 'true' || v === true; }),
+    chipRow('STREETS', [[true, 'ON'], [false, 'OFF']],
+      () => ACCESS.cityStreets, (v) => { ACCESS.cityStreets = v === 'true' || v === true; }),
     // Full screen is NOT persisted and deliberately not in ACCESS: a browser
     // only grants it inside a user gesture, so a remembered "on" could not be
     // honoured on the next boot and the switch would lie. The chip reads the

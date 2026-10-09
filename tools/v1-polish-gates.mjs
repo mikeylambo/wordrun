@@ -1636,5 +1636,53 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   check(refl.includes('reducedFlash ? 0 : 1'), 'REDUCED FLASH stills the mirror\'s ripple');
 }
 
+// ── CITY STREETS (playtest 10/9): buildings, wet pavement, lamps ─────────
+{
+  const T = (await import('../src/TUNING.js')).default;
+  const { STREET, buildingAt } = await import('../src/render/street.js');
+  const { layoutPage } = await import('../src/render/editorial-layout.js');
+  const { Terrain } = await import('../src/sim/terrain.js');
+  const st = read('src/render/street.js');
+  const acc = read('src/ui/access.js');
+  const app = appSource();
+  check(acc.includes('cityStreets: true') && acc.includes('cityStreets: ACCESS.cityStreets') &&
+    acc.includes("ACCESS.cityStreets = saved.cityStreets !== false") && acc.includes("chipRow('STREETS'") &&
+    app.includes('cityStreet.update(pv.d, ACCESS.cityStreets)') && app.includes('editorialWorld.setStreet(ACCESS.cityStreets)') &&
+    app.includes('trackPylons.mesh.visible = !ACCESS.cityStreets'),
+    'CITY STREETS is one persisted switch (default ON) that drives the street, the page and the pylons together');
+  // Every building stands clear of the road and of the lamp line.
+  let minFace = Infinity, n = 0;
+  for (let k = 0; k < 400; k++) for (const side of [-1, 1]) {
+    const b = buildingAt(12345, k, side); if (!b) continue; n++;
+    minFace = Math.min(minFace, b.setBack);
+  }
+  check(n > 400 && T.RUN.TRACK_HALF_W + minFace > STREET.LAMP_X + 1.0,
+    `every facade stands clear of the road and the lamp line (nearest ${minFace.toFixed(1)} m past the rail, ${n} blocks)`);
+  check(/const AVOID = new Set\(\['tunnel', 'canyon', 'narrows', 'drop'\]\)/.test(st) &&
+    (st.match(/this\._avoid\(/g) || []).length >= 2,
+    'buildings and lamps step aside for every authored place — tunnel, canyon, narrows, drop');
+  // Street mode drops only the page's flat marks; what the page BUILDS stays.
+  const terrain = new Terrain(12345);
+  let keepsBuilt = true, dropsFlat = true;
+  for (const d0 of [500, 1500, 2500, 3500, 4500]) {
+    const a = layoutPage(terrain, d0, 4, T.RUN.TRACK_HALF_W);
+    const b = layoutPage(terrain, d0, 4, T.RUN.TRACK_HALF_W, { street: true });
+    if (b.arches.length !== a.arches.length) keepsBuilt = false;
+    if (b.type.some((t) => t[4] < 1)) dropsFlat = false;              // a flat greeked row survived
+    if (b.type.length !== a.type.filter((t) => t[4] >= 1).length) keepsBuilt = false; // canyon walls
+    if (b.stops.length || b.dashes.length || b.caps.length) dropsFlat = false;
+  }
+  check(keepsBuilt && dropsFlat,
+    'under CITY STREETS the page lays its walls, arches and fences but none of its flat void marks');
+  const hueOf = (hex) => { const r = (hex >> 16 & 255) / 255, g = (hex >> 8 & 255) / 255, b = (hex & 255) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (!d) return null;
+    const x = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return (x * 60 + 360) % 360; };
+  const RH = T.META.RESERVED_HUES;
+  const cols = [...st.matchAll(/(?:color|emissive): (0x[0-9a-f]{6})/g)].map((m) => parseInt(m[1], 16));
+  const clash = cols.filter((h) => { const u = hueOf(h); return u != null && RH.HUES.some(({ deg }) => { const dd = Math.abs(u - deg); return Math.min(dd, 360 - dd) < RH.MIN_SEPARATION_DEG; }); });
+  check(cols.length >= 4 && clash.length === 0 && STREET.WINDOWS < 0.6,
+    `the street's light (${cols.length} colours) clears every reserved hue, and its windows sit well under the plate`);
+}
+
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

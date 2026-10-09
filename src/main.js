@@ -22,6 +22,7 @@ import { DataworldPass } from './render/dataworld.js';
 import { StreakBurst } from './render/streak-burst.js';
 import { WindStreaks, TrackPylons } from './render/speed-fantasy.js';
 import { EditorialWorld } from './render/editorial-world.js';
+import { CityStreet } from './render/street.js';
 import { Skyline } from './render/skyline.js';
 import { LaunchSequence } from './render/launch-sequence.js';
 import { AttractMode } from './render/attract.js';
@@ -132,6 +133,8 @@ const trackPylons = new TrackPylons(stage.scene, sim.terrain);
 // Phase M: the Editorial World — the page geometry beside the track, set
 // denser as the run's band rises and struck through as the Redline closes.
 const editorialWorld = new EditorialWorld(stage.scene, sim.terrain);
+// CITY STREETS: buildings, wet pavement and lamps along the road.
+const cityStreet = new CityStreet(stage.scene, sim.terrain);
 // The key art's city: distant monoliths and roadside lightbox signs.
 const skyline = new Skyline(stage.scene, sim.terrain);
 const launch = new LaunchSequence();
@@ -1374,6 +1377,12 @@ function tick(dt) {
   windStreaks.update(paused ? 0 : dt, running ? (p.effSpeed || p.speed) : 0, p.overdrive);
   trackPylons.terrain = sim.terrain;
   trackPylons.update(pv.d);
+  // CITY STREETS: the street's lamps take over the pylons' speed cue, and
+  // the page lays only what it builds (walls, arches), not its flat marks.
+  trackPylons.mesh.visible = !ACCESS.cityStreets;
+  cityStreet.terrain = sim.terrain;
+  cityStreet.update(pv.d, ACCESS.cityStreets);
+  editorialWorld.setStreet(ACCESS.cityStreets);
   editorialWorld.terrain = sim.terrain;
   launch.update(dt);
   // RC6 attract: a title with nothing on it and nobody in it. Any sheet, the

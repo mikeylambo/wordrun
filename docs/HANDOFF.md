@@ -41,7 +41,18 @@ gates are re-run, not assumed (`git config core.hooksPath .githooks`, then
   stills the ripple. Gated in v1-polish-gates. Dial: TUNING.WET.REFLECT 0.55,
   REFLECT_STRETCH 0.4, REFLECT_SPREAD 0.06. `window.__STAGE` added (dev hook).
 
+- **CITY STREETS (RC14.7):** render/street.js — gappy lit-facade blocks
+  3.5–10 m off the rails (one instanced draw, windows in-shader), dark wet
+  pavement either side (faint share of the wet mirror), street lamps + light
+  pools every 14 m (they take over the pylons' speed cue). Under it the
+  editorial page drops its flat void marks but keeps canyon walls, tunnel
+  arches, narrows fence, brackets and the Redline bars. Settings → VISUAL →
+  STREETS ON/OFF (persisted, default ON; OFF = the old void). Dials: STREET
+  in street.js. Gated in v1-polish-gates.
+
 ## Open / next
+0. **CITY STREETS on device** — compare ON/OFF; check fps, the plate against
+   far facades on straights, and tunnels/canyons (buildings step aside).
 1. **Wet road on a real iPhone** — tune `TUNING.WET.REFLECT/STRETCH` with
    `SHEEN`. Neon streaks CUT (10/9: they hid the reflection). Headless only shows the opening bend, where the towers sit
    left of the road, so the mirror reads subtly there; judge it on device,

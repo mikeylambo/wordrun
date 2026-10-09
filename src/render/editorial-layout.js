@@ -72,8 +72,14 @@ export function h32(n) {
  * `halfW` is the track half-width the margins are set from.
  *
  * Returns plain arrays of [x, y, negZ, sx, sy, sz] per instance kind.
+ *
+ * `street` (the CITY STREETS look, render/street.js): the page's flat marks
+ * — hairline rules, greeked rows lying on the ground, punctuation sculpture
+ * — belong to the void and are not laid; the city's own sidewalk and
+ * buildings take that ground. What the page BUILDS stays: the narrows
+ * fence, canyon walls, tunnel arches and threshold brackets.
  */
-export function layoutPage(terrain, d0, level, halfW) {
+export function layoutPage(terrain, d0, level, halfW, { street = false } = {}) {
   const HW = halfW;
   const fill = FILL[level];
   const line = (d) => terrain.corridorX(d);
@@ -103,6 +109,7 @@ export function layoutPage(terrain, d0, level, halfW) {
         // fence pressing toward the corridor, so the squeeze is a wall you
         // feel, not only a margin you might notice. Outer rules stay flat.
         const fence = st === 'narrows' && k === 0;
+        if (street && !fence) continue;
         out.rules.push(fence
           ? [x, ground(x, d + 3) + 0.3, -(d + 3), 0.07, 0.55, 6.0]
           : [x, ground(x, d + 3) + 0.05, -(d + 3), 0.07, 0.06, 6.0]);
@@ -160,6 +167,7 @@ export function layoutPage(terrain, d0, level, halfW) {
       // canyon reads as a PLACE from inside it. Still margin-side — the
       // occlusion sweep proves the sight line every armed frame.
       const wallH = st === 'canyon' ? 6.5 + fill * 9 * h32(key + 41) : 0;
+      if (street && st !== 'canyon') continue;
       for (const side of [-1, 1]) {
         const x = line(d) + side * (inner + w / 2);
         if (st === 'canyon') {
@@ -187,6 +195,7 @@ export function layoutPage(terrain, d0, level, halfW) {
   }
 
   // Punctuation as sculpture, densifying by band.
+  if (street) return out;
   if (level >= 1) {
     for (let d = Math.ceil(dA / 36) * 36; d < dB && out.stops.length < CAPS.stops; d += 36) {
       if (seg(d) === 'drop') continue;
