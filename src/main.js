@@ -1100,7 +1100,18 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
 
 // Mode/difficulty chips: persist the choice, swap the storage variant,
 // refresh the per-variant best and re-warm the next attempt's plates.
+// The rows fold behind one summary chip: the title asks one question (BEGIN
+// RUN), and the remembered mode and difficulty are a tap away, not seven
+// choices up front.
+const modeSummary = document.createElement('button');
+modeSummary.type = 'button';
+modeSummary.className = 'modeChip';
+modeSummary.id = 'modeSummary';
+modeSummary.setAttribute('aria-expanded', 'false');
+document.getElementById('modeRows')?.prepend(modeSummary);
 function syncModeChips() {
+  const label = runMode === 'standard' ? 'DAILY RUN' : `ENDLESS · ${effectiveDifficulty().toUpperCase()}`;
+  modeSummary.textContent = `${label} ▾`;
   for (const b of document.querySelectorAll('#modeRow .modeChip')) {
     b.classList.toggle('on', b.dataset.mode === runMode);
   }
@@ -1114,6 +1125,13 @@ document.getElementById('modeRows')?.addEventListener('click', (e) => {
   const chip = e.target.closest?.('.modeChip');
   if (!chip || running || CHALLENGE) return;
   e.stopPropagation();
+  if (chip === modeSummary) {
+    const rows = document.getElementById('modeRows');
+    const open = rows.classList.toggle('open');
+    modeSummary.setAttribute('aria-expanded', String(open));
+    audio.uiTap();
+    return;
+  }
   if (chip.dataset.mode) {
     runMode = chip.dataset.mode;
     Storage.setModePref(runMode);

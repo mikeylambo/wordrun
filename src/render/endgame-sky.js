@@ -135,9 +135,9 @@ class EscapeOverlay {
       #rc97Ending button{appearance:none;border:1px solid rgba(255,255,255,.26);background:transparent;
         color:#eaf6fc;padding:15px 16px;min-width:142px;font:700 10px/1 var(--face);letter-spacing:.24em;cursor:pointer}
       #rc97Ending button.primary{background:#f4fbfe;border-color:#f4fbfe;color:#0a141c}
-      #rc97Ending.on .mark{animation:rc97Land .62s cubic-bezier(.16,.9,.24,1) both}
-      #rc97Ending.on .rule{animation:rc97Rule .8s .22s cubic-bezier(.2,.8,.2,1) both}
-      #rc97Ending.on .big{animation:rc97Rise .5s .12s cubic-bezier(.16,.9,.24,1) both}
+      #rc97Ending.on .mark{animation:rc97Land .62s .42s cubic-bezier(.16,.9,.24,1) both}
+      #rc97Ending.on .rule{animation:rc97Rule .8s .64s cubic-bezier(.2,.8,.2,1) both}
+      #rc97Ending.on .big{animation:rc97Rise .5s .54s cubic-bezier(.16,.9,.24,1) both}
       @keyframes rc97Land{from{opacity:0;transform:scale(1.16);filter:blur(9px)}to{opacity:1;transform:none;filter:none}}
       @keyframes rc97Rule{from{width:0}to{width:78%}}
       @keyframes rc97Rise{from{opacity:0;transform:translateY(13px)}to{opacity:1;transform:none}}

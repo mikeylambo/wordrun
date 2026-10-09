@@ -514,9 +514,11 @@ export class UI {
     // has no route to be partway through, so distance stays the honest
     // endurance figure there.
     const routeGates = sim.rules?.GATES | 0;
-    const sub = routeGates > 0
+    // The headline is unlabelled, so the sub-line names it first: a big 0
+    // over "35 M" read as a broken counter in playtest.
+    const sub = 'SCORE · ' + (routeGates > 0
       ? `${Math.min(sim.wordGates.next, routeGates)} / ${routeGates}`
-      : `${Math.floor(sim.distance)} M`;
+      : `${Math.floor(sim.distance)} M`);
     // RC13.6: the same route position, drawn as the lit strip on the top edge.
     this.routeStrip ||= document.getElementById('routeStrip');
     if (this.routeStrip) {

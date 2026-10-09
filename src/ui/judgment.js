@@ -27,6 +27,7 @@
  */
 
 import TUNING from '../TUNING.js';
+import { diffSpelling } from '../words/spelling-diff.js';
 
 const W = TUNING.WORDS;
 const J = () => TUNING.JUDGE;   // read live: the dev panel edits this object
@@ -174,12 +175,29 @@ export class Judgment {
   }
 
   /** A read landed. `frac` is the arm window left; `chain` the new length. */
-  read({ correct, answered = true, answerDistance = 0, armM, chain = 0, real = true },
-    reducedFlash = false) {
+  read({ correct, answered = true, answerDistance = 0, armM, chain = 0, real = true,
+    shown = null, answer = null }, reducedFlash = false) {
     const tier = correct
       ? (answered ? judgeRead(answerDistance, armM) : OUTCOME.passed)
       : (real ? OUTCOME.missed : OUTCOME.wrong);
     this._say(tier.key, correct ? (answered ? 'right' : 'pass') : 'wrong', reducedFlash);
+    // A tapped fake is the one mistake with a lesson in it: under MISSED,
+    // the true spelling, the letters the fake changed lit. It holds a beat
+    // longer so it can be read, and it is set in the plate face because it
+    // IS a word to read, not a label.
+    if (!correct && !real && this.el && !this.muted) {
+      const d = diffSpelling(shown, answer);
+      if (d) {
+        const line = document.createElement('span');
+        line.className = 'judgeTrue';
+        const { pre, mark, post } = d.real;
+        line.append(pre);
+        if (mark) { const b = document.createElement('b'); b.textContent = mark; line.append(b); }
+        line.append(post);
+        this.el.append(line);
+        this.t = J().HOLD_S * 2;
+      }
+    }
     this.setChain(chain, reducedFlash);
     return tier;
   }

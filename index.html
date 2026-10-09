@@ -146,6 +146,10 @@
     transition:opacity .18s ease}
   #judge.on{opacity:1}
   #judge[data-kind="wrong"]{color:var(--sem-wrong,#ff2a1f)}
+  /* The true spelling under a tapped fake: plate face, quiet ink, the
+     changed letters in the right-read colour. */
+  #judge .judgeTrue{display:block;text-align:center;margin-right:-.16em;margin-top:.32em;font:700 .56em/1 var(--plate);letter-spacing:.04em;text-transform:lowercase;color:#eef7fb;text-shadow:0 2px 14px rgba(4,9,13,.9)}
+  #judge .judgeTrue b{color:var(--sem-right,#57e389);font-weight:800}
   #judge[data-kind="pass"]{color:rgba(232,244,251,.72);text-shadow:0 2px 14px rgba(4,9,13,.8)}
   #judge.punch{animation:judgePunch var(--judge-punch-ms,170ms) cubic-bezier(.2,1.5,.4,1)}
   @keyframes judgePunch{
@@ -420,6 +424,9 @@
      BEGIN RUN handler ignores them. */
   #modeRows{display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:auto}
   .modeRow{display:flex;gap:7px;justify-content:center}
+  #modeRows:not(.open) .modeRow{display:none}
+  #modeSummary{border-color:transparent;background:transparent;color:var(--dim)}
+  #modeRows.open #modeSummary{color:#eaf6fc}
   .modeChip{pointer-events:auto;cursor:pointer;border:1px solid rgba(160,210,232,.22);border-radius:6px;background:rgba(6,14,22,.55);color:rgba(214,236,246,.6);font-family:inherit;font-size:10px;font-weight:800;letter-spacing:.24em;padding:11px 16px;-webkit-tap-highlight-color:transparent;transition:color .16s ease,border-color .16s ease,box-shadow .16s ease;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
   .modeChip.on{color:#eafaff;border-color:rgba(140,226,255,.9);background:rgba(16,52,70,.62);box-shadow:0 0 16px rgba(103,216,255,.4),0 0 0 1px rgba(140,226,255,.35) inset}
   /* Phase J: the DAILY RUN has one difficulty; the row is shown locked, never captioned. */

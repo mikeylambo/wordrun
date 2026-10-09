@@ -131,6 +131,7 @@ export function createSimEventDrain(app) {
               answerDistance: e.answerDistance, armM: sim.wordGates.armDistance(),
               chain: e.chain, real: e.real }, ACCESS.reducedFlash);
             judgment.pop(e.score || 0, 'right', ACCESS.reducedFlash);
+            if (e.answered !== false) haptic('read');
             // RC13.5 — the PERFECT read lands with weight: the frame holds.
             if (tier.key === 'sharp') run.perfectsThisRun++;
             if (tier.key === 'sharp' && !ACCESS.reducedFlash) app.hitStop = TUNING.JUDGE.HITSTOP_S;
@@ -205,7 +206,7 @@ export function createSimEventDrain(app) {
           if (e.reason === 'picked_fake') fakeTally.record({ family: e.family, fake: e.word, answer: e.answer, tapped: true });
           judgment.read({ correct: false, answered: e.answered !== false,
             answerDistance: e.answerDistance, armM: sim.wordGates.armDistance(),
-            chain: 0, real: e.real }, ACCESS.reducedFlash);
+            chain: 0, real: e.real, shown: e.word, answer: e.answer }, ACCESS.reducedFlash);
           const t = run.tierTally[e.tier] || (run.tierTally[e.tier] = { a: 0, c: 0 });
           t.a++;
           nemesis.record(e.answer, false, e.index);

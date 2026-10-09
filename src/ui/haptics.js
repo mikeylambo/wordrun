@@ -11,6 +11,8 @@
 const PULSES = {
   hit:  { mobile: 62,            duration: 86,  weak: 0.52, strong: 0.82 },
   kill: { mobile: [90, 38, 145], duration: 190, weak: 0.78, strong: 1.00 },
+  // A right read, tapped: a tick, not a thud — felt, never confused with hit.
+  read: { mobile: 12,            duration: 24,  weak: 0.18, strong: 0.0 },
 };
 
 let enabled = true;
