@@ -328,6 +328,13 @@ export const TUNING = {
   // is reachable from the dev panel and exportable as JSON. The tier ORDER is
   // fixed by ui/judgment.js against the compression thresholds — these are the
   // strings those tiers are said with, not a second opinion about the cuts.
+  // RC14.1 — the selective glow (render/glow-pass.js). What blooms is chosen
+  // by layer; the word plate is an occluder in it and never blooms.
+  GLOW: {
+    STRENGTH: 0.85,
+    THRESHOLD: 0.32,   // linear light below this never blooms (the road, the dark faces)
+  },
+
   JUDGE: {
     LABELS: {
       sharp: 'PERFECT',      // answered inside COMPRESSION_THRESHOLD[3] of the window
@@ -370,7 +377,11 @@ export const TUNING = {
     // (presentation only: the sim's fixed step simply waits, nothing is
     // skipped), the score rolls up instead of snapping, and every read's
     // points fly off the judgment into the score.
-    HITSTOP_S: 0.045,        // ~3 frames at 60 Hz; 0 switches it off
+    HITSTOP_S: 0.045,
+    // RC14.1 — the runner sheet's four glow states, as explicit tiers on the
+    // chain: BASE · BUILDING (from 10) · HIGH FLOW (from 50) · DASH (while
+    // dashing). Each tier is a distinct step, not a point on a curve.
+    GLOW_TIERS: [10, 50],        // ~3 frames at 60 Hz; 0 switches it off
     ROLL_RATE: 11,           // score roll-up, per second (exponential)
     POP_S: 0.62,             // a score pop's flight, judgment → score
     POP_MIN: 1,              // reads worth fewer points than this pop nothing
@@ -795,9 +806,14 @@ export const TUNING = {
   // ── Meta economy ────────────────────────────────────────────────────────
   META: {
     // The bare-number spendable balance (◆, deliberately unnamed — the
-    // five-name cap stays at five). Bells are its only source; Phase 14
-    // gave it the two sinks scoped since Phase 8.
-    CURRENCY_PER_BELL: 1,
+    // four-name cap holds). RC14.1: READS are its source now (the bells that
+    // paid it were cut at the 10/8 playtest) — one ◆ per correct read, and a
+    // bonus the first time a run's chain reaches each milestone. Measured
+    // against the bells it replaced: a 95 % DAILY RUN paid 138 then, 131 now.
+    CURRENCY: {
+      PER_READ: 1,
+      CHAIN_BONUS: [[10, 5], [25, 10], [50, 20], [100, 40]],
+    },
     // Phase J — board eligibility, encoded before any board exists so Pass 3
     // is a transport problem and not a rules problem. DAILY is scored and
     // recorded on NORMAL only (the title forces the chip, no copy); ENDLESS

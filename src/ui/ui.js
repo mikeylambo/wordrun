@@ -4,7 +4,7 @@
  */
 
 import TUNING from '../TUNING.js';
-import { HEARTS } from '../design/bells.js';
+import { HEARTS } from '../design/hearts.js';
 import { corruptionIntensity, veilOpacity } from '../render/corruption-curve.js';
 import { ACCESS } from './access.js';
 import { bandForDistance } from '../render/art-direction.js';

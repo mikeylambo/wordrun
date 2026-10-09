@@ -159,13 +159,17 @@ export class RunnerBody {
   }
 
   /** The flow dial: 0 base · 1 building · 2 high flow · 3 dash. */
+  // RC14.1: four DISTINCT steps (the sheet's BASE · BUILDING · HIGH FLOW ·
+  // DASH), interpolated only while easing between them. Rim strength, rim
+  // width, seam burn and white-heat each step up visibly per tier.
   setGlow(level, pulse = 1) {
     const r = this.material.userData.rim;
-    const k = Math.max(0, Math.min(3, level)) / 3;
-    r.uRimStrength.value = (2.2 + k * 2.6) * pulse;
-    r.uRimPower.value = 2.1 - k * 0.9;           // a wider band as it burns
-    r.uRimColor.value.copy(this._rimBase || RIM).lerp(RIM_HOT, Math.max(0, k * 1.4 - 0.4));
-    this.material.emissiveIntensity = SEAM_GLOW * (1 + k * 1.2) * pulse;
+    const L = Math.max(0, Math.min(3, level));
+    const at = (row) => { const i = Math.floor(L), f = L - i; return row[i] + ((row[Math.min(3, i + 1)]) - row[i]) * f; };
+    r.uRimStrength.value = at([1.4, 3.2, 4.6, 6.4]) * pulse;
+    r.uRimPower.value = at([2.4, 2.0, 1.55, 1.15]);   // a wider band as it burns
+    r.uRimColor.value.copy(this._rimBase || RIM).lerp(RIM_HOT, at([0, 0.15, 0.45, 0.95]));
+    this.material.emissiveIntensity = SEAM_GLOW * at([0.55, 1.5, 2.4, 3.6]) * pulse;
   }
 
   setOpacity(a) {

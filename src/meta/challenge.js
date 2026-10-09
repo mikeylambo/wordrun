@@ -6,7 +6,7 @@
  * track, the mode/difficulty pick the rules, the word salt pins the
  * exact vocabulary lane, and the goal is the score to beat. Encode
  * them in a URL and anyone who opens it is standing at the start of the
- * SAME run — same road, same bells, same gauntlet of words — with a
+ * SAME run — same road, same gauntlet of words — with a
  * number to chase. No server, no account, no network call: the link IS
  * the data.
  *

@@ -1,4 +1,4 @@
-import { HEARTS } from '../design/bells.js';
+import { HEARTS } from '../design/hearts.js';
 import { control, barControl, chargeNoun, modalityFor } from './teach-copy.js';
 
 // RC7 first-run clarity: one screen, then get out of the player's way.

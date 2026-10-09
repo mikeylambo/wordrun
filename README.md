@@ -7,7 +7,7 @@ chased by an ambient editor (Phases 4–5), and Phase 7 replaces the ground
 itself: a flat, winding, auto-followed track instead of the downhill, and
 speed as a direct consequence of reading instead of a distance ramp — with
 the Redline's gap reduced to a pure speed differential. Menus,
-endless-prestige loop, hearts/bells, haptics, PWA and seeded runs remain
+endless-prestige loop, hearts, haptics, PWA and seeded runs remain
 the source frame as-is.
 
 You are a running figure of light sprinting down an unfinished draft — a
@@ -145,13 +145,10 @@ default combo keeps every pre-mode best and ghost):
   light and treble from the world for a beat (no white crash-flash, no
   red spent on mistakes). The correct-read chime climbs a pentatonic
   ladder with the chain; losing the chain audibly resets it.
-- **Bells are ambient reward, and they gate-provably get collected (Phase
-  8).** The audit found strings still laid in the source frame's straight
-  coordinates — functionally uncollectible against the ±15.5 m winding
-  line. They now ride the travel line with a bounded weave (every bell
-  gated inside the pickup window), and each one drips boost meter, counts
-  and banks ◆ — the bare-number spendable
-  balance (deliberately unnamed; sinks come later).
+- **Reads pay the ◆ balance (RC14.1).** The bells that used to drip it were
+  cut at the 10/8 playtest: they were collected automatically, so they paid
+  for distance, not reading. One ◆ per correct read, plus a bonus at chain
+  milestones 10 / 25 / 50 / 100 — about the income the bells paid.
 
 ## The meta layer (SLU shell port)
 
@@ -195,12 +192,12 @@ on the real calendar day.
 
 ### The ◆ economy (Phase 14)
 
-Bells feed the balance; two sinks finally spend it:
+Correct reads feed the balance; two sinks spend it:
 
 - **The priced continue** — death first offers a short window to buy the
   run back (hearts refilled, the Redline pushed out to its starting gap),
   cost doubling with each continue in the same run. A continued run keeps
-  its distance, bells and goal credit but **never sets BEST TODAY and
+  its distance and goal credit but **never sets BEST TODAY and
   never saves a ghost** — the boards stay unassisted, which matters once
   a run can be a challenge someone else must chase.
 - **Runner-light palettes** — the ◆ button on the title opens the shop:

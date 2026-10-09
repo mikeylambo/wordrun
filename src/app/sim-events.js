@@ -15,7 +15,6 @@
 import TUNING from '../TUNING.js';
 import { Storage } from '../storage/storage.js';
 import { ACCESS } from '../ui/access.js';
-import { stringStep } from '../audio/ladder.js';
 import { pulse as haptic } from '../ui/haptics.js';
 
 export function createSimEventDrain(app) {
@@ -69,7 +68,6 @@ export function createSimEventDrain(app) {
         // RC10.9: the string continues the chain chime's ladder, so the pitch
         // comes from the chain and the bell's place in its string — never from
         // how many bells this run has happened to pass.
-        case 'bell': audio.bell(stringStep(e.chain, e.i)); break;
         case 'overdrive_on':
           learn('Dash');
           // The DASH lands as one event across three channels (Phase 16):

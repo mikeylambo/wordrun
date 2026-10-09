@@ -4,7 +4,7 @@
  * One overlay, opened from the title: the runner-light palettes from
  * TUNING.META.COSMETICS, each chip showing its price until owned and its
  * swatch always. Buying spends from the meta stats 'currency' key (the
- * same ledger the bells feed) and equips immediately; choices persist
+ * same ledger correct reads feed) and equips immediately; choices persist
  * through Storage prefs. Cosmetic only — no palette touches gameplay or
  * the semantic color grammar.
  */

@@ -16,6 +16,7 @@
  */
 
 import * as THREE from 'three';
+import { GLOW_LAYER } from './glow-pass.js';
 import TUNING from '../TUNING.js';
 import { MOUNTAIN_BANDS, bandBlend } from './art-direction.js';
 
@@ -82,6 +83,7 @@ export class TerrainMesh {
     g.setIndex(index);
 
     const mesh = new THREE.Mesh(g, this.material);
+    mesh.layers.enable(GLOW_LAYER);   // RC14.1: the rails and grid bloom above the threshold
     mesh.frustumCulled = false;
     mesh.visible = false;
     this.scene.add(mesh);

@@ -8,6 +8,10 @@
  * that logic touches — hearts after every step, bells collected, the death
  * cause, the final score, and the count of each life event.
  *
+ * RC14.1: the bells were cut (10/8 playtest). The golden was re-minted with
+ * the bell count and bell events dropped and EVERY other field verified
+ * unchanged first — removing the pickup moved nothing else.
+ *
  * The golden fixture (refactor-snapshot.golden.json) was first captured
  * against the pre-refactor build with rc5's step algorithm replicated verbatim
  * (`--emit --replica`, commit b7c049c) — the acceptance proof that Phase 0
@@ -24,72 +28,11 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { Sim, PHASE, emptyInput } from '../src/sim/sim.js';
-import { BellField, HEARTS } from '../src/design/bells.js';
-import TUNING from '../src/TUNING.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const GOLDEN = path.join(HERE, 'refactor-snapshot.golden.json');
 const args = process.argv.slice(2);
 const EMIT = args.includes('--emit');
-const REPLICA = args.includes('--replica');
-
-// ── rc5's step algorithm, verbatim (only used to mint the golden) ────────────
-// This mirrors patchSim(sim, field).stepRC6 from the deleted src/rc5.js exactly.
-// It runs AFTER the base sim.step, the same way the runtime patch wrapped it.
-function replicaAttach(sim) {
-  const field = new BellField(sim.seed, sim.terrain);
-  const resetRunState = () => {
-    sim.maxHearts = HEARTS.MAX;
-    sim.hearts = HEARTS.MAX;
-    sim.bellCharge = 0;
-    sim._lastCleanStreak = 0;
-    sim.bellsCollected = 0;
-    sim.deathCause = null;
-    field.reset(sim.seed, sim.terrain);
-  };
-  resetRunState();
-  const baseStart = sim.start.bind(sim);
-  sim.start = function startReplica(...a) { const o = baseStart(...a); resetRunState(); return o; };
-  const baseStep = sim.step.bind(sim);
-  sim.step = function stepReplica(input) {
-    const wasRunning = this.phase === 'running';
-    const beforeHits = this.player.obstaclesHit;
-    baseStep(input);
-    if (!wasRunning) return;
-    if (this.phase === 'kill') { this.deathCause = 'redlined'; return; }
-    if (this.phase !== 'running') return;
-    const hits = this.player.obstaclesHit - beforeHits;
-    if (hits > 0) {
-      this.hearts = Math.max(0, this.hearts - hits);
-      this.events.push({ t: 'heart_lost', hearts: this.hearts });
-      if (this.hearts <= 0) {
-        this.player.dead = true;
-        this.deathCause = 'wipeout';
-        this.recorder.finish(this.player);
-        this.phase = 'dead';
-        this.events.push({ t: 'wipeout' });
-        return;
-      }
-    }
-    const heartRepair = this.rules?.HEART_REPAIR !== false;
-    const picked = field.collectNear(this.player);
-    for (const bell of picked) {
-      this.bellsCollected++;
-      this.player.boostMeter = Math.min(TUNING.BOOST.METER_MAX,
-        this.player.boostMeter + HEARTS.POWER_PER_BELL);
-      this.events.push({ t: 'bell', id: bell.id, x: bell.x, d: bell.d,
-        charge: this.bellsCollected, power: HEARTS.POWER_PER_BELL });
-    }
-    const streak = this.wordGates.streak;
-    const need = HEARTS.STREAK_REPAIR_BY_HEARTS[this.hearts] ?? HEARTS.STREAK_REPAIR_DEFAULT;
-    if (heartRepair && streak > 0 && streak !== this._lastCleanStreak &&
-        streak % need === 0 && this.hearts < this.maxHearts) {
-      this.hearts++;
-      this.events.push({ t: 'heart_restore', hearts: this.hearts, streak });
-    }
-    this._lastCleanStreak = streak;
-  };
-}
 
 // ── Deterministic input policies (factories — one stateful stepper per run) ──
 // `confirmAll` taps REAL at every armed word (so it taps fakes wrong — hearts
@@ -124,10 +67,9 @@ const policies = {
 
 function runScript({ seed, mode, difficulty, policy, maxSteps, pinGap }) {
   const sim = new Sim(seed);
-  if (REPLICA) replicaAttach(sim);
   sim.start(seed, null, { mode, difficulty });
   const input = emptyInput();
-  const counts = { heart_lost: 0, heart_restore: 0, bell: 0, wipeout: 0, word_correct: 0, word_wrong: 0 };
+  const counts = { heart_lost: 0, heart_restore: 0, wipeout: 0, word_correct: 0, word_wrong: 0 };
   const heartsTrace = [];
   const step = policies[policy]();
   for (let i = 0; i < maxSteps && sim.phase === PHASE.RUNNING; i++) {
@@ -145,7 +87,6 @@ function runScript({ seed, mode, difficulty, policy, maxSteps, pinGap }) {
     phase: sim.phase,
     hearts: sim.hearts ?? null,
     maxHearts: sim.maxHearts ?? null,
-    bellsCollected: sim.bellsCollected ?? null,
     deathCause: sim.deathCause ?? null,
     score: sim.score,
     obstaclesHit: sim.player.obstaclesHit,
@@ -168,13 +109,13 @@ const result = SCRIPTS.map(runScript);
 
 if (EMIT) {
   fs.writeFileSync(GOLDEN, JSON.stringify(result, null, 2) + '\n');
-  console.log(`Wrote ${GOLDEN} (${REPLICA ? 'replica' : 'native'})`);
+  console.log(`Wrote ${GOLDEN}`);
   process.exit(0);
 }
 
 // Gate mode: native trajectory must equal the golden captured pre-refactor.
 if (!fs.existsSync(GOLDEN)) {
-  console.error('SNAPSHOT — golden fixture missing; run with --emit --replica first');
+  console.error('SNAPSHOT — golden fixture missing; run with --emit first');
   process.exit(1);
 }
 const golden = JSON.parse(fs.readFileSync(GOLDEN, 'utf8'));
@@ -208,7 +149,7 @@ for (let i = 0; i < golden.length; i++) {
   if (!ok) fail++;
   const g = golden[i];
   out.push(`  ${ok ? 'PASS' : 'FAIL'}  ${g.mode}/${g.difficulty} ${g.policy} seed ${g.seed} — `
-    + `hearts ${g.hearts} bells ${g.bellsCollected} ${g.deathCause ?? 'alive'} score ${g.score}`);
+    + `hearts ${g.hearts} ${g.deathCause ?? 'alive'} score ${g.score}`);
   if (!ok) {
     out.push(`        golden: ${a}`);
     out.push(`        native: ${b}`);

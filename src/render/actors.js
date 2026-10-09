@@ -15,7 +15,27 @@
 import * as THREE from 'three';
 import { makeContactShadow } from './contact-shadow.js';
 import { loadRunnerModel, RunnerBody } from './runner-model.js';
+import { GLOW_LAYER } from './glow-pass.js';
 import TUNING from '../TUNING.js';
+
+// RC14.1: one soft radial falloff for the glow tiers' aura, drawn once.
+let _auraTex = null;
+function auraTexture() {
+  if (_auraTex) return _auraTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d');
+  const r = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  r.addColorStop(0, 'rgba(255,255,255,0.9)');
+  r.addColorStop(0.28, 'rgba(255,255,255,0.42)');
+  r.addColorStop(0.62, 'rgba(255,255,255,0.1)');
+  r.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = r;
+  g.fillRect(0, 0, 128, 128);
+  _auraTex = new THREE.CanvasTexture(c);
+  _auraTex.colorSpace = THREE.SRGBColorSpace;
+  return _auraTex;
+}
 
 // Playtest: "some lines are out of place, when the rest of them fit the road."
 // This trail was one of them. At 180 slots sampled once a frame it recorded
@@ -289,6 +309,19 @@ export class PlayerActor {
     // figure's light on the page, not its body.
     this.hips.visible = false;
     this.halo.visible = false;
+    // RC14.1 — the glow tiers' aura: a soft additive light behind the body,
+    // in the runner light's own colour, sized and lit by the tier.
+    this.aura = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: auraTexture(), color: this._palette?.halo ?? 0x67d8ff, transparent: true,
+      opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+    }));
+    this.aura.position.set(0, 1.05, 0.15);
+    this.aura.renderOrder = 4;
+    this.aura.visible = false;
+    this.group.add(this.aura);
+    // RC14.1: the body's rim and the aura are light — they bloom.
+    this.body.root.traverse((o) => o.layers.enable(GLOW_LAYER));
+    this.aura.layers.enable(GLOW_LAYER);
   }
 
   _clearTracks() {
@@ -441,11 +474,29 @@ export class PlayerActor {
     // flow row (BASE → BUILDING → HIGH FLOW → DASH) is the rim's one dial —
     // the chain's glow, white-hot for the dash, with the cursor pulse and
     // the stagger's flicker carried through.
+    // RC14.1: the four states are TIERS on the chain — 0 base, 1 building
+    // (chain 10), 2 high flow (chain 50), 3 dash — eased between in a beat,
+    // so each one reads as its own state. Stepping UP flares once.
     if (this.body) {
       this.body.pose(this._phase);
-      const level = p.overdrive ? 3 : Math.max(0, Math.min(2, (flow - 1) * 2.5));
+      const [t1, t2] = TUNING.JUDGE.GLOW_TIERS;
+      const chain = this.chain | 0;
+      const tier = p.overdrive ? 3 : chain >= t2 ? 2 : chain >= t1 ? 1 : 0;
+      if (tier > (this._tier ?? 0) && !this.reducedFlash) this._tierFlash = 1;
+      this._tier = tier;
+      this._glow = (this._glow ?? 0) + (tier - (this._glow ?? 0)) * Math.min(1, dt * 7);
+      this._tierFlash = Math.max(0, (this._tierFlash || 0) - dt * 2.6);
       const flicker = p.staggerT > 0 ? 0.45 + Math.abs(Math.sin(this.t * 47)) * 0.55 : 1;
-      this.body.setGlow(level, blink * flicker);
+      const flare = 1 + this._tierFlash * 0.9;
+      this.body.setGlow(this._glow, blink * flicker * flare);
+      // The aura: nothing at BASE, a breath at BUILDING, a corona at HIGH
+      // FLOW, a blaze on the DASH — the sheet's silhouettes, as light.
+      const AURA = [0, 0.2, 0.46, 0.85];
+      const lo = Math.floor(this._glow), f = this._glow - lo;
+      const a = AURA[lo] + ((AURA[Math.min(3, lo + 1)] ?? AURA[lo]) - AURA[lo]) * f;
+      this.aura.material.opacity = Math.min(1, a * flicker * flare);
+      this.aura.scale.setScalar(2.1 + this._glow * 0.32 + this._tierFlash * 0.6);
+      this.aura.visible = this.aura.material.opacity > 0.01;
     }
 
     this._track(p);
@@ -460,6 +511,7 @@ export class PlayerActor {
     // RC13.8: kept, because the body loads after the first palette is set.
     this._palette = { halo, limb };
     this.body?.setPalette({ limb });
+    if (halo != null) this.aura?.material.color.setHex(halo);
     if (halo != null) {
       this.halo.material.color.setHex(halo);
       this.pool.material.color.setHex(halo);

@@ -88,7 +88,6 @@ export function buildStatsExport({ stats = {}, daily, run, tuning, access, seed,
       // dial being calibrated, so units are the useful unit.
       dashMeterSpent: n(run.dashMeterSpent, 1),
       heartsLeft: n(run.heartsLeft),
-      bells: n(run.bells),
       endGap: n(run.endGap, 1),
     } : null,
 

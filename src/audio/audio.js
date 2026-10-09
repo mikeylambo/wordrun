@@ -16,7 +16,7 @@
 
 import TUNING from '../TUNING.js';
 import { corruptionIntensity } from '../render/corruption-curve.js';
-import { chimeStep, ladderHz, STRING_RUNGS } from './ladder.js';
+import { chimeStep, ladderHz } from './ladder.js';
 import { categoryGain, approved, trim } from './live-mix.js';
 import { ApprovedAudioAssets } from './approved-assets.js';
 import { PageBed } from './page-bed.js';
@@ -555,56 +555,6 @@ export class Audio {
   // hit() with none of its impact burst — the rulebook asymmetry, audible.
   slip() { this._tone({ type: 'triangle', f0: 420, f1: 210, dur: 0.22, vol: 0.09, bus: this.bus.ui }); }
 
-  /**
-   * A bell in a lit string. RC10.9: `step` is a position on the SAME ladder
-   * the correct-read chime climbs, handed in by the caller from the chain
-   * (see audio/ladder.js `stringStep`). It used to be `bellsCollected % 5` on
-   * a table of its own, rooted a semitone below the chime — two pentatonic
-   * ladders in two keys, one of them keyed to distance. The timbre is still
-   * the bell's; only the pitches now belong to the melody the chime started.
-   */
-  bell(step = 0) {
-    const prev = this._category;
-    this._category = 'bells';
-    try { this._bellVoice(step); }
-    finally { this._category = prev; }
-    // The bell's top: a fifth above the struck note and a dry air tick. It
-    // sits OUTSIDE the bell fader — it was tuned by ear at release level.
-    if (this.ready && !this.muted) {
-      const f = ladderHz(step);
-      this._tone({ type: 'sine', f0: f * 1.5, f1: f * 1.505, dur: 0.15, vol: 0.028, bus: this.bus.ui });
-      this._burst(0.055, 0.020, 4200, 'highpass', 0, this.bus.ui, 0.7);
-    }
-  }
-
-  _bellVoice(step) {
-    const f = ladderHz(step);
-    this._tone({ type: 'sine', f0: f, f1: f * 1.004, dur: 0.34, vol: 0.075, bus: this.bus.ui });
-    this._tone({ type: 'triangle', f0: f * 2.01, f1: f * 2.02, dur: 0.18, vol: 0.025, bus: this.bus.ui, delay: 0.006 });
-    if ((step % STRING_RUNGS) === STRING_RUNGS - 1) this._tone({ type: 'sine', f0: f * 0.5, f1: f * 0.5, dur: 0.44, vol: 0.035, bus: this.bus.ui, delay: 0.025 });
-    // RC10.1: the bright acoustic-looking partials that let a bell carry over
-    // the beds. They lived in a runtime patch of this method — the patch and
-    // the method disagreed about the interval table, which is exactly the
-    // drift a wrapper invites — so they are simply part of the bell now, and
-    // the one table above is the only one.
-    this._tone({ type: 'sine', f0: f * 2.02, f1: f * 2.015, dur: 0.21, vol: 0.038, bus: this.bus.ui });
-    this._tone({ type: 'triangle', f0: f * 3.01, f1: f * 2.98, dur: 0.105, vol: 0.014, bus: this.bus.ui, delay: 0.006 });
-    // Presence on phone speakers: the struck note reinforced with a short
-    // upper partial, then a quiet sustain under it. These four voices used to
-    // live in three runtime patches of this method, each keeping a private
-    // copy of the pre-RC10.9 interval table — so they sang a different
-    // pentatonic from the bell they were reinforcing. They read the ladder now.
-    if (this.ready && !this.muted) {
-      this._tone({ type: 'sine', f0: f, f1: f * 1.002, dur: 0.22, vol: 0.030, bus: this.bus.ui });
-      this._tone({ type: 'triangle', f0: f * 3.01, f1: f * 3.02, dur: 0.11, vol: 0.016, bus: this.bus.ui, delay: 0.004 });
-    }
-    this._bedDuck = Math.max(this._bedDuck, 0.10);
-    this._bedDuckHold = Math.max(this._bedDuckHold, 0.28);
-    if (this.ready && !this.muted) {
-      this._tone({ type: 'sine', f0: f, f1: f * 1.003, dur: 0.30, vol: 0.011, bus: this.bus.ui });
-      this._tone({ type: 'triangle', f0: f * 2.02, f1: f * 2.01, dur: 0.15, vol: 0.007, bus: this.bus.ui, delay: 0.004 });
-    }
-  }
 
   heartLost() {
     this._tone({ type: 'triangle', f0: 148, f1: 92, dur: 0.26, vol: 0.11, bus: this.bus.ui });

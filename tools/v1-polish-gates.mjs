@@ -43,16 +43,10 @@ check(!fs.existsSync('src/v1-contact.js') && !/__v1TerrainGrace|__v1AllPhysicalL
 // the hearts themselves (see the RC6.2 block at the end of this file).
 check(!fs.existsSync('src/v1-ship-polish.js') && !fs.existsSync('src/rc9-audio.js'),
   'the ship-polish layer is deleted, not merely unimported — no prototype is reassigned at boot');
-// RC10.9: the bell's own interval table is gone. It was the second pentatonic
-// ladder in the game — [0, 4, 7, 11, 14] rooted a semitone under the chime's
-// [0, 2, 4, 7, 9], and keyed to how many bells a run had passed rather than to
-// anything the player did. There is now ONE table, in audio/ladder.js, and the
-// bell sings the five rungs above wherever the chime just landed. The bright
-// partials that made a bell carry over the beds are untouched.
-check(bellSrc.includes('f * 2.02, f1: f * 2.015') && bellSrc.includes('vol: 0.038') &&
-  !/const intervals =/.test(bellSrc) && bellSrc.includes('const f = ladderHz(step);') &&
+// RC14.1: the bells — and their voice — are gone; the chime keeps the ONE ladder.
+check(!/bell\(step|_bellVoice/.test(bellSrc) &&
   (read('src/audio/ladder.js').match(/export const LADDER = /g) || []).length === 1,
-  'the bell\'s bright upper partials are part of the bell, and its pitches come from the ONE ladder');
+  'the bell voice is gone with the bells; the chime\'s pitches still come from the ONE ladder');
 
 // Phase 15/16 retired the tree and rock recordings; RC10.1 retired the code
 // that reached for them. It could never sound — nothing solid spawns — so the
@@ -234,7 +228,7 @@ check(/#vitalsSlot\{[^}]*margin-top/.test(html),
 check(!liveMix.includes('WIND_MAX') && !liveMix.includes('SURFACE_GLIDE') &&
   !liveMix.includes('windMax') && !liveMix.includes('surfaceGlide'),
   'no orphaned reference level for a voice that no longer exists');
-check(liveMix.includes('surface: -5.5') && liveMix.includes('bells: 4') &&
+check(liveMix.includes('surface: -5.5') && !liveMix.includes('bells:') &&
   liveMix.includes('heartbeat: 6') && liveMix.includes('beast: 1') &&
   !liveMix.includes('wind:'),
   'user-approved live mix is baked as the canonical V1 dB baseline, wind excepted');
@@ -256,8 +250,8 @@ check(/ROAR_MAX: 0\.20,/.test(read('src/TUNING.js')) &&
 check(audioEngine.includes('kill ? 0.02 : A.SCORE_BUS') && /SCORE_BUS: 0\.\d+,/.test(read('src/TUNING.js')) &&
   /finishArrival\(\) \{[\s\S]*?this\._thump\([^)]*this\.bus\.score\)/.test(audioEngine),
   'the FINISH and dash-climax thumps are actually audible — their bus has a level of its own');
-check(/this\._category = 'bells';/.test(audioEngine) && /vol \*= categoryGain\(this\._category\);/.test(audioEngine),
-  'the bell rides its approved fader');
+check(/vol \*= categoryGain\(this\._category\);/.test(audioEngine),
+  'categorised voices ride their approved faders');
 check(/const duck = clamp\(Math\.max\(this\._bedDuck, roar \* 0\.12\), 0, 0\.22\);/.test(audioEngine) &&
   audioEngine.includes('ambience * (1 - duck)'),
   'brief priority ducking SCALES the beds — it never overrides SFX OFF or the last stand');
@@ -678,14 +672,11 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     'both bookend sounds exist in the one audio system');
 }
 
-// ── Visibility pass: the bells' halo and the answer vignette ─────────────
+// ── Visibility pass: the answer vignette ─────────────────────────────────
 {
-  const bells = read('src/render/bells.js');
   const uiCode = read('src/ui/ui.js');
   const mainCode = appSource();
   const plate = read('src/render/word-gates.js');
-  check(bells.includes('AdditiveBlending') && bells.includes('this.halo = new THREE.InstancedMesh'),
-    'every bell wears an additive halo — visible in the darkest band');
   check(uiCode.includes('answerFlash(ok)') &&
     uiCode.includes('if (ACCESS.reducedFlash) return;') &&
     uiCode.includes('ok ? ACCESS.right : ACCESS.wrong'),
@@ -1203,7 +1194,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     mainCode.includes('launchPending = false;\n  launch.cancel();'),
     'quitting drops the pending run with the veil — a cancelled arrival starts nothing');
   check(mainCode.includes('if (launchPending) return;') &&
-    mainCode.includes('continueOffer.active || launchPending) return;'),
+    mainCode.includes('continueOffer.active || app.launchPending) return;'),
     'no second run can start during the fade');
   check(/ACCESS\.reducedFlash\) \{[\s\S]{0,400}this\._black\(\);/.test(launchSrc),
     'REDUCED FLASH takes the world at once — it never stages a dip to black');
@@ -1597,6 +1588,36 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   const offScale = [...tracks].filter((t) => !['.08', '.16', '.24', '.34', '.5'].includes(t));
   check([...weights].every((w) => ['400', '600', '800'].includes(w)) && offScale.length === 0,
     `three weights (${[...weights].sort().join('/')}) and four caps tracking steps across every interface surface${offScale.length ? ' — off-scale: ' + offScale.join(' ') : ''}`);
+}
+
+// ── RC14.1 — the glow, the tiers, the city's light ─────────────────────────
+{
+  const T = (await import('../src/TUNING.js')).default;
+  const plate = read('src/render/word-gates.js');
+  const glow = read('src/render/glow-pass.js');
+  const scene = read('src/render/scene.js');
+  // Legibility outranks every visual change: the plate is BLACK in the glow
+  // pass (it occludes light behind it) and is never itself a source.
+  check(/this\.occluder = new THREE\.Mesh\(this\.mesh\.geometry, new THREE\.MeshBasicMaterial\(\{ color: 0x000000/.test(plate) &&
+    /this\.occluder\.layers\.set\(GLOW_LAYER\)/.test(plate) && !/this\.mesh\.layers\.enable\(GLOW_LAYER\)/.test(plate),
+    'the word plate never blooms — in the glow pass it is a black occluder, so no light bleeds through it');
+  check(/b\.glowOff = true/.test(scene) && /THRESHOLD: 0\.\d+/.test(read('src/TUNING.js')) && /uThresh/.test(glow),
+    'only bright light blooms, and the budget governor drops the glow before it ever softens the frame');
+  const [t1, t2] = T.JUDGE.GLOW_TIERS;
+  const act = read('src/render/actors.js');
+  check(t1 === 10 && t2 === 50 && /const tier = p\.overdrive \? 3 : chain >= t2 \? 2 : chain >= t1 \? 1 : 0;/.test(act) &&
+    /!this\.reducedFlash\) this\._tierFlash = 1/.test(act),
+    'the runner sheet\'s four glow states are explicit tiers (BASE · BUILDING 10 · HIGH FLOW 50 · DASH); the tier-up flare respects REDUCED FLASH');
+  // New light colours are checked against the reserved hues before they ship.
+  const hueOf = (hex) => { const r = (hex >> 16 & 255) / 255, g = (hex >> 8 & 255) / 255, b = (hex & 255) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (!d) return null;
+    const x = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return (x * 60 + 360) % 360; };
+  const RH = T.META.RESERVED_HUES;
+  const sky = read('src/render/skyline.js');
+  const lights = [...sky.matchAll(/(?:uGlow: \{ value: new THREE\.Color\(|color: |_glowCol = new THREE\.Color\(|uLight2: \{ value: new THREE\.Color\()(0x[0-9a-f]{6})/g)].map((m) => parseInt(m[1], 16));
+  const clash = lights.filter((h) => { const u = hueOf(h); return u != null && RH.HUES.some(({ deg }) => { const dd = Math.abs(u - deg); return Math.min(dd, 360 - dd) < RH.MIN_SEPARATION_DEG; }); });
+  check(lights.length >= 3 && clash.length === 0,
+    `the city's new light (${lights.length} colours: dome glow, beams, pane tints) clears every reserved hue`);
 }
 
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);

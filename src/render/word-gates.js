@@ -16,6 +16,7 @@ import * as THREE from 'three';
 import TUNING from '../TUNING.js';
 import { makeGate } from '../sim/word-gates.js';
 import { ACCESS } from '../ui/access.js';
+import { GLOW_LAYER } from './glow-pass.js';
 
 
 
@@ -102,6 +103,12 @@ class Plate {
     this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.mat);
     this.mesh.renderOrder = 20;
     this.mesh.visible = false;
+    // RC14.1: in the glow pass the plate is a solid black OCCLUDER on the
+    // glow layer only — no light behind it bleeds through, and the word never
+    // blooms. It rides the plate's own transform and visibility.
+    this.occluder = new THREE.Mesh(this.mesh.geometry, new THREE.MeshBasicMaterial({ color: 0x000000, fog: false }));
+    this.occluder.layers.set(GLOW_LAYER);
+    this.mesh.add(this.occluder);
 
     const lineGeo = new THREE.PlaneGeometry(TUNING.RUN.TRACK_HALF_W * 2, 0.55);
     this.lineMat = new THREE.MeshBasicMaterial({

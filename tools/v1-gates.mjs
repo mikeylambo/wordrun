@@ -8,7 +8,6 @@ import { appSource } from './lib/app-source.mjs';
  *
  *   - the canonical 30K finish machinery (consumed once, prestige beyond)
  *   - the band arc's late start distances (FINISH lands at 30K)
- *   - bells continuing forever on the new track, with bounded caches
  *   - the flat track staying O(1) through a 120K soak
  *   - the retirement itself: no pursuit director, no authored composition
  *   - mobile affordances, no stray RAF loops, layer load order, copy
@@ -18,7 +17,6 @@ import fs from 'node:fs';
 import TUNING from '../src/TUNING.js';
 import { Terrain } from '../src/sim/terrain.js';
 import { ENDGAME } from '../src/design/endgame.js';
-import { BellField } from '../src/design/bells.js';
 import { MOUNTAIN_BANDS } from '../src/render/art-direction.js';
 
 let pass = 0;
@@ -44,7 +42,6 @@ const CURVE_ENVELOPE = Object.keys(TUNING.RUN)
   .filter((k) => /^CURVE_AMP_/.test(k))
   .reduce((sum, k) => sum + TUNING.RUN[k], 0);
 const soakTerrain = new Terrain(seed);
-const bells = new BellField(seed, soakTerrain);
 let maxChunks = 0;
 let corridorOk = true;
 for (let d = 0; d <= 120000; d += TUNING.TERRAIN.CHUNK_LEN) {
@@ -52,7 +49,6 @@ for (let d = 0; d <= 120000; d += TUNING.TERRAIN.CHUNK_LEN) {
   for (let i = -TUNING.TERRAIN.CHUNKS_BEHIND; i <= TUNING.TERRAIN.CHUNKS_AHEAD; i++) {
     soakTerrain.chunk(ci + i);
   }
-  bells.around(d, 35, 360);
   soakTerrain.prune(ci);
   maxChunks = Math.max(maxChunks, soakTerrain.chunks.size);
   // The lateral envelope is the SUM OF EVERY curve amplitude the tuning
@@ -65,10 +61,6 @@ for (let d = 0; d <= 120000; d += TUNING.TERRAIN.CHUNK_LEN) {
 }
 check(maxChunks <= 18, `track chunk cache stays bounded through 120K (max ${maxChunks})`);
 check(corridorOk, 'the route stays inside its elevation cap and curve envelope through 120K');
-check(bells.cache.size < 500, `bell route cache remains small through 120K (${bells.cache.size} lines)`);
-for (const d of [10000, 30000, 50000, 75000, 100000]) {
-  check(bells.around(d, 35, 360).length > 0, `bells continue around ${Math.round(d / 1000)}K`);
-}
 
 // ── Source-level release assertions ───────────────────────────────────────
 // The V1 release layers (v1-finalize, v1-contact, v1-chase, rc97-endgame,
@@ -167,7 +159,7 @@ check(!finishSource.includes('SecondBeast') && !finishSource.includes('secondBea
   check(killed && run.skipKillCam() === true && run.phase === PHASE.DEAD &&
     run.score === scoreAtKill && run.deathCause === 'redlined',
     'and in the kill cam it goes straight to the card with the run exactly as it ended');
-  check(/if \(sim\.phase === PHASE\.KILL\) \{\n    if \(shotTaken\) sim\.skipKillCam\(\);/.test(mainSource) &&
+  check(/if \(sim\.phase === PHASE\.KILL\) \{\n\s+if \(app\.shotTaken\) sim\.skipKillCam\(\);/.test(mainSource) &&
     /onAdvance\(\{ deliberate: e\.code === 'KeyR' && !e\.repeat \}\)/.test(mainSource),
     'a tap skips the cam only once the share frame is taken; R, the retry key, skips the settle guard');
 }

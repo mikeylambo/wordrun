@@ -32,10 +32,9 @@ import { breathAt } from './ui/breath.js';
 import { PadReader, padConnected } from './input/gamepad.js';
 import { ControllerNav } from './ui/controller-nav.js';
 import { Judgment } from './ui/judgment.js';
-import { BellRenderer } from './render/bells.js';
 import { flowFactor, flowGlow, flowLevel } from './render/flow-curve.js';
 import { viewPlayer, viewBeast } from './render/view-pose.js';
-import { ACCESS, initAccess, buildAccessPanel, toggleFullscreen } from './ui/access.js';
+import { ACCESS, initAccess, buildAccessPanel } from './ui/access.js';
 import { applyMaterialPass } from './render/material-pass.js';
 import { Audio } from './audio/audio.js';
 import { MusicTrack } from './music-track.js';
@@ -52,8 +51,6 @@ import { Boards, boardKeyFor } from './meta/boards.js';
 import { placeFor, insert as insertHiscore } from './meta/hiscore.js';
 import { InitialsEntry } from './ui/initials.js';
 import { loadDefinitions } from './ui/review-row.js';
-import { newlyEarned, medalById } from './meta/medals.js';
-import { rankFor } from './ui/results-motion.js';
 import { AttractPanels } from './ui/attract-panels.js';
 import { TIERS } from './words/wordlist.js';
 import { CurveLog } from './meta/curve.js';
@@ -74,6 +71,8 @@ import { LIVE_MIX, mountMixPanel } from './audio/live-mix.js';
 import { installDevHooks } from './app/dev-hooks.js';
 import { ContinueOffer } from './app/continue-offer.js';
 import { RunLedger } from './app/run-ledger.js';
+import { settleRun } from './app/run-rewards.js';
+import { installInputRouting } from './app/input-routing.js';
 import { createSimEventDrain } from './app/sim-events.js';
 // Phase 5: the shop, pause and onboarding panels are code-split behind dynamic
 // import() — none is needed for the first frame, so keeping them out of the
@@ -197,7 +196,6 @@ const meterLabelEl = document.getElementById('meterLabel');
 // The bells the runner collects. The sim owns the field and the pickup
 // (sim.bells); this only draws it. Created after the material pass so its
 // baked-in gold emissive is left alone by the pass's material sweep.
-const bellRenderer = new BellRenderer(stage.scene, sim.terrain, sim.bells);
 
 const simInput = emptyInput();
 // Code-split panel handles (Phase 5) — declared before the first loadShop()
@@ -630,7 +628,6 @@ function buildRunInTheDark() {
   terrainMesh.flush();
   props.reset();
   props.update(0, true);
-  bellRenderer.reset(sim.terrain);
   landmarks.reset();
   landmarks.update(0);
 
@@ -767,13 +764,12 @@ function buyContinue() {
 
 /** Put the run back on its feet: hearts full, the Redline pushed out to
  *  its starting gap, speed at a survivable pad over its pace. The word
- *  gauntlet, distance, bells and ledger all carry on untouched. */
+ *  gauntlet, distance and ledger all carry on untouched. */
 function reviveRun() {
   const p = sim.player;
   p.dead = false;
   p.staggerT = 0;
   sim.hearts = sim.maxHearts;
-  sim.bellCharge = 0;
   sim.deathCause = null;
   sim.beast.killed = false;
   sim.beast.killT = 0;
@@ -873,68 +869,11 @@ function finalizeRun() {
   // learning recap — every wrong read shows its true spelling.
   const wg = sim.wordGates;
   metaStats.increment('runs');
-  metaStats.increment('metres', Math.floor(distance));
-  metaStats.increment('correct', wg.correctCount);
-  metaStats.increment('wrong', wg.wrongCount);
-  metaStats.increment('falseTaps', wg.falseTaps);
-  metaStats.increment('missedReals', wg.missedReals);
-  // Phase B: how fast the reading was, not just how right. Milliseconds, so
-  // the lifetime average survives as an integer ledger.
-  const avgReadMs = wg.readCount > 0 ? Math.round((wg.latencySum / wg.readCount) * 1000) : 0;
-  const bestReadMs = wg.bestLatency != null ? Math.round(wg.bestLatency * 1000) : 0;
-  if (wg.readCount > 0) {
-    metaStats.increment('readMsTotal', avgReadMs * wg.readCount);
-    metaStats.increment('reads', wg.readCount);
-    if (bestReadMs > 0) metaStats.min?.('bestReadMs', bestReadMs);
-  }
-  metaStats.max('bestChain', sim.player.bestChain);
-  metaStats.max('bestDistance', Math.floor(distance));
-  metaStats.max('bestScore', finalScore);
-  // The personal curve: what this run says about the reading, not the score.
-  curve.addRun({
-    perTier: run.tierTally, avgReadMs, reads: wg.readCount,
-    retired: run.retiredThisRun.length,
-  });
-  // Bells bank the spendable balance (Phase 8): a bare number, no name.
-  const banked = (sim.bellsCollected || 0) * TUNING.META.CURRENCY_PER_BELL;
-  if (banked > 0) metaStats.increment('currency', banked);
-  const dailyCard = metaDaily.recordRun(DAILY_SEED, {
-    distance, bestChain: sim.player.bestChain, correct: wg.correctCount,
-  });
-  // RC9.4: a finished DAILY RUN retires its own explanation. It is written
-  // here rather than at the start of one, because a run abandoned on the
-  // title has not taught anybody what the mode is.
-  if (runMode === 'standard') learn('Daily');
-  // RC13.8 — medals: this run's feats plus the lifetime figures, judged once.
-  const medalIds = newlyEarned({
-    bestChain: sim.player.bestChain, perfects: run.perfectsThisRun,
-    rank: rankFor({ correct: wg.correctCount, wrong: wg.wrongCount, perfects: run.perfectsThisRun }),
-    score: finalScore, continued: runContinued, madeTable: hiPlace > 0,
-    finished: !!sim.escaped || !!sim.routeFinished, wrong: wg.wrongCount,
-  }, { streak: dailyCard?.streak || 0, learned: mastery.count, beaten: nemesis.retiredCount },
-  Storage.medals());
-  if (medalIds.length) Storage.addMedals(medalIds);
-  const medalsWon = medalIds.map((id) => {
-    const m = medalById(id);
-    const lit = m.unlocks && TUNING.META.COSMETICS.find((c) => c.id === m.unlocks);
-    return lit ? `${m.label} · ${lit.label} LIT` : m.label;
-  });
-  // The rotating queue (Phase 21). Only the three LIVE objectives are judged
-  // against this run — anything still in the queue gets no credit for a run
-  // that would have satisfied it, so one exceptional run cannot front-load
-  // months of progression. Rewards are currency, which is the cosmetic path;
-  // nothing here touches gameplay power.
-  const objectives = metaObjectives.recordRun({
-    distance,
-    wrong: wg.wrongCount,
-    falseTaps: wg.falseTaps,
-    correct: wg.correctCount,
-    bestChain: sim.player.bestChain,
-    chainMetres: sim.chainMetres || 0,
-    streak: dailyCard.streak,
-    dashMeterSpent: sim.player.boostSpent,
-  });
-  if (objectives.reward > 0) metaStats.increment('currency', objectives.reward);
+  // The run's settlement — stats, curve, ◆, streak, medals, objectives:
+  // src/app/run-rewards.js, judged once, in order.
+  const { avgReadMs, banked, dailyCard, medalsWon, objectives } = settleRun(
+    { metaStats, curve, metaDaily, DAILY_SEED, learn, mastery, nemesis, metaObjectives },
+    { sim, wg, run, distance, finalScore, runMode, runContinued, hiPlace });
 
   ui.setDaily(metaDaily.status(DAILY_SEED));
   shopUI?.sync();
@@ -1152,74 +1091,6 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
   loadShop(); loadPause(); loadOnboarding();
 }));
 
-function onAdvance({ deliberate = false } = {}) {
-  if (running || paused || onboarding?.visible || continueOffer.active || launchPending) return;
-  // PD-2: ONE modal rule for every overlay — a tap on or around ANY open
-  // sheet (settings, shop, profile) can never start a run underneath it.
-  // The pause menu and the continue offer are covered by the flags above.
-  if (document.querySelector('#accessPanel.on, #shopPanel.on, #curveScreen.on')) return;
-  // A tap during the kill cam cuts straight to the card — but only once the
-  // share frame has been taken, so skipping never costs the player the image
-  // of how it ended. (Before this, every death cost the full 1.5 s.)
-  if (sim.phase === PHASE.KILL) {
-    if (shotTaken) sim.skipKillCam();
-    return;
-  }
-  // The same settle guard covers both ways a card can appear: a death (phase
-  // DEAD) and a finished route (phase still RUNNING, sim.escaped set). It
-  // exists to stop a tap aimed at the dying run from starting the next one;
-  // R is the retry key and cannot be an accident, so it is not held back.
-  if (!deliberate && (sim.phase === PHASE.DEAD || sim.escaped) &&
-      performance.now() - deathShownAt < 350) return;
-  audio.uiTap();
-  // RC6: BEGIN RUN starts the run — for everyone, on the first tap of the
-  // first session included. A card between the player and the game is the
-  // wrong first beat for a cabinet, and the teaching is already in the run:
-  // TEACH carries the fundamentals and the study stop waits for the first
-  // answer of each verb. The six-rule sheet is a REFERENCE now, reachable
-  // whenever it is wanted (HOW TO PLAY, and the pause menu) and never
-  startRun({ instant: deliberate });
-}
-
-window.addEventListener('pointerup', (e) => {
-  // RC6: the first touch of an attract loop belongs to ending it — it puts
-  // the machine back in the player's hands and starts nothing by surprise.
-  // A tap on a button still reaches that button's own handler.
-  if (attract.active) { attract.exit(); return; }
-  if (e.target.closest?.('[data-rc2-ui],[data-rc7-ui],button')) return;
-  onAdvance();
-});
-window.addEventListener('keydown', (e) => {
-  // Backtick opens the tuning panel — first, so it works from the title, a
-  // live run or a pause. Never while a field has focus: the panel's own
-  // search box and JSON box are places you type a backtick on purpose.
-  if (e.code === 'Backquote' && !e.repeat && !/^(INPUT|TEXTAREA)$/.test(e.target?.tagName || '')) {
-    e.preventDefault();
-    devTools.toggleDevPanel();
-    return;
-  }
-  // F is the arcade convention and the one key a desktop player tries. Not
-  // while a field has focus, and not while onboarding owns the screen.
-  if (e.code === 'KeyF' && !e.repeat && !/^(INPUT|TEXTAREA)$/.test(e.target?.tagName || '')) {
-    e.preventDefault();
-    toggleFullscreen();
-    return;
-  }
-  if (onboarding?.visible) return;
-  // Any key ends the attract loop, exactly as any touch does.
-  if (attract.active) { attract.exit(); return; }
-  // RC13.7: while initials are being entered, the letters are theirs.
-  if (initials.isOpen && initials.key(e)) { e.preventDefault(); return; }
-  if (e.code === 'Escape' || e.code === 'KeyP') {
-    if (sim.phase === PHASE.RUNNING) {
-      e.preventDefault();
-      paused ? resumeGame() : pauseGame();
-    }
-    return;
-  }
-  if (e.code !== 'Space' && e.code !== 'Enter' && e.code !== 'KeyR') return;
-  onAdvance({ deliberate: e.code === 'KeyR' && !e.repeat });
-});
 
 // Mode/difficulty chips: persist the choice, swap the storage variant,
 // refresh the per-variant best and re-warm the next attempt's plates.
@@ -1350,7 +1221,7 @@ copyStats?.addEventListener('click', async (e) => {
       falseTaps: wg.falseTaps, missedReals: wg.missedReals,
       bestChain: p.bestChain, peakSpeed: p.peakSpeed, endSpeed: p.speed,
       dashMeterSpent: p.boostSpent, heartsLeft: sim.hearts,
-      bells: sim.bellsCollected, endGap: sim.beast.gap,
+      endGap: sim.beast.gap,
     },
     tuning: TUNING,
     access: ACCESS,
@@ -1492,8 +1363,6 @@ function tick(dt) {
   terrainMesh.update(pv.d);
   terrainMesh.pump();
   props.update(pv.d);
-  if (bellRenderer.terrain !== sim.terrain) bellRenderer.reset(sim.terrain);
-  bellRenderer.update(pv.d, performance.now() / 1000, sim.player.chain | 0);
   landmarks.update(pv.d);
   wordGateActors.update(dt, pv.d, stage.camera);
   streakBurst.update(paused ? 0 : dt, stage.camera);
@@ -1576,6 +1445,8 @@ function tick(dt) {
   trackPylons.setFlow(flowF);
   editorialWorld.setFlow(flowF);
   playerActor.flow = flowF;
+  playerActor.chain = p.chain | 0;   // RC14.1: the glow tier reads the chain itself
+  playerActor.reducedFlash = ACCESS.reducedFlash;   // no tier-up flare under REDUCED FLASH
   playerActor.dashChain = p.overdrive ? p.dashChain : 0; // Phase I: the tail reads the rung
   // The score's reading of the run. Music modulates, the run decides: the
   // intensity term is the game's, and the mapping may only tint it.
@@ -1742,7 +1613,7 @@ const { devTools } = installDevHooks({
   sim, ui, music, rig, stage, input, simInput, launch, attract, moments, momentClip,
   render: {
     stage, terrainMesh, props, landmarks, rig, playerActor, beastActor, ghostActor, spray, materialPass,
-    wordGateActors, dataworld, streakBurst, bells: bellRenderer, editorialWorld, judgment, skyline,
+    wordGateActors, dataworld, streakBurst, editorialWorld, judgment, skyline,
   },
   seed: SEED, seedString: SEED_STRING, challenge: CHALLENGE,
   startRun, quitToTitle, onFinishRun, setGhostEnabled, pauseGame, resumeGame, tick,
@@ -1755,4 +1626,17 @@ const { devTools } = installDevHooks({
   get currentSalt() { return currentSalt; },
   get lastRunScore() { return lastRunScore; },
   get gateTrail() { return run.gateTrail; },
+});
+
+// Taps and keys that are not aimed at a control — src/app/input-routing.js.
+// Installed last: it reaches initials and the dev tools, built above.
+installInputRouting({
+  sim, audio, attract, initials, continueOffer, devTools,
+  startRun, pauseGame, resumeGame,
+  get running() { return running; },
+  get paused() { return paused; },
+  get launchPending() { return launchPending; },
+  get shotTaken() { return shotTaken; },
+  get deathShownAt() { return deathShownAt; },
+  get onboarding() { return onboarding; },
 });

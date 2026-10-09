@@ -26,7 +26,6 @@ const ENABLED = typeof location !== 'undefined' && new URLSearchParams(location.
 export const APPROVED_DB = Object.freeze({
   master: 0,
   surface: -5.5,
-  bells: 4,
   heartbeat: 6,
   beast: 1,
 });
@@ -36,7 +35,6 @@ export const APPROVED_DB = Object.freeze({
 // nothing is worse than no fader.
 const DEFAULT_DB = Object.freeze({
   master: 0,
-  bells: 0,
   heartbeat: 0,
   beast: 0,
 });
@@ -66,10 +64,11 @@ export function approved(key) { return APPROVED[key] ?? 1; }
 
 /**
  * The gain a procedural voice in `category` plays at: approved × trim. Only
- * the bell and the heartbeat categories carry a fader; everything else is 1.
+ * the heartbeat category carries a fader; everything else is 1. (RC14.1: the
+ * bells' fader went with the bells.)
  */
 export function categoryGain(category) {
-  if (category !== 'bells' && category !== 'heartbeat') return 1;
+  if (category !== 'heartbeat') return 1;
   return approved(category) * trim(category);
 }
 
@@ -144,7 +143,6 @@ export function mountMixPanel() {
 
   const rows = [
     ['master', 'MASTER', -18, 6],
-    ['bells', 'BELLS', -18, 9],
     ['heartbeat', 'HEARTBEAT', -18, 9],
     ['beast', 'BEAST', -18, 9],
   ];

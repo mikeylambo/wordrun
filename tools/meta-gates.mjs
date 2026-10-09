@@ -176,63 +176,20 @@ head('META — the recap always knows the true spelling');
     `${taps.length} fakes recorded`);
 }
 
-// ── Bells: the currency pickup actually gets picked up ───────────────────
-head('META — bells sit on the travel line and feed the balance');
+// ── RC14.1: reads pay the balance ────────────────────────────────────────
+head('META — the read is what the balance pays for');
 
 {
-  // Phase 8 audit finding, gated so it cannot regress: strings used to be
-  // laid in the straight-ribbon frame while the track wound ±15.5m — wired
-  // to hearts and meter on paper, uncollectible in play. Every bell must
-  // now sit inside the pickup window of the line the runner travels.
-  const { BellField, BELL_LINES, litCount } = await import('../src/design/bells.js');
-  const { Terrain } = await import('../src/sim/terrain.js');
-  for (const seed of [999, 12345, 8675309]) {
-    const t = new Terrain(seed);
-    const f = new BellField(seed, t);
-    const bells = f.around(3000, 2900, 2900);
-    const worst = Math.max(...bells.map((b) => Math.abs(b.x - t.corridorX(b.d))));
-    check(`seed ${seed}: every bell is inside the pickup window of the line`,
-      bells.length > 30 && worst <= BELL_LINES.PICKUP_X - 0.5,
-      `${bells.length} bells, worst ${worst.toFixed(2)}m off-line (window ${BELL_LINES.PICKUP_X}m)`);
-  }
-
-  // And an auto-following runner collects them — but ONLY while a chain is
-  // live (RC10.9). Walk the line at pace and sweep collectNear the way
-  // sim.step does each step, once holding nothing and once holding a chain.
-  const t = new Terrain(999);
-  const walk = (chain) => {
-    const f = new BellField(999, t);
-    let collected = 0;
-    for (let d = 0; d < 2000; d += 27 / 60) {
-      collected += f.collectNear({ d, x: t.corridorX(d) }, chain).length;
-    }
-    return collected;
-  };
-  const cold = walk(0);
-  const warm = walk(BELL_LINES.LIT_FULL_CHAIN);
-  check('a runner holding NO chain collects nothing — an unlit bell is not a bell',
-    cold === 0, `${cold} collected over 2km at chain 0`);
-  check('and a runner holding a chain collects the strings on the line he is already on',
-    warm >= 30, `${warm} collected over 2km at chain ${BELL_LINES.LIT_FULL_CHAIN}`);
-  // The chain draws the string: every link lights one more bell, up to a
-  // whole string, and the ladder is monotonic with nothing skipped.
-  const counts = [];
-  for (let c = 0; c <= BELL_LINES.LIT_FULL_CHAIN + 4; c++) counts.push(litCount(c));
-  check('every link lights one more of the string, and the string tops out whole',
-    counts[0] === 0 && counts[1] === 1 &&
-    counts.every((v, i) => i === 0 || v >= counts[i - 1]) &&
-    Math.max(...counts) === BELL_LINES.COUNT,
-    `chain 0..${BELL_LINES.LIT_FULL_CHAIN + 4} lights ${counts.join('/')} of ${BELL_LINES.COUNT}`);
-  // Positions may never read the player: the field is seeded from the route
-  // alone, so the DAILY lays out identically for everyone who runs it.
-  const layout = (chain) => {
-    const f = new BellField(999, t);
-    return f.around(3000, 2900, 2900)
-      .map((b) => `${b.id}:${b.x.toFixed(6)}:${b.d.toFixed(6)}`).join('|');
-  };
-  check('and WHERE a bell is never reads the player — only whether it is lit',
-    layout(0) === layout(9) && layout(0).length > 500,
-    'the field is seeded from the route, so the DAILY is the same string of lights for everyone');
+  const { currencyForRun } = await import('../src/meta/currency.js');
+  const T = (await import('../src/TUNING.js')).default.META.CURRENCY;
+  check('one ◆ per correct read, and nothing for a run that read nothing',
+    currencyForRun({ correct: 0, bestChain: 0 }) === 0 &&
+    currencyForRun({ correct: 37, bestChain: 3 }) === 37 * T.PER_READ,
+    `37 reads at chain 3 pay ◆${currencyForRun({ correct: 37, bestChain: 3 })}`);
+  check('each chain milestone pays once, cumulatively, at the run\'s best chain',
+    currencyForRun({ correct: 96, bestChain: 25 }) === 96 + 5 + 10 &&
+    currencyForRun({ correct: 96, bestChain: 100 }) === 96 + 5 + 10 + 20 + 40,
+    `a clean 96-read DAILY RUN at chain 25 pays ◆${currencyForRun({ correct: 96, bestChain: 25 })} (the bells paid ~138)`);
 }
 
 // ── Modes (Phase 10): two rule sets × three difficulties ─────────────────
@@ -278,28 +235,17 @@ head('MODES — rules, difficulty, and separated boards');
   // sim/sim.js now — its real home. (The refactor-snapshot gate proves the
   // relocation was behaviour-preserving; these keep the RULE legible in source.)
   const simSrc = fs.readFileSync('src/sim/sim.js', 'utf8');
-  const bells = fs.readFileSync('src/design/bells.js', 'utf8');
   check('heart repair is a rule the sim reads from the mode, not a constant',
     simSrc.includes("this.rules?.HEART_REPAIR !== false"));
-  // Phase 23: what repairs a heart moved off the bells and onto the verb.
-  // The bell drip paid ~4.7 hearts per kilometre with no player input, so a
-  // 70% run lost 23 hearts and got all 23 back — ENDLESS could not be lost
-  // by misreading, which is exactly why it had no stakes.
-  // Phase 23 took the hearts; RC10.9 took the meter. What is left is banked
-  // currency, which is the only thing a pickup on an auto-followed line can
-  // honestly pay — and it is now earned, because an unlit bell does not exist.
-  check('bells pay banked currency and NOTHING else — no hearts, no meter',
-    !simSrc.includes('bellCharge++') && !/BELLS_PER_HEART/.test(simSrc + bells) &&
-    !/POWER_PER_BELL/.test(simSrc + bells) &&
-    !/t: 'bell'[\s\S]{0,400}?boostMeter/.test(simSrc) &&
-    /collectNear\(this\.player, chain\)/.test(simSrc));
+  // Phase 23 took the hearts off the bells; RC14.1 took the bells away. A
+  // heart comes back for one thing only: a clean reading streak.
   check('a clean reading streak is what brings a heart back',
     simSrc.includes('this.wordGates.streak') && simSrc.includes('STREAK_REPAIR_BY_HEARTS') &&
     simSrc.includes("t: 'heart_restore'"));
   // The ladder shortens under pressure: a flat threshold put a 14x cliff
   // between a 70% reader and an 85% one, because the repair rate crosses the
   // loss rate at about 80% accuracy and nothing either side is close.
-  const { HEARTS } = await import('../src/design/bells.js');
+  const { HEARTS } = await import('../src/design/hearts.js');
   check('and the way back is shorter the closer you are to the end',
     HEARTS.STREAK_REPAIR_BY_HEARTS[1] < HEARTS.STREAK_REPAIR_BY_HEARTS[2],
     `${HEARTS.STREAK_REPAIR_BY_HEARTS[1]} clean reads on the last heart, `
@@ -812,9 +758,9 @@ head('META — wiring and independence');
     main.includes('metaStats.increment') && main.includes('metaDaily.recordRun') &&
     main.includes('recap: wg.misses'));
   const TUNING = (await import('../src/TUNING.js')).default;
-  check('bells bank a gated currency amount into the persistent ledger',
-    TUNING.META.CURRENCY_PER_BELL >= 1 &&
-    main.includes("sim.bellsCollected || 0) * TUNING.META.CURRENCY_PER_BELL") &&
+  check('the reads bank a priced currency amount into the persistent ledger',
+    TUNING.META.CURRENCY.PER_READ >= 1 &&
+    main.includes('currencyForRun({ correct: wg.correctCount, bestChain: sim.player.bestChain })') &&
     main.includes("metaStats.increment('currency', banked)"));
   // Phase 19 moved the balance off the results card — it was the fifth
   // item in a five-item stat line nobody could read at a glance — and onto
@@ -1168,7 +1114,7 @@ head('ECONOMY — the balance finally spends');
       `${dangerHues.length} danger accents accounted for`);
 
   const main = appSource();
-  check('the continue spends the same ledger the bells feed',
+  check('the continue spends the same ledger the reads feed',
     main.includes("metaStats.increment('currency', -cost)"));
   check('a continued run never sets the best and never saves a ghost',
     main.includes('const boardEligible = !runContinued &&') &&
@@ -1204,7 +1150,7 @@ head('EXPORT — the calibration data path, hand-carried');
     run: { distance: 1204, seconds: 74.5, mode: 'endless', difficulty: 'hard',
       correct: 41, wrong: 4, falseTaps: 2, missedReals: 2, bestChain: 11,
       peakSpeed: 47.318, endSpeed: 31.2, dashMeterSpent: 214.6, heartsLeft: 0,
-      bells: 9, endGap: 0.4 },
+      endGap: 0.4 },
     tuning: TUNING,
     access: { reducedFlash: true, readableType: false, mode: 'deuteranopia' },
     seed: '2026-08-30', at: '2026-08-30T21:00:00.000Z',
@@ -1271,7 +1217,7 @@ head('OBJECTIVES — three live, drawn from a pool, no retroactive credit');
 {
   const MONSTER = {
     distance: 12000, wrong: 0, falseTaps: 0, correct: 200, bestChain: 40,
-    bells: 300, streak: 40, dashMeterSpent: 2000,
+    streak: 40, dashMeterSpent: 2000,
   };
 
   check('the pool is bigger than the live window', POOL.length > LIVE_SLOTS,
@@ -1318,7 +1264,7 @@ head('OBJECTIVES — three live, drawn from a pool, no retroactive credit');
   const b = memoryAdapter();
   const oq2 = new ObjectiveQueue(b, { seed: 12345 });
   const weak = oq2.recordRun({ distance: 400, wrong: 2, falseTaps: 1, correct: 12,
-    bestChain: 4, bells: 8, streak: 1, dashMeterSpent: 40 });
+    bestChain: 4, streak: 1, dashMeterSpent: 40 });
   check('a run that clears nothing still shows what it moved',
     weak.cleared.length === 0 && weak.live.some((l) => l.progress > 0) &&
     weak.live.every((l) => !l.fresh));
@@ -1340,7 +1286,7 @@ head('OBJECTIVES — three live, drawn from a pool, no retroactive credit');
     !/speed|heart|ceiling|multiplier/i.test(
       fs.readFileSync('src/meta/objectives.js', 'utf8').split('export function rewardFor')[1].slice(0, 200)));
   const mainSrc = appSource();
-  check('the run pays the reward into the same balance the bells feed',
+  check('the run pays the reward into the same balance the reads feed',
     mainSrc.includes("metaStats.increment('currency', objectives.reward)"));
   check('the objectives are judged on the run that just ended, once',
     (mainSrc.match(/metaObjectives\.recordRun\(/g) || []).length === 1);

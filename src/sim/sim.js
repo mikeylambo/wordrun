@@ -10,7 +10,7 @@ import { Beast } from './beast.js';
 import { ENDGAME } from '../design/endgame.js';
 import { GhostRecorder, GhostPlayer } from './ghost.js';
 import { WordGates } from './word-gates.js';
-import { BellField, HEARTS } from '../design/bells.js';
+import { HEARTS } from '../design/hearts.js';
 import { TeachStops } from './teach-stops.js';
 // Phase 7: the RC6 beat/pursuit pass and the landing-feel pass are retired
 // with the downhill verb — the track is flat and the pursuit is a pure
@@ -54,17 +54,13 @@ export class Sim {
     this._lastStuntId = null;
     this.stuntsCleared = 0;
 
-    // Hearts, the streak-repair ladder and the bell pickup (Phase 0: dissolved
-    // out of the old rc5.js runtime patch into the sim itself, where the
-    // mechanics they gate already live). Hearts are the fail state; the bell
-    // field is the ambient meter/currency drip. Both are stepped natively in
-    // step() and surfaced through state()/debug() — nothing patches the sim at
-    // runtime any more.
-    this.bells = new BellField(this.seed, this.terrain);
+    // Hearts and the streak-repair ladder (Phase 0: dissolved out of the old
+    // rc5.js runtime patch into the sim itself). Hearts are the fail state,
+    // stepped natively in step() and surfaced through state()/debug().
+    // RC14.1: the bell pickup that shared this block was cut at the 10/8
+    // playtest — ◆ is paid for reads now, on the results card.
     this.maxHearts = HEARTS.MAX;
     this.hearts = HEARTS.MAX;
-    this.bellsCollected = 0;
-    this.bellCharge = 0;
     this.chainMetres = 0;
     this._lastVitalsD = 0;
     this._lastCleanStreak = 0;
@@ -144,17 +140,13 @@ export class Sim {
     this.teach.heldT = 0;
     this.teach.firedThisRun = { real: false, fake: false, dash: false };
 
-    // Fresh vitals per run, and the bell field re-seeded onto this run's
-    // terrain (a new run may have rebuilt it above).
+    // Fresh vitals per run.
     this.maxHearts = HEARTS.MAX;
     this.hearts = HEARTS.MAX;
-    this.bellsCollected = 0;
-    this.bellCharge = 0;
     this.chainMetres = 0;
     this._lastVitalsD = 0;
     this._lastCleanStreak = 0;
     this.deathCause = null;
-    this.bells.reset(this.seed, this.terrain);
     return this;
   }
 
@@ -319,14 +311,13 @@ export class Sim {
   }
 
   /**
-   * Hearts, the bell pickup and the streak-repair ladder — relocated verbatim
+   * Hearts and the streak-repair ladder — relocated verbatim
    * from the old rc5.js runtime patch (Phase 0). Runs at the tail of step(),
    * exactly where the patch used to wrap it.
    *
    *  - Being run down is 'redlined': the pursuit closed the gap, the kill cam
    *    is already rolling, and the hearts never enter into it.
    *  - A wrong read spends a heart; the third wrong read is a 'wipeout'.
-   *  - Bells pay boost meter and banked currency (never hearts — Phase 23).
    *  - A clean reading streak brings a heart back, the ladder shortening the
    *    closer to the end you are (both modes since Phase H2; TUNING.MODES.RULES).
    */
@@ -367,25 +358,9 @@ export class Sim {
     }
 
     const heartRepair = this.rules?.HEART_REPAIR !== false;
-    // RC10.9: only a LIT bell exists, and the chain is what lights it. The
-    // event carries the chain and the bell's place in its string so the mix
-    // can ring the chain chime's own ladder one rung higher — the pitch is the
-    // audio layer's business, the chain is the sim's.
     const chain = this.player.chain | 0;
-    const picked = this.bells.collectNear(this.player, chain);
-    for (const bell of picked) {
-      this.bellsCollected++;
-      // RC10.9: NO boost meter. It was ~13 % of the dash economy paid on a
-      // distance schedule to a pickup that could not be missed, which is a
-      // dash the reading did not buy. CORRECT_FILL absorbed it (6 -> 6.8) so
-      // the charge table still reads 5 early reads at chain 0 and 2 at the cap.
-      this.events.push({
-        t: 'bell', id: bell.id, x: bell.x, d: bell.d,
-        charge: this.bellsCollected, i: bell.i, chain,
-      });
-    }
-    // RC10.9: metres run with a chain standing. The bell strings measure it in
-    // the world; the objective ladder measures it on the card.
+    // RC10.9: metres run with a chain standing — the objective ladder
+    // measures it on the card.
     if (chain > 0) this.chainMetres += Math.max(0, this.player.d - this._lastVitalsD);
     this._lastVitalsD = this.player.d;
 
@@ -457,8 +432,6 @@ export class Sim {
       killSource: this.killSource,
       hearts: this.hearts,
       maxHearts: this.maxHearts,
-      bellsCollected: this.bellsCollected,
-      bellCharge: this.bellCharge,
       chainMetres: this.chainMetres,
       chaseMode: this.beast.mode,
       deathCause: this.deathCause,
@@ -510,8 +483,6 @@ export class Sim {
       stuntsCleared: this.stuntsCleared,
       lastStuntId: this._lastStuntId,
       hearts: this.hearts,
-      bellsCollected: this.bellsCollected,
-      bellCharge: this.bellCharge,
       // beast.mode is hardcoded 'run' since the pursuit director was deleted;
       // the old debug read this.beast.modeT / modeDuration, which never existed
       // on the live Beast and made __DEBUG() throw. Dropped (Phase 0.1).

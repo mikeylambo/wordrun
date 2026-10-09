@@ -12,6 +12,7 @@ import { PALETTE, LIGHT } from './palette.js';
 import { bandForDistance } from './art-direction.js';
 import { EndgameSky } from './endgame-sky.js';
 import { BroadcastPass } from './broadcast-pass.js';
+import { GlowPass } from './glow-pass.js';
 import { ACCESS } from '../ui/access.js';
 
 export class Stage {
@@ -162,7 +163,10 @@ export class Stage {
     if (b.ema > 23.5) {
       b.slowFor += dtMs / 1000;
       b.fastFor = 0;
-      if (b.slowFor > 1.1) { applyDpr(this.dpr - 0.15); b.slowFor = 0; }
+      // RC14.1: the glow is the first thing to go — before the frame gets
+      // softer, the light stops blooming. It does not come back this session.
+      if (b.slowFor > 1.1 && !b.glowOff) { b.glowOff = true; b.slowFor = 0; }
+      else if (b.slowFor > 1.1) { applyDpr(this.dpr - 0.15); b.slowFor = 0; }
     } else if (b.ema < 17.4) {
       b.fastFor += dtMs / 1000;
       b.slowFor = 0;
@@ -189,5 +193,9 @@ export class Stage {
       this.broadcast = null;
     }
     this.renderer.render(this.scene, this.camera);
+    // RC14.1: the selective glow over the finished frame (render/glow-pass.js).
+    if (!this.glow) this.glow = new GlowPass(this.renderer);
+    this.glow.enabled = !this._budget?.glowOff;
+    this.glow.render(this.renderer, this.scene, this.camera, ACCESS.reducedFlash);
   }
 }
