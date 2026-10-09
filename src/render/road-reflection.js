@@ -31,6 +31,65 @@ const MAX_GUARDS = 8;
  * mirror is off the road writes alpha 1, so nothing behind the canvas shows.
  */
 export const WET_MASK = { value: 0 };
+export { MAX_GUARDS };
+
+const _v = new THREE.Vector3();
+const _vc = new THREE.Vector3();
+const _fwd = new THREE.Vector3();
+const _right = new THREE.Vector3();
+const _a = new THREE.Vector2();
+const _b = new THREE.Vector2();
+
+/** World point -> drawing-buffer pixels (y up, as uv). Shared by the screen passes. */
+function toPx(v, camera, res, out) {
+  v.project(camera);
+  return out.set((v.x * 0.5 + 0.5) * res.x, (v.y * 0.5 + 0.5) * res.y);
+}
+
+/**
+ * The horizon is where level directions vanish: two far points on the
+ * camera's level heading, either side, give the line — roll included.
+ * Writes a point on it and its unit normal pointing DOWN the screen.
+ */
+export function screenHorizon(camera, res, outPoint, outNormal) {
+  camera.getWorldDirection(_fwd);
+  _fwd.y = 0;
+  if (_fwd.lengthSq() < 1e-6) _fwd.set(0, 0, -1);
+  _fwd.normalize();
+  _right.set(-_fwd.z, 0, _fwd.x);
+  const far = camera.far * 0.9;
+  toPx(_v.copy(camera.position).addScaledVector(_fwd, far).addScaledVector(_right, -far * 0.3), camera, res, _a);
+  toPx(_v.copy(camera.position).addScaledVector(_fwd, far).addScaledVector(_right, far * 0.3), camera, res, _b);
+  const dx = _b.x - _a.x, dy = _b.y - _a.y, len = Math.hypot(dx, dy) || 1;
+  // uv y grows UP the screen, so "below the horizon" is the -y side.
+  let nx = -dy / len, ny = dx / len;
+  if (ny > 0) { nx = -nx; ny = -ny; }
+  outPoint.copy(_a);
+  outNormal.set(nx, ny);
+}
+
+/** Every visible plate's screen box (px, padded) into `out` (Vector4s). */
+export function plateGuards(camera, meshes, res, out) {
+  const pad = Math.max(6, res.y * 0.008);
+  let i = 0;
+  for (const mesh of meshes) {
+    if (i >= out.length) break;
+    if (!mesh?.visible) continue;
+    mesh.updateWorldMatrix(true, false);
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, front = false;
+    for (const [cx, cy] of [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]]) {
+      _v.set(cx, cy, 0).applyMatrix4(mesh.matrixWorld);
+      if (_vc.copy(_v).applyMatrix4(camera.matrixWorldInverse).z < 0) front = true;
+      toPx(_v, camera, res, _a);
+      x0 = Math.min(x0, _a.x); y0 = Math.min(y0, _a.y);
+      x1 = Math.max(x1, _a.x); y1 = Math.max(y1, _a.y);
+    }
+    if (!front) continue;
+    out[i++].set(x0 - pad, y0 - pad, x1 + pad, y1 + pad);
+  }
+  for (; i < out.length; i++) out[i].set(-1, -1, -1, -1);
+}
+
 
 const VERT = `
 varying vec2 vUv;
@@ -137,9 +196,6 @@ export class RoadReflection {
     this.postScene = new THREE.Scene();
     this.postScene.add(this.quad);
     this.postCam = new THREE.Camera();
-    this._v = new THREE.Vector3();
-    this._fwd = new THREE.Vector3();
-    this._right = new THREE.Vector3();
   }
 
   _resize(renderer) {
@@ -153,59 +209,12 @@ export class RoadReflection {
     this.uniforms.uRes.value.set(s.x, s.y);
   }
 
-  /** World point -> drawing-buffer pixels, y DOWN the screen in uv terms (y up). */
-  _toPx(v, camera) {
-    v.project(camera);
-    const r = this.uniforms.uRes.value;
-    return new THREE.Vector2((v.x * 0.5 + 0.5) * r.x, (v.y * 0.5 + 0.5) * r.y);
-  }
-
-  /**
-   * The horizon is where level directions vanish: two far points on the
-   * camera's level heading, either side, give the line — roll included.
-   */
   _horizon(camera) {
-    camera.getWorldDirection(this._fwd);
-    this._fwd.y = 0;
-    if (this._fwd.lengthSq() < 1e-6) this._fwd.set(0, 0, -1);
-    this._fwd.normalize();
-    this._right.set(-this._fwd.z, 0, this._fwd.x);
-    const far = camera.far * 0.9;
-    const a = this._toPx(this._v.copy(camera.position)
-      .addScaledVector(this._fwd, far).addScaledVector(this._right, -far * 0.3), camera);
-    const b = this._toPx(this._v.copy(camera.position)
-      .addScaledVector(this._fwd, far).addScaledVector(this._right, far * 0.3), camera);
-    const d = b.clone().sub(a).normalize();
-    // uv y grows UP the screen, so "below the horizon" is the -y side.
-    let n = new THREE.Vector2(-d.y, d.x);
-    if (n.y > 0) n.negate();
-    this.uniforms.uH0.value.copy(a);
-    this.uniforms.uHn.value.copy(n);
+    screenHorizon(camera, this.uniforms.uRes.value, this.uniforms.uH0.value, this.uniforms.uHn.value);
   }
 
-  /** Every visible plate's screen box, padded, so the word stays untouched. */
   _guards(camera, meshes) {
-    const out = this.uniforms.uGuard.value;
-    const r = this.uniforms.uRes.value;
-    const pad = Math.max(6, r.y * 0.008);
-    let i = 0;
-    for (const mesh of meshes) {
-      if (i >= MAX_GUARDS) break;
-      if (!mesh?.visible) continue;
-      mesh.updateWorldMatrix(true, false);
-      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, front = false;
-      for (const [cx, cy] of [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]]) {
-        const v = this._v.set(cx, cy, 0).applyMatrix4(mesh.matrixWorld);
-        const z = v.clone().applyMatrix4(camera.matrixWorldInverse).z;
-        if (z < 0) front = true;
-        const px = this._toPx(v, camera);
-        x0 = Math.min(x0, px.x); y0 = Math.min(y0, px.y);
-        x1 = Math.max(x1, px.x); y1 = Math.max(y1, px.y);
-      }
-      if (!front) continue;
-      out[i++].set(x0 - pad, y0 - pad, x1 + pad, y1 + pad);
-    }
-    for (; i < MAX_GUARDS; i++) out[i].set(-1, -1, -1, -1);
+    plateGuards(camera, meshes, this.uniforms.uRes.value, this.uniforms.uGuard.value);
   }
 
   render(renderer, scene, camera, { plates = [], reducedFlash = false, time = 0 } = {}) {

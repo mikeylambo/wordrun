@@ -209,6 +209,8 @@ export class Skyline {
     this.terrain = terrain;
     this.group = new THREE.Group();
     this.group.name = 'skyline';
+    // Authored as light already — the dataworld line-art pass leaves it be.
+    this.group.userData.dataworldSkip = true;
     scene.add(this.group);
     const box = new THREE.BoxGeometry(1, 1, 1);
 

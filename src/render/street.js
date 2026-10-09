@@ -13,8 +13,8 @@
  *   PAVEMENT   a dark wet ground either side of the road, following the
  *              route. It writes a fainter wet mask than the road, so the
  *              mirror (render/road-reflection.js) rains on the whole street.
- *   LAMPS      street lamps along both kerbs with soft pools of light — the
- *              verticals that sweep past as the speed cue the pylons were.
+ *   LAMPS      a sparing line of street lamps, alternating kerbs, each with a
+ *              soft pool of light.
  *
  * Rules: the plate is the brightest thing in frame — facades sit well under
  * it, and nothing here carries a glyph. Cool tints only (the reserved hues
@@ -46,7 +46,7 @@ export const STREET = Object.freeze({
   PAVE_OUT_M: 70,      // pavement width beyond each rail
   PAVE_STEP_M: 4,
   PAVE_WET: 0.22,      // the street's share of the road's wet mask
-  LAMP_M: 14,          // lamp spacing along each kerb
+  LAMP_M: 46,          // one lamp per this many metres, alternating kerbs (sparing)
   LAMP_X: HW + 1.7,
   LAMP_H: 6.4,
   POOL_R: 3.6,
@@ -147,6 +147,8 @@ export class CityStreet {
     this.terrain = terrain;
     this.group = new THREE.Group();
     this.group.name = 'city-street';
+    // Authored as light already — the dataworld line-art pass leaves it be.
+    this.group.userData.dataworldSkip = true;
     scene.add(this.group);
 
     // BUILDINGS — a unit box standing on y = 0.
@@ -215,18 +217,18 @@ export class CityStreet {
     arm.translate(0.85, STREET.LAMP_H - 0.05, 0);
     const lampGeo = mergeBoxes(pole, arm);
     this.poles = new THREE.InstancedMesh(lampGeo,
-      new THREE.MeshBasicMaterial({ color: 0x1b2a3a, fog: true }), LAMPS * 2);
+      new THREE.MeshBasicMaterial({ color: 0x1b2a3a, fog: true }), LAMPS);
     const head = new THREE.BoxGeometry(0.6, 0.1, 0.26);
     head.translate(1.45, STREET.LAMP_H - 0.14, 0);
     this.heads = new THREE.InstancedMesh(head,
-      new THREE.MeshBasicMaterial({ color: 0xcfeeff, fog: true, toneMapped: false }), LAMPS * 2);
+      new THREE.MeshBasicMaterial({ color: 0xcfeeff, fog: true, toneMapped: false }), LAMPS);
     const poolGeo = new THREE.PlaneGeometry(STREET.POOL_R * 2, STREET.POOL_R * 2);
     poolGeo.rotateX(-Math.PI / 2);
     poolGeo.translate(1.45, 0.04, 0);
     this.pools = new THREE.InstancedMesh(poolGeo, new THREE.MeshBasicMaterial({
       color: 0x5fa8d8, map: poolTexture(), transparent: true, opacity: 0.26,
       depthWrite: false, blending: THREE.AdditiveBlending, fog: true,
-    }), LAMPS * 2);
+    }), LAMPS);
     for (const m of [this.poles, this.heads, this.pools]) {
       m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       m.frustumCulled = false;
@@ -295,12 +297,13 @@ export class CityStreet {
     }
     this.pavement.geometry.attributes.position.needsUpdate = true;
 
-    // Lamps — both kerbs, staggered half a spacing, arms reaching inward.
+    // Lamps — sparing: one per LAMP_M, alternating kerbs, arms reaching in.
     let L = 0;
     const l0 = Math.floor((playerD - STREET.BACK_M) / STREET.LAMP_M);
     for (let k = l0; k < l0 + LAMPS; k++) {
-      for (const side of [-1, 1]) {
-        const d = k * STREET.LAMP_M + (side > 0 ? STREET.LAMP_M / 2 : 0);
+      {
+        const side = (k & 1) ? 1 : -1;
+        const d = k * STREET.LAMP_M + STREET.LAMP_M / 2;
         if (this._avoid(d - 2, d + 2)) continue;
         const x = t.corridorX(d) + side * STREET.LAMP_X;
         const y = t.heightAt(x, d);

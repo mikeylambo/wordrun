@@ -50,8 +50,25 @@ gates are re-run, not assumed (`git config core.hooksPath .githooks`, then
   STREETS ON/OFF (persisted, default ON; OFF = the old void). Dials: STREET
   in street.js. Gated in v1-polish-gates.
 
+- **RC14.8 — street pass 2 + prototypes:** lamps sparing (one per 46 m,
+  alternating kerbs). Leftover "floating dashes" were the dataworld line-art
+  pass outlining the street pavement + skyline (it also darkened the
+  pavement) — groups now opt out via `userData.dataworldSkip`. Runner's solid
+  trails (ground line + comet tail) replaced by a particle WAKE (actors.js,
+  160-spark pool, fogged, denser with speed/rung/DASH). PROTOTYPES in
+  render/screen-fx.js, one pass over the finished frame: SPEED BLUR (radial,
+  edges only, >55% speed + DASH) and HORIZON LIGHT (swell at every 25-chain,
+  DASH start, each km). Both plate-guarded, REDUCED FLASH halved, own
+  switches in Settings → VISUAL (default ON while being judged). Shared
+  helpers `screenHorizon` / `plateGuards` live in road-reflection.js.
+
 ## Open / next
-0. **CITY STREETS on device** — compare ON/OFF; check fps, the plate against
+0. **Judge the prototypes on device** — SPEED BLUR / HORIZON LIGHT: keep,
+   tune (SCREEN_FX in screen-fx.js) or cut. Owner idea: a city → void
+   progression (streets thinning into the void with distance, maybe a
+   settings loop); the late-run whiteout (endgame-sky.js `lateWeather`,
+   21–23 km) and false dawn are still in.
+0b. **CITY STREETS on device** — compare ON/OFF; check fps, the plate against
    far facades on straights, and tunnels/canyons (buildings step aside).
 1. **Wet road on a real iPhone** — tune `TUNING.WET.REFLECT/STRETCH` with
    `SHEEN`. Neon streaks CUT (10/9: they hid the reflection). Headless only shows the opening bend, where the towers sit

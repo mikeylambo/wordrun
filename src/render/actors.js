@@ -7,7 +7,7 @@
  * error-absorbent line-art language as the Redline. It is a
  * visual swap on the existing controller: PlayerActor keeps the exact
  * update(p, slope, dt, gap) contract, the pivot for airborne rotation, and
- * the track-ribbon system (the ink stroke the runner draws down the page).
+ * the particle wake (the sparks the runner sheds down the page).
  * Lane logic, hit-boxes and movement are untouched sim state; this file
  * only draws them.
  */
@@ -43,7 +43,26 @@ function auraTexture() {
 // brightness while the road under it faded into the distance, and a ground
 // mark that does not recede reads as a line laid OVER the scene rather than
 // left on it. Shorter tail, and it takes the same fog as the road.
-const TRACK_SEGMENTS = 48;
+// Playtest 10/9: the drawn line and the comet tail were both SOLID trails;
+// the runner now sheds a particle wake instead — sparks left hanging where
+// it ran, drifting and fading. A bounded pool, fogged like the road.
+const WAKE_MAX = 160;
+
+let _sparkTex = null;
+function sparkTexture() {
+  if (_sparkTex) return _sparkTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 32;
+  const g = c.getContext('2d');
+  const r = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+  r.addColorStop(0, 'rgba(255,255,255,1)');
+  r.addColorStop(0.35, 'rgba(255,255,255,0.55)');
+  r.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = r;
+  g.fillRect(0, 0, 32, 32);
+  _sparkTex = new THREE.CanvasTexture(c);
+  return _sparkTex;
+}
 
 const glow = (color, opacity = 1) => new THREE.MeshBasicMaterial({
   color, transparent: true, opacity, depthWrite: false,
@@ -159,18 +178,11 @@ function buildRunner(ghost = false) {
   pool.position.y = 0.03;
   g.add(pool);
 
-  // The comet tail: a horizontal streak stretching behind the figure as
-  // speed climbs — invisible at a jog, unmistakable near the ceiling.
-  const tail = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1), glow(haloColor, 0));
-  tail.rotation.x = -Math.PI / 2;
-  tail.position.y = 1.05;
-  g.add(tail);
-
-  const materials = [coreMat, limbMat, halo.material, pool.material, tail.material];
+  const materials = [coreMat, limbMat, halo.material, pool.material];
   if (ghost) for (const m of materials) m.transparent = true;
 
   return {
-    group: g, hips, chest, head, halo, pool, tail,
+    group: g, hips, chest, head, halo, pool,
     armL, armR, legL, legR,
     coreMat, limbMat, materials, baseOpacity,
   };
@@ -277,25 +289,26 @@ export class PlayerActor {
     this._blink = 0;
     this._phase = 0;
 
-    // The drawn line: the frame's track-ribbon system, a fine double-stroke
-    // of ink the runner's footfalls leave on the page.
-    this._lastTrackD = -999;
-    this._trackHead = 0;
-    this._trackReady = false;
-    this._trackLeft = new THREE.Vector3();
-    this._trackRight = new THREE.Vector3();
-    this._trackCurL = new THREE.Vector3();
-    this._trackCurR = new THREE.Vector3();
-    this.trackPos = new Float32Array(TRACK_SEGMENTS * 4 * 3);
-    for (let i = 0; i < this.trackPos.length; i += 3) this.trackPos[i + 1] = -9999;
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(this.trackPos, 3));
-    this.tracks = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({
-      color: 0x67d8ff, transparent: true, opacity: 0.42, depthWrite: false,
-      blending: THREE.AdditiveBlending, fog: true,
+    // The wake: sparks shed where the runner has been (playtest 10/9 —
+    // particles, not a solid trail). World-space, so they hang in place
+    // and fall behind as the runner moves on.
+    this._wakePos = new Float32Array(WAKE_MAX * 3);
+    this._wakeCol = new Float32Array(WAKE_MAX * 3);
+    this._wakeVel = new Float32Array(WAKE_MAX * 3);
+    this._wakeLife = new Float32Array(WAKE_MAX);
+    this._wakeMax = new Float32Array(WAKE_MAX).fill(1);
+    this._wakeHead = 0;
+    this._wakeAcc = 0;
+    this._wakeColor = new THREE.Color(0x67d8ff);
+    const wg = new THREE.BufferGeometry();
+    wg.setAttribute('position', new THREE.BufferAttribute(this._wakePos, 3).setUsage(THREE.DynamicDrawUsage));
+    wg.setAttribute('color', new THREE.BufferAttribute(this._wakeCol, 3).setUsage(THREE.DynamicDrawUsage));
+    this.wake = new THREE.Points(wg, new THREE.PointsMaterial({
+      size: 0.16, map: sparkTexture(), vertexColors: true, transparent: true,
+      depthWrite: false, blending: THREE.AdditiveBlending, fog: true, sizeAttenuation: true,
     }));
-    this.tracks.frustumCulled = false;
-    scene.add(this.tracks);
+    this.wake.frustumCulled = false;
+    scene.add(this.wake);
   }
 
   _attachBody(asset) {
@@ -304,7 +317,7 @@ export class PlayerActor {
     this.group.add(this.body.root);
     // The procedural limbs step aside, and so does the halo: a faceted shell
     // read as a glow around a stick figure, but over a real body it is a
-    // low-poly blob. The light pool and the comet tail stay — they are the
+    // low-poly blob. The light pool and the wake stay — they are the
     // figure's light on the page, not its body.
     this.hips.visible = false;
     this.halo.visible = false;
@@ -320,34 +333,43 @@ export class PlayerActor {
     this.group.add(this.aura);
   }
 
-  _clearTracks() {
-    for (let i = 0; i < this.trackPos.length; i += 3) this.trackPos[i + 1] = -9999;
-    this.tracks.geometry.attributes.position.needsUpdate = true;
-    this._trackHead = 0;
-    this._trackReady = false;
-    this._lastTrackD = -999;
+  _clearWake() {
+    this._wakeLife.fill(0);
+    this._wakeCol.fill(0);
+    this.wake.geometry.attributes.color.needsUpdate = true;
+    this._wakeAcc = 0;
   }
 
-  _track(p) {
-    if (p.airborne || p.staggerT > 0.15) { this._trackReady = false; return; }
-    // RC7.1: one sample per 0.72 m (it was 0.48) — still visually continuous
-    // at play speed, a third fewer buffer uploads — into two preallocated
-    // vectors, so laying the line allocates nothing per sample.
-    if (p.d - this._lastTrackD < 0.72) return;
-    this._lastTrackD = p.d;
-    const rightX = Math.cos(p.heading), rightZ = Math.sin(p.heading);
-    const curL = this._trackCurL.set(p.x - rightX * 0.07, p.y + 0.03, -p.d - rightZ * 0.07);
-    const curR = this._trackCurR.set(p.x + rightX * 0.07, p.y + 0.03, -p.d + rightZ * 0.07);
-    if (this._trackReady) {
-      const base = this._trackHead * 12, a = this.trackPos;
-      a[base] = this._trackLeft.x; a[base + 1] = this._trackLeft.y; a[base + 2] = this._trackLeft.z;
-      a[base + 3] = curL.x; a[base + 4] = curL.y; a[base + 5] = curL.z;
-      a[base + 6] = this._trackRight.x; a[base + 7] = this._trackRight.y; a[base + 8] = this._trackRight.z;
-      a[base + 9] = curR.x; a[base + 10] = curR.y; a[base + 11] = curR.z;
-      this._trackHead = (this._trackHead + 1) % TRACK_SEGMENTS;
-      this.tracks.geometry.attributes.position.needsUpdate = true;
+  /** Shed and age the wake. `rate` is sparks per second. */
+  _wake(p, dt, rate) {
+    const P = this._wakePos, C = this._wakeCol, V = this._wakeVel, L = this._wakeLife, M = this._wakeMax;
+    if (!p.airborne && !(p.staggerT > 0.15)) this._wakeAcc += rate * dt;
+    while (this._wakeAcc >= 1) {
+      this._wakeAcc -= 1;
+      const i = this._wakeHead;
+      this._wakeHead = (i + 1) % WAKE_MAX;
+      const j = Math.random(), k = Math.random(), m = Math.random();
+      P[i * 3] = p.x + (j - 0.5) * 0.5;
+      P[i * 3 + 1] = p.y + 0.15 + k * 1.3;
+      P[i * 3 + 2] = -p.d + 0.3 + m * 0.4;
+      V[i * 3] = (j - 0.5) * 0.9;
+      V[i * 3 + 1] = 0.25 + k * 0.5;
+      V[i * 3 + 2] = 0.6 + m * 1.2;
+      M[i] = L[i] = 0.55 + m * 0.6;
     }
-    this._trackLeft.copy(curL); this._trackRight.copy(curR); this._trackReady = true;
+    const col = this._wakeColor;
+    for (let i = 0; i < WAKE_MAX; i++) {
+      if (L[i] <= 0) continue;
+      L[i] -= dt;
+      const f = Math.max(0, L[i] / M[i]);
+      P[i * 3] += V[i * 3] * dt;
+      P[i * 3 + 1] += V[i * 3 + 1] * dt;
+      P[i * 3 + 2] += V[i * 3 + 2] * dt;
+      const a = f * f * 0.9;
+      C[i * 3] = col.r * a; C[i * 3 + 1] = col.g * a; C[i * 3 + 2] = col.b * a;
+    }
+    this.wake.geometry.attributes.position.needsUpdate = true;
+    this.wake.geometry.attributes.color.needsUpdate = true;
   }
 
   update(p, slope, dt, beastGap = 80) {
@@ -364,9 +386,9 @@ export class PlayerActor {
 
   _updateFigure(p, slope, dt, beastGap) {
     this.t += dt;
-    if (p.d < this._lastD - 5) this._clearTracks();
+    if (p.d < this._lastD - 5) this._clearWake();
     // RC9.9: the ground covered since the last frame IS the stride's clock.
-    // Read before `_lastD` moves, because the tracks need the same number.
+    // Read before `_lastD` moves, because the wake reset needs the same number.
     const strideD = p.d - this._lastD;
     this._lastD = p.d;
     this.root.position.set(p.x, p.y, -p.d);
@@ -438,15 +460,13 @@ export class PlayerActor {
     this.halo.scale.set(1.0 + speedN * 0.1, 1.55 + speedN * 0.12, 1.0 + speedN * 0.55);
     this.halo.position.z = speedN * 0.5;
 
-    // Comet tail: length and brightness ride the top half of the range.
-    const tailN = Math.max(0, norm - 0.25) / 0.75;
-    // Phase I: the tail brightens per dash-chain rung (main sets .dashChain).
+    // The wake: a trickle of sparks at a jog, a stream up the top half of
+    // the range. Phase I: denser per dash-chain rung (main sets .dashChain).
     // RC8.3: capped by the LADDER's length, so a rung the score pays for is a
-    // rung the eye is shown.
+    // rung the eye is shown. The DASH itself pours.
+    const tailN = Math.max(0, norm - 0.25) / 0.75;
     const rung = Math.max(0, Math.min(TUNING.SCORE.DASH_CHAIN_MULT.length - 1, this.dashChain | 0));
-    this.tail.material.opacity = Math.min(0.85, tailN * 0.4 * this.baseOpacity * (1 + 0.28 * rung));
-    this.tail.scale.y = 0.001 + tailN * 9;             // plane local y = world z
-    this.tail.position.z = (0.001 + tailN * 9) / 2 + 0.4;
+    this._wakeRate = (8 + tailN * 55 * (1 + 0.28 * rung)) * (p.overdrive ? 2.2 : 1);
 
     // Stagger: the construct destabilises — hard flicker, a shudder, arms
     // thrown wide — where the old rig windmilled. E3 adds the STUMBLE: one
@@ -495,12 +515,12 @@ export class PlayerActor {
       this.aura.visible = this.aura.material.opacity > 0.01;
     }
 
-    this._track(p);
+    this._wake(p, dt, this._wakeRate || 0);
   }
 
   /**
    * Cosmetic palette (Phase 14): tint the glow surfaces — halo, ground
-   * pool, comet tail, track trail, limbs — leaving the white core alone so
+   * pool, particle wake, limbs — leaving the white core alone so
    * the figure always reads. Cosmetic only; semantic cues live elsewhere.
    */
   setPalette({ halo, limb } = {}) {
@@ -511,8 +531,7 @@ export class PlayerActor {
     if (halo != null) {
       this.halo.material.color.setHex(halo);
       this.pool.material.color.setHex(halo);
-      this.tail.material.color.setHex(halo);
-      this.tracks.material.color.setHex(halo);
+      this._wakeColor.setHex(halo);
     }
     if (limb != null) this.limbMat.color.setHex(limb);
   }
@@ -524,7 +543,6 @@ export class GhostActor {
   constructor(scene) {
     const b = buildRunner(true);
     Object.assign(this, b);
-    this.tail.visible = false; // the comet tail is the live runner's alone
     this.root = new THREE.Group();
     this.root.add(this.group);
     this.root.visible = false;

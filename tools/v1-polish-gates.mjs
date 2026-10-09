@@ -102,8 +102,8 @@ check(rigSrc.includes('(p.speed - R.FLOOR) / (R.CEILING - R.FLOOR)') &&
   rigSrc.includes('HEIGHT_SPEED_DROP') && rigSrc.includes('LOOK_SPEED_AHEAD'),
   'camera speed feel spans the whole RUN range: closer-lower-wider, not boom-back');
 check(actorsSrc.includes('(p.speed - R.FLOOR) / (R.CEILING - R.FLOOR)') &&
-  actorsSrc.includes('this.tail.material.opacity'),
-  'runner cadence spans the range and the comet tail rides the top of it');
+  actorsSrc.includes('this._wakeRate = (8 + tailN * 55'),
+  'runner cadence spans the range and the particle wake rides the top of it');
 // Phase 27: no audio voice rides speed any more — every noise bed that did
 // was a wind by another name. Phase J retired the stem engine too; going
 // faster is still audible because the full track's beat clock is mapped from
@@ -451,12 +451,12 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     //     fog off, and it recorded the whole run, so its far end stayed at
     //     full additive brightness while the road under it faded away.
     const actorCode = codeOf('src/render/actors.js');
-    const trail = actorCode.slice(actorCode.indexOf('this.tracks = new THREE.LineSegments'));
-    check(/fog: true/.test(trail.slice(0, 300)),
-      'the runner trail takes the same fog as the road it is drawn on');
-    const segs = Number(/const TRACK_SEGMENTS = (\d+)/.exec(actorCode)?.[1]);
-    check(segs > 0 && segs <= 80,
-      `and it is a tail, not a transcript of the run (${segs} segments)`);
+    const trail = actorCode.slice(actorCode.indexOf('this.wake = new THREE.Points'));
+    check(/fog: true/.test(trail.slice(0, 400)),
+      'the runner\'s wake takes the same fog as the road it is shed over');
+    const segs = Number(/const WAKE_MAX = (\d+)/.exec(actorCode)?.[1]);
+    check(segs > 0 && segs <= 240 && !/new THREE\.LineSegments|PlaneGeometry\(0\.9, 1\)/.test(actorCode),
+      `and it is particles from a bounded pool (${segs}), never a solid trail`);
 
     // (b) The gate ground line is the one road marking drawn separately from
     //     the ribbon mesh, so it is the one that has to be told about the
@@ -639,7 +639,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     /crest\.rotation\.x = 1\.15/.test(actors),
     'the head carries the one identity mark — the crest swept back off the crown');
   check(actors.includes('function poseRunner(r, phase, speedN, airborne, dt, style = {})') &&
-    actors.includes('hips, chest, head, halo, pool, tail'),
+    actors.includes('hips, chest, head, halo, pool,'),
     'the rig contract is untouched — every E3 posture and the ghost pose identically');
 }
 
@@ -1682,6 +1682,28 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   const clash = cols.filter((h) => { const u = hueOf(h); return u != null && RH.HUES.some(({ deg }) => { const dd = Math.abs(u - deg); return Math.min(dd, 360 - dd) < RH.MIN_SEPARATION_DEG; }); });
   check(cols.length >= 4 && clash.length === 0 && STREET.WINDOWS < 0.6,
     `the street's light (${cols.length} colours) clears every reserved hue, and its windows sit well under the plate`);
+}
+
+// ── Screen FX prototypes (playtest 10/9): edge speed blur, horizon light ──
+{
+  const fx = read('src/render/screen-fx.js');
+  const stageSrc = read('src/render/scene.js');
+  const acc = read('src/ui/access.js');
+  const app = appSource();
+  check(fx.includes('clearOfPlates(p)') && /edge = smoothstep\(0\.30, 0\.78, r\) \* uBlur \* clear/.test(fx) &&
+    /uLight \* clear/.test(fx) && fx.includes('plateGuards(camera, plates'),
+    'the speed blur and the horizon light both fall to zero over every word plate');
+  check(fx.includes("reducedFlash ? 0.5 : 1)") && fx.includes('reducedFlash ? 2.5 : 1') && fx.includes('reducedFlash ? 0.5 : 1);'),
+    'REDUCED FLASH halves the blur and the light, and slows the light\'s rise');
+  check(!/renderer\.render\(scene/.test(fx) && stageSrc.includes('this.fx.render(this.renderer, this.camera, plates)'),
+    'the screen FX draw over the finished frame — never a second scene render');
+  check(['speedBlur', 'horizonLight'].every((k) => acc.includes(`${k}: true`) && acc.includes(`${k}: ACCESS.${k}`) &&
+    acc.includes(`ACCESS.${k} = saved.${k} !== false`)) &&
+    acc.includes("chipRow('SPEED BLUR'") && acc.includes("chipRow('HORIZON LIGHT'") &&
+    app.includes('blurOn: ACCESS.speedBlur') && app.includes('lightOn: ACCESS.horizonLight'),
+    'each prototype has its own persisted switch, honoured every frame');
+  check(app.includes('stage.fx.pulse(0.8)') && app.includes('stage.fx.pulse(0.6)') && app.includes('stage.fx.pulse(1)'),
+    'the horizon light answers a run\'s moments: chain milestones, a DASH, each kilometre');
 }
 
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);

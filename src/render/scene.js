@@ -13,6 +13,7 @@ import { bandForDistance } from './art-direction.js';
 import { EndgameSky } from './endgame-sky.js';
 import { BroadcastPass } from './broadcast-pass.js';
 import { RoadReflection } from './road-reflection.js';
+import { ScreenFx } from './screen-fx.js';
 import { ACCESS } from '../ui/access.js';
 
 export class Stage {
@@ -72,6 +73,10 @@ export class Stage {
       key: this.key,
       hemi: this.hemi,
     });
+
+    // The screen FX prototypes (speed blur, horizon light): one pass,
+    // silent until main's update() gives it something to do.
+    this.fx = new ScreenFx(this.renderer);
 
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -206,12 +211,15 @@ export class Stage {
         reducedFlash: ACCESS.reducedFlash,
         time: performance.now() / 1000,
       });
-      return;
+    } else {
+      if (this.reflection) {
+        this.reflection.dispose(this.renderer);
+        this.reflection = null;
+      }
+      this.renderer.render(this.scene, this.camera);
     }
-    if (this.reflection) {
-      this.reflection.dispose(this.renderer);
-      this.reflection = null;
-    }
-    this.renderer.render(this.scene, this.camera);
+    // Speed blur + horizon light (render/screen-fx.js), over the finished
+    // frame; main drives `this.fx` with the run's speed and its moments.
+    this.fx.render(this.renderer, this.camera, plates);
   }
 }
