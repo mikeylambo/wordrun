@@ -1500,7 +1500,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   const at = +(wg.match(/const SHATTER_AT = ([\d.]+)/) || [])[1];
   check(at >= 0.45 && /const op = wrong \? 1 :/.test(wg) && /const fx = !ACCESS\.reducedFlash;/.test(wg),
     `a wrong plate holds whole and legible for ${at}s before it shatters; REDUCED FLASH keeps the plain fade`);
-  check(/hitStop = TUNING\.JUDGE\.HITSTOP_S/.test(mainSrc) && /!ACCESS\.reducedFlash\) hitStop/.test(mainSrc) &&
+  check(/hitStop = TUNING\.JUDGE\.HITSTOP_S/.test(mainSrc) && /!ACCESS\.reducedFlash\) (app\.)?hitStop/.test(mainSrc) &&
     /if \(hitStop > 0\) \{ hitStop -= rawDt; tick\(0\); return; \}/.test(mainSrc),
     'hit-stop is presentation only (tick(0) — the fixed-step sim waits, nothing is skipped) and respects REDUCED FLASH');
 }
@@ -1585,6 +1585,18 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     `the 310 kB definitions load on demand, never on the boot path${staticDefs.length ? ' — static: ' + staticDefs.join(', ') : ''}`);
   check(/chunkSizeWarningLimit: 620,/.test(read('vite.config.js')),
     'the chunk-size warning sits just above three.js, so game code crossing 500 kB still warns');
+}
+
+// ── Playtest 10/8 — one type system ─────────────────────────────────────────
+{
+  const faces = ['index.html', ...fs.readdirSync('src/ui').map((f) => `src/ui/${f}`),
+    ...fs.readdirSync('src/app').map((f) => `src/app/${f}`)].filter((f) => /\.(html|js)$/.test(f));
+  const text = faces.map((f) => read(f)).join('\n');
+  const weights = new Set([...text.matchAll(/font-weight:(\d{3})|font:(\d{3})\s/g)].map((m) => m[1] || m[2]));
+  const tracks = new Set([...text.matchAll(/letter-spacing:(\.\d+)em/g)].map((m) => m[1]));
+  const offScale = [...tracks].filter((t) => !['.08', '.16', '.24', '.34', '.5'].includes(t));
+  check([...weights].every((w) => ['400', '600', '800'].includes(w)) && offScale.length === 0,
+    `three weights (${[...weights].sort().join('/')}) and four caps tracking steps across every interface surface${offScale.length ? ' — off-scale: ' + offScale.join(' ') : ''}`);
 }
 
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);

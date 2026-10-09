@@ -126,13 +126,22 @@ export class AttractMode {
         this.sim.viewPrev = null;   // do not interpolate across the cut
         return;
       }
+      // Playtest 10/8: the figure ran off the track. A recording's x and y
+      // belong to the road it was recorded on, and the title's road need not
+      // be that one (another mode, another salt). The demo keeps the ghost's
+      // PACE and pins its figure to THIS road's centreline — which is where
+      // the live runner's auto-follow holds it anyway.
+      const t = this.sim.terrain;
+      g.x = t.corridorX(g.d);
+      g.y = t.heightAt(g.x, g.d);
       p.d = g.d; p.x = g.x; p.y = g.y;
       return;
     }
-    // No ghost on record: the road simply runs.
+    // No ghost on record: the road simply runs — on the road, through its
+    // bends (x = 0 is only the centreline on the opening straight).
     p.d += EMPTY_SPEED * dt;
-    p.x = 0;
-    p.y = this.sim.terrain.heightAt(0, p.d);
+    p.x = this.sim.terrain.corridorX(p.d);
+    p.y = this.sim.terrain.heightAt(p.x, p.d);
   }
 }
 

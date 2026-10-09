@@ -33,7 +33,6 @@ import { PadReader, padConnected } from './input/gamepad.js';
 import { ControllerNav } from './ui/controller-nav.js';
 import { Judgment } from './ui/judgment.js';
 import { BellRenderer } from './render/bells.js';
-import { stringStep } from './audio/ladder.js';
 import { flowFactor, flowGlow, flowLevel } from './render/flow-curve.js';
 import { viewPlayer, viewBeast } from './render/view-pose.js';
 import { ACCESS, initAccess, buildAccessPanel, toggleFullscreen } from './ui/access.js';
@@ -70,11 +69,12 @@ import { UI } from './ui/ui.js';
 import { installShareUi } from './ui/share.js';
 import { composeShareCard } from './ui/share-card.js';
 import { shareGrid } from './meta/share-grid.js';
-import { pulse as haptic } from './ui/haptics.js';
 import { updateMobileTouchUi } from './ui/touch-controls.js';
 import { LIVE_MIX, mountMixPanel } from './audio/live-mix.js';
 import { installDevHooks } from './app/dev-hooks.js';
 import { ContinueOffer } from './app/continue-offer.js';
+import { RunLedger } from './app/run-ledger.js';
+import { createSimEventDrain } from './app/sim-events.js';
 // Phase 5: the shop, pause and onboarding panels are code-split behind dynamic
 // import() — none is needed for the first frame, so keeping them out of the
 // main chunk shortens time-to-interactive on the low-end devices Playables
@@ -218,13 +218,9 @@ let endedFlowLevel = 0;
 // (real daylight opened from there gets the release).
 let worldBand = 0;
 let inScream = false;
-// E4 brilliance ledgers: the run notices its own best moments. A wrong read
-// breaks the burst window and the early streak — bursts are consecutive.
-let burstWindow = [];
-let burst10 = 0;
-let earlyStreak = 0;
-let bestEarlyStreak = 0;
-let dashRungMax = 0;
+// The run's own tallies (gate trail, PERFECTs, the E4 brilliance ledgers,
+// words retired and learned) — src/app/run-ledger.js, reset once per run.
+const run = new RunLedger();
 // RC9.8: the rolling few seconds, and the rarity of the moment it is frozen
 // on. The buffer freezes when a brilliance ledger crosses its floor, so the
 // clip on the card is the moment the card is ABOUT.
@@ -233,7 +229,6 @@ const momentClip = new MomentClip();
 momentClip.mount(document.getElementById('momentSlot'));
 let frozenRank = 0;
 let lastRunGhost = '';   // RC10.5: the run just played, as link-sized speeds
-let learnedWords = 0;    // RC10.3: words mastered for the first time this run
 let breathing = false;   // RC9.9: is the held breath currently being written
 let deathShownAt = 0;
 let shotUrl = null;
@@ -270,20 +265,6 @@ function syncVariant() {
 }
 syncVariant();
 
-/**
- * RC9.4: the DAILY RUN's own best, whatever the title's chips currently say.
- * Bests are stored per variant, so reading one for a mode you are not in means
- * borrowing that mode's variant for the length of the read and putting the
- * player's back. The attract loop needs exactly this — it says what today's
- * route is worth while the title may be sitting on ENDLESS.
- */
-function dailyBest() {
-  const held = Storage.variant();
-  Storage.setVariant(`standard.${BOARD.DAILY_DIFFICULTY}`);
-  const best = Storage.bestFor(DAILY_SEED);
-  Storage.setVariant(held);
-  return best;
-}
 
 // Meta layer (ported from the SLU shell's Layer-1 managers): lifetime
 // stats, daily goals and the play streak, over one storage adapter.
@@ -437,6 +418,21 @@ ui.setDaily(metaDaily.status(DAILY_SEED));
 ui.setMastery(mastery.count, nemesis.toughest());
 ui.showTitle(true);
 input.onFirstGesture = () => audio.start();
+// Playtest 10/8: the title was silent until BEGIN RUN. A browser plays no
+// sound before the page's first gesture, so the score starts on the FIRST
+// tap, click or key anywhere — on the title, which is where that happens.
+// Once only; a run started from here simply keeps the score going.
+{
+  const titleMusic = () => {
+    window.removeEventListener('pointerdown', titleMusic, true);
+    window.removeEventListener('keydown', titleMusic, true);
+    audio.start();
+    music.attach(audio);
+    if (sim.phase === PHASE.TITLE) music.play();
+  };
+  window.addEventListener('pointerdown', titleMusic, true);
+  window.addEventListener('keydown', titleMusic, true);
+}
 
 // Cosmetics (Phase 14): apply the equipped runner-light palette and hang
 // the ◆ shop off the title. Cosmetic only — the semantic grammar is
@@ -610,10 +606,7 @@ function buildRunInTheDark() {
   continuesUsed = 0;
   continueScoreLost = 0;
   runContinued = false;
-  retiredThisRun = [];
-  tierTally = {};
-  perfectsThisRun = 0;
-  gateTrail = [];
+  run.reset();
   sim.start(SEED, ghostData, {
     wordSalt: currentSalt,
     mode: runMode,
@@ -660,17 +653,11 @@ function buildRunInTheDark() {
   // function is its black frame. Presentation only; input never blocks.
   worldBand = 0;
   inScream = false;
-  burstWindow = [];
-  burst10 = 0;
   frozenRank = 0;
-  learnedWords = 0;
   ui.resetCoach();   // RC10.8: the bar lesson gets one showing per run
   judgment.reset();  // RC11.4: no judgment or chain carries into a new run
   moments.begin(ACCESS);
   momentClip.hide();
-  earlyStreak = 0;
-  bestEarlyStreak = 0;
-  dashRungMax = 0;
   paused = false;
   running = true;
   input.enabled = true;
@@ -703,12 +690,8 @@ let lastRunScore = 0;
 // the honest value to carry is the one the run ENDED on, which is the level
 // the score in the link was actually earned under.
 let lastRunBar = 0;
-let retiredThisRun = [];
-let tierTally = {};
-let perfectsThisRun = 0;   // RC13.7: PERFECT judgments, for the results tally
 // Every resolved gate of this run, by index: 1 right, 0 wrong. The DAILY
 // RUN's share text is drawn from it (meta/share-grid.js).
-let gateTrail = [];
 let lastRunGrid = '';
 let lastRunScoreLost = 0;
 // What the continues took off the live score this run, kept so the death card
@@ -837,7 +820,7 @@ function finalizeRun() {
   const finalScore = Math.floor(earned * failKeep);
   lastRunScore = finalScore;
   lastRunGrid = runMode === 'standard' ? shareGrid({
-    trail: gateTrail, gates: TUNING.MODES.RULES.standard.GATES, score: finalScore,
+    trail: run.gateTrail, gates: TUNING.MODES.RULES.standard.GATES, score: finalScore,
     finished: !!sim.escaped || sim.routeFinished, seedString: SEED_STRING,
   }) : '';
   lastRunBar = sim.player.compressionLevel | 0;
@@ -909,8 +892,8 @@ function finalizeRun() {
   metaStats.max('bestScore', finalScore);
   // The personal curve: what this run says about the reading, not the score.
   curve.addRun({
-    perTier: tierTally, avgReadMs, reads: wg.readCount,
-    retired: retiredThisRun.length,
+    perTier: run.tierTally, avgReadMs, reads: wg.readCount,
+    retired: run.retiredThisRun.length,
   });
   // Bells bank the spendable balance (Phase 8): a bare number, no name.
   const banked = (sim.bellsCollected || 0) * TUNING.META.CURRENCY_PER_BELL;
@@ -924,8 +907,8 @@ function finalizeRun() {
   if (runMode === 'standard') learn('Daily');
   // RC13.8 — medals: this run's feats plus the lifetime figures, judged once.
   const medalIds = newlyEarned({
-    bestChain: sim.player.bestChain, perfects: perfectsThisRun,
-    rank: rankFor({ correct: wg.correctCount, wrong: wg.wrongCount, perfects: perfectsThisRun }),
+    bestChain: sim.player.bestChain, perfects: run.perfectsThisRun,
+    rank: rankFor({ correct: wg.correctCount, wrong: wg.wrongCount, perfects: run.perfectsThisRun }),
     score: finalScore, continued: runContinued, madeTable: hiPlace > 0,
     finished: !!sim.escaped || !!sim.routeFinished, wrong: wg.wrongCount,
   }, { streak: dailyCard?.streak || 0, learned: mastery.count, beaten: nemesis.retiredCount },
@@ -964,7 +947,7 @@ function finalizeRun() {
     failedRoute,
     avgReadMs,
     seconds: sim.time,
-    retired: retiredThisRun,
+    retired: run.retiredThisRun,
     gates: wg.next,
     routeGates: sim.rules?.GATES | 0,
     // PD-2: THIS run's reading, for the scorecard — the stat bar used to
@@ -972,7 +955,7 @@ function finalizeRun() {
     correct: wg.correctCount,
     wrong: wg.wrongCount,
     bestChain: sim.player.bestChain,
-    perfects: perfectsThisRun,
+    perfects: run.perfectsThisRun,
     medals: medalsWon,
     // RC-2: ONE reward figure on the card — bells plus cleared objectives,
     // already banked above; the card only reports the total.
@@ -1000,12 +983,12 @@ function finalizeRun() {
     // E4: the run's ONE standout, or null for an ordinary run — scarcity
     // is what keeps the line meaning something.
     standout: pickStandout({
-      dashRung: dashRungMax, earlyStreak: bestEarlyStreak, burst10,
+      dashRung: run.dashRungMax, earlyStreak: run.bestEarlyStreak, burst10: run.burst10,
       bestChain: sim.player.bestChain, avgReadMs, reads: wg.readCount,
     }),
     // RC10.3: words this run took from "getting wrong" to "know". Only when
     // it happened — an ordinary run says nothing, exactly like the standout.
-    learnedWords,
+    learnedWords: run.learnedWords,
     masteredTotal: mastery.count,
   });
   // RC9.8: the clip, and ONLY when the run earned a standout. No standout, no
@@ -1068,6 +1051,9 @@ function quitToTitle() {
   input.enabled = false;
   input.releaseAll();
   sim.phase = PHASE.TITLE;
+  // Playtest 10/8: a quit run left its ×N chain on the title. Nothing the
+  // run was saying — judgment, chain, score pops — survives to the menu.
+  judgment.reset();
   pauseUI?.setPaused(false);
   pauseUI?.setButton(false);
   // No overlay panel survives the trip to the title — the overlap bug was
@@ -1356,7 +1342,7 @@ copyStats?.addEventListener('click', async (e) => {
     failedRoute,
     avgReadMs,
     seconds: sim.time,
-    retired: retiredThisRun,
+    retired: run.retiredThisRun,
     gates: wg.next,
     routeGates: sim.rules?.GATES | 0, distance: sim.distance, seconds: sim.time,
       mode: runMode, difficulty: effectiveDifficulty(), continued: runContinued,
@@ -1434,230 +1420,17 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-function drainSimEvents() {
-  const events = sim.drainEvents();
-  if (!events) return;
-  for (const e of events) {
-    switch (e.t) {
-      // RC7: a stop is marked SHOWN the instant it begins, persisted beside
-      // the other learned lessons. Shown, not performed — the fake stop's
-      // correct answer is to do nothing, and a player who learns it that way
-      // must not be stopped at the next fake for the rest of their life.
-      case 'teach_stop':
-        // RC7.1: the dash is NOT retired here — it retires on the hold
-        // itself (the 'overdrive_on' case below), so a player who let the
-        // stop time out is offered it again next run.
-        if (e.which !== 'dash') learn(`Stop${e.which[0].toUpperCase()}${e.which.slice(1)}`);
-        audio.uiTap();
-        break;
-      case 'hit':
-        audio.hit();
-        haptic('hit');
-        spray.emit(e.x, e.y, -e.d, 18, 7, 3.2, 0);
-        ui.hitFlash();
-        break;
-      case 'gate':
-        audio.gate();
-        if (e.chain > 0) audio.chainLink(e.chain);
-        break;
-      case 'chain_lost':
-        // E2: a BIG chain dying is an event, not a counter reset — the hard
-        // fall in the mix, and the camera goes still for a beat. The world's
-        // layer falling (Phase M) is already frame-accurate with this.
-        if (e.chain >= 25) {
-          audio.chainBreak(e.chain);
-          rig.settle();
-        } else {
-          audio.chainLost();
-        }
-        break;
-      // Hearts and bells (Phase 0: driven by sim events now, not a frame-delta
-      // poll in the deleted rc5 layer). The heart HUD itself is synced from
-      // sim.hearts in ui.update; these are only the sounds.
-      case 'heart_lost': audio.heartLost(); break;
-      case 'heart_restore': audio.heartRestore(); break;
-      // RC10.9: the string continues the chain chime's ladder, so the pitch
-      // comes from the chain and the bell's place in its string — never from
-      // how many bells this run has happened to pass.
-      case 'bell': audio.bell(stringStep(e.chain, e.i)); break;
-      case 'overdrive_on':
-        learn('Dash');
-        // The DASH lands as one event across three channels (Phase 16):
-        // its own sound, a camera punch that decays, and a burst of speed
-        // lines. Firing it used to reuse the generic shove and read as
-        // nothing in particular — which is how a whole verb went unseen.
-        audio.dash();
-        rig.dashKick();
-        windStreaks.burst();
-        ui.dashFired();
-        if (!dashLearned) {
-          dashLearned = true;
-          globalThis.__DASH_LEARNED = true;
-          Storage.setDashLearned(true);
-        }
-        break;
-      case 'overdrive_off':
-        audio.overdriveOff();
-        // E2: a dash that climbed its ladder ends on an endpoint hit —
-        // sized to the rung it died on, with the camera punch it earned.
-        if ((e.rung | 0) >= 3) {
-          audio.dashClimax(e.rung);
-          rig.dashKick(0.55);
-          windStreaks.burst();
-        }
-        break;
-      case 'last_stand':
-        // No label, by design. The world going quiet and the corruption
-        // pinned at its worst is the whole announcement.
-        audio.lastStand();
-        if (music.gain) music.gain.gain.value = 0.10;
-        break;
-      case 'last_stand_held':
-        audio.lastStandEnd(true);
-        if (music.gain) music.gain.gain.value = 0.62;
-        rig.dashKick(0.7);
-        streakBurst.fire({ x: sim.player.x, y: sim.player.y, d: sim.player.d, chain: 8 });
-        break;
-      case 'last_stand_lost':
-        audio.lastStandEnd(false);
-        if (music.gain) music.gain.gain.value = 0.62;
-        break;
-      case 'kill': audio.kill(); haptic('kill'); break;
-      case 'word_confirm': audio.uiTap(); break;
-      // N1: a pre-arm answer was buffered — the plate shows the side-bar,
-      // this is only the sound of it. Acknowledgment, not payoff.
-      case 'word_held': audio.wordHeld(e.said === 'real'); break;
-      // N4: the hundredth gate is an ARRIVAL — one rising breath, a swell
-      // of ink, and the camera going still. The endgame layer's coast and
-      // choice follow on their own clock; this is the moment itself.
-      case 'route_finished':
-        audio.finishArrival();
-        editorialWorld.pulseInk();
-        rig.settle();
-        break;
-      case 'word_correct': {
-        gateTrail[e.index] = 1;
-        if (!e.real) fakeTally.record({ family: e.family, fake: e.word, answer: e.answer, tapped: false });
-        {
-          const tier = judgment.read({ correct: true, answered: e.answered !== false,
-            answerDistance: e.answerDistance, armM: sim.wordGates.armDistance(),
-            chain: e.chain, real: e.real }, ACCESS.reducedFlash);
-          judgment.pop(e.score || 0, 'right', ACCESS.reducedFlash);
-          // RC13.5 — the PERFECT read lands with weight: the frame holds.
-          if (tier.key === 'sharp') perfectsThisRun++;
-          if (tier.key === 'sharp' && !ACCESS.reducedFlash) hitStop = TUNING.JUDGE.HITSTOP_S;
-        }
-        {
-          const t = tierTally[e.tier] || (tierTally[e.tier] = { a: 0, c: 0 });
-          t.a++; t.c++;
-        }
-        // E4: the brilliance ledgers ride the same event the score does.
-        burstWindow.push(e.score || 0);
-        if (burstWindow.length > 10) burstWindow.shift();
-        burst10 = Math.max(burst10, burstWindow.reduce((a, b) => a + b, 0));
-        if (e.answerDistance >= sim.wordGates.armDistance() * 0.5) {
-          earlyStreak++;
-          if (earlyStreak > bestEarlyStreak) bestEarlyStreak = earlyStreak;
-        } else earlyStreak = 0;
-        if (e.dashMult > 1) dashRungMax = Math.max(dashRungMax, (e.dashChain | 0) + 1);
-        if (e.answer) {
-          const before = nemesis.history(e.answer);
-          const outcome = nemesis.record(e.answer, true, e.index);
-          // RC10.3: after the ledger, not before — a word retiring on THIS
-          // read stops being owed on this read, and is mastered on it too.
-          if (mastery.mark(e.answer)) learnedWords++;
-          if (outcome === 'retired' && before?.m > 0) {
-            retiredThisRun.push({ word: e.answer, misses: before.m, attempts: before.a });
-            // The retirement beat, AT the read (Phase 1) — not a text line two
-            // screens later. Its own sound, an escalated burst reusing the
-            // reserved escalation palette, a fuller spray and a camera tick.
-            // The death-card mention stays, but now it recaps something the
-            // player already felt.
-            audio.wordRetired();
-            streakBurst.fireRetire(e);
-            spray.emit(e.x, e.y, -e.d, 34, 5.5, 4.2, 0);
-            rig.dashKick(0.5);
-          }
-        }
-        // Design pass (playtest: "words select themselves"): a word the
-        // player never touched must never LOOK or SOUND selected. A passed
-        // fake keeps its mechanics — the chain link, the small late score,
-        // every ledger above — but the celebration language (the gate
-        // melody, the typeset snap, the sparks, the burst) belongs to acted
-        // answers alone. Silence gets a quiet page-settle and a dim fade.
-        if (e.answered) {
-          // Phase B: how early the answer landed, 0 at the line and 1 at the
-          // arm edge, drives the sound's attack and the camera's tick. Never
-          // a word on screen.
-          const W = TUNING.WORDS;
-          const early = Math.max(0, Math.min(1,
-            ((e.latencyMult ?? W.LATE_MULT) - W.LATE_MULT) / (W.EARLY_MULT - W.LATE_MULT)));
-          audio.gate(e.chain, early, e.dashChain);
-          // The verdict, peripherally: one screen-edge wash in the right
-          // colour, because at speed the eye is already on the next word.
-          ui.answerFlash(true);
-          // N1: the word typesets into the page — every correct read is a
-          // construction event the world visibly answers (RF-guarded inside).
-          editorialWorld.typesetSnap(early);
-          if (early > 0.4) rig.dashKick(0.28 * early);
-          if (e.chain > 0) audio.chainLink(e.chain);
-          if (e.proxMult > 1.05) audio.courageBank(e.proxMult);
-          // The payoff is where the vibrancy lives: sparks scale with the
-          // chain, and the burst system escalates hue and reach with it.
-          spray.emit(e.x, e.y, -e.d, 14 + Math.min(e.chain, 10) * 3, 4.0, 2.6 + Math.min(e.chain, 10) * 0.25, 0);
-          streakBurst.fire(e);
-        } else {
-          audio.wordPass();
-        }
-        wordGateActors.onResolve(e);
-        break;
-      }
-      case 'word_wrong': {
-        gateTrail[e.index] = 0;
-        if (e.reason === 'picked_fake') fakeTally.record({ family: e.family, fake: e.word, answer: e.answer, tapped: true });
-        judgment.read({ correct: false, answered: e.answered !== false,
-          answerDistance: e.answerDistance, armM: sim.wordGates.armDistance(),
-          chain: 0, real: e.real }, ACCESS.reducedFlash);
-        const t = tierTally[e.tier] || (tierTally[e.tier] = { a: 0, c: 0 });
-        t.a++;
-        nemesis.record(e.answer, false, e.index);
-        // RC10.3: a word being practised again is not a word mastered.
-        mastery.unmark(e.answer);
-        // Phase M: one layer of the architecture falls, frame-accurate with
-        // the drain — the loss made spatial.
-        editorialWorld.onWrongRead();
-        // E4: a wrong read of any kind breaks the burst and the streak.
-        burstWindow.length = 0;
-        earlyStreak = 0;
-      }
-        // The rulebook asymmetry, felt: tapping a fake is the crash (hit
-        // sound, red flash, the heart the sim already took). Missing a real
-        // word is only a slowdown — a deflating cue, no crash language, so
-        // the player learns hearts are never lost by hesitating.
-        // The verdict wash in the wrong colour, for BOTH wrong reads — the
-        // drain's darkness follows it and the two together are unmissable.
-        ui.answerFlash(false);
-        if (e.hit) {
-          // The drain (Phase 9): a wrong tap pulls light and highs out of
-          // the world for a beat — no bright crash-flash; loss is darkness.
-          audio.hit();
-          haptic('hit');
-          audio.duck();
-          spray.emit(e.x, e.y, -e.d, 18, 7, 3.2, 0);
-          ui.drain();
-        } else {
-          audio.slip();
-          // N1 (playtest: "stronger tells on missed word"): a missed real
-          // now borrows the drain's darkness at the moment of the slip —
-          // loss is darkness in this game's grammar, and the slip was the
-          // one wrong read that had no visual weight at all.
-          ui.drain();
-        }
-        wordGateActors.onResolve(e);
-        break;
-    }
-  }
-}
+// Sim events → presentation: src/app/sim-events.js. The drain reacts with
+// the systems built above and writes back only the hit-stop and the
+// dash-learned flag, through the two accessors here.
+const drainSimEvents = createSimEventDrain({
+  sim, run, learn, audio, spray, ui, rig, windStreaks, music, streakBurst,
+  editorialWorld, fakeTally, judgment, nemesis, mastery, wordGateActors,
+  get hitStop() { return hitStop; },
+  set hitStop(v) { hitStop = v; },
+  get dashLearned() { return dashLearned; },
+  set dashLearned(v) { dashLearned = v; },
+});
 
 let last = performance.now();
 
@@ -1678,6 +1451,9 @@ function tick(dt) {
     // the ground stays under the word.
     simInput.confirm = input.jump;
     simInput.reject = input.reject;
+    // Playtest 10/8: the PRESS itself gets a tell — the instant it lands, on
+    // the side that was pressed, before (and apart from) the verdict.
+    if (running && (simInput.confirm || simInput.reject)) ui.pressTell(simInput.confirm ? 'real' : 'fake');
     if (simInput.confirm) learn('Confirm');
     if (simInput.reject) learn('Reject');
     simInput.raiseBar = input.raiseBar;
@@ -1733,11 +1509,6 @@ function tick(dt) {
   launch.update(dt);
   // RC6 attract: a title with nothing on it and nobody in it. Any sheet, the
   // how-to, a pending or playing arrival, or a live run all count as busy.
-  // RC9.4: while the demo runs, the caption says what today's route is worth
-  // to this player — the daily card's own figures, and no other words.
-  ui.setAttractLine(attract.active
-    ? { on: true, best: dailyBest(), streak: metaDaily.status(DAILY_SEED).streak }
-    : { on: false });
   attractPanels.update(dt, attract.active, ui.modality);
   attract.update(paused ? 0 : dt,
     sim.phase === PHASE.TITLE && !running && !paused && !launchPending &&
@@ -1925,7 +1696,7 @@ function tick(dt) {
     // whose only feat is its reading speed has to be able to freeze on it too.
     const wg = sim.wordGates;
     const rank = standoutRank({
-      dashRung: dashRungMax, earlyStreak: bestEarlyStreak, burst10,
+      dashRung: run.dashRungMax, earlyStreak: run.bestEarlyStreak, burst10: run.burst10,
       bestChain: sim.player.bestChain,
       avgReadMs: wg.readCount > 0 ? Math.round((wg.latencySum / wg.readCount) * 1000) : 0,
       reads: wg.readCount,
@@ -1983,5 +1754,5 @@ const { devTools } = installDevHooks({
   get runMode() { return runMode; },
   get currentSalt() { return currentSalt; },
   get lastRunScore() { return lastRunScore; },
-  get gateTrail() { return gateTrail; },
+  get gateTrail() { return run.gateTrail; },
 });

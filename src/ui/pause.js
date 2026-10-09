@@ -11,18 +11,18 @@ export class PauseUI {
 
     const style = document.createElement('style');
     style.textContent = `
-      #rc2PauseBtn{position:absolute;z-index:81;right:15px;top:calc(env(safe-area-inset-top,0px) + 15px);width:38px;height:38px;border-radius:50%;border:1px solid rgba(12,20,27,.32);background:rgba(235,245,250,.68);color:#111a21;font:700 14px/1 var(--face);display:none;place-items:center;cursor:pointer;backdrop-filter:blur(7px)}
+      #rc2PauseBtn{position:absolute;z-index:81;right:15px;top:calc(env(safe-area-inset-top,0px) + 15px);width:38px;height:38px;border-radius:50%;border:1px solid rgba(12,20,27,.32);background:rgba(235,245,250,.68);color:#111a21;font:800 14px/1 var(--face);display:none;place-items:center;cursor:pointer;backdrop-filter:blur(7px)}
       #rc2PauseBtn.on{display:grid}
       #mute{right:15px!important;top:calc(env(safe-area-inset-top,0px) + 61px)!important}
       #rc2Pause{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;background:rgba(8,13,17,.72);backdrop-filter:blur(8px);color:#f4fafc;padding:24px}
       #rc2Pause.on{display:flex}#rc2Pause .card{width:min(88vw,340px);text-align:center}
-      #rc2Pause h2{font:800 clamp(34px,10vw,58px)/.9 var(--face);letter-spacing:.12em;margin-right:-.12em;margin-bottom:24px}
-      #rc2Pause .actions{display:grid;gap:8px}#rc2Pause button.menu{appearance:none;width:100%;padding:13px 14px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#f7fbfd;cursor:pointer;font:700 11px/1 var(--face);letter-spacing:.22em}
+      #rc2Pause h2{font:800 clamp(34px,10vw,58px)/.9 var(--face);letter-spacing:.16em;margin-right:-.16em;margin-bottom:24px}
+      #rc2Pause .actions{display:grid;gap:8px}#rc2Pause button.menu{appearance:none;width:100%;padding:13px 14px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#f7fbfd;cursor:pointer;font:800 11px/1 var(--face);letter-spacing:.24em}
       #rc2Pause button.menu:hover{background:rgba(255,255,255,.11)}
       #rc2Pause button.menu.secondary{opacity:.78}
       #deathScreen.rc2Poster{justify-content:flex-end!important;padding-bottom:max(7vh,48px)!important;gap:9px!important}
       #deathScreen.rc2Poster #shot,#deathScreen.rc2Poster #deathStats,#deathScreen.rc2Poster #deathSeed{display:none!important}
-      #deathScreen.rc2Poster #deathTag{font-size:11px;letter-spacing:.42em}#deathScreen.rc2Poster .big{font-size:clamp(64px,20cqw,118px)}
+      #deathScreen.rc2Poster #deathTag{font-size:11px;letter-spacing:.34em}#deathScreen.rc2Poster .big{font-size:clamp(64px,20cqw,118px)}
     `;
     document.head.appendChild(style);
 

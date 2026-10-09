@@ -54,7 +54,7 @@ export class GuidedTeach {
         transition:opacity .28s ease;transform:translateY(0)}
       #guidedTeach{padding:0 max(14px,env(safe-area-inset-left,0px)) 0 max(14px,env(safe-area-inset-right,0px))}
       #guidedTeach .gtMain{font:800 17px/1.35 var(--face,system-ui);
-        letter-spacing:.22em;color:#eefaff;
+        letter-spacing:.24em;color:#eefaff;
         text-shadow:0 0 18px rgba(103,216,255,.65),0 2px 10px rgba(0,0,0,.8)}
       .bandClause{display:inline-block;white-space:nowrap}
       /* A line with only ONE clause has no separator to break at, so holding

@@ -63,7 +63,6 @@ export class AttractPanels {
   _show(key, modality) {
     const away = key !== 'demo';
     this.title?.classList.toggle('attractAway', this.active && away);
-    document.getElementById('attractLine')?.classList.toggle('away', this.active && away);
     this.card.classList.toggle('on', this.active && away);
     if (key === 'scores') {
       const tables = this.loadTables?.() || [];

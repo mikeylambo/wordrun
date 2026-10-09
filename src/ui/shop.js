@@ -21,14 +21,14 @@ export function buildShopPanel({ stats, onEquip, onOpen, onClose }) {
     /* RC6: the ◆ balance is no longer a third corner button — it is a row
        inside the one ⚙ sheet, which opens this panel through the event
        below. The node stays as the panel's owner and sync target. */
-    #shopBtn{display:none!important;position:absolute;top:calc(var(--safe-t) + 160px);right:14px;z-index:41;min-width:34px;height:34px;padding:0 8px;border-radius:17px;border:1px solid rgba(255,255,255,.2);background:rgba(14,22,28,.6);color:#dff2fc;font:700 11px/1 var(--face);pointer-events:auto;cursor:pointer}
+    #shopBtn{display:none!important;position:absolute;top:calc(var(--safe-t) + 160px);right:14px;z-index:41;min-width:34px;height:34px;padding:0 8px;border-radius:17px;border:1px solid rgba(255,255,255,.2);background:rgba(14,22,28,.6);color:#dff2fc;font:800 11px/1 var(--face);pointer-events:auto;cursor:pointer}
     /* z 90: above the pause button (81) and mute (80), so nothing behind an
        open panel is tappable — the overlap bug was the pause button living
        on top of this sheet. */
     #shopPanel{position:absolute;inset:0;z-index:90;display:none;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:#05080c;background-image:linear-gradient(180deg,#070c11,#04070a);pointer-events:auto}
     #shopPanel.on{display:flex}
-    #shopPanel h3{margin:0;font:700 12px/1 var(--face);letter-spacing:.3em;color:rgba(244,250,253,.8)}
-    #shopBalance{font:600 10px/1 var(--face);letter-spacing:.2em;color:#a8ecff}
+    #shopPanel h3{margin:0;font:800 12px/1 var(--face);letter-spacing:.24em;color:rgba(244,250,253,.8)}
+    #shopBalance{font:600 10px/1 var(--face);letter-spacing:.24em;color:#a8ecff}
     .shopChips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:min(88vw,420px)}
     .shopChip{display:flex;flex-direction:column;gap:5px;align-items:center;min-width:74px}
     .shopChip .swatch{width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.25)}

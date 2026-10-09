@@ -777,7 +777,7 @@ head('MASTERY — the ledger\'s work, finally visible and honestly counted');
     const html = fs.readFileSync('index.html', 'utf8');
     check('a correct read marks AFTER the nemesis ledger records, a wrong read unmarks',
       main.includes('const outcome = nemesis.record(e.answer, true, e.index);') &&
-      main.includes('if (mastery.mark(e.answer)) learnedWords++;') &&
+      main.includes('if (mastery.mark(e.answer)) run.learnedWords++;') &&
       main.includes('mastery.unmark(e.answer);') &&
       main.indexOf('const outcome = nemesis.record') < main.indexOf('mastery.mark(e.answer)'),
       'a word retiring on THIS read stops being owed on it, and is learned on it too');
@@ -793,7 +793,7 @@ head('MASTERY — the ledger\'s work, finally visible and honestly counted');
       '"412 of 10,556" is a fraction nobody can feel; a tier is a shelf filling up');
     check('and the results card reports only a run that actually taught something',
       ui.includes("core.push(row('LEARNED', `+${extras.learnedWords}`))") &&
-      ui.includes('extras.learnedWords > 0') && main.includes('learnedWords = 0;'),
+      ui.includes('extras.learnedWords > 0') && /this\.learnedWords = 0;/.test(main),
       'an ordinary run says nothing, exactly as the standout does');
   }
 }
@@ -1091,18 +1091,10 @@ head('CHALLENGE — the run as a URL, pure and validated');
       main.indexOf('metaDaily.recordRun(DAILY_SEED'),
     'a run abandoned on the title has not taught anybody what the mode is');
 
-  // The attract caption: two states, and every figure already on the card.
-  check('the attract loop says what today\'s route is worth, or that it is unrun',
-    /DAILY · YOUR BEST \$\{Math\.floor\(best\)\.toLocaleString\('en-US'\)\}/.test(uiSrc) &&
-    uiSrc.includes("'DAILY · NOT YET RUN'") &&
-    /· DAY \$\{streak\}/.test(uiSrc),
-    'DAILY · YOUR BEST 404,815 · DAY 4, or DAILY · NOT YET RUN — no third state');
-  check('and both figures come from the daily card, not from new bookkeeping',
-    /best: dailyBest\(\), streak: metaDaily\.status\(DAILY_SEED\)\.streak/.test(main) &&
-    /function dailyBest\(\)[\s\S]{0,420}Storage\.setVariant\(held\)/.test(main),
-    'and dailyBest borrows the DAILY variant for the read and puts the player\'s back');
-  check('the caption is only up while the demo is',
-    /ui\.setAttractLine\(attract\.active/.test(main) &&
+  // Playtest 10/8: the attract caption overlapped the wordmark and came off
+  // the menu. The cycle's HIGH SCORES panel carries today's route instead.
+  check('the attract loop prints no caption over the title',
+    !uiSrc.includes('setAttractLine') && !main.includes('setAttractLine') &&
     main.includes('if (attract.active) { attract.exit(); return; }'),
     'any touch and any key still end the loop, exactly as before');
 }

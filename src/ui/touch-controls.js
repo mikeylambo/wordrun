@@ -47,13 +47,13 @@ function ensureMobileUi() {
     #v1TouchGuide.on{opacity:1}
     #v1TouchFrame{position:absolute;left:0;top:0;width:84px;height:84px;transform:translate(-50%,-50%);border:1px solid rgba(103,216,255,.46);border-radius:50%;box-shadow:0 0 20px rgba(103,216,255,.20),inset 0 0 14px rgba(103,216,255,.10)}
     #v1TouchDot{position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:50%;background:rgba(248,252,254,.85);box-shadow:0 0 12px rgba(163,232,255,.5);transform:translate(-50%,-50%)}
-    .v1TouchLabel{position:absolute;font:600 9px/1 var(--face);letter-spacing:.18em;text-shadow:0 1px 5px rgba(7,12,16,.45);white-space:nowrap}
+    .v1TouchLabel{position:absolute;font:600 9px/1 var(--face);letter-spacing:.16em;text-shadow:0 1px 5px rgba(7,12,16,.45);white-space:nowrap}
     #v1TouchX{left:50%;top:calc(50% + 26px);transform:translateX(-50%)}
     #v1TouchX::after{content:'REAL'}
 
     .v1MobileAction{position:fixed;z-index:67;border:0;border-radius:50%;padding:0;display:none;place-items:center;pointer-events:auto;touch-action:none;color:#f7fcff;-webkit-tap-highlight-color:transparent;transition:opacity .12s ease,transform .08s ease,box-shadow .12s ease}
     .v1MobileAction::before{content:'';position:absolute;inset:5px;border-radius:50%;background:rgba(14,22,28,.64);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
-    .v1MobileAction span{position:relative;z-index:1;font:600 12px/1 var(--face);letter-spacing:.12em;margin-right:-.12em}
+    .v1MobileAction span{position:relative;z-index:1;font:600 12px/1 var(--face);letter-spacing:.16em;margin-right:-.16em}
     .v1MobileAction.running{display:grid}
     .v1MobileAction:focus{outline:none}
 
@@ -64,7 +64,7 @@ function ensureMobileUi() {
        neither answer. Positioned with a margin rather than a transform so the
        held/ready scale animations still work. */
     #v1MobileDash{left:50%;margin-left:-38px;bottom:max(16px,calc(env(safe-area-inset-bottom,0px) + 12px));width:76px;height:76px;background:conic-gradient(rgba(103,216,255,.92) var(--dash-angle,0deg),rgba(238,248,252,.14) var(--dash-angle,0deg));box-shadow:0 4px 20px rgba(4,9,13,.18)}
-    #v1MobileDash span{font-size:11px;letter-spacing:.10em;margin-right:-.10em}
+    #v1MobileDash span{font-size:11px;letter-spacing:.08em;margin-right:-.08em}
     #v1MobileDash.empty{opacity:.30}
     /* Charged is the state that has to carry the whole mechanic. The old
        armed style sat at 0.78 opacity with a 24px glow — dimmer than the
@@ -106,7 +106,7 @@ function ensureMobileUi() {
       /* The same single row on a short landscape screen, at reduced size —
          the centring margin has to track the width or the row is off-axis. */
       #v1MobileDash{width:66px;height:66px;left:50%;right:auto;margin-left:-33px;bottom:max(12px,calc(env(safe-area-inset-bottom,0px) + 8px))}
-      #v1MobileDash span{font-size:10px;letter-spacing:.06em}
+      #v1MobileDash span{font-size:10px;letter-spacing:.08em}
       #v1MobileJump{width:56px;height:56px;right:max(15px,calc(env(safe-area-inset-right,0px) + 10px));bottom:max(17px,calc(env(safe-area-inset-bottom,0px) + 13px))}
       #v1MobileFake{width:56px;height:56px;left:max(15px,calc(env(safe-area-inset-left,0px) + 10px));bottom:max(17px,calc(env(safe-area-inset-bottom,0px) + 13px))}
       #v1MobileJump span{font-size:10px}
@@ -128,7 +128,10 @@ function ensureMobileUi() {
     .v1MobileAction.held::before{transform:translateY(2px) scale(.97);
       box-shadow:inset 0 -2px 6px rgba(0,0,0,.6),inset 0 3px 8px rgba(0,0,0,.35),0 1px 0 rgba(2,6,10,.7),0 2px 4px rgba(2,6,10,.4)}
     .v1MobileAction.held span{transform:translateY(2px)}
-    #v1MobileJump.held,#v1MobileFake.held{transform:none;box-shadow:0 0 30px rgba(103,216,255,.5),0 4px 18px rgba(4,9,13,.2)}
+    /* Playtest 10/8: the domed press was too subtle to read as "pressed" —
+       the whole button dips again and its ring lights hard. */
+    #v1MobileJump.held,#v1MobileFake.held{opacity:1;transform:scale(.92);
+      box-shadow:0 0 0 2px rgba(200,244,255,.9),0 0 34px rgba(103,216,255,.75),0 4px 18px rgba(4,9,13,.2)}
     #v1MobileDash.held{transform:none}
   `;
   document.head.appendChild(style);

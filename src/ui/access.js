@@ -181,7 +181,7 @@ export function initAccess() {
 export function buildAccessPanel(hooks = {}) {
   const style = document.createElement('style');
   style.textContent = `
-    #accessBtn{position:absolute;top:calc(var(--safe-t) + 9px);right:9px;z-index:81;width:38px;height:38px;font-size:15px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(14,22,28,.6);color:#dff2fc;font:700 12px/1 var(--face);pointer-events:auto;cursor:pointer}
+    #accessBtn{position:absolute;top:calc(var(--safe-t) + 9px);right:9px;z-index:81;width:38px;height:38px;font-size:15px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(14,22,28,.6);color:#dff2fc;font:800 12px/1 var(--face);pointer-events:auto;cursor:pointer}
     /* z 90: above the pause button (81) and mute (80). At 70 the pause
        button floated ON TOP of the open panel — a player could pause under
        it, hit MENU, and land the title screen beneath this sheet with every
@@ -189,13 +189,22 @@ export function buildAccessPanel(hooks = {}) {
     #accessPanel{position:absolute;inset:0;z-index:90;display:none;flex-direction:column;gap:12px;align-items:center;justify-content:center;background:#05080c;background-image:linear-gradient(180deg,#070c11,#04070a);pointer-events:auto;overflow-y:auto;padding:28px 0}
     .accessSection{font:800 9px/1 var(--face,system-ui);letter-spacing:.34em;color:#8be4ff;margin:6px 0 -4px;opacity:.85}
     #accessPanel.on{display:flex}
-    #accessPanel .accessAction{margin:2px 0 4px;padding:11px 18px;border:1px solid rgba(255,255,255,.18);border-radius:2px;background:transparent;color:#eef7fb;font:700 9px/1 var(--face);letter-spacing:.24em;cursor:pointer;pointer-events:auto}
+    #accessPanel .accessAction{margin:2px 0 4px;padding:11px 18px;border:1px solid rgba(255,255,255,.18);border-radius:2px;background:transparent;color:#eef7fb;font:800 9px/1 var(--face);letter-spacing:.24em;cursor:pointer;pointer-events:auto}
     #accessPanel .accessAction:active{background:rgba(255,255,255,.1)}
-    #accessPanel h3{margin:0;font:700 12px/1 var(--face);letter-spacing:.3em;color:rgba(244,250,253,.8)}
+    #accessPanel h3{margin:0;font:800 12px/1 var(--face);letter-spacing:.24em;color:rgba(244,250,253,.8)}
     .accessRow{display:flex;flex-direction:column;gap:6px;align-items:center}
     .accessLabel{font:600 8px/1 var(--face);letter-spacing:.24em;color:rgba(235,247,252,.5)}
     .accessChips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
     #accessDone{margin-top:6px}
+    /* Playtest 10/8 — the sheet is TABBED: GAME / VISUAL / AUDIO, one pane at
+       a time, so it never scrolls and every row is one tap from the top. */
+    #accessPanel{justify-content:flex-start;padding-top:calc(var(--safe-t) + 54px)}
+    .accessTabs{display:flex;gap:0;margin:4px 0 10px;border-bottom:1px solid rgba(255,255,255,.12)}
+    .accessTab{padding:12px 16px 10px;border:0;border-bottom:2px solid transparent;background:transparent;color:rgba(235,247,252,.5);
+      font:800 9px/1 var(--face);letter-spacing:.24em;margin-bottom:-1px;cursor:pointer;pointer-events:auto}
+    .accessTab.on{color:#eaf8ff;border-bottom-color:#8be4ff;text-shadow:0 0 10px rgba(103,216,255,.5)}
+    .accessPane{display:none;flex-direction:column;gap:12px;align-items:center;min-height:300px}
+    .accessPane.on{display:flex}
   `;
   document.head.appendChild(style);
 
@@ -233,22 +242,44 @@ export function buildAccessPanel(hooks = {}) {
       chips.appendChild(b);
     }
     row.appendChild(chips);
-    panel.appendChild(row);
+    pane.appendChild(row);
     return () => {
       for (const b of chips.children) b.classList.toggle('on', b.dataset.value === String(get()));
     };
   };
 
-  panel.innerHTML = '<h3>SETTINGS</h3>';
+  panel.innerHTML = '<h3>SETTINGS</h3><div class="accessTabs" role="tablist"></div>';
+  const tabBar = panel.querySelector('.accessTabs');
+  const tabs = [];
+  let pane = panel;   // where the next row lands: the current tab's pane
   // PD-3: this is the game's one settings surface, so it reads like one —
   // three plain groups instead of a junk drawer. HOW TO PLAY deliberately
   // does NOT live here: learning the controls is never a settings hunt
   // (it has its own chip on the title, and the pause menu's entry).
+  // Playtest 10/8: each group is a TAB now, not a heading in a long sheet.
   const section = (label) => {
-    const h = document.createElement('div');
-    h.className = 'accessSection';
-    h.textContent = label;
-    panel.appendChild(h);
+    const t = document.createElement('button');
+    t.type = 'button';
+    t.className = 'accessTab';
+    t.setAttribute('role', 'tab');
+    t.dataset.rc2Ui = '1';
+    t.textContent = label;
+    pane = document.createElement('div');
+    pane.className = 'accessPane';
+    pane.setAttribute('role', 'tabpanel');
+    const mine = pane;
+    t.addEventListener('click', (e) => { e.stopPropagation(); showTab(mine); });
+    tabBar.appendChild(t);
+    panel.appendChild(pane);
+    tabs.push({ t, pane: mine });
+  };
+  const showTab = (which) => {
+    for (const x of tabs) {
+      const on = x.pane === which;
+      x.pane.classList.toggle('on', on);
+      x.t.classList.toggle('on', on);
+      x.t.setAttribute('aria-selected', String(on));
+    }
   };
   // RC6: two ACTIONS at the head of the sheet — the reference card and the
   // bank. Both used to be their own corner button or title chip; the sheet
@@ -260,7 +291,7 @@ export function buildAccessPanel(hooks = {}) {
     r.dataset.rc2Ui = '1';
     r.textContent = label;
     r.addEventListener('click', (e) => { e.stopPropagation(); run(r); });
-    panel.appendChild(r);
+    pane.appendChild(r);
     return r;
   };
 
@@ -341,6 +372,7 @@ export function buildAccessPanel(hooks = {}) {
     hooks.onClose?.();
   });
   panel.appendChild(done);
+  showTab(tabs[0]?.pane);
   document.getElementById('app').appendChild(panel);
 
   const sync = () => { for (const s of syncs) s(); };

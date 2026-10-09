@@ -24,15 +24,15 @@ export class OnboardingUI {
          it in the same glance. */
       #rc7Onboarding .rules{display:grid;gap:0;text-align:left;margin:0 0 18px}
       #rc7Onboarding .rule{padding:11px 0;border-bottom:1px solid rgba(255,255,255,.08);
-        font:500 13px/1.5 var(--face);letter-spacing:.005em;color:rgba(244,251,254,.8)}
+        font:600 13px/1.5 var(--face);letter-spacing:.08em;color:rgba(244,251,254,.8)}
       #rc7Onboarding .rule:last-child{border-bottom:0}
-      #rc7Onboarding .rule b{display:inline-block;font:800 11px/1 var(--face);letter-spacing:.14em;
+      #rc7Onboarding .rule b{display:inline-block;font:800 11px/1 var(--face);letter-spacing:.16em;
         color:#0b1218;background:#8be4ff;padding:5px 8px;border-radius:2px;margin:0 3px;
         transform:translateY(-1px)}
-      #rc7Onboarding .rule i{font-style:normal;color:#8be4ff;font-weight:700}
+      #rc7Onboarding .rule i{font-style:normal;color:#8be4ff;font-weight:800}
       #rc7Onboarding .ghost{display:flex;align-items:center;justify-content:space-between;margin:15px 0 18px;padding:11px 12px;border:1px solid rgba(255,255,255,.14)}
-      #rc7Onboarding .ghost span{font:700 10px/1 var(--face);letter-spacing:.15em}
-      #rc7Onboarding button{appearance:none;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#f7fbfd;cursor:pointer;font:700 11px/1 var(--face);letter-spacing:.2em}
+      #rc7Onboarding .ghost span{font:800 10px/1 var(--face);letter-spacing:.16em}
+      #rc7Onboarding button{appearance:none;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#f7fbfd;cursor:pointer;font:800 11px/1 var(--face);letter-spacing:.24em}
       #rc7Onboarding .toggle{padding:8px 10px;min-width:62px}
       #rc7Onboarding .start{width:100%;padding:14px}
 

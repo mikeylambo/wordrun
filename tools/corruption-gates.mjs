@@ -802,7 +802,9 @@ head('BROADCAST — few words, one type system, numbers first');
   {
     const line = (id) => (htmlAll.match(new RegExp(`<div id="${id}">([^<]*)<\\/div>`)) || [])[1] || '';
     const lockup = `${line('titleKicker')} ${line('titleStrap')}`.split(/\s+/).filter((w) => /[A-Za-z]/.test(w)).length;
-    check('the key-art lockup carries two poster lines and no more than ten words', lockup > 0 && lockup <= 10, `${lockup} words`);
+    // Playtest 10/8: the poster lines came off the title — the wordmark
+    // stands alone. The foot node stays as an empty spacer.
+    check('the title carries no poster lines — the wordmark stands alone', lockup === 0, `${lockup} words`);
   }
   check('the results card stays under a dozen printed words', death <= 12, `${death} words`);
 
@@ -1316,8 +1318,8 @@ head('STANDOUT — one line, chosen by rarity, or nothing at all');
   const ui = fs.readFileSync('src/ui/ui.js', 'utf8');
   const wgSrc = fs.readFileSync('src/sim/word-gates.js', 'utf8');
   check('the ledgers ride the same event the score does, and a wrong read breaks them',
-    wgSrc.includes('score: g.score,') && main.includes('burstWindow.push(e.score || 0)') &&
-    main.includes('burstWindow.length = 0;\n        earlyStreak = 0;'));
+    wgSrc.includes('score: g.score,') && main.includes('run.burstWindow.push(e.score || 0)') &&
+    /run\.burstWindow\.length = 0;\n\s+run\.earlyStreak = 0;/.test(main));
   check('the card renders at most the ONE standout the picker chose',
     main.includes('standout: pickStandout({') &&
     ui.includes('if (extras.standout) core.push(row(extras.standout.k, extras.standout.v));') &&

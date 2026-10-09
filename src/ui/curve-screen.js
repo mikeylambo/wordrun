@@ -15,24 +15,24 @@ const CSS = `
 /* RC13.8 — the medal wall: every medal, earned ones lit, the rest waiting. */
 #curveScreen .medalWall{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:6px;margin:4px 0 6px}
 #curveScreen .medal{display:flex;align-items:center;gap:7px;min-height:30px;padding:5px 7px;border:1px solid rgba(255,255,255,.08);
-  font-size:8px;font-weight:800;letter-spacing:.14em;color:var(--dimmer)}
+  font-size:8px;font-weight:800;letter-spacing:.16em;color:var(--dimmer)}
 #curveScreen .medal i{flex:0 0 14px;width:14px;height:14px;border-radius:50%;border:1px solid rgba(255,255,255,.18)}
 #curveScreen .medal.on{border-color:rgba(103,216,255,.4);color:#dff4ff;background:rgba(14,34,44,.5)}
 #curveScreen .medal.on i{border:0;background:radial-gradient(circle at 35% 30%,#fff,#8be4ff 55%,#2c7fa0);box-shadow:0 0 10px rgba(103,216,255,.6)}
 #curveScreen .medal.key.on i{background:radial-gradient(circle at 35% 30%,#fff,#e8e8e8 60%,#9a9a9a);box-shadow:0 0 10px rgba(255,255,255,.55)}
 #curveScreen .cTop .cV{font-size:19px;font-weight:800;letter-spacing:-.02em;color:#eaf6fc}
-#curveScreen .cBank{display:inline-block;margin-left:10px;font-style:normal;font-size:11px;font-weight:700;letter-spacing:.12em;color:#8be4ff}
+#curveScreen .cBank{display:inline-block;margin-left:10px;font-style:normal;font-size:11px;font-weight:800;letter-spacing:.16em;color:#8be4ff}
 #curveScreen .goalList{display:flex;flex-direction:column;gap:8px;margin:2px 0 4px}
 #curveScreen .goalCheck{display:flex;gap:11px;align-items:center;text-align:left}
 #curveScreen .goalCheck i{font-style:normal;flex:0 0 20px;width:20px;height:20px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.16);border-radius:50%;font-size:10px;color:var(--dimmer)}
 #curveScreen .goalCheck.done i{border-color:rgba(139,228,255,.7);background:rgba(18,42,54,.55);color:#8be4ff;font-weight:800}
-#curveScreen .goalCheck .goalChip{font-size:11px;letter-spacing:.14em;color:rgba(232,244,251,.5)}
-#curveScreen .goalCheck .goalChip.done{color:#bff0ff;font-weight:700}
+#curveScreen .goalCheck .goalChip{font-size:11px;letter-spacing:.16em;color:rgba(232,244,251,.5)}
+#curveScreen .goalCheck .goalChip.done{color:#bff0ff;font-weight:800}
 #curveScreen{position:absolute;inset:0;z-index:78;display:none;align-items:center;justify-content:center;
   padding:16px;background:rgba(6,11,16,.94);backdrop-filter:blur(8px);color:#eaf6fc}
 #curveScreen.on{display:flex}
 #curveScreen .card{width:min(92%,400px);max-height:100%;overflow-y:auto;overflow-x:hidden;text-align:left}
-#curveScreen h3{font:800 11px/1 var(--face);letter-spacing:.26em;color:#8be4ff;margin:0 0 16px;text-align:center}
+#curveScreen h3{font:800 11px/1 var(--face);letter-spacing:.24em;color:#8be4ff;margin:0 0 16px;text-align:center}
 /* Two columns wherever the frame can hold them. The profile is six blocks
    that never needed to be one tall strip: in a 595px cabinet the single
    column overflowed by 145px before a player had beaten a single word, and
@@ -49,22 +49,22 @@ const CSS = `
 }
 #curveScreen .cRow{display:grid;grid-template-columns:60px 1fr 76px;gap:10px;align-items:center;
   padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)}
-#curveScreen .cK{font:600 8px/1.4 var(--face);letter-spacing:.2em;color:var(--dimmer)}
+#curveScreen .cK{font:600 8px/1.4 var(--face);letter-spacing:.24em;color:var(--dimmer)}
 #curveScreen .spark{display:block;width:100%;height:26px;overflow:visible}
 #curveScreen .cRow > span{min-width:0}
 #curveScreen .spark polyline{fill:none;stroke:var(--ice);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
 #curveScreen .spark .dot{fill:var(--ice)}
 #curveScreen .spark .base{stroke:rgba(103,216,255,.14);stroke-width:1}
-#curveScreen .cV{font:700 12px/1 var(--face);text-align:right;letter-spacing:-.01em}
-#curveScreen .cV s{color:var(--dimmer);text-decoration:none;font-weight:500;font-size:10px;margin-right:5px}
+#curveScreen .cV{font:800 12px/1 var(--face);text-align:right;letter-spacing:-.01em}
+#curveScreen .cV s{color:var(--dimmer);text-decoration:none;font-weight:600;font-size:10px;margin-right:5px}
 #curveScreen .up{color:#8be4ff}
 #curveScreen .down{color:rgba(255,150,142,.85)}
-#curveScreen .cHead{font:700 8px/1 var(--face);letter-spacing:.24em;color:var(--dimmer);margin:20px 0 8px}
+#curveScreen .cHead{font:800 8px/1 var(--face);letter-spacing:.24em;color:var(--dimmer);margin:20px 0 8px}
 #curveScreen .bRow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:baseline;padding:7px 0;
   border-bottom:1px solid rgba(255,255,255,.06)}
-#curveScreen .bW{font:700 13px/1.2 var(--face);letter-spacing:-.01em;color:#eaf6fc}
-#curveScreen .bMeta{font:500 9px/1.3 var(--face);letter-spacing:.04em;color:rgba(232,244,251,.5);text-align:right;white-space:nowrap}
-#curveScreen .note{font:500 10px/1.5 var(--face);color:rgba(232,244,251,.5);margin:14px 0 0;text-align:center}
+#curveScreen .bW{font:800 13px/1.2 var(--face);letter-spacing:-.01em;color:#eaf6fc}
+#curveScreen .bMeta{font:600 9px/1.3 var(--face);letter-spacing:.08em;color:rgba(232,244,251,.5);text-align:right;white-space:nowrap}
+#curveScreen .note{font:600 10px/1.5 var(--face);color:rgba(232,244,251,.5);margin:14px 0 0;text-align:center}
 #curveScreen .btn{display:block;width:100%;margin-top:20px}
 `;
 

@@ -74,7 +74,6 @@ export class UI {
     this.titleStreak = $('titleStreak');
     this.titleMastery = $('titleMastery');
     this.dailyNote = $('dailyNote');
-    this.attractLine = $('attractLine');
     this.titleGoalRow = $('titleGoalRow');
     this.deathRecap = $('deathRecap');
     this.drainEl = $('drain');
@@ -275,24 +274,6 @@ export class UI {
     this.dailyNote.classList.toggle('on', show);
   }
 
-  /**
-   * The attract loop's caption. A cabinet running its demo says what the game
-   * is offering; this says what today's route is worth to THIS player, from
-   * the figures the daily card already keeps. Two states and no third: a
-   * route they have a best on, and one they have not run.
-   */
-  setAttractLine({ on = false, best = 0, streak = 0 } = {}) {
-    if (!this.attractLine) return;
-    const text = !on ? ''
-      : best > 0
-        ? `DAILY · YOUR BEST ${Math.floor(best).toLocaleString('en-US')}${streak > 0 ? ` · DAY ${streak}` : ''}`
-        : 'DAILY · NOT YET RUN';
-    if (text !== this._attractText) {
-      this._attractText = text;
-      if (text) this.attractLine.textContent = text;
-    }
-    this.attractLine.classList.toggle('on', on);
-  }
 
   showTitle(on) { this.titleScreen.classList.toggle('on', on); }
   showDeath(on) { this.deathScreen.classList.toggle('on', on); if (on) this.fitHeadline(); }
@@ -761,6 +742,22 @@ export class UI {
       this._ansT = Math.max(0, this._ansT - dt * 4.5);
       this.answerGlow.style.opacity = (this._ansT * this._ansT).toFixed(3);
     }
+  }
+
+  /**
+   * Playtest 10/8 — the press tell. A neutral light bar on the edge that was
+   * pressed (FAKE left, REAL right), the instant the input lands: it says
+   * WHEN you answered, independent of whether you were right, which the
+   * verdict colour says a beat later. Neutral white-cyan, never right/wrong.
+   */
+  pressTell(side) {
+    this.pressEl ||= document.getElementById('pressTell');
+    const el = this.pressEl;
+    if (!el) return;
+    el.dataset.side = side === 'real' ? 'r' : 'l';
+    el.classList.remove('on');
+    void el.offsetWidth;
+    el.classList.add('on');
   }
 
   /** One peripheral wash of the verdict's own colour. Acted answers only. */
