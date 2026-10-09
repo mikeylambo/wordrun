@@ -10,7 +10,6 @@ const SHELL = [
   new URL('icons/dictiondash-maskable-512.png', BASE).href,
   new URL('fonts/archivo-latin-var.woff2', BASE).href,
   new URL('fonts/atkinson-next-latin-var.woff2', BASE).href,
-  new URL('fonts/fraunces-latin-var.woff2', BASE).href,
   new URL('fonts/fraunces-italic-latin-var.woff2', BASE).href,
   new URL('fonts/big-shoulders-display-latin-var.woff2', BASE).href
 ];

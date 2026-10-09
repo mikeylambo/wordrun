@@ -728,8 +728,8 @@ head('BROADCAST — few words, one type system, numbers first');
     html.includes("--face:'Archivo'") && html.includes('font-family:var(--face)') &&
     !/font(-family)?:[^;}]*ui-monospace/.test(injected),
     'no surface pins its own face');
-  check('the wordmark is inline so it can use the bundled title face',
-    html.includes('<svg id="titleWordmark"') && html.includes('font-family="var(--title)"') &&
+  check('the wordmark is inline so it can use that same face',
+    html.includes('<svg id="titleWordmark"') && html.includes('font-family="var(--face)"') &&
     !fs.existsSync('public/ui/dictiondash-wordmark.svg'),
     'an <img>-loaded SVG cannot see the page @font-face');
 
@@ -760,7 +760,7 @@ head('BROADCAST — few words, one type system, numbers first');
     fs.existsSync('public/fonts/OFL-BigShouldersDisplay.txt'));
   // The identity tier (Fraunces) and the numeral tier (Big Shoulders) are
   // bundled the same way, and neither may reach the word plates.
-  for (const f of ['fraunces-latin-var.woff2', 'fraunces-italic-latin-var.woff2', 'big-shoulders-display-latin-var.woff2']) {
+  for (const f of ['fraunces-italic-latin-var.woff2', 'big-shoulders-display-latin-var.woff2']) {
     const bytes = fs.existsSync(`public/fonts/${f}`) ? fs.statSync(`public/fonts/${f}`).size : 0;
     check(`${f} ships, is preloaded and offline-cached`,
       bytes > 8_000 && bytes < 400_000 &&

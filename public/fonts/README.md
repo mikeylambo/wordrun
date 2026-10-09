@@ -8,7 +8,7 @@ external network calls during play, and a webfont request would break that.
 | --- | --- | --- | --- |
 | `archivo-latin-var.woff2` | Archivo | `wght` 400–900 | Display and UI: the distance readout, buttons, micro-labels, the results card |
 | `atkinson-next-latin-var.woff2` | Atkinson Hyperlegible Next | `wght` 400–800 | The word plates — the surface the whole game is read from |
-| `fraunces-latin-var.woff2`, `fraunces-italic-latin-var.woff2` | Fraunces | `wght` 100–900, `SOFT` | Identity only: the wordmark ("Diction" upright, "Dash" italic) and the FINISH announcement |
+| `fraunces-italic-latin-var.woff2` | Fraunces | `wght` 100–900, `SOFT` | The FINISH announcement (the wordmark stays Archivo) |
 | `big-shoulders-display-latin-var.woff2` | Big Shoulders Display | `wght` 100–900 | The big numerals only: distance, combo, final distance |
 
 Atkinson Hyperlegible Next is drawn by the Braille Institute specifically so
@@ -25,5 +25,5 @@ Subsets were taken from the Google Fonts `latin` slice. To refresh, request
 browser user agent and save the `/* latin */` `woff2` it points at.
 
 Fraunces and Big Shoulders Display were taken from the `@fontsource-variable`
-npm packages (5.3.0): `fraunces-latin-soft-{normal,italic}` and
+npm packages (5.3.0): `fraunces-latin-soft-italic` and
 `big-shoulders-display-latin-wght-normal`.
