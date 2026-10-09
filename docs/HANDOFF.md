@@ -23,7 +23,8 @@ gates are re-run, not assumed (`git config core.hooksPath .githooks`, then
 - **City:** curtain-wall tower shader, sky dome with horizon haze, searchlight
   beams (render/skyline.js). Bloom pass was built then REMOVED (bad on iPhone).
 - **Wet road:** neon streak reflections + grazing sheen in the road shader
-  (render/material-pass.js, TUNING.WET). Needs an on-device look.
+  (render/material-pass.js, TUNING.WET). Final strength 0.28; 47/47 browser
+  smoke green on it (re-run 10/09). Needs an on-device look.
 - **Bells cut.** ◆ = 1 per correct read + chain-milestone bonus (meta/currency.js).
 - **Playtest 10/8 fixes:** ×N residue, title music on first gesture, attract
   runner on road, taglines/caption/side art removed, one type system (3
