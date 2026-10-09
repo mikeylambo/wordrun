@@ -822,6 +822,15 @@ export const TUNING = {
     // recorded on NORMAL only (the title forces the chip, no copy); ENDLESS
     // bests store per difficulty; a continued run is never eligible; daily
     // goals clear on any difficulty. Gated in tools/meta-gates.mjs.
+    // The board server: the shared Supabase project, schema
+    // `diction_dash` (db/schema.sql). Both values are public by design — the
+    // publishable key reads rows and calls one validating function, nothing
+    // else. A build with VITE_BOARDS=off ships without them.
+    // Empty until the project is chosen: an empty endpoint keeps boards dark.
+    BOARD_SERVER: {
+      ENDPOINT: '',
+      KEY: '',
+    },
     BOARD_POLICY: {
       DAILY_DIFFICULTY: 'normal',
       ENDLESS_PER_DIFFICULTY: true,

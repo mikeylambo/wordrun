@@ -161,6 +161,23 @@ export const Storage = {
   setBoardName(name) { return safeSet('pref.boardName', String(name || '').slice(0, 12)); },
 
   /**
+   * The device's board identity: a random id made once and kept. The server
+   * never shows it to anyone, so it is the only proof that a row is ours.
+   */
+  boardPlayer() {
+    let id = safeGet('pref.boardPlayer');
+    if (!/^[0-9a-f-]{36}$/.test(String(id || ''))) {
+      id = globalThis.crypto?.randomUUID?.() ||
+        'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+          const r = Math.random() * 16 | 0;
+          return (c === 'x' ? r : (r & 3) | 8).toString(16);
+        });
+      safeSet('pref.boardPlayer', id);
+    }
+    return id;
+  },
+
+  /**
    * RC10.6 — the session counter the setlist rotates on. Reads the stored
    * value, advances it, and hands back the one this session should use, so a
    * caller cannot forget the second half and play the same score forever.

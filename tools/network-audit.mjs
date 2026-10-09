@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 /**
  * Network-call audit vs the YouTube Playables rule (Phase 12): ZERO
  * external requests — no analytics, no CDN fonts, nothing that leaves the
@@ -18,12 +19,30 @@ const browser = await chromium.launch({
 });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 
+// The board server is the one external host the web build may reach, and
+// only outside a run (title tables, a signed score on the results card). The
+// Playables build (VITE_BOARDS=off) may reach nothing at all: run this audit
+// against that build with BOARDS=off to hold it to zero.
+const BOARD_HOST = (() => {
+  const m = /ENDPOINT: '([^']*)'/.exec(fs.readFileSync('src/TUNING.js', 'utf8'));
+  try { return m?.[1] ? new URL(m[1]).host : ''; } catch { return ''; }
+})();
+const BOARDS_OFF = process.env.BOARDS === 'off';
+let inRun = false;
 const external = [];
+const duringRun = [];
+const boardCalls = [];
 const internal = new Set();
 page.on('request', (req) => {
   const url = req.url();
   if (url.startsWith('data:') || url.startsWith('blob:')) return;
-  if (url.startsWith(ORIGIN)) internal.add(new URL(url).pathname);
+  if (url.startsWith(ORIGIN)) {
+    internal.add(new URL(url).pathname);
+    if (inRun && /board-transport/.test(url)) duringRun.push(url);
+    return;
+  }
+  if (inRun) duringRun.push(url);
+  if (!BOARDS_OFF && new URL(url).host === BOARD_HOST) boardCalls.push(url);
   else external.push(url);
 });
 
@@ -31,6 +50,7 @@ await page.goto(ORIGIN + '/', { waitUntil: 'networkidle' });
 await page.waitForTimeout(3000); // warm-start, audio prewarm, SW install
 
 // A full run: start, read for 30 headless seconds, render, die, death card.
+inRun = true;
 await page.evaluate(() => globalThis.__START?.());
 await page.waitForTimeout(400);
 await page.evaluate(() => {
@@ -44,6 +64,7 @@ await page.evaluate(() => {
   sim.beast.gap = 2.45;
 });
 await page.waitForTimeout(4000); // kill cam, death card, share-poster compose
+inRun = false;
 await browser.close();
 
 console.log(`same-origin assets requested: ${internal.size}`);
@@ -52,17 +73,17 @@ console.log(`same-origin assets requested: ${internal.size}`);
 // that can make a request is reached by dynamic import from the board surface
 // alone, so a boot, a run and a death card must never even LOAD it. If this
 // name ever appears here, something in the play path imported it.
-const boardChunk = [...internal].filter((p) => /board-transport/.test(p));
-if (boardChunk.length) {
-  console.error('FAIL — the board transport was loaded during play:');
-  for (const p of boardChunk) console.error(`  ${p}`);
-  await browser.close?.();
+if (duringRun.length) {
+  console.error('FAIL — requests during the run or its death card:');
+  for (const u of duringRun.slice(0, 10)) console.error(`  ${u}`);
   process.exit(1);
 }
-console.log('board transport never loaded through boot, run or death — the carve-out holds');
+console.log('nothing external and no board transport during the run or the death card');
+if (boardCalls.length) console.log(`board server reached outside the run: ${boardCalls.length} request(s) — allowed in the web build`);
 if (external.length) {
   console.error(`FAIL — ${external.length} external request(s):`);
   for (const u of external.slice(0, 10)) console.error('  ' + u);
   process.exit(1);
 }
-console.log('PASS — zero external network calls through boot, run and death');
+console.log(BOARDS_OFF ? 'PASS — zero external network calls through boot, run and death'
+  : 'PASS — nothing external but the board server, and nothing at all during a run');

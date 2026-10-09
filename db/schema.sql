@@ -1,9 +1,7 @@
 -- DICTION DASH — boards. RC10.7.
 --
--- NOT APPLIED ANYWHERE. This file is the decision, written down and reviewable,
--- so that the day a board is switched on nobody is inventing a security model
--- in a hurry. Nothing in the shipped game points at a server; `meta/boards.js`
--- is dark until an endpoint and a key are configured.
+-- NOT YET APPLIED. Target: the shared games Supabase project, schema
+-- `diction_dash`. This file is the source of truth: change it here, then apply.
 --
 -- Two things gate switching it on, and neither is code:
 --   1. HARD's reading window is provisional. A board freezes difficulty
@@ -36,7 +34,10 @@ create schema if not exists diction_dash;
 create table if not exists diction_dash.scores (
   id          bigint generated always as identity primary key,
   board       text        not null check (length(board) between 1 and 64),
-  player      uuid        not null default auth.uid(),
+  -- A random id the device generates and keeps. It is never readable
+  -- through the API (see the column grant below), so it cannot be used to
+  -- submit as somebody else.
+  player      uuid        not null,
   name        text        not null check (length(name) between 1 and 12),
   score       integer     not null check (score >= 0),
   -- The evidence the score was priced against, kept so a suspicious row can be
@@ -81,8 +82,10 @@ declare
   v_gates    integer := coalesce((p->>'gates')::integer, 0);
   v_seconds  numeric := coalesce((p->>'seconds')::numeric, 0);
   v_max_d    numeric;
+  v_player   uuid;
 begin
-  if auth.uid() is null then
+  v_player := (p->>'player')::uuid;
+  if v_player is null then
     return jsonb_build_object('ok', false, 'why', 'no player');
   end if;
   if v_board is null or length(v_board) not between 1 and 64
@@ -115,7 +118,7 @@ begin
   end if;
 
   insert into diction_dash.scores (board, player, name, score, evidence)
-  values (v_board, auth.uid(), v_name, v_score, p - 'name')
+  values (v_board, v_player, v_name, v_score, p - 'name' - 'player')
   on conflict (board, player) do update
     set score = greatest(diction_dash.scores.score, excluded.score),
         name = excluded.name,
@@ -137,10 +140,12 @@ create table if not exists diction_dash.blocked_words (word text primary key);
 -- Narrow on purpose. The generic "GRANT ALL ON ALL TABLES" from the custom
 -- schema docs would hand anon a write path straight past the function.
 grant usage on schema diction_dash to anon, authenticated;
-grant select on diction_dash.scores to anon, authenticated;
-grant execute on function diction_dash.submit_score(jsonb) to authenticated;
+-- Column-level: the player id stays private.
+grant select (board, name, score, created_at) on diction_dash.scores to anon, authenticated;
+revoke execute on function diction_dash.submit_score(jsonb) from public;
+grant execute on function diction_dash.submit_score(jsonb) to anon, authenticated;
 revoke all on diction_dash.blocked_words from anon, authenticated;
 
--- Expose `diction_dash` under API settings → Exposed schemas, and point the
--- client at it with `db: { schema: 'diction_dash' }` (or the PostgREST
--- Accept-Profile header, which is what src/net/board-transport.js would use).
+-- `diction_dash` is exposed to the API (Settings → API → Exposed schemas);
+-- src/net/board-transport.js selects it with the Accept-Profile and
+-- Content-Profile headers.

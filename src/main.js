@@ -159,11 +159,15 @@ const attract = new AttractMode({
 // the three verbs. Same board keys the results card writes.
 const attractPanels = new AttractPanels({
   loadTables: () => {
+    refreshWorld();   // at most once a minute; answers land on the next turn
     const daily = boardKeyFor({ mode: 'standard', difficulty: BOARD.DAILY_DIFFICULTY, day: dailySeedString() });
     const endless = boardKeyFor({ mode: 'endless', difficulty: runDifficulty });
     return [
-      { title: 'DAILY RUN · TODAY', rows: Storage.hiscores(daily) },
-      { title: `ENDLESS · ${String(runDifficulty).toUpperCase()}`, rows: Storage.hiscores(endless) },
+      // The world's table when the board has answered, this device's otherwise.
+      { title: `DAILY RUN · ${worldTables.get(daily)?.length ? 'WORLD' : 'TODAY'}`,
+        rows: worldTables.get(daily)?.length ? worldTables.get(daily) : Storage.hiscores(daily) },
+      { title: `ENDLESS · ${String(runDifficulty).toUpperCase()}${worldTables.get(endless)?.length ? ' · WORLD' : ''}`,
+        rows: worldTables.get(endless)?.length ? worldTables.get(endless) : Storage.hiscores(endless) },
     ];
   },
 });
@@ -272,15 +276,35 @@ syncVariant();
 
 // Meta layer (ported from the SLU shell's Layer-1 managers): lifetime
 // stats, daily goals and the play streak, over one storage adapter.
-// RC10.7 — boards, dark. No endpoint is configured in the shipped build, so
-// `enabled` is false, no surface appears and nothing is ever sent. The module
-// exists now so the board key, the eligibility rule and the submission shape
-// are decided and gated in one place rather than invented the day a server
-// turns up; db/schema.sql is the other half, applied nowhere.
+// Boards — the world's top ten, from the `leaderboards` Supabase project
+// (db/schema.sql). Nothing is sent during a run: a score is offered only when
+// the player commits initials on the results card, and the world tables are
+// read on the title screen. VITE_BOARDS=off (the Playables build, which allows
+// zero requests) leaves the client dark.
 //
 // The transport is a DYNAMIC import inside boards.open(), so the one module
 // that can make a request is not in the boot graph and a run cannot reach it.
-const boards = new Boards({});
+const boards = new Boards(import.meta.env?.VITE_BOARDS === 'off' ? {} : {
+  endpoint: TUNING.META.BOARD_SERVER.ENDPOINT, key: TUNING.META.BOARD_SERVER.KEY,
+});
+// The world tables, by board key, as the cabinet's {initials, score} rows.
+const worldTables = new Map();
+let worldAt = 0;
+function refreshWorld(force = false) {
+  if (!boards.enabled || running || (!force && Date.now() - worldAt < 60_000)) return;
+  worldAt = Date.now();
+  const keys = [
+    boardKeyFor({ mode: 'standard', difficulty: BOARD.DAILY_DIFFICULTY, day: dailySeedString() }),
+    boardKeyFor({ mode: 'endless', difficulty: runDifficulty }),
+  ];
+  for (const k of keys) {
+    boards.top(k, 10).then((rows) => {
+      if (rows) worldTables.set(k, rows.map((r) => ({ initials: r.name, score: r.score })));
+    });
+  }
+}
+// The run that may go to a board, held until the player signs it.
+let pendingBoardRun = null;
 
 const metaAdapter = localStorageAdapter();
 const metaStats = new StatsManager(metaAdapter);
@@ -833,26 +857,13 @@ function finalizeRun() {
   // (a challenge link can pin another; that run keeps its score, not a best).
   const boardEligible = !runContinued &&
     (runMode !== 'standard' || effectiveDifficulty() === BOARD.DAILY_DIFFICULTY);
-  // RC10.7: and offer it to a board, if one exists. It does not: `boards` has
-  // no endpoint, so this resolves to null without touching the network. The
-  // call is here so the eligibility rule has exactly one home — the same
-  // `boardEligible` the local best already respects.
-  if (boardEligible && boards.enabled) {
-    boards.submit({
-      mode: runMode,
-      difficulty: effectiveDifficulty(),
-      continued: runContinued,
-      // The DAILY RUN's own date, which is what makes a daily board
-      // comparable: everyone that day read the identical hundred words.
-      day: dailySeedString(),
-      name: Storage.boardName(),
-      score: finalScore,
-      seedString: SEED_STRING,
-      distance,
-      gates: wg.readCount,
-      seconds: sim.time,
-    });
-  }
+  // The board offer waits for initials (see InitialsEntry below): a run is
+  // only sent when the player signs it.
+  pendingBoardRun = boardEligible ? {
+    mode: runMode, difficulty: effectiveDifficulty(), continued: runContinued,
+    day: dailySeedString(), score: finalScore, seedString: SEED_STRING,
+    distance, gates: sim.wordGates.readCount, seconds: sim.time,
+  } : null;
   const isPb = boardEligible ? Storage.setBestFor(SEED, finalScore) : false;
   // RC13.7 — the cabinet's table. Same board key a server would use, so the
   // same runs count; a run that makes the top ten asks for initials.
@@ -1169,6 +1180,11 @@ const initials = new InitialsEntry({
       { initials: i, score: hiscoreScore, time: Date.now() });
     Storage.setHiscores(hiscoreBoard, rows);
     Storage.setLastInitials(i);
+    if (pendingBoardRun) {
+      const run = { ...pendingBoardRun, name: i, player: Storage.boardPlayer() };
+      pendingBoardRun = null;
+      boards.submit(run).then(() => refreshWorld(true));
+    }
     audio.credit();
   },
 });

@@ -79,7 +79,7 @@ export function cleanName(raw) {
 export function submissionFor(run = {}) {
   const board = boardKeyFor(run);
   const name = cleanName(run.name);
-  if (!board || !name) return null;
+  if (!board || !name || !/^[0-9a-f-]{36}$/.test(String(run.player || ''))) return null;
   const score = Math.floor(Number(run.score));
   if (!Number.isFinite(score) || score < 0) return null;
   return {
@@ -88,6 +88,7 @@ export function submissionFor(run = {}) {
     score,
     // The evidence the server prices the score against. A run that claims a
     // score its own distance and gate count cannot support is refused there.
+    player: String(run.player || ''),
     seed: String(run.seedString || ''),
     distance: Math.max(0, Math.floor(Number(run.distance) || 0)),
     gates: Math.max(0, Math.floor(Number(run.gates) || 0)),

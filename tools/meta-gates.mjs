@@ -350,32 +350,35 @@ head('BOARDS — decided, gated, and reaching nothing');
   // A submission is a claim, and it is refused here before it can be made.
   {
     const run = { mode: 'endless', difficulty: 'hard', name: 'Mike', score: 1234,
-      seedString: 'S', distance: 900, gates: 14, seconds: 60 };
+      seedString: 'S', distance: 900, gates: 14, seconds: 60, player: '0f8e5d3a-9c1b-4b7e-8a2d-3c4e5f6a7b8c' };
     const ok = B.submissionFor(run);
     check('a submission carries the evidence its score will be priced against',
       ok.board === 'endless:hard' && ok.name === 'Mike' && ok.score === 1234 &&
-      ok.distance === 900 && ok.gates === 14 && ok.seconds === 60,
+      ok.distance === 900 && ok.gates === 14 && ok.seconds === 60 && ok.player === run.player,
       'it travels so the server can CHECK it, not so the server can believe it');
     check('and no board, no name or no score means no submission',
       B.submissionFor({ ...run, name: '' }) === null &&
       B.submissionFor({ ...run, continued: true }) === null &&
       B.submissionFor({ ...run, score: -1 }) === null &&
-      B.submissionFor({ ...run, score: 'lots' }) === null);
+      B.submissionFor({ ...run, score: 'lots' }) === null &&
+      B.submissionFor({ ...run, player: '' }) === null);
   }
 
-  // DARK. The shipped build configures nothing, so nothing can be sent.
+  // Unconfigured, a board is dark: nothing can be sent.
   {
     const dark = new B.Boards({});
     check('with no endpoint there is no board, and submitting is a no-op',
       dark.enabled === false &&
       await dark.submit({ mode: 'endless', difficulty: 'hard', name: 'Mike', score: 10 }) === null &&
       await dark.top('endless:hard') === null,
-      'nothing in the shipped build sets an endpoint or a key');
+      'a board needs an endpoint and a key');
     const main = appSource();
-    check('and the game constructs it dark, with the offer behind the same eligibility rule',
-      main.includes('const boards = new Boards({});') &&
-      main.includes('if (boardEligible && boards.enabled) {'),
-      'a board is a bonus and may never be able to fail the game that fed it');
+    check('the game reaches the board server unless the build turns it off, and sends only a signed run',
+      main.includes("import.meta.env?.VITE_BOARDS === 'off' ? {} : {") &&
+      main.includes('pendingBoardRun = boardEligible ? {') &&
+      /onCommit: \(i\) => \{[\s\S]{0,600}boards\.submit\(run\)/.test(main) &&
+      !/boards\.(submit|top)\(/.test(main.slice(main.indexOf('function startRun'), main.indexOf('function quitToTitle'))),
+      'no request during a run: the offer waits for initials, the world tables load on the title');
   }
 
   // With a transport injected it works — and a failing board is not a failure.
@@ -387,7 +390,7 @@ head('BOARDS — decided, gated, and reaching nothing');
     };
     const live = new B.Boards({}, fake);
     const res = await live.submit({ mode: 'endless', difficulty: 'hard',
-      name: 'Mike', score: 77, distance: 100, gates: 2, seconds: 10 });
+      name: 'Mike', score: 77, distance: 100, gates: 2, seconds: 10, player: '0f8e5d3a-9c1b-4b7e-8a2d-3c4e5f6a7b8c' });
     check('an injected transport is used, and only for eligible runs',
       live.enabled === true && res.ok === true && sent.length === 1 &&
       sent[0].board === 'endless:hard' &&

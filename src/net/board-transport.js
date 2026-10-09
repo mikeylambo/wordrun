@@ -21,8 +21,8 @@
  * what it cannot (db/schema.sql). Anything this file sends is a claim, not a
  * fact, and it is written to be read that way.
  *
- * Dark until configured. `meta/boards.js` will not construct this without an
- * endpoint and a key, and nothing in the shipped build sets either.
+ * Configured by TUNING.META.BOARD_SERVER. A build with VITE_BOARDS=off (the
+ * YouTube Playables build, which allows zero requests) leaves it dark.
  */
 
 const TIMEOUT_MS = 6000;
@@ -40,7 +40,7 @@ async function withTimeout(url, init = {}) {
 
 export class BoardTransport {
   /**
-   * @param {{endpoint:string, key:string}} config PostgREST base URL and the
+   * @param {{endpoint:string, key:string}} config PostgREST base URL (…/rest/v1) and the
    *   publishable anon key. Both are public by design; neither grants a write.
    */
   constructor({ endpoint, key } = {}) {
@@ -51,8 +51,13 @@ export class BoardTransport {
 
   get _headers() {
     return {
+      // The game's own schema in the shared leaderboards project.
+      'Accept-Profile': 'diction_dash',
+      'Content-Profile': 'diction_dash',
       apikey: this.key,
-      Authorization: `Bearer ${this.key}`,
+      // A publishable key (sb_publishable_…) is not a JWT and must not ride
+      // as a bearer token; a legacy anon JWT may.
+      ...(this.key.startsWith('sb_') ? {} : { Authorization: `Bearer ${this.key}` }),
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
