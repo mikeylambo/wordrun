@@ -1,0 +1,51 @@
+# DICTION DASH — handoff (2026-10-09)
+
+Branch: `claude/game-improvement-ideas-udtonm` (pushed). Read `CLAUDE.md` first:
+gates are re-run, not assumed (`git config core.hooksPath .githooks`, then
+`npm run gates` must be the last thing before every commit; also run
+`npm run gate:v1`). Browser smoke: `npm run build && PLAYWRIGHT_CORE=<path> CHROME=/opt/pw-browsers/chromium npm run smoke`
+(playwright-core is not a repo dep — `npm i playwright-core` in a scratch dir).
+
+## Shipped this session (RC13.4 → RC14.4)
+- **Arcade in-run:** rolling score + pops, PERFECT hit-stop, 3·2·1·GO on the
+  launch storm, plate stamp (right) / shatter (wrong, holds the true spelling
+  0.5 s first), domed touch buttons, lamp hearts, DAILY progress strip,
+  press tell (edge light bar on the pressed side).
+- **Cabinet:** results tally (READS/PERFECT/CHAIN) + rank letter S/A/B/C,
+  initials + local top-10 (meta/hiscore.js, board-policy keys), attract cycle
+  (HIGH SCORES / HOW TO PLAY / PRESS START), CONTINUE? 9·8·7 count, coin-op
+  chip sounds (synthesized).
+- **Progression:** 19 medals (meta/medals.js) + PROFILE wall; earned runner
+  lights WHITE-HOT (RANK S) / CHROME (7-day streak); cyan streak flame.
+  Fixed: runner lights now tint the 3D body.
+- **Runner glow tiers:** BASE / BUILDING (chain 10) / HIGH FLOW (50) / DASH,
+  explicit steps + aura sprite (TUNING.JUDGE.GLOW_TIERS).
+- **City:** curtain-wall tower shader, sky dome with horizon haze, searchlight
+  beams (render/skyline.js). Bloom pass was built then REMOVED (bad on iPhone).
+- **Wet road:** neon streak reflections + grazing sheen in the road shader
+  (render/material-pass.js, TUNING.WET). Needs an on-device look.
+- **Bells cut.** ◆ = 1 per correct read + chain-milestone bonus (meta/currency.js).
+- **Playtest 10/8 fixes:** ×N residue, title music on first gesture, attract
+  runner on road, taglines/caption/side art removed, one type system (3
+  weights, 4 tracking steps — gated), tabbed SETTINGS.
+- **Tech:** definitions chunk lazy (main 781→471 kB), vite 7, 0 audit vulns,
+  main.js fold into `src/app/` (dev-hooks, continue-offer, run-ledger,
+  sim-events, run-rewards, input-routing). Gates read `tools/lib/app-source.mjs`.
+
+## Open / next
+1. **Wet road on a real iPhone** — tune `TUNING.WET.STREAKS/SHEEN`.
+2. **Speed blur at screen edges** and **horizon light at moments in a run**
+   — owner wants to see them live (prototype; never touch the word plate).
+3. Distant second skyline — rejected ("looks cheap").
+4. Skyline identity beyond "generic" (typographic city / item 26 mockup).
+5. Revisit list from the roadmap: 5 (arcade key caps), 13 (km call-outs),
+   26 (world changes with distance — needs mockup), 17 (announcer — owner VOs).
+6. Phase 5: 34 leaderboards (needs a post-run network carve-out from the
+   zero-network rule) + trademark search; 35 store assets (from attract loop).
+7. Real-phone perf check (headless swiftshader ≈ 11 fps, not representative).
+
+## Constraints to remember
+Four-name cap (the Redline, RUN OVER, FINISH, DAILY RUN); plate legibility
+outranks every visual change; reserved hues (no gold/violet/orange/red for
+new colours — TUNING.META.RESERVED_HUES); zero network at play time; no
+runtime patching (reachability gate); REDUCED FLASH paths for any new motion.

@@ -328,8 +328,9 @@ export const TUNING = {
   // is reachable from the dev panel and exportable as JSON. The tier ORDER is
   // fixed by ui/judgment.js against the compression thresholds — these are the
   // strings those tiers are said with, not a second opinion about the cuts.
-  // Playtest 10/9 — the wet road (render/terrain-mesh.js setWet).
-  WET: { ENV: 2.2, ROUGHNESS: 0.16, METALNESS: 0.72 },
+  // Playtest 10/9 — WET ROADS: neon reflections painted into the road shader
+  // (render/material-pass.js). Cool tints only; never on the rails.
+  WET: { STREAKS: 0.28, SHEEN: 0.07 },
 
   JUDGE: {
     LABELS: {

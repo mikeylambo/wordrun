@@ -56,18 +56,6 @@ export class TerrainMesh {
       vertexColors: true, roughness: 0.85, metalness: 0, flatShading: false,
     });
     this.slots = [];
-    // Playtest 10/9 — WET ROADS. The surface reflects a painted panorama of
-    // the night city (render/scene.js cityEnv): a horizon glow and rows of lit
-    // panes. One prefiltered texture, no extra render — the street reads
-    // rain-slick and catches the city's light for the cost of a texture read.
-    this.setWet = (env) => {
-      const W = TUNING.WET;
-      this.material.envMap = env;
-      this.material.envMapIntensity = W.ENV;
-      this.material.roughness = W.ROUGHNESS;
-      this.material.metalness = W.METALNESS;
-      this.material.needsUpdate = true;
-    };
     const total = T.CHUNKS_AHEAD + T.CHUNKS_BEHIND + 1;
     for (let i = 0; i < total; i++) this.slots.push(this._makeSlot());
     this.dirty = [];

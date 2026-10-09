@@ -113,7 +113,6 @@ const sim = new Sim(SEED);
 // FINISH is a rule of the played game (sim/finish.js); headless tools leave it off.
 sim.endgame = true;
 const terrainMesh = new TerrainMesh(stage.scene, sim.terrain);
-terrainMesh.setWet(stage.cityEnv());   // playtest 10/9: wet roads
 const props = new Props(stage.scene, sim.terrain);
 const landmarks = new Landmarks(stage.scene, sim.terrain);
 const playerActor = new PlayerActor(stage.scene);

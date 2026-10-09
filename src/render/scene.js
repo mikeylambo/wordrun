@@ -173,44 +173,6 @@ export class Stage {
     }
   }
 
-  /**
-   * Playtest 10/9 — the night city as an environment, for the wet road to
-   * reflect: deep sky, a cyan glow band at the horizon, rows of cool lit panes
-   * and a few searchlight streaks, painted once and prefiltered once.
-   */
-  cityEnv() {
-    if (this._cityEnv) return this._cityEnv;
-    const c = document.createElement('canvas');
-    c.width = 1024; c.height = 512;
-    const g = c.getContext('2d');
-    const sky = g.createLinearGradient(0, 0, 0, 512);
-    sky.addColorStop(0, '#02060c'); sky.addColorStop(0.44, '#0b2236');
-    sky.addColorStop(0.5, '#1d5a7a'); sky.addColorStop(0.56, '#07131d'); sky.addColorStop(1, '#020509');
-    g.fillStyle = sky; g.fillRect(0, 0, 1024, 512);
-    let s = 7;
-    const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-    for (let i = 0; i < 70; i++) {                 // towers along the horizon
-      const x = rnd() * 1024, w = 10 + rnd() * 26, h = 20 + rnd() * 90;
-      g.fillStyle = '#06111b'; g.fillRect(x, 256 - h, w, h);
-      for (let y = 256 - h + 4; y < 252; y += 6) {
-        for (let xx = x + 3; xx < x + w - 3; xx += 5) {
-          const r = rnd();
-          if (r > 0.6) { g.fillStyle = r > 0.92 ? '#f2f8ff' : '#9fd6f0'; g.fillRect(xx, y, 2, 3); }
-        }
-      }
-    }
-    g.globalAlpha = 0.18; g.fillStyle = '#bfe6ff';
-    for (const x of [180, 520, 830]) { g.beginPath(); g.moveTo(x, 256); g.lineTo(x - 30, 0); g.lineTo(x + 30, 0); g.fill(); }
-    g.globalAlpha = 1;
-    const tex = new THREE.CanvasTexture(c);
-    tex.mapping = THREE.EquirectangularReflectionMapping;
-    tex.colorSpace = THREE.SRGBColorSpace;
-    const pm = new THREE.PMREMGenerator(this.renderer);
-    this._cityEnv = pm.fromEquirectangular(tex).texture;
-    pm.dispose(); tex.dispose();
-    return this._cityEnv;
-  }
-
   render() {
     this._governBudget();
     // The BROADCAST look (Phase N as decided): opt-in, constructed and torn
