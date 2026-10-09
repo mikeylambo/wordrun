@@ -336,7 +336,7 @@ export const TUNING = {
   // its blur along the mirror axis, REFLECT_STRETCH how far above the
   // horizon a road pixel looks (1 = a true mirror; lower = the long
   // vertical smear of wet asphalt, which keeps the skyline ON the road).
-  WET: { STREAKS: 0.28, SHEEN: 0.07, REFLECT: 0.55, REFLECT_SPREAD: 0.06, REFLECT_STRETCH: 0.4 },
+  WET: { SHEEN: 0.07, REFLECT: 0.55, REFLECT_SPREAD: 0.06, REFLECT_STRETCH: 0.4 },
 
   JUDGE: {
     LABELS: {

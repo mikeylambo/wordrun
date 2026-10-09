@@ -126,25 +126,11 @@ function terrainMaterial() {
         totalEmissiveRadiance += vec3(0.010, 0.018, 0.028) * p4Slab * (1.0 - p4Rail);
         totalEmissiveRadiance += p4GridCol * p4Line * 0.2 * uP9Flow;
         totalEmissiveRadiance += p4RailCol * p4Rail * 1.45 * uP9Flow;
-        // Playtest 10/9 — WET ROADS. A rain-slick street smears every light
-        // above it into a long broken streak running toward you. Columns at
-        // seeded lateral positions, dashed along the road, cool tints only,
-        // off the rails, quiet under the runner and gone toward the horizon —
-        // plus a faint sheen where the surface turns grazing.
+        // Playtest 10/9 — WET ROADS: a faint sheen where the surface turns
+        // grazing. The reflection itself is the screen-space mirror
+        // (render/road-reflection.js); the painted neon streaks were cut —
+        // they hid the real reflection.
         {
-          float wetDist = length(vP4World - cameraPosition);
-          float wetFade = smoothstep(5.0, 22.0, wetDist) * (1.0 - smoothstep(110.0, 210.0, wetDist));
-          float colW = 1.35;
-          float colId = floor(p4Across / colW);
-          float h = fract(sin(colId * 91.7 + 3.1) * 43758.5453);
-          float inCol = 1.0 - smoothstep(0.08, 0.32, abs(fract(p4Across / colW) - 0.5) * colW);
-          float len = 9.0 + h * 22.0;
-          float seg = fract(vP4World.z / len + h * 7.0);
-          float dash = smoothstep(0.0, 0.2, seg) * (1.0 - smoothstep(0.4, 0.7, seg));
-          float shimmer = 0.75 + 0.25 * sin(vP4World.z * 0.9 + h * 40.0);
-          vec3 wetCol = mix(vec3(0.62, 0.86, 1.0), vec3(0.30, 0.78, 0.92), step(0.7, h));
-          float wet = step(0.45, h) * inCol * dash * shimmer * wetFade * (1.0 - p4Rail);
-          totalEmissiveRadiance += wetCol * wet * uWetStreaks;
           vec3 wetV = normalize(cameraPosition - vP4World);
           float graze = pow(1.0 - clamp(abs(wetV.y), 0.0, 1.0), 4.0);
           totalEmissiveRadiance += vec3(0.30, 0.55, 0.75) * graze * uWetSheen * (1.0 - p4Rail);
@@ -160,8 +146,7 @@ function terrainMaterial() {
           gl_FragColor.a = 1.0 - wm * uWetMask;
         }`)
       .replace('#include <common>\nvarying float vP4Lane;',
-        '#include <common>\nuniform float uP9Flow;\nuniform float uP4HalfW;\nuniform float uP4Cell;\nuniform float uWetStreaks;\nuniform float uWetSheen;\nuniform float uWetMask;\nvarying float vP4Lane;');
-    shader.uniforms.uWetStreaks = { value: TUNING.WET.STREAKS };
+        '#include <common>\nuniform float uP9Flow;\nuniform float uP4HalfW;\nuniform float uP4Cell;\nuniform float uWetSheen;\nuniform float uWetMask;\nvarying float vP4Lane;');
     shader.uniforms.uWetSheen = { value: TUNING.WET.SHEEN };
     shader.uniforms.uWetMask = WET_MASK;
     shader.uniforms.uP4HalfW = terrain.userData.uP4HalfW;

@@ -22,9 +22,9 @@ gates are re-run, not assumed (`git config core.hooksPath .githooks`, then
   explicit steps + aura sprite (TUNING.JUDGE.GLOW_TIERS).
 - **City:** curtain-wall tower shader, sky dome with horizon haze, searchlight
   beams (render/skyline.js). Bloom pass was built then REMOVED (bad on iPhone).
-- **Wet road:** neon streak reflections + grazing sheen in the road shader
-  (render/material-pass.js, TUNING.WET). Final strength 0.28; 47/47 browser
-  smoke green on it (re-run 10/09). Needs an on-device look.
+- **Wet road:** grazing sheen in the road shader (render/material-pass.js,
+  TUNING.WET.SHEEN). The neon streaks were cut after the iPhone look — they
+  obscured the real reflection (below).
 - **Bells cut.** ◆ = 1 per correct read + chain-milestone bonus (meta/currency.js).
 - **Playtest 10/8 fixes:** ×N residue, title music on first gesture, attract
   runner on road, taglines/caption/side art removed, one type system (3
@@ -43,7 +43,7 @@ gates are re-run, not assumed (`git config core.hooksPath .githooks`, then
 
 ## Open / next
 1. **Wet road on a real iPhone** — tune `TUNING.WET.REFLECT/STRETCH` with
-   `STREAKS/SHEEN`. Headless only shows the opening bend, where the towers sit
+   `SHEEN`. Neon streaks CUT (10/9: they hid the reflection). Headless only shows the opening bend, where the towers sit
    left of the road, so the mirror reads subtly there; judge it on device,
    on a straight with towers ahead. Also confirm fps (governor may drop it).
 2. **Speed blur at screen edges** and **horizon light at moments in a run**
