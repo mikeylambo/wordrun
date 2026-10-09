@@ -615,9 +615,10 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     'the sim buffers a dead-zone answer instead of swallowing it');
   check(plateSrc.includes("'held-real'") && plateSrc.includes("'held-fake'") &&
     plateSrc.includes('wg.heldIndex === g.index'),
-    'the plate shows the held answer on the side the player pressed');
-  check(/held\b[\s\S]{0,600}fillText\(text, cx, cy\)/.test(plateSrc),
-    'the held mark never touches the word itself — legibility outranks it');
+    'the plate shows the held answer');
+  check(/held\b[\s\S]{0,600}fillText\(text, cx, cy\)/.test(plateSrc) &&
+    plateSrc.includes('g.strokeStyle = held ? COL.confirm : COL.inset') && !/fillRect\(cw - 34 - bw/.test(plateSrc),
+    'the held mark never touches the word itself, and lights the whole inset rule — never half of it');
   check(mainCode.includes("case 'word_held': audio.wordHeld(") &&
     audioCode.includes('wordHeld(real)'),
     'the buffered answer is acknowledged in audio, panned to its side');
@@ -808,7 +809,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   const curveCode = read('src/ui/curve-screen.js');
   check(curveCode.includes('goalCheck') && curveCode.includes('GOALS TODAY') &&
     curveCode.includes('#curveScreen .goalCheck i{') && !uiCode.includes('goalCheck'),
-    "today's goals are a big ✓/○ checklist — in PROFILE, where progression is read");
+    "today's goals are a ✓ checklist — in PROFILE, where progression is read");
   check(!uiCode.includes('class="rewardLine"') &&
     curveCode.includes('cBank') && mainCode.includes("currency: metaStats.get('currency', 0)"),
     'the ◆ takings are banked in PROFILE, not tallied over the score just set');
@@ -1622,10 +1623,6 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   check(refl.includes('uGuard[') && refl.includes('guarded(p) < 0.5') && refl.includes('(1.0 - guarded(sp))') &&
     appSource().includes('stage.render(wordGateActors.plateMeshes())'),
     'the wet mirror zeroes every word plate\'s screen box, and never samples the word as a source');
-  const bIdx = stageSrc.indexOf('if (ACCESS.broadcastLook)');
-  const rIdx = stageSrc.indexOf('this.reflection.render(');
-  check(bIdx > 0 && rIdx > bIdx && stageSrc.slice(bIdx, rIdx).includes('return;'),
-    'the wet mirror is skipped under the BROADCAST look');
   check(/b\.reflectOff = true/.test(stageSrc) && stageSrc.includes('!this._budget.reflectOff'),
     'the frame-budget governor gives the wet mirror up before any resolution');
   check((refl.match(/renderer\.render\(scene/g) || []).length === 1 && refl.includes('copyFramebufferToTexture') &&

@@ -846,35 +846,11 @@ head('BROADCAST — few words, one type system, numbers first');
     'and RC9.1 marks the letters that moved — see the REVIEW block in word-gates');
 }
 
-// ── The BROADCAST look (Phase N as decided) ──────────────────────────────
-head('LOOK — BROADCAST is opt-in, explicit, and flash-aware');
-
-{
-  // Phase K's pick: the shipped look stays. The style lab's broadcast
-  // treatment ships only as a settings toggle, default off, integrated
-  // through Stage.render() — never by wrapping a live render function,
-  // which is the Phase 0 banned pattern.
-  const access = fs.readFileSync('src/ui/access.js', 'utf8');
-  const scene = fs.readFileSync('src/render/scene.js', 'utf8');
-  const pass = fs.readFileSync('src/render/broadcast-pass.js', 'utf8');
-
-  check('the shipped look is the default — BROADCAST starts off',
-    access.includes('broadcastLook: false'));
-  check('the toggle is a chip row on the settings surface and it persists',
-    access.includes("[[false, 'STANDARD'], [true, 'BROADCAST']]") &&
-    access.includes('broadcastLook: ACCESS.broadcastLook') &&
-    access.includes('ACCESS.broadcastLook = !!saved.broadcastLook'));
-  check('Stage.render() owns the branch — no runtime render wrapping',
-    scene.includes('if (ACCESS.broadcastLook)') &&
-    scene.includes('this.broadcast = new BroadcastPass(this.renderer)') &&
-    !pass.includes('stage.render =') && !pass.includes('window.__'));
-  check('the toggle tears the pass down on the standard path',
-    scene.includes('this.broadcast.dispose(this.renderer)'));
-  check('REDUCED FLASH controls the glow, radius and strength both',
-    pass.includes('reducedFlash ? BROADCAST.ACCESS_GLOW : BROADCAST.GLOW') &&
-    pass.includes('reducedFlash ? BROADCAST.ACCESS_GLOW_RAD : BROADCAST.GLOW_RAD') &&
-    /ACCESS_GLOW_RAD:\s*7/.test(pass) && /GLOW_RAD:\s*14/.test(pass));
-}
+// ── The BROADCAST look — removed (playtest 10/9) ──────────────────────────
+head('LOOK — one look; the BROADCAST pass and its toggle are gone');
+check('no BROADCAST pass, setting or chip survives anywhere',
+  !fs.existsSync('src/render/broadcast-pass.js') &&
+  !/broadcastLook|BroadcastPass|'STANDARD'/.test(fs.readFileSync('src/ui/access.js', 'utf8') + fs.readFileSync('src/render/scene.js', 'utf8')));
 
 // ── Results motion (Phase Q) ─────────────────────────────────────────────
 head('RESULTS — the score lands on the beat, exactly');
@@ -1124,20 +1100,16 @@ head('REGRESSIONS — a hold that was timed late, a line that strobed, a look');
     appSource().includes('ui.resetCoach();'),
     'a lesson that reappears is a lesson nobody believes');
 
-  // (3) THE LOOK. BROADCAST is a post pass on the WebGL canvas and cannot
-  // reach the DOM; the controls sit above the canvas in every look because
-  // the canvas takes no z-index at all. Held here so a future look cannot
-  // quietly acquire one.
+  // (3) THE LOOK. Every screen pass draws on the WebGL canvas and cannot
+  // reach the DOM; the controls sit above the canvas because the canvas
+  // takes no z-index at all. Held here so a future look cannot quietly
+  // acquire one.
   check('the canvas claims no stacking order, so the controls sit above every look',
     /canvas\{display:block;width:100%;height:100%;touch-action:none\}/.test(html2) &&
     !/#gl\s*\{[^}]*z-index/.test(html2) &&
     /\.v1MobileAction\{[^}]*z-index:67/.test(fs.readFileSync('src/ui/touch-controls.js', 'utf8')) &&
     /#barMarks\{[^}]*z-index:24/.test(html2),
     'the buttons are 67 and the marks 24 against a canvas with none');
-  check('and the look toggle reaches only the renderer, never the page',
-    !/broadcastLook/.test(html2) &&
-    !/classList[^\n]*broadcast/i.test(fs.readFileSync('src/ui/access.js', 'utf8')),
-    'nothing about BROADCAST can move, hide or cover a control');
 }
 
 // ── RC10.8: every performance cue on one ladder ──────────────────────────

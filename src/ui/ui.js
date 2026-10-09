@@ -242,12 +242,12 @@ export class UI {
    */
   setMastery(count = 0, rematch = null) {
     if (!this.titleMastery) return;
-    // The other half of the same story: the one word still beating them,
-    // spelled right. ENDLESS's lane already brings it back on schedule; this
-    // says so before the run, so meeting it is a rematch, not an ambush.
+    // Playtest 10/9: the title no longer names the word still beating the
+    // player (the rematch line). ENDLESS's lane still brings it back on
+    // schedule; `rematch` stays in the signature for that ledger's callers.
+    void rematch;
     const parts = [];
     if (count > 0) parts.push(`${count.toLocaleString('en-US')} WORDS LEARNED`);
-    if (rematch?.id) parts.push(`REMATCH: ${rematch.id.toUpperCase()}`);
     this.titleMastery.textContent = parts.join(' · ');
   }
 

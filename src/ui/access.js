@@ -16,7 +16,7 @@
  * humanist face instead of the condensed monospace.
  *
  * The panel is also the game's one persisted settings surface, so the
- * LOOK row (STANDARD / BROADCAST, see render/broadcast-pass.js) lives
+ * cosmetic rows (STREETS and the screen-FX prototypes) live
  * here despite being cosmetic rather than accessibility.
  */
 
@@ -41,10 +41,6 @@ export const ACCESS = {
   // export both read it, and the interface treatment follows it, so raising
   // either dial improves the whole game rather than only the word.
   readableType: false,
-  // The BROADCAST look (Phase N as decided): a whole-frame cel/ink/glow
-  // treatment, strictly opt-in — the shipped look is the default and this
-  // stays false until a player flips the chip. Stage.render() reads it live.
-  broadcastLook: false,
   // CITY STREETS (render/street.js): buildings, wet pavement and lamps along
   // the road. Default ON; OFF restores the open void beside the track.
   cityStreets: true,
@@ -69,7 +65,6 @@ function persist() {
     reducedFlash: ACCESS.reducedFlash,
     plateSpacing: ACCESS.plateSpacing,
     plateSize: ACCESS.plateSize,
-    broadcastLook: ACCESS.broadcastLook,
     cityStreets: ACCESS.cityStreets,
     speedBlur: ACCESS.speedBlur,
     horizonLight: ACCESS.horizonLight,
@@ -168,7 +163,6 @@ export function initAccess() {
   // Any saved profile keeps exactly what it had — nobody's setting moves.
   if (Object.keys(saved).length === 0 && osPrefers('(prefers-contrast: more)')) ACCESS.plateSpacing = 1;
   ACCESS.plateSize = step(saved.plateSize, 0);
-  ACCESS.broadcastLook = !!saved.broadcastLook;
   ACCESS.cityStreets = saved.cityStreets !== false; // unset = ON
   ACCESS.speedBlur = saved.speedBlur !== false;     // unset = ON
   ACCESS.horizonLight = saved.horizonLight !== false; // unset = ON
@@ -331,8 +325,6 @@ export function buildAccessPanel(hooks = {}) {
   );
   section('VISUAL');
   syncs.push(
-    chipRow('LOOK', [[false, 'STANDARD'], [true, 'BROADCAST']],
-      () => ACCESS.broadcastLook, (v) => { ACCESS.broadcastLook = v === 'true' || v === true; }),
     chipRow('STREETS', [[true, 'ON'], [false, 'OFF']],
       () => ACCESS.cityStreets, (v) => { ACCESS.cityStreets = v === 'true' || v === true; }),
     chipRow('SPEED BLUR', [[true, 'ON'], [false, 'OFF']],

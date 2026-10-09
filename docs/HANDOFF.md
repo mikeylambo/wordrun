@@ -62,6 +62,15 @@ gates are re-run, not assumed (`git config core.hooksPath .githooks`, then
   switches in Settings → VISUAL (default ON while being judged). Shared
   helpers `screenHorizon` / `plateGuards` live in road-reflection.js.
 
+- **RC14.9 — playtest fixes:** 'arp' (and ~40 modern words ENABLE lacks)
+  added to MODERN_GUARD in wordlist.js so they can never be shown as fakes.
+  Wet mirror now RECOVERS after the governor drops it (it used to stay off
+  for the session — e.g. after the app returned from background). Held
+  answer lights the whole plate inset rule (the half-width bar on the
+  pressed side read as the line being cut in half). Title REMATCH line
+  removed. BROADCAST look and the LOOK/STANDARD row deleted. PROFILE tidied:
+  BEST / BANK stat tiles, 4-across medal coins, compact goals.
+
 ## Open / next
 0. **Judge the prototypes on device** — SPEED BLUR / HORIZON LIGHT: keep,
    tune (SCREEN_FX in screen-fx.js) or cut. Owner idea: a city → void
