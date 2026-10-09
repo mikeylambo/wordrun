@@ -1,0 +1,38 @@
+name: Visual gate
+
+# The UI layer, pixel-compared against tools/visual-baselines/. Runs on every
+# push and PR that touches what the player sees. On a failure the changed
+# screenshots are uploaded: if the change was intended, re-approve with
+#   npm run build && npm run gate:visual -- --update
+# and commit the new baselines.
+
+on:
+  push:
+    paths: ['index.html', 'src/**', 'public/**', 'tools/visual-gate.mjs', 'tools/visual-baselines/**']
+  pull_request:
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Browser
+        run: |
+          npm i --no-save playwright-core@1.56.1
+          npx playwright-core install --with-deps chromium
+      - run: npm run build
+      - name: Compare
+        run: npm run gate:visual
+      - name: Upload changed screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diff
+          path: tools/visual-baselines/*.actual.png
+          retention-days: 7

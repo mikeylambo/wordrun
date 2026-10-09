@@ -27,6 +27,7 @@
     "audit:network": "node tools/network-audit.mjs",
     "audit:capture": "node tools/capture-audit.mjs",
     "audit:load": "node tools/loadtime-audit.mjs",
+    "gate:visual": "node tools/visual-gate.mjs",
     "build:definitions": "node tools/build-definitions.mjs",
     "feel": "node tools/feel-measure.mjs",
     "calibrate": "node tools/calibration-gates.mjs --emit && node tools/refactor-snapshot.mjs --emit",

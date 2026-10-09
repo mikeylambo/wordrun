@@ -23,6 +23,15 @@ meta, family-safety, music, reachability, and the Phase 0 behaviour snapshot).
 Do not append to a doc "after the last gate run" — that is exactly how a red
 banned-vocabulary gate once shipped.
 
+## Visual gate (CI)
+
+`npm run build && npm run gate:visual` compares the UI layer (title, mode
+rows, HUD, the MISSED reveal) at phone width against
+`tools/visual-baselines/`. It runs in CI (`.github/workflows/visual.yml`), not
+pre-commit, because it needs a browser. After an intended visual change,
+re-approve with `npm run gate:visual -- --update` and commit the baselines.
+Type changes are checked first in the dev panel's **type specimen** (`?dev=1`).
+
 ## One file per system — no runtime patching
 
 Each system lives in one file you can find from the import graph. Do NOT add

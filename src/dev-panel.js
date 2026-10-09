@@ -162,6 +162,18 @@ export async function mountDevPanel() {
     el.addEventListener(t, (e) => e.stopPropagation());
   }
 
+  // ── Type specimen ───────────────────────────────────────────────────────
+  {
+    const g = document.createElement('div');
+    g.className = 'grp';
+    g.innerHTML = '<div class="lbl"><span>type</span></div><div class="row wide"><button>type specimen</button></div>';
+    g.querySelector('button').onclick = async () => {
+      const m = await import('./dev/type-specimen.js');
+      m.toggleTypeSpecimen();
+    };
+    body.appendChild(g);
+  }
+
   // ── Look treatments ─────────────────────────────────────────────────────
   const lab = await import('../dev/style-lab.js').catch(() => null);
   if (lab) {

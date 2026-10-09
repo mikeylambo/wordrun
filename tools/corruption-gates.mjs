@@ -761,10 +761,12 @@ head('BROADCAST — few words, one type system, numbers first');
   // The identity tier (Fraunces) and the numeral tier (Big Shoulders) are
   // bundled the same way, and neither may reach the word plates.
   for (const f of ['fraunces-italic-latin-var.woff2', 'big-shoulders-display-latin-var.woff2']) {
+    // Fraunces is only drawn at FINISH, so it is cached for offline play but
+    // not preloaded: it never sits on the path to BEGIN RUN.
     const bytes = fs.existsSync(`public/fonts/${f}`) ? fs.statSync(`public/fonts/${f}`).size : 0;
-    check(`${f} ships, is preloaded and offline-cached`,
-      bytes > 8_000 && bytes < 400_000 &&
-      new RegExp(`rel="preload"[^>]*${f.replace(/\./g, '\\.')}`).test(html) &&
+    const preloaded = new RegExp(`rel="preload"[^>]*${f.replace(/\./g, '\\.')}`).test(html);
+    check(`${f} ships, is offline-cached, and is preloaded only if the HUD needs it`,
+      bytes > 8_000 && bytes < 400_000 && preloaded === f.startsWith('big-shoulders') &&
       fs.readFileSync('public/sw.js', 'utf8').includes(`fonts/${f}`), `${(bytes / 1024).toFixed(0)} KB`);
   }
   check('the plates never take the title or numeral face',
