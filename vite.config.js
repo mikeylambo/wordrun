@@ -7,6 +7,12 @@ export default defineConfig({
     target: 'es2020',
     outDir: 'dist',
     assetsInlineLimit: 0,
+    // RC13.9: the one chunk over Rollup's 500 kB default is three.js itself
+    // (~609 kB, its own long-cached chunk below; every module imports it as
+    // a namespace, so there is nothing to shake). The limit sits just above
+    // it so the warning still fires the day GAME code crosses 500 kB —
+    // main is ~471 kB now that the definitions load on demand.
+    chunkSizeWarningLimit: 620,
     rollupOptions: {
       output: {
         // RC10.4: three.js is roughly two thirds of the bundle and changes

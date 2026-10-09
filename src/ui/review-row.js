@@ -21,7 +21,17 @@
  * ui/access.js for every colour-vision mode.
  */
 
-import { defineWord } from '../words/definitions.js';
+// RC13.9 — the definitions are a third of a megabyte and only this panel
+// reads them, so they are their own chunk: fetched while the results card is
+// up (main.js prefetches), never on the boot path. Until they land a row
+// simply has no definition line — it never waits.
+let defineWord = () => '';
+let pending = null;
+export function loadDefinitions() {
+  return (pending ||= import('../words/definitions.js')
+    .then((m) => { defineWord = m.defineWord; })
+    .catch(() => { pending = null; }));
+}
 import { dangerFor, dangerBand } from '../words/danger.js';
 import { diffSpelling } from '../words/spelling-diff.js';
 

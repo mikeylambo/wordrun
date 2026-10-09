@@ -1575,5 +1575,16 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     'the streak flame burns cabinet cyan (warm hues are reserved) and holds still under REDUCED FLASH');
 }
 
+// ── RC13.9 — the boot path stays lean ─────────────────────────────────────
+{
+  const all = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? all(`${dir}/${e.name}`) : e.name.endsWith('.js') ? [`${dir}/${e.name}`] : []);
+  const staticDefs = all('src').filter((f) => /^import [^;]*from '[./]*words\/definitions\.js'/m.test(read(f)));
+  check(staticDefs.length === 0 && /import\('\.\.\/words\/definitions\.js'\)/.test(read('src/ui/review-row.js')),
+    `the 310 kB definitions load on demand, never on the boot path${staticDefs.length ? ' — static: ' + staticDefs.join(', ') : ''}`);
+  check(/chunkSizeWarningLimit: 620,/.test(read('vite.config.js')),
+    'the chunk-size warning sits just above three.js, so game code crossing 500 kB still warns');
+}
+
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);
 if (fail) process.exit(1);

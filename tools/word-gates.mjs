@@ -2286,7 +2286,8 @@ head('REVIEW — the row a stranger reads in one glance');
 {
   const read = (f) => fs.readFileSync(f, 'utf8');
   const { diffSpelling } = await import('../src/words/spelling-diff.js');
-  const { reviewRow } = await import('../src/ui/review-row.js');
+  const { reviewRow, loadDefinitions } = await import('../src/ui/review-row.js');
+  await loadDefinitions();
   const { DEFINITIONS } = await import('../src/words/definitions.js');
 
   // Every fake this game can show, diffed against its source. The generator's
@@ -2341,7 +2342,7 @@ head('REVIEW — the row a stranger reads in one glance');
   check('the pips and the definition come from the existing modules, not new data',
     noPips === 0 && noDef === 0 &&
     /from '..\/words\/danger.js'/.test(read('src/ui/review-row.js')) &&
-    /from '..\/words\/definitions.js'/.test(read('src/ui/review-row.js')) &&
+    /import\('..\/words\/definitions.js'\)/.test(read('src/ui/review-row.js')) &&
     !/DEFINITIONS\s*=|DANGER\s*=/.test(read('src/ui/review-row.js')),
     'danger.js rates it, definitions.js explains it; the row file holds no table of its own');
 

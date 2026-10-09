@@ -52,6 +52,7 @@ import { MasteryLedger } from './meta/mastery.js';
 import { Boards, boardKeyFor } from './meta/boards.js';
 import { placeFor, insert as insertHiscore } from './meta/hiscore.js';
 import { InitialsEntry } from './ui/initials.js';
+import { loadDefinitions } from './ui/review-row.js';
 import { newlyEarned, medalById } from './meta/medals.js';
 import { rankFor } from './ui/results-motion.js';
 import { AttractPanels } from './ui/attract-panels.js';
@@ -915,6 +916,7 @@ function finalizeRun() {
     continued: runContinued, day: dailySeedString() }) : null;
   const hiPlace = hiscoreBoard ? placeFor(Storage.hiscores(hiscoreBoard), finalScore) : 0;
   hiscoreScore = finalScore;
+  loadDefinitions();   // RC13.9: warm the review panel's chunk while the card is up
   if (hiPlace) initials.open({ place: hiPlace, initials: Storage.lastInitials() });
   else initials.close();
   if (isPb) ui.setAllTimeBest(Storage.bestAllTime());
@@ -1442,6 +1444,9 @@ document.getElementById('deathRecap')?.addEventListener('click', (e) => {
   e.stopPropagation();
   audio.uiTap();
   ui.renderMissedPanel((w) => nemesis.history(w));
+  // RC13.9: the definitions chunk is usually here already (prefetched on the
+  // results card); if not, the rows repaint with their meanings when it lands.
+  loadDefinitions().then(() => ui.renderMissedPanel((w) => nemesis.history(w)));
   missedPanel?.classList.add('on');
 });
 document.getElementById('missedClose')?.addEventListener('click', (e) => {
