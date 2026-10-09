@@ -11,7 +11,8 @@ import TUNING from '../TUNING.js';
 import { PALETTE, LIGHT } from './palette.js';
 import { bandForDistance } from './art-direction.js';
 import { EndgameSky } from './endgame-sky.js';
-import { BroadcastPass } from './broadcast-pass.js';
+import { RoadReflection } from './road-reflection.js';
+import { ScreenFx } from './screen-fx.js';
 import { ACCESS } from '../ui/access.js';
 
 export class Stage {
@@ -19,6 +20,9 @@ export class Stage {
     this.renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
+      // The wet mirror reads its road mask from the frame's alpha
+      // (render/road-reflection.js). Every path still ends at alpha 1.
+      alpha: true,
       powerPreference: 'high-performance',
       stencil: false,
     });
@@ -68,6 +72,10 @@ export class Stage {
       key: this.key,
       hemi: this.hemi,
     });
+
+    // The screen FX prototypes (speed blur, horizon light): one pass,
+    // silent until main's update() gives it something to do.
+    this.fx = new ScreenFx(this.renderer);
 
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -162,32 +170,52 @@ export class Stage {
     if (b.ema > 23.5) {
       b.slowFor += dtMs / 1000;
       b.fastFor = 0;
-      if (b.slowFor > 1.1) { applyDpr(this.dpr - 0.15); b.slowFor = 0; }
+      // The wet mirror is the first thing a slow device gives up, before
+      // any resolution. Playtest 10/9: it used to stay off for the session,
+      // so one slow second (an app returning from the background) lost it
+      // for good — it now comes back below, last, once frames are fast.
+      if (b.slowFor > 1.1 && !b.reflectOff) { b.reflectOff = true; b.slowFor = 0; }
+      else if (b.slowFor > 1.1) { applyDpr(this.dpr - 0.15); b.slowFor = 0; }
     } else if (b.ema < 17.4) {
       b.fastFor += dtMs / 1000;
       b.slowFor = 0;
-      if (b.fastFor > 5.0) { applyDpr(this.dpr + 0.1); b.fastFor = 0; }
+      if (b.fastFor > 5.0 && this.dpr < b.ceiling - 0.01) { applyDpr(this.dpr + 0.1); b.fastFor = 0; }
+      // Full resolution and still fast: the mirror returns. Each return
+      // doubles the wait for the next, so a device that cannot hold both
+      // settles instead of flickering.
+      else if (b.reflectOff && b.fastFor > (b.reflectWait || 5)) {
+        b.reflectOff = false;
+        b.reflectWait = Math.min(80, (b.reflectWait || 5) * 2);
+        b.fastFor = 0;
+      }
     } else {
       b.slowFor = Math.max(0, b.slowFor - dtMs / 1800);
       b.fastFor = Math.max(0, b.fastFor - dtMs / 1600);
     }
   }
 
-  render() {
+  /** `plates`: the word plates' meshes, which the wet mirror must never touch. */
+  render(plates = []) {
     this._governBudget();
-    // The BROADCAST look (Phase N as decided): opt-in, constructed and torn
-    // down here so the toggle applies live and the default path stays the
-    // bare render. This branch is the system's one integration point — the
-    // pass is never installed by wrapping a live render function.
-    if (ACCESS.broadcastLook) {
-      if (!this.broadcast) this.broadcast = new BroadcastPass(this.renderer);
-      this.broadcast.render(this.renderer, this.scene, this.camera, ACCESS.reducedFlash);
-      return;
+    // The wet mirror (render/road-reflection.js): the scene is drawn once,
+    // into its target, then mirrored onto the road in one screen pass. The
+    // plate meshes are handed in by main's frame loop.
+    if (TUNING.WET.REFLECT > 0 && !this._budget.reflectOff) {
+      if (!this.reflection) this.reflection = new RoadReflection(this.renderer);
+      this.reflection.render(this.renderer, this.scene, this.camera, {
+        plates,
+        reducedFlash: ACCESS.reducedFlash,
+        time: performance.now() / 1000,
+      });
+    } else {
+      if (this.reflection) {
+        this.reflection.dispose(this.renderer);
+        this.reflection = null;
+      }
+      this.renderer.render(this.scene, this.camera);
     }
-    if (this.broadcast) {
-      this.broadcast.dispose(this.renderer);
-      this.broadcast = null;
-    }
-    this.renderer.render(this.scene, this.camera);
+    // Speed blur + horizon light (render/screen-fx.js), over the finished
+    // frame; main drives `this.fx` with the run's speed and its moments.
+    this.fx.render(this.renderer, this.camera, plates);
   }
 }

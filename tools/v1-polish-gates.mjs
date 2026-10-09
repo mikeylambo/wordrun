@@ -102,8 +102,8 @@ check(rigSrc.includes('(p.speed - R.FLOOR) / (R.CEILING - R.FLOOR)') &&
   rigSrc.includes('HEIGHT_SPEED_DROP') && rigSrc.includes('LOOK_SPEED_AHEAD'),
   'camera speed feel spans the whole RUN range: closer-lower-wider, not boom-back');
 check(actorsSrc.includes('(p.speed - R.FLOOR) / (R.CEILING - R.FLOOR)') &&
-  actorsSrc.includes('this.tail.material.opacity'),
-  'runner cadence spans the range and the comet tail rides the top of it');
+  actorsSrc.includes('this._wakeRate = (8 + tailN * 55'),
+  'runner cadence spans the range and the particle wake rides the top of it');
 // Phase 27: no audio voice rides speed any more — every noise bed that did
 // was a wind by another name. Phase J retired the stem engine too; going
 // faster is still audible because the full track's beat clock is mapped from
@@ -451,12 +451,12 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     //     fog off, and it recorded the whole run, so its far end stayed at
     //     full additive brightness while the road under it faded away.
     const actorCode = codeOf('src/render/actors.js');
-    const trail = actorCode.slice(actorCode.indexOf('this.tracks = new THREE.LineSegments'));
-    check(/fog: true/.test(trail.slice(0, 300)),
-      'the runner trail takes the same fog as the road it is drawn on');
-    const segs = Number(/const TRACK_SEGMENTS = (\d+)/.exec(actorCode)?.[1]);
-    check(segs > 0 && segs <= 80,
-      `and it is a tail, not a transcript of the run (${segs} segments)`);
+    const trail = actorCode.slice(actorCode.indexOf('this.wake = new THREE.Points'));
+    check(/fog: true/.test(trail.slice(0, 400)),
+      'the runner\'s wake takes the same fog as the road it is shed over');
+    const segs = Number(/const WAKE_MAX = (\d+)/.exec(actorCode)?.[1]);
+    check(segs > 0 && segs <= 240 && !/new THREE\.LineSegments|PlaneGeometry\(0\.9, 1\)/.test(actorCode),
+      `and it is particles from a bounded pool (${segs}), never a solid trail`);
 
     // (b) The gate ground line is the one road marking drawn separately from
     //     the ribbon mesh, so it is the one that has to be told about the
@@ -615,9 +615,10 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     'the sim buffers a dead-zone answer instead of swallowing it');
   check(plateSrc.includes("'held-real'") && plateSrc.includes("'held-fake'") &&
     plateSrc.includes('wg.heldIndex === g.index'),
-    'the plate shows the held answer on the side the player pressed');
-  check(/held\b[\s\S]{0,600}fillText\(text, cx, cy\)/.test(plateSrc),
-    'the held mark never touches the word itself — legibility outranks it');
+    'the plate shows the held answer');
+  check(/held\b[\s\S]{0,600}fillText\(text, cx, cy\)/.test(plateSrc) &&
+    plateSrc.includes('g.strokeStyle = held ? COL.confirm : COL.inset') && !/fillRect\(cw - 34 - bw/.test(plateSrc),
+    'the held mark never touches the word itself, and lights the whole inset rule — never half of it');
   check(mainCode.includes("case 'word_held': audio.wordHeld(") &&
     audioCode.includes('wordHeld(real)'),
     'the buffered answer is acknowledged in audio, panned to its side');
@@ -639,7 +640,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
     /crest\.rotation\.x = 1\.15/.test(actors),
     'the head carries the one identity mark — the crest swept back off the crown');
   check(actors.includes('function poseRunner(r, phase, speedN, airborne, dt, style = {})') &&
-    actors.includes('hips, chest, head, halo, pool, tail'),
+    actors.includes('hips, chest, head, halo, pool,'),
     'the rig contract is untouched — every E3 posture and the ghost pose identically');
 }
 
@@ -808,7 +809,7 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   const curveCode = read('src/ui/curve-screen.js');
   check(curveCode.includes('goalCheck') && curveCode.includes('GOALS TODAY') &&
     curveCode.includes('#curveScreen .goalCheck i{') && !uiCode.includes('goalCheck'),
-    "today's goals are a big ✓/○ checklist — in PROFILE, where progression is read");
+    "today's goals are a ✓ checklist — in PROFILE, where progression is read");
   check(!uiCode.includes('class="rewardLine"') &&
     curveCode.includes('cBank') && mainCode.includes("currency: metaStats.get('currency', 0)"),
     'the ◆ takings are banked in PROFILE, not tallied over the score just set');
@@ -1612,6 +1613,103 @@ check(!/^import .*v1-ship-polish/m.test(audioEngine),
   const clash = lights.filter((h) => { const u = hueOf(h); return u != null && RH.HUES.some(({ deg }) => { const dd = Math.abs(u - deg); return Math.min(dd, 360 - dd) < RH.MIN_SEPARATION_DEG; }); });
   check(lights.length >= 3 && clash.length === 0,
     `the city's new light (${lights.length} colours: dome glow, beams, pane tints) clears every reserved hue`);
+}
+
+// ── Wet mirror (playtest 10/9): the screen-space road reflection ──────────
+{
+  const refl = read('src/render/road-reflection.js');
+  const stageSrc = read('src/render/scene.js');
+  const roadSrc = read('src/render/material-pass.js');
+  check(refl.includes('uGuard[') && refl.includes('guarded(p) < 0.5') && refl.includes('(1.0 - guarded(sp))') &&
+    appSource().includes('stage.render(wordGateActors.plateMeshes())'),
+    'the wet mirror zeroes every word plate\'s screen box, and never samples the word as a source');
+  check(/b\.reflectOff = true/.test(stageSrc) && stageSrc.includes('!this._budget.reflectOff'),
+    'the frame-budget governor gives the wet mirror up before any resolution');
+  check((refl.match(/renderer\.render\(scene/g) || []).length === 1 && refl.includes('copyFramebufferToTexture') &&
+    !/setRenderTarget\(this\./.test(refl),
+    'the wet mirror draws the scene exactly once (a frame copy, no second scene render)');
+  check(roadSrc.includes('gl_FragColor.a = 1.0 - wm * uWetMask') && refl.includes('WET_MASK.value = 0'),
+    'the road writes its wet mask only while the mirror runs; otherwise every pixel stays opaque');
+  check(refl.includes('reducedFlash ? 0 : 1'), 'REDUCED FLASH stills the mirror\'s ripple');
+}
+
+// ── CITY STREETS (playtest 10/9): buildings, wet pavement, lamps ─────────
+{
+  const T = (await import('../src/TUNING.js')).default;
+  const { STREET, buildingAt } = await import('../src/render/street.js');
+  const { layoutPage } = await import('../src/render/editorial-layout.js');
+  const { Terrain } = await import('../src/sim/terrain.js');
+  const st = read('src/render/street.js');
+  const acc = read('src/ui/access.js');
+  const app = appSource();
+  check(acc.includes('cityStreets: true') && acc.includes('cityStreets: ACCESS.cityStreets') &&
+    acc.includes("ACCESS.cityStreets = saved.cityStreets !== false") && acc.includes("chipRow('STREETS'") &&
+    app.includes('cityStreet.update(pv.d, ACCESS.cityStreets)') && app.includes('editorialWorld.setStreet(ACCESS.cityStreets)') &&
+    app.includes('trackPylons.mesh.visible = !ACCESS.cityStreets'),
+    'CITY STREETS is one persisted switch (default ON) that drives the street, the page and the pylons together');
+  // Every building stands clear of the road and of the lamp line.
+  let minFace = Infinity, n = 0;
+  for (let k = 0; k < 400; k++) for (const side of [-1, 1]) {
+    const b = buildingAt(12345, k, side); if (!b) continue; n++;
+    minFace = Math.min(minFace, b.setBack);
+  }
+  check(n > 400 && T.RUN.TRACK_HALF_W + minFace > STREET.LAMP_X + 1.0,
+    `every facade stands clear of the road and the lamp line (nearest ${minFace.toFixed(1)} m past the rail, ${n} blocks)`);
+  check(/const AVOID = new Set\(\['tunnel', 'canyon', 'narrows', 'drop'\]\)/.test(st) &&
+    (st.match(/this\._avoid\(/g) || []).length >= 2,
+    'buildings and lamps step aside for every authored place — tunnel, canyon, narrows, drop');
+  // Street mode drops only the page's flat marks; what the page BUILDS stays.
+  const terrain = new Terrain(12345);
+  let keepsBuilt = true, dropsFlat = true;
+  for (const d0 of [500, 1500, 2500, 3500, 4500]) {
+    const a = layoutPage(terrain, d0, 4, T.RUN.TRACK_HALF_W);
+    const b = layoutPage(terrain, d0, 4, T.RUN.TRACK_HALF_W, { street: true });
+    if (b.arches.length !== a.arches.length) keepsBuilt = false;
+    if (b.type.some((t) => t[4] < 1)) dropsFlat = false;              // a flat greeked row survived
+    if (b.type.length !== a.type.filter((t) => t[4] >= 1).length) keepsBuilt = false; // canyon walls
+    if (b.stops.length || b.dashes.length || b.caps.length) dropsFlat = false;
+  }
+  check(keepsBuilt && dropsFlat,
+    'under CITY STREETS the page lays its walls, arches and fences but none of its flat void marks');
+  const hueOf = (hex) => { const r = (hex >> 16 & 255) / 255, g = (hex >> 8 & 255) / 255, b = (hex & 255) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (!d) return null;
+    const x = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return (x * 60 + 360) % 360; };
+  const RH = T.META.RESERVED_HUES;
+  const cols = [...st.matchAll(/(?:color|emissive): (0x[0-9a-f]{6})/g)].map((m) => parseInt(m[1], 16));
+  const clash = cols.filter((h) => { const u = hueOf(h); return u != null && RH.HUES.some(({ deg }) => { const dd = Math.abs(u - deg); return Math.min(dd, 360 - dd) < RH.MIN_SEPARATION_DEG; }); });
+  check(cols.length >= 4 && clash.length === 0 && STREET.WINDOWS < 0.6,
+    `the street's light (${cols.length} colours) clears every reserved hue, and its windows sit well under the plate`);
+}
+
+// ── Screen FX prototypes (playtest 10/9): edge speed blur, horizon light ──
+{
+  const fx = read('src/render/screen-fx.js');
+  const stageSrc = read('src/render/scene.js');
+  const acc = read('src/ui/access.js');
+  const app = appSource();
+  check(fx.includes('clearOfPlates(p)') && /edge = smoothstep\(0\.30, 0\.78, r\) \* uBlur \* clear/.test(fx) &&
+    /uLight \* clear/.test(fx) && fx.includes('plateGuards(camera, plates'),
+    'the speed blur and the horizon light both fall to zero over every word plate');
+  check(fx.includes("reducedFlash ? 0.5 : 1)") && fx.includes('reducedFlash ? 2.5 : 1') && fx.includes('reducedFlash ? 0.5 : 1);'),
+    'REDUCED FLASH halves the blur and the light, and slows the light\'s rise');
+  check(!/renderer\.render\(scene/.test(fx) && stageSrc.includes('this.fx.render(this.renderer, this.camera, plates)'),
+    'the screen FX draw over the finished frame — never a second scene render');
+  check(['speedBlur', 'horizonLight'].every((k) => acc.includes(`${k}: true`) && acc.includes(`${k}: ACCESS.${k}`) &&
+    acc.includes(`ACCESS.${k} = saved.${k} !== false`)) &&
+    acc.includes("chipRow('SPEED BLUR'") && acc.includes("chipRow('HORIZON LIGHT'") &&
+    app.includes('blurOn: ACCESS.speedBlur') && app.includes('lightOn: ACCESS.horizonLight'),
+    'each prototype has its own persisted switch, honoured every frame');
+  check(app.includes('stage.fx.pulse(0.8)') && app.includes('stage.fx.pulse(0.6)') && app.includes('stage.fx.pulse(1)'),
+    'the horizon light answers a run\'s moments: chain milestones, a DASH, each kilometre');
+}
+
+// ── Pause menu tap guard (playtest 10/9: SETTINGS → DONE landed on the title)
+{
+  const pz = read('src/ui/pause.js');
+  check(pz.includes("this.panel.addEventListener('pointerdown'") && pz.includes('e.isTrusted && act !== down') &&
+    pz.includes("getElementById('accessPanel')?.classList.contains('on')") &&
+    read('src/ui/access.js').includes("new CustomEvent('dictiondash:access-closed')"),
+    'a pause action needs a tap that starts and ends on it, never under the settings sheet or just after it');
 }
 
 console.log(`\nV1 polish gates: ${pass} pass / ${fail} fail`);

@@ -642,8 +642,8 @@ head('MASTERY — the ledger\'s work, finally visible and honestly counted');
     check('and a beaten word stops being anybody\'s rematch',
       nem.toughest()?.id === 'receive', JSON.stringify(nem.toughest()));
     const uiSrc = fs.readFileSync('src/ui/ui.js', 'utf8');
-    check('the title says it beside the learned count, spelled right',
-      uiSrc.includes('`REMATCH: ${rematch.id.toUpperCase()}`') &&
+    check('the title carries the learned count only — no REMATCH line (playtest 10/9)',
+      !/REMATCH/.test(uiSrc) &&
       appSource().includes('ui.setMastery(mastery.count, nemesis.toughest());'));
   }
 

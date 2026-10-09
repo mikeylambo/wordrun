@@ -29,6 +29,7 @@ export function installDevHooks(app) {
   window.__TUNING = TUNING;
   window.__UI = ui;
   window.__RENDER = render;
+  window.__STAGE = stage;
 
   // The playtest report (?playtest=1): everything a note needs to be replayed.
   function playtestReport() {

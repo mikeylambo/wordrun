@@ -1,5 +1,5 @@
 /**
- * Late-run sky, weather and completion presentation.
+ * Late-run sky and completion presentation.
  *
  * Runs inside Stage.followLight(), which already executes once per rendered
  * frame. No second animation loop is introduced.
@@ -17,30 +17,9 @@ const smooth = (a, b, v) => {
 };
 const lerp = (a, b, t) => a + (b - a) * t;
 
-function hash32(seed, n) {
-  let x = (seed ^ Math.imul(n + 1, 0x9e3779b1)) >>> 0;
-  x ^= x >>> 16;
-  x = Math.imul(x, 0x7feb352d) >>> 0;
-  x ^= x >>> 15;
-  x = Math.imul(x, 0x846ca68b) >>> 0;
-  x ^= x >>> 16;
-  return x >>> 0;
-}
-
-// The whiteout gets its last volatile beat BEFORE the empty stretch and the
-// final approach, so weather never obscures the finale. (V1 timing — it used
-// to be applied by v1-finalize.js re-running this whole update on top of the
-// RC9.7 values below it; the RC9.7 values were never seen.)
-function lateWeather(distance, seed = 1) {
-  if (distance < 21000 || distance > 23000) return 0;
-  const len = 660;
-  const seg = Math.floor((distance - 21000) / len);
-  if ((hash32(seed, seg) & 3) !== 0) return 0;
-  const local = ((distance - 21000) - seg * len) / len;
-  const enter = smooth(0.16, 0.34, local);
-  const leave = 1 - smooth(0.64, 0.86, local);
-  return clamp(enter * leave * 0.88);
-}
+// Playtest 10/9: the late-run white weather (21–23 km, a white sky, fog and a
+// full-frame wash) was cut — built for the void, it read as a glitch over
+// the night city. Night still breaks into dawn and morning at the finish.
 
 function makeStars() {
   let s = 0x5eedc0de;
@@ -265,11 +244,6 @@ export class EndgameSky {
       'linear-gradient(180deg,transparent 0 48%,rgba(255,183,126,.08) 69%,rgba(255,210,157,.46) 100%)',
       1
     );
-    this.weather = ensureOverlay(
-      'rc97Weather',
-      'radial-gradient(120% 82% at 50% 42%,rgba(238,244,247,.72),rgba(218,228,233,.92))',
-      3
-    );
 
     this.ending = new EscapeOverlay();
     this.escapeSeenAt = 0;
@@ -287,7 +261,6 @@ export class EndgameSky {
     this.mixKey = new THREE.Color();
     this.mixHemiSky = new THREE.Color();
     this.mixHemiGround = new THREE.Color();
-    this.white = new THREE.Color(0xd7dfe3);
     this.choiceSpeed = 0;
 
     this.ending.onContinue = () => this._continue();
@@ -388,7 +361,6 @@ export class EndgameSky {
       this.sundogL.material.opacity = 0;
       this.sundogR.material.opacity = 0;
       this.horizon.style.opacity = '0';
-      this.weather.style.opacity = '0';
       return false;
     }
 
@@ -399,13 +371,6 @@ export class EndgameSky {
     this.tmpHemiSky.setHex(a.hemiSky).lerp(this.mixHemiSky.setHex(b.hemiSky), t);
     this.tmpHemiGround.setHex(a.hemiGround).lerp(this.mixHemiGround.setHex(b.hemiGround), t);
 
-    const seed = globalThis.__SIM?.seed ?? 1;
-    const whiteout = lateWeather(distance, seed);
-    if (whiteout > 0) {
-      this.tmpSky.lerp(this.white, whiteout * 0.82);
-      this.tmpFog.lerp(this.white, whiteout * 0.94);
-    }
-
     this.scene.background.copy(this.tmpSky);
     this.scene.fog.color.copy(this.tmpFog);
     this.key.color.copy(this.tmpKey);
@@ -414,8 +379,8 @@ export class EndgameSky {
 
     const fogNear = lerp(a.fogNear, b.fogNear, t);
     const fogFar = lerp(a.fogFar, b.fogFar, t);
-    this.scene.fog.near = lerp(fogNear, 14, whiteout);
-    this.scene.fog.far = lerp(fogFar, 82, whiteout);
+    this.scene.fog.near = fogNear;
+    this.scene.fog.far = fogFar;
 
     // Night falls through the deep stretch and breaks AT the finish: dawn
     // arrives over the last 2 km and the morning is the reward for crossing.
@@ -437,13 +402,13 @@ export class EndgameSky {
     }
 
     this.celestial.position.copy(this.camera.position);
-    this.stars.material.opacity = night * (1 - whiteout) * 0.88;
+    this.stars.material.opacity = night * 0.88;
     this.moon.material.opacity = night * (1 - dawn) * 0.82;
     this.moon.position.set(-72, 54, -152);
 
     let sunAlpha = sunset * 0.66;
     if (dawn > sunAlpha) sunAlpha = dawn;
-    this.sun.material.opacity = clamp(sunAlpha * (1 - whiteout * 0.5));
+    this.sun.material.opacity = clamp(sunAlpha);
     if (dawn > 0.02) {
       this.sun.position.set(68, lerp(-7, 34, smooth(27800, 32000, distance)), -148);
     } else {
@@ -454,7 +419,6 @@ export class EndgameSky {
     const prestige = overrunPrestige(distance);
     const warm = clamp(sunset * 0.42 + dawn * 0.74 + prestige.glory * 0.08);
     this.horizon.style.opacity = warm.toFixed(3);
-    this.weather.style.opacity = (whiteout * 0.44).toFixed(3);
 
     this.halo.position.copy(this.sun.position);
     this.halo.material.opacity = prestige.halo * 0.48;
@@ -482,7 +446,6 @@ export class EndgameSky {
         : distance >= ENDGAME.FALSE_DAWN ? 'false-dawn'
         : distance >= ENDGAME.HIGH_NIGHT ? 'high-night'
         : 'deep-mountain',
-      whiteout: +whiteout.toFixed(3),
     };
     return true;
   }

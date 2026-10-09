@@ -22,8 +22,9 @@ gates are re-run, not assumed (`git config core.hooksPath .githooks`, then
   explicit steps + aura sprite (TUNING.JUDGE.GLOW_TIERS).
 - **City:** curtain-wall tower shader, sky dome with horizon haze, searchlight
   beams (render/skyline.js). Bloom pass was built then REMOVED (bad on iPhone).
-- **Wet road:** neon streak reflections + grazing sheen in the road shader
-  (render/material-pass.js, TUNING.WET). Needs an on-device look.
+- **Wet road:** grazing sheen in the road shader (render/material-pass.js,
+  TUNING.WET.SHEEN). The neon streaks were cut after the iPhone look — they
+  obscured the real reflection (below).
 - **Bells cut.** ◆ = 1 per correct read + chain-milestone bonus (meta/currency.js).
 - **Playtest 10/8 fixes:** ×N residue, title music on first gesture, attract
   runner on road, taglines/caption/side art removed, one type system (3
@@ -32,8 +33,76 @@ gates are re-run, not assumed (`git config core.hooksPath .githooks`, then
   main.js fold into `src/app/` (dev-hooks, continue-offer, run-ledger,
   sim-events, run-rewards, input-routing). Gates read `tools/lib/app-source.mjs`.
 
+- **Wet mirror (RC14.5):** the mockup's look in-engine — render/road-reflection.js.
+  Scene drawn once to screen, frame copied, one pass mirrors the skyline onto
+  the road (stretched, blurred, highlight knee, screen blend). Road writes its
+  mask into alpha (material-pass.js, `WET_MASK`); plate boxes are zeroed and
+  never sampled; off under BROADCAST; governor drops it first; REDUCED FLASH
+  stills the ripple. Gated in v1-polish-gates. Dial: TUNING.WET.REFLECT 0.55,
+  REFLECT_STRETCH 0.4, REFLECT_SPREAD 0.06. `window.__STAGE` added (dev hook).
+
+- **CITY STREETS (RC14.7):** render/street.js — gappy lit-facade blocks
+  3.5–10 m off the rails (one instanced draw, windows in-shader), dark wet
+  pavement either side (faint share of the wet mirror), street lamps + light
+  pools every 14 m (they take over the pylons' speed cue). Under it the
+  editorial page drops its flat void marks but keeps canyon walls, tunnel
+  arches, narrows fence, brackets and the Redline bars. Settings → VISUAL →
+  STREETS ON/OFF (persisted, default ON; OFF = the old void). Dials: STREET
+  in street.js. Gated in v1-polish-gates.
+
+- **RC14.8 — street pass 2 + prototypes:** lamps sparing (one per 46 m,
+  alternating kerbs). Leftover "floating dashes" were the dataworld line-art
+  pass outlining the street pavement + skyline (it also darkened the
+  pavement) — groups now opt out via `userData.dataworldSkip`. Runner's solid
+  trails (ground line + comet tail) replaced by a particle WAKE (actors.js,
+  160-spark pool, fogged, denser with speed/rung/DASH). PROTOTYPES in
+  render/screen-fx.js, one pass over the finished frame: SPEED BLUR (radial,
+  edges only, >55% speed + DASH) and HORIZON LIGHT (swell at every 25-chain,
+  DASH start, each km). Both plate-guarded, REDUCED FLASH halved, own
+  switches in Settings → VISUAL (default ON while being judged). Shared
+  helpers `screenHorizon` / `plateGuards` live in road-reflection.js.
+
+- **RC14.9 — playtest fixes:** 'arp' (and ~40 modern words ENABLE lacks)
+  added to MODERN_GUARD in wordlist.js so they can never be shown as fakes.
+  Wet mirror now RECOVERS after the governor drops it (it used to stay off
+  for the session — e.g. after the app returned from background). Held
+  answer lights the whole plate inset rule (the half-width bar on the
+  pressed side read as the line being cut in half). Title REMATCH line
+  removed. BROADCAST look and the LOOK/STANDARD row deleted. PROFILE tidied:
+  BEST / BANK stat tiles, 4-across medal coins, compact goals.
+  Pause menu tap guard: SETTINGS → DONE could land on the title on iPhone;
+  pause actions now need a same-button tap and are shielded under/after
+  the settings sheet (not reproducible headless — confirm on device).
+
+- **Fake-word audit (RC15.0):** the guard is now built from ENABLE ∪
+  Hunspell en_US ∪ word-list ∪ WordNet (dev deps only; `node
+  tools/build-guard.mjs` after any bank change). +858 collisions blocked
+  (9,178 → 10,036): modern words (arp, vape, pwn…) and lowercase acronyms
+  (atm, abc…) that read as words. Every bank word still gets a normal fake.
+  Gated in word-gates. Owner device: iPhone 16e (A18) — tune for it, let
+  the governor carry older phones.
+
+- **RC15.1 — city pass:** five procedural facade styles (glass curtain,
+  concrete grid, ribbon floors, dark office w/ fins + one lit floor,
+  residential) + roof crowns on ~1/3 of blocks; parapet caps. No images.
+  Gap fix: behind canyon/tunnel/narrows walls the blocks step back 16 m and
+  down 20% (no more holes); around drops the city eases out/in over 48 m.
+  Late-run white weather (21–23 km) cut — the dawn/morning finish remains.
+  Fonts: Archivo (all UI) + Atkinson Hyperlegible Next (plate word, and the
+  readable recap) — owner is exploring a more distinctive face.
+
 ## Open / next
-1. **Wet road on a real iPhone** — tune `TUNING.WET.STREAKS/SHEEN`.
+0. **Judge the prototypes on device** — SPEED BLUR / HORIZON LIGHT: keep,
+   tune (SCREEN_FX in screen-fx.js) or cut. Owner idea: a city → void
+   progression (streets thinning into the void with distance, maybe a
+   settings loop); the late-run whiteout (endgame-sky.js `lateWeather`,
+   21–23 km) and false dawn are still in.
+0b. **CITY STREETS on device** — compare ON/OFF; check fps, the plate against
+   far facades on straights, and tunnels/canyons (buildings step aside).
+1. **Wet road on a real iPhone** — tune `TUNING.WET.REFLECT/STRETCH` with
+   `SHEEN`. Neon streaks CUT (10/9: they hid the reflection). Headless only shows the opening bend, where the towers sit
+   left of the road, so the mirror reads subtly there; judge it on device,
+   on a straight with towers ahead. Also confirm fps (governor may drop it).
 2. **Speed blur at screen edges** and **horizon light at moments in a run**
    — owner wants to see them live (prototype; never touch the word plate).
 3. Distant second skyline — rejected ("looks cheap").

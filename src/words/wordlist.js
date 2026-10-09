@@ -1114,8 +1114,21 @@ export const ALL_WORDS = TIERS.flat();
 /** Validity set for gameplay: the shipped tiers. */
 const VALID = new Set(ALL_WORDS);
 
-/** Rejection set for the fake generator: shipped words ∪ common guard. */
-const GUARD = new Set([...ALL_WORDS, ...COMMON_GUARD, ...EXTENDED_GUARD]);
+/**
+ * Modern real words the ENABLE list (behind EXTENDED_GUARD) predates.
+ * Playtest 10/9: 'arp' (as in arpeggiator) was shown as a fake of 'rap' and
+ * a correct read was punished. Guard data only — never shown, never played.
+ */
+const MODERN_GUARD = [
+  'arp', 'arps', 'emoji', 'emojis', 'selfie', 'selfies', 'vape', 'vapes',
+  'wifi', 'gifs', 'nerf', 'robo', 'matcha', 'esports', 'mixtape', 'lofi',
+  'mecha', 'kawaii', 'apps', 'blog', 'vlog', 'meme', 'wiki', 'synth', 'zine',
+  'podcast', 'ebook', 'email', 'emcee', 'retro', 'remix', 'indie', 'combo',
+  'promo', 'demo', 'intro', 'outro', 'reboot', 'login', 'online', 'offline',
+];
+
+/** Rejection set for the fake generator: shipped words ∪ every guard. */
+const GUARD = new Set([...ALL_WORDS, ...COMMON_GUARD, ...MODERN_GUARD, ...EXTENDED_GUARD]);
 
 /**
  * The validity checker the acceptance gate names: a real (shipped) word must

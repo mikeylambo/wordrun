@@ -34,6 +34,9 @@ export class DataworldPass {
   }
 
   _skip(obj) {
+    // A system that is already authored as light and form (the skyline, the
+    // street) opts its whole group out with userData.dataworldSkip.
+    for (let o = obj; o; o = o.parent) if (o.userData?.dataworldSkip) return true;
     for (const root of this.skipRoots) {
       if (root.getObjectById?.(obj.id)) return true;
     }
@@ -43,13 +46,13 @@ export class DataworldPass {
   _convert(obj) {
     const m = obj.material;
     if (!m || obj.userData.__p4Dataworld) return;
+    if (this._skip(obj)) return;
     obj.userData.__p4Dataworld = true;
 
     // Emissive/basic materials are already lights (word plates, corruption,
     // eyes) — leave them alone. Everything lit becomes a dark body.
     if (m.isMeshBasicMaterial || m.isLineBasicMaterial || m.isPointsMaterial) return;
     if (m.name === 'rc8-terrain') return; // the track has its own grid shader
-    if (this._skip(obj)) return;
 
     // Materials are shared across meshes — darken each one exactly once.
     if (!m.userData.__p4Darkened) {

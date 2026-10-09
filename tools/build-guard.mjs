@@ -4,8 +4,13 @@
  * The guard is the COMPLETE collision set for the fake generator: every
  * string its mutation classes (deletion, adjacent swap, letter doubling,
  * any single-letter substitution) can produce from any shipped bank word,
- * intersected with real English (the ENABLE list via the
- * an-array-of-english-words dev dependency), minus the bank itself.
+ * intersected with real English, minus the bank itself. "Real English" is
+ * the UNION of four dev-only dictionaries, because ENABLE alone predates
+ * modern usage (playtest 10/9: 'arp' was shown as a fake of 'rap'):
+ *   ENABLE (an-array-of-english-words) · Hunspell en_US (dictionary-en,
+ *   stems + the inflections its S/D/G flags name) · word-list · WordNet
+ *   lemmas (wordnet-db). Over-blocking is always safe — it only removes a
+ *   possible fake; it can never mark a correct read wrong.
  * Because fakes are always exactly one such edit from a bank word, this
  * set provably contains every real word a fake could ever land on — the
  * 'gray' -> 'grey' class, closed by construction.
@@ -17,7 +22,24 @@ import fs from 'node:fs';
 import words from 'an-array-of-english-words' with { type: 'json' };
 const { ALL_WORDS } = await import('../src/words/wordlist.js');
 
+const alpha = (w) => /^[a-z]+$/.test(w);
 const dict = new Set(words);
+// Hunspell en_US: stems, plus the plural/past/-ing forms its flags allow.
+for (const line of fs.readFileSync('node_modules/dictionary-en/index.dic', 'utf8').split('\n').slice(1)) {
+  const [stem, flags = ''] = line.trim().split('/');
+  if (!stem || !alpha(stem)) continue;
+  dict.add(stem);
+  if (flags.includes('S')) dict.add(/[^aeiou]y$/.test(stem) ? stem.slice(0, -1) + 'ies' : /(s|x|z|ch|sh)$/.test(stem) ? stem + 'es' : stem + 's');
+  if (flags.includes('D')) dict.add(stem.endsWith('e') ? stem + 'd' : stem + 'ed');
+  if (flags.includes('G')) dict.add((stem.endsWith('e') ? stem.slice(0, -1) : stem) + 'ing');
+}
+for (const w of fs.readFileSync('node_modules/word-list/words.txt', 'utf8').split('\n')) if (alpha(w)) dict.add(w);
+for (const pos of ['noun', 'verb', 'adj', 'adv']) {
+  for (const line of fs.readFileSync(`node_modules/wordnet-db/dict/index.${pos}`, 'utf8').split('\n')) {
+    const w = line.split(' ')[0];
+    if (alpha(w)) dict.add(w);
+  }
+}
 const VALID = new Set(ALL_WORDS);
 const guard = new Set();
 const letters = 'abcdefghijklmnopqrstuvwxyz';
@@ -46,7 +68,7 @@ fs.writeFileSync('src/words/guard.js', `/**
  * GENERATED extended fake-guard — GUARD DATA, NOT CONTENT. Do not hand-edit.
  *
  * The complete collision set for the fake generator: every real English
- * word (ENABLE list) reachable from any shipped bank word by one of the
+ * word (ENABLE ∪ Hunspell ∪ word-list ∪ WordNet) reachable from any shipped bank word by one of the
  * generator's mutation classes. A fake can NEVER be one of these, so a
  * correct read is never punished by generator luck. None of this is
  * playable vocabulary. Regenerate after bank changes:

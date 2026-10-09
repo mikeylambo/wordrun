@@ -16,7 +16,7 @@
  * humanist face instead of the condensed monospace.
  *
  * The panel is also the game's one persisted settings surface, so the
- * LOOK row (STANDARD / BROADCAST, see render/broadcast-pass.js) lives
+ * cosmetic rows (STREETS and the screen-FX prototypes) live
  * here despite being cosmetic rather than accessibility.
  */
 
@@ -41,10 +41,13 @@ export const ACCESS = {
   // export both read it, and the interface treatment follows it, so raising
   // either dial improves the whole game rather than only the word.
   readableType: false,
-  // The BROADCAST look (Phase N as decided): a whole-frame cel/ink/glow
-  // treatment, strictly opt-in — the shipped look is the default and this
-  // stays false until a player flips the chip. Stage.render() reads it live.
-  broadcastLook: false,
+  // CITY STREETS (render/street.js): buildings, wet pavement and lamps along
+  // the road. Default ON; OFF restores the open void beside the track.
+  cityStreets: true,
+  // Playtest 10/9 prototypes (render/screen-fx.js): the edge speed blur and
+  // the horizon light at moments in a run. Default ON while being judged.
+  speedBlur: true,
+  horizonLight: true,
   // PD-1: the guided teaching surface. Default ON — a new player gets the
   // centered lessons; they retire on demonstrated action anyway, and this
   // chip serves the two edge cases (an expert on a fresh profile who wants
@@ -62,7 +65,9 @@ function persist() {
     reducedFlash: ACCESS.reducedFlash,
     plateSpacing: ACCESS.plateSpacing,
     plateSize: ACCESS.plateSize,
-    broadcastLook: ACCESS.broadcastLook,
+    cityStreets: ACCESS.cityStreets,
+    speedBlur: ACCESS.speedBlur,
+    horizonLight: ACCESS.horizonLight,
     guidedTips: ACCESS.guidedTips,
     musicOff: ACCESS.musicOff,
     sfxOff: ACCESS.sfxOff,
@@ -158,7 +163,9 @@ export function initAccess() {
   // Any saved profile keeps exactly what it had — nobody's setting moves.
   if (Object.keys(saved).length === 0 && osPrefers('(prefers-contrast: more)')) ACCESS.plateSpacing = 1;
   ACCESS.plateSize = step(saved.plateSize, 0);
-  ACCESS.broadcastLook = !!saved.broadcastLook;
+  ACCESS.cityStreets = saved.cityStreets !== false; // unset = ON
+  ACCESS.speedBlur = saved.speedBlur !== false;     // unset = ON
+  ACCESS.horizonLight = saved.horizonLight !== false; // unset = ON
   ACCESS.guidedTips = saved.guidedTips !== false; // unset = ON
   ACCESS.musicOff = saved.musicOff === true;      // unset = music ON
   ACCESS.sfxOff = saved.sfxOff === true;          // unset = sfx ON
@@ -318,8 +325,12 @@ export function buildAccessPanel(hooks = {}) {
   );
   section('VISUAL');
   syncs.push(
-    chipRow('LOOK', [[false, 'STANDARD'], [true, 'BROADCAST']],
-      () => ACCESS.broadcastLook, (v) => { ACCESS.broadcastLook = v === 'true' || v === true; }),
+    chipRow('STREETS', [[true, 'ON'], [false, 'OFF']],
+      () => ACCESS.cityStreets, (v) => { ACCESS.cityStreets = v === 'true' || v === true; }),
+    chipRow('SPEED BLUR', [[true, 'ON'], [false, 'OFF']],
+      () => ACCESS.speedBlur, (v) => { ACCESS.speedBlur = v === 'true' || v === true; }),
+    chipRow('HORIZON LIGHT', [[true, 'ON'], [false, 'OFF']],
+      () => ACCESS.horizonLight, (v) => { ACCESS.horizonLight = v === 'true' || v === true; }),
     // Full screen is NOT persisted and deliberately not in ACCESS: a browser
     // only grants it inside a user gesture, so a remembered "on" could not be
     // honoured on the next boot and the switch would lie. The chip reads the
@@ -370,6 +381,8 @@ export function buildAccessPanel(hooks = {}) {
     e.stopPropagation();
     panel.classList.remove('on');
     hooks.onClose?.();
+    // The pause menu shields its buttons for a beat after this (ui/pause.js).
+    document.dispatchEvent(new CustomEvent('dictiondash:access-closed'));
   });
   panel.appendChild(done);
   showTab(tabs[0]?.pane);

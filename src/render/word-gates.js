@@ -170,11 +170,15 @@ class Plate {
       g.restore();
     }
     // The sign's inset rule: a hairline inside the frame, so the face reads
-    // as a printed panel rather than a glowing slab.
+    // as a printed panel rather than a glowing slab. N1 + playtest 10/9: a
+    // HELD answer lights the WHOLE rule in the confirm colour. It used to be
+    // a half-width bar on the pressed side, sitting on this very line — so
+    // the line looked cut in half, left or right depending on the choice.
     g.save();
     if (quiet) g.globalAlpha = 0.55;
-    g.strokeStyle = COL.inset;
-    g.lineWidth = 3;
+    g.strokeStyle = held ? COL.confirm : COL.inset;
+    if (held) { g.shadowColor = COL.confirm; g.shadowBlur = 10; }
+    g.lineWidth = held ? 5 : 3;
     g.beginPath();
     g.roundRect(30, 30, cw - 60, ch - 60, 22);
     g.stroke();
@@ -236,19 +240,6 @@ class Plate {
     g.fillText(text, cx, cy);
     g.restore();
 
-    // N1: the buffered answer's acknowledgment — one bar in the plate's
-    // bottom corner on the SIDE the player pressed (right = real, left =
-    // fake, the same sides as the input zones). Under the word, never on it.
-    if (held) {
-      g.save();
-      g.fillStyle = COL.confirm;
-      g.shadowColor = COL.confirm;
-      g.shadowBlur = 12;
-      const bw = 170, by = ch - 30;
-      if (state === 'held-real') g.fillRect(cw - 34 - bw, by, bw, 9);
-      else g.fillRect(34, by, bw, 9);
-      g.restore();
-    }
     this.tex.needsUpdate = true;
   }
 
@@ -401,6 +392,11 @@ export class WordGateActors {
       this._peek.set(key, g);
     }
     return g;
+  }
+
+  /** Every plate's mesh, for the wet mirror's no-reflect boxes. */
+  plateMeshes() {
+    return [this.current, this.fx, ...this.ahead].map((p) => p.mesh);
   }
 
   reset() {

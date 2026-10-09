@@ -22,6 +22,8 @@ import { DataworldPass } from './render/dataworld.js';
 import { StreakBurst } from './render/streak-burst.js';
 import { WindStreaks, TrackPylons } from './render/speed-fantasy.js';
 import { EditorialWorld } from './render/editorial-world.js';
+import { CityStreet } from './render/street.js';
+import { SCREEN_FX } from './render/screen-fx.js';
 import { Skyline } from './render/skyline.js';
 import { LaunchSequence } from './render/launch-sequence.js';
 import { AttractMode } from './render/attract.js';
@@ -132,6 +134,10 @@ const trackPylons = new TrackPylons(stage.scene, sim.terrain);
 // Phase M: the Editorial World — the page geometry beside the track, set
 // denser as the run's band rises and struck through as the Redline closes.
 const editorialWorld = new EditorialWorld(stage.scene, sim.terrain);
+// CITY STREETS: buildings, wet pavement and lamps along the road.
+const cityStreet = new CityStreet(stage.scene, sim.terrain);
+// Screen FX moment tracking: the last chain step, DASH state and km seen.
+let fxChainStep = 0, fxWasDash = false, fxKm = 0;
 // The key art's city: distant monoliths and roadside lightbox signs.
 const skyline = new Skyline(stage.scene, sim.terrain);
 const launch = new LaunchSequence();
@@ -1374,6 +1380,12 @@ function tick(dt) {
   windStreaks.update(paused ? 0 : dt, running ? (p.effSpeed || p.speed) : 0, p.overdrive);
   trackPylons.terrain = sim.terrain;
   trackPylons.update(pv.d);
+  // CITY STREETS: the facades sweeping past take over the pylons' speed cue;
+  // the page lays only what it builds (walls, arches), not its flat marks.
+  trackPylons.mesh.visible = !ACCESS.cityStreets;
+  cityStreet.terrain = sim.terrain;
+  cityStreet.update(pv.d, ACCESS.cityStreets);
+  editorialWorld.setStreet(ACCESS.cityStreets);
   editorialWorld.terrain = sim.terrain;
   launch.update(dt);
   // RC6 attract: a title with nothing on it and nobody in it. Any sheet, the
@@ -1447,7 +1459,29 @@ function tick(dt) {
   playerActor.flow = flowF;
   playerActor.chain = p.chain | 0;   // RC14.1: the glow tier reads the chain itself
   playerActor.reducedFlash = ACCESS.reducedFlash;   // no tier-up flare under REDUCED FLASH
-  playerActor.dashChain = p.overdrive ? p.dashChain : 0; // Phase I: the tail reads the rung
+  playerActor.dashChain = p.overdrive ? p.dashChain : 0; // Phase I: the wake reads the rung
+  // Screen FX prototypes (render/screen-fx.js): the edge blur rides speed
+  // and the DASH; the horizon light swells at a run's moments — every
+  // CHAIN_EVERY-th read in a chain, a DASH firing, each kilometre.
+  if (running) {
+    const chainStep = Math.floor((p.chain | 0) / SCREEN_FX.CHAIN_EVERY);
+    if (chainStep > fxChainStep) stage.fx.pulse(0.8);
+    fxChainStep = chainStep;
+    if (p.overdrive && !fxWasDash) stage.fx.pulse(0.6);
+    fxWasDash = !!p.overdrive;
+    const km = Math.floor(pv.d / SCREEN_FX.KM_M);
+    if (km > fxKm) stage.fx.pulse(1);
+    fxKm = km;
+  } else {
+    fxChainStep = 0; fxWasDash = false; fxKm = 0;
+  }
+  stage.fx.update(paused ? 0 : dt, {
+    speedN: running ? Math.max(0, Math.min(1, ((p.effSpeed || p.speed) - TUNING.RUN.FLOOR) / (TUNING.RUN.CEILING - TUNING.RUN.FLOOR))) : 0,
+    dash: running && !!p.overdrive,
+    reducedFlash: ACCESS.reducedFlash,
+    blurOn: ACCESS.speedBlur,
+    lightOn: ACCESS.horizonLight,
+  });
   // The score's reading of the run. Music modulates, the run decides: the
   // intensity term is the game's, and the mapping may only tint it.
   const clock = music.update(performance.now());
@@ -1584,7 +1618,8 @@ function tick(dt) {
   // title — the card is a score and two buttons, and a settings cog
   // floating over it invites everything except the next run.
   appEl.classList.toggle('carded', ui.deathScreen.classList.contains('on'));
-  stage.render();
+  // The wet mirror never covers or reflects a word plate.
+  stage.render(wordGateActors.plateMeshes());
 
   if (!shotTaken && sim.phase === PHASE.KILL &&
       sim.killTimer >= TUNING.BEAST.KILL_WHIP_TIME + 0.24) {

@@ -12,21 +12,28 @@
 import { MEDALS, GROUPS } from '../meta/medals.js';
 
 const CSS = `
-/* RC13.8 — the medal wall: every medal, earned ones lit, the rest waiting. */
-#curveScreen .medalWall{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:6px;margin:4px 0 6px}
-#curveScreen .medal{display:flex;align-items:center;gap:7px;min-height:30px;padding:5px 7px;border:1px solid rgba(255,255,255,.08);
-  font-size:8px;font-weight:800;letter-spacing:.16em;color:var(--dimmer)}
-#curveScreen .medal i{flex:0 0 14px;width:14px;height:14px;border-radius:50%;border:1px solid rgba(255,255,255,.18)}
-#curveScreen .medal.on{border-color:rgba(103,216,255,.4);color:#dff4ff;background:rgba(14,34,44,.5)}
+/* RC13.8 — the medal wall: every medal, earned ones lit, the rest waiting.
+   Playtest 10/9 (tidy): a compact wall of coins, four across, every tile the
+   same height with its label centred under the coin — no ragged wrap. */
+#curveScreen .medalWall{display:grid;grid-template-columns:repeat(4,1fr);gap:4px 6px;margin:8px 0 4px}
+#curveScreen .medal{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:44px;
+  font-size:7px;line-height:1.3;font-weight:800;letter-spacing:.16em;color:var(--dimmer);text-align:center}
+#curveScreen .medal i{width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.16)}
+#curveScreen .medal.on{color:#dff4ff}
 #curveScreen .medal.on i{border:0;background:radial-gradient(circle at 35% 30%,#fff,#8be4ff 55%,#2c7fa0);box-shadow:0 0 10px rgba(103,216,255,.6)}
 #curveScreen .medal.key.on i{background:radial-gradient(circle at 35% 30%,#fff,#e8e8e8 60%,#9a9a9a);box-shadow:0 0 10px rgba(255,255,255,.55)}
-#curveScreen .cTop .cV{font-size:19px;font-weight:800;letter-spacing:-.02em;color:#eaf6fc}
-#curveScreen .cBank{display:inline-block;margin-left:10px;font-style:normal;font-size:11px;font-weight:800;letter-spacing:.16em;color:#8be4ff}
-#curveScreen .goalList{display:flex;flex-direction:column;gap:8px;margin:2px 0 4px}
-#curveScreen .goalCheck{display:flex;gap:11px;align-items:center;text-align:left}
-#curveScreen .goalCheck i{font-style:normal;flex:0 0 20px;width:20px;height:20px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.16);border-radius:50%;font-size:10px;color:var(--dimmer)}
+/* The two numbers a player comes here for, as a pair of tiles. */
+#curveScreen .cStats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 4px}
+#curveScreen .cStat{padding:12px 12px 10px;border:1px solid rgba(255,255,255,.08);background:rgba(14,24,32,.4)}
+#curveScreen .cStat b{display:block;font:800 22px/1 var(--face);letter-spacing:-.02em;color:#eaf6fc}
+#curveScreen .cStat span{display:block;margin-top:7px;font:800 8px/1 var(--face);letter-spacing:.24em;color:var(--dimmer)}
+#curveScreen .cBank b{color:#8be4ff}
+#curveScreen .cBank b i{font-style:normal;font-size:.62em;vertical-align:.18em;margin-right:4px}
+#curveScreen .goalList{display:flex;flex-direction:column;gap:0;margin:0 0 4px}
+#curveScreen .goalCheck{display:flex;gap:10px;align-items:center;text-align:left;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+#curveScreen .goalCheck i{font-style:normal;flex:0 0 14px;width:14px;height:14px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.16);border-radius:50%;font-size:8px;color:var(--dimmer)}
 #curveScreen .goalCheck.done i{border-color:rgba(139,228,255,.7);background:rgba(18,42,54,.55);color:#8be4ff;font-weight:800}
-#curveScreen .goalCheck .goalChip{font-size:11px;letter-spacing:.16em;color:rgba(232,244,251,.5)}
+#curveScreen .goalCheck .goalChip{font-size:9px;letter-spacing:.24em;color:rgba(232,244,251,.55)}
 #curveScreen .goalCheck .goalChip.done{color:#bff0ff;font-weight:800}
 #curveScreen{position:absolute;inset:0;z-index:78;display:none;align-items:center;justify-content:center;
   padding:16px;background:rgba(6,11,16,.94);backdrop-filter:blur(8px);color:#eaf6fc}
@@ -162,10 +169,11 @@ export function buildCurveScreen(getData) {
     // The results card is the high-score moment; this is where someone comes
     // between runs to see what they are chasing and what they have banked.
     if (best > 0 || currency > 0) {
-      rows.push('<div class="cRow cTop"><span class="cK">BEST</span>' +
-        `<span class="cV">${Math.floor(best || 0).toLocaleString('en-US')}` +
-        (currency > 0 ? `<i class="cBank">◆ ${Math.floor(currency)}</i>` : '') +
-        '</span></div>');
+      const n = (v) => Math.floor(v || 0).toLocaleString('en-US');
+      rows.push('<div class="cStats">'
+        + `<div class="cStat"><b>${best > 0 ? n(best) : '—'}</b><span>BEST</span></div>`
+        + `<div class="cStat cBank"><b><i>◆</i>${n(currency)}</b><span>BANK</span></div>`
+        + '</div>');
     }
     // RC13.8 — the medal wall. Always shown, so the unearned ones are a list
     // of things to go and do; a medal that lights a runner says which.
@@ -196,7 +204,7 @@ export function buildCurveScreen(getData) {
       const done = daily.goals.filter((g) => g.done).length;
       rows.push(`<div class="cHead">${done} OF ${daily.goals.length} GOALS TODAY</div>`);
       rows.push(`<div class="goalList">${daily.goals.map((g) =>
-        `<div class="goalCheck${g.done ? ' done' : ''}"><i>${g.done ? '✓' : '○'}</i>`
+        `<div class="goalCheck${g.done ? ' done' : ''}"><i>${g.done ? '✓' : ''}</i>`
         + `<span class="goalChip${g.done ? ' done' : ''}">${g.label}</span></div>`).join('')}</div>`);
     }
     // The rotating queue (Phase 21): cleared first — that is the payoff —
